@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, f_fmlaf};
+use crate::common::*;
 use crate::logf::f_polyeval3;
 
 static LOG10_R: [u64; 128] = [
