@@ -429,7 +429,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
     {
         use crate::log2::LOG_RANGE_REDUCTION;
         dx = f_fmla(
-            m_x,
+            m_x as f64,
             f64::from_bits(LOG_RANGE_REDUCTION[idx_x as usize]),
             -1.0,
         ); // Exact
