@@ -163,7 +163,7 @@ pub(crate) static LOG_R_DD: [(u64, u64); 128] = [
 
 /// Natural logarithm using FMA
 ///
-/// Max found ULP 0.5
+/// Max found ULP 1.1
 #[inline(always)]
 pub fn f_log10(x: f64) -> f64 {
     let mut x_u = x.to_bits();

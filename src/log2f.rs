@@ -29,7 +29,7 @@
 use crate::common::{f_fmla, f_fmlaf};
 use crate::logf::{f_polyeval3, set_exponent_f32};
 
-static LOG2_R: [u64; 128] = [
+pub(crate) static LOG2_R: [u64; 128] = [
     0x0000000000000000,
     0x3f872c7ba20f7327,
     0x3f9743ee861f3556,

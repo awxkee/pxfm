@@ -26,13 +26,13 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bits::{EXP_MASK, get_exponent_f64};
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
 use crate::exp::exp;
 use crate::log::log;
 use crate::log2::LOG_RANGE_REDUCTION;
 use crate::logf::f_polyeval3;
-use crate::sin::EXP_MASK;
 
 /// Power function for given value
 #[inline]
@@ -183,7 +183,7 @@ static LOG2_R_DD: [(u64, u64); 128] = [
     (0x0000000000000000, 0x3ff0000000000000),
 ];
 
-static EXP2_MID1: [(u64, u64); 64] = [
+pub(crate) static EXP2_MID1: [(u64, u64); 64] = [
     (0x0000000000000000, 0x3ff0000000000000),
     (0xbc719083535b085d, 0x3ff02c9a3e778061),
     (0x3c8d73e2a475b465, 0x3ff059b0d3158574),
@@ -258,7 +258,7 @@ fn is_integer(n: f64) -> bool {
 #[inline]
 fn is_odd_integer(x: f64) -> bool {
     let x_u = x.to_bits();
-    let x_e = x_u >> 52;
+    let x_e = (x_u & EXP_MASK) >> 52;
     let lsb = (x_u | EXP_MASK).trailing_zeros();
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
 
@@ -291,7 +291,7 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
     let mut sign: u64 = 0;
 
     // exponent
-    let mut e_x = ((x.to_bits() as i64 & EXP_MASK as i64) >> 52).wrapping_sub(1023) as f64;
+    let mut e_x = get_exponent_f64(x) as f64;
 
     // If x or y is signaling NaN
     if x.is_nan() || y.is_nan() {

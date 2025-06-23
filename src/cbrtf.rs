@@ -84,11 +84,24 @@ pub fn f_cbrtf(x: f32) -> f32 {
         }
     }
 
-    const B1: u32 = 709958130;
     let mut ui: u32 = x.to_bits();
     let mut hx: u32 = ui & 0x7fffffff;
 
-    hx = (hx / 3).wrapping_add(B1);
+    if hx < 0x00800000 {
+        /* zero or subnormal? */
+        if hx == 0 {
+            return x; /* cbrt(+-0) is itself */
+        }
+        const X1P24: f32 = f32::from_bits(0x4b800000);
+        ui = (x * X1P24).to_bits();
+        hx = ui & 0x7fffffff;
+        const B2: u32 = 642849266;
+        hx = hx / 3 + B2;
+    } else {
+        const B1: u32 = 709958130;
+
+        hx = hx / 3 + B1;
+    }
     ui &= 0x80000000;
     ui |= hx;
 

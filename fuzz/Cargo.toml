@@ -9,6 +9,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
+rug = "1.27"
 
 [dependencies.pxfm]
 path = ".."
@@ -16,6 +17,20 @@ path = ".."
 [[bin]]
 name = "math"
 path = "math/math.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "accuracy_sp"
+path = "accuracy_sp/accuracy_sp.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "accuracy_dp"
+path = "accuracy_dp/accuracy_dp.rs"
 test = false
 doc = false
 bench = false

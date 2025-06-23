@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bits::set_exponent_f64;
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
 
@@ -840,22 +841,6 @@ pub(crate) struct LargeArgumentReduction {
     pm_lo: f64,
 }
 
-const fn mask_trailing_ones(len: u64) -> u64 {
-    if len >= 64 {
-        u64::MAX // All ones if length is 64 or more
-    } else {
-        (1u64 << len).wrapping_sub(1)
-    }
-}
-
-pub(crate) const EXP_MASK: u64 = mask_trailing_ones(11) << 52;
-
-#[inline]
-fn set_exponent_f64(x: u64, new_exp: u64) -> u64 {
-    let encoded_mask = new_exp.wrapping_shl(52) & EXP_MASK;
-    x ^ ((x ^ encoded_mask) & EXP_MASK)
-}
-
 impl LargeArgumentReduction {
     #[inline]
     pub(crate) fn high_part(&mut self, x: f64) -> u64 {
@@ -1270,7 +1255,7 @@ pub(crate) static SIN_K_PI_OVER_128: [(u64, u64); 256] = [
 
 /// Sine for double precision
 ///
-/// ULP 0.5
+/// ULP 1.0
 #[inline]
 pub fn f_sin(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
@@ -1325,7 +1310,7 @@ pub fn f_sin(x: f64) -> f64 {
 
 /// Cosine for double precision
 ///
-/// ULP 0.5
+/// ULP 1.0
 #[inline]
 pub fn f_cos(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;

@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bits::min_normal_f32;
 use crate::common::*;
 
 /// Natural logarithm
@@ -89,6 +90,7 @@ pub(crate) static LOG_REDUCTION_F32: LogReductionF32Aligned = LogReductionF32Ali
     0x3f040000, 0x3f040000, 0x3f030000, 0x3f030000, 0x3f020000, 0x3f020000, 0x3f010000, 0x3f000000,
 ]);
 
+#[inline]
 const fn mask_trailing_ones_u32(len: u32) -> u32 {
     if len >= 32 {
         u32::MAX // All ones if length is 64 or more
@@ -253,13 +255,13 @@ pub fn f_logf(x: f32) -> f32 {
     let mut m = -(E_BIAS as i32);
     if x_u < 0x4c5d65a5u32 {
         if x_u == 0x3f7f4d6fu32 {
-            return f64::from_bits(0xbf6659ec80000000) as f32 + f32::EPSILON;
+            return f64::from_bits(0xbf6659ec80000000) as f32 + min_normal_f32(true);
         } else if x_u == 0x41178febu32 {
-            return f64::from_bits(0x4001fcbce0000000) as f32 + f32::EPSILON;
+            return f64::from_bits(0x4001fcbce0000000) as f32 + min_normal_f32(true);
         } else if x_u == 0x3f800000u32 {
             return 0.;
         } else if x_u == 0x1e88452du32 {
-            return f64::from_bits(0xc046d7b180000000) as f32 + f32::EPSILON;
+            return f64::from_bits(0xc046d7b180000000) as f32 + min_normal_f32(true);
         }
         if x_u < f32::MIN_POSITIVE.to_bits() {
             if x == 0.0 {
@@ -271,19 +273,19 @@ pub fn f_logf(x: f32) -> f32 {
         }
     } else {
         if x_u == 0x4c5d65a5u32 {
-            return f32::from_bits(0x418f034b) + f32::EPSILON;
+            return f32::from_bits(0x418f034b) + min_normal_f32(true);
         } else if x_u == 0x65d890d3u32 {
-            return f32::from_bits(0x4254d1f9) + f32::EPSILON;
+            return f32::from_bits(0x4254d1f9) + min_normal_f32(true);
         } else if x_u == 0x6f31a8ecu32 {
-            return f32::from_bits(0x42845a89) + f32::EPSILON;
+            return f32::from_bits(0x42845a89) + min_normal_f32(true);
         } else if x_u == 0x7a17f30au32 {
-            return f32::from_bits(0x42a28a1b) + f32::EPSILON;
+            return f32::from_bits(0x42a28a1b) + min_normal_f32(true);
         } else if x_u == 0x500ffb03u32 {
-            return f32::from_bits(0x41b7ee9a) + f32::EPSILON;
+            return f32::from_bits(0x41b7ee9a) + min_normal_f32(true);
         } else if x_u == 0x5cd69e88u32 {
-            return f32::from_bits(0x4222e0a3) + f32::EPSILON;
+            return f32::from_bits(0x4222e0a3) + min_normal_f32(true);
         } else if x_u == 0x5ee8984eu32 {
-            return f32::from_bits(0x422e4a21) + f32::EPSILON;
+            return f32::from_bits(0x422e4a21) + min_normal_f32(true);
         }
 
         if x_u > f32::MAX.to_bits() {

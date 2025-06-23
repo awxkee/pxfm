@@ -88,7 +88,7 @@ pub const fn log(d: f64) -> f64 {
 
 /// Natural logarithm using FMA
 ///
-/// Max found ULP 0.5
+/// Max found ULP 1.1
 #[inline]
 pub fn f_log(x: f64) -> f64 {
     let mut x_u = x.to_bits();
