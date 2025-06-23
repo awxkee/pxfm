@@ -2,9 +2,8 @@
 
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
-    f_acosf, f_asinf, f_cbrtf,
-    f_cosf, f_coshf, f_exp10f, f_exp2f, f_expf, f_log10f
-    , f_log2f, f_logf, f_powf, f_sinf, f_sinhf, f_tanf, f_tanhf,
+    f_acosf, f_asinf, f_cbrtf, f_cosf, f_coshf, f_exp2f, f_exp10f, f_expf, f_log2f, f_log10f,
+    f_logf, f_powf, f_sinf, f_sinhf, f_tanf, f_tanhf,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
