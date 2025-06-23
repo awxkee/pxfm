@@ -85,7 +85,7 @@ pub const fn roundf_ties_even(x: f32) -> f32 {
         if exponent == 0 {
             return if x.is_sign_negative() { -2.0 } else { 2.0 };
         }
-        return if trunc_is_odd {
+        if trunc_is_odd {
             if x.is_sign_negative() {
                 trunc_value - 1.0
             } else {
@@ -93,9 +93,9 @@ pub const fn roundf_ties_even(x: f32) -> f32 {
             }
         } else {
             trunc_value
-        };
+        }
     } else {
-        return trunc_value;
+        trunc_value
     }
 }
 
@@ -155,7 +155,7 @@ pub const fn round_ties_even(x: f64) -> f64 {
         if exponent == 0 {
             return if x.is_sign_negative() { -2.0 } else { 2.0 };
         }
-        return if trunc_is_odd {
+        if trunc_is_odd {
             if x.is_sign_negative() {
                 trunc_value - 1.0
             } else {
@@ -163,9 +163,9 @@ pub const fn round_ties_even(x: f64) -> f64 {
             }
         } else {
             trunc_value
-        };
+        }
     } else {
-        return trunc_value;
+        trunc_value
     }
 }
 

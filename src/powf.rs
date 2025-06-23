@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, f_fmlaf};
+use crate::common::*;
 use crate::expf::expf;
 use crate::log2f::LOG2_R;
 use crate::logf::{EXP_MASK_F32, f_polyeval3, logf};
@@ -504,12 +504,10 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
     let mut hm_i = hm as i64;
     hm_i = if hm_i > (1i64 << 15) {
         1 << 15
+    } else if hm_i < (-(1i64 << 15)) {
+        -(1 << 15)
     } else {
-        if hm_i < (-(1i64 << 15)) {
-            -(1 << 15)
-        } else {
-            hm_i
-        }
+        hm_i
     };
 
     let idx_y = hm_i & 0x3f;

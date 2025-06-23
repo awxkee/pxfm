@@ -71,12 +71,10 @@ pub const fn roundf(x: f32) -> f32 {
         // Franctional part is less than 0.5 so round value is the
         // same as the trunc value.
         trunc_value
+    } else if x.is_sign_negative() {
+        trunc_value - 1.0
     } else {
-        if x.is_sign_negative() {
-            trunc_value - 1.0
-        } else {
-            trunc_value + 1.0
-        }
+        trunc_value + 1.0
     }
 }
 
@@ -123,12 +121,10 @@ pub const fn round(x: f64) -> f64 {
         // Franctional part is less than 0.5 so round value is the
         // same as the trunc value.
         trunc_value
+    } else if x.is_sign_negative() {
+        trunc_value - 1.0
     } else {
-        if x.is_sign_negative() {
-            trunc_value - 1.0
-        } else {
-            trunc_value + 1.0
-        }
+        trunc_value + 1.0
     }
 }
 
