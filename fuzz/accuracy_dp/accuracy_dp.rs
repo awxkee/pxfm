@@ -2,9 +2,10 @@
 
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
-    f_acos, f_asin, f_atan, f_cbrt, f_cos, f_exp, f_exp2, f_exp10, f_log, f_log2, f_log10, f_sin,
-    f_tan,
+    f_acos, f_asin, f_atan, f_cbrt, f_cos, f_exp, f_exp2, f_exp10, f_log, f_log2, f_log10, f_pow,
+    f_sin, f_tan,
 };
+use rug::ops::Pow;
 use rug::{Assign, Float};
 
 pub fn count_ulp_f64(d: f64, c: &Float) -> f64 {
@@ -86,6 +87,7 @@ fn test_method_2vals_ignore_nan(
     method: fn(f64, f64) -> f64,
     mpfr_value: &Float,
     method_name: String,
+    max_ulp: f64,
 ) {
     let xr = method(value0, value1);
     let ulp = count_ulp_f64(xr, mpfr_value);
@@ -93,8 +95,8 @@ fn test_method_2vals_ignore_nan(
         return;
     }
     assert!(
-        ulp <= 0.5,
-        "ULP should be less than 0.5, but it was {}, using {method_name} on x: {value0}, y: {value1}",
+        ulp <= max_ulp,
+        "ULP should be less than {max_ulp}, but it was {}, using {method_name} on x: {value0}, y: {value1}",
         ulp
     );
 }
@@ -165,11 +167,15 @@ fuzz_target!(|data: (f64, f64)| {
         "f_atan".to_string(),
         0.5001,
     );
-    // test_method_2vals_ignore_nan(
-    //     x0,
-    //     x1,
-    //     f_powf,
-    //     &mpfr_x0.clone().pow(&mpfr_x1),
-    //     "f_powf".to_string(),
-    // );
+    // Powf currently not really bets handles extra large argument, ULP 10000 for extra large argument
+    if x0.abs() < 1e12 && x1.abs() < 1e12 {
+        test_method_2vals_ignore_nan(
+            x0,
+            x1,
+            f_pow,
+            &mpfr_x0.clone().pow(&mpfr_x1),
+            "f_powf".to_string(),
+            0.6,
+        );
+    }
 });
