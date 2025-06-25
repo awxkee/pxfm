@@ -29,9 +29,9 @@
 use crate::bits::set_exponent_f64;
 use crate::common::{f_fmla, min_normal_f64};
 use crate::dekker::Dekker;
-use crate::rational_float::{RationalFloat128, RationalSign};
-use crate::sincos_rational::{
-    SIN_K_PI_OVER_128_F128, range_reduction_small_f128, sincos_eval_rational,
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::sincos_dyadic::{
+    SIN_K_PI_OVER_128_F128, range_reduction_small_f128, sincos_eval_dyadic,
 };
 
 // For 2^-7 < |x| < 2^16, return k and u such that:
@@ -848,20 +848,20 @@ pub(crate) struct LargeArgumentReduction {
 
 impl LargeArgumentReduction {
     #[inline]
-    pub(crate) fn accurate(&self) -> RationalFloat128 {
-        const PI_OVER_128_F128: RationalFloat128 = RationalFloat128 {
-            sign: RationalSign::Pos,
+    pub(crate) fn accurate(&self) -> DyadicFloat128 {
+        const PI_OVER_128_F128: DyadicFloat128 = DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -133,
             mantissa: 0xc90f_daa2_2168_c234_c4c6_628b_80dc_1cd1_u128,
         };
 
         // y_lo = x * c_lo + pm.lo
         let one_pi_rot = ONE_TWENTY_EIGHT_OVER_PI[self.idx as usize];
-        let y_lo_0 = RationalFloat128::new_from_f64(self.x_reduced * f64::from_bits(one_pi_rot.3));
-        let y_lo_1 = RationalFloat128::new_from_f64(self.y_lo) + y_lo_0;
-        let y_mid_f128 = RationalFloat128::new_from_f64(self.y_mid.lo) + y_lo_1;
-        let y_hi_f128 = RationalFloat128::new_from_f64(self.y_hi)
-            + RationalFloat128::new_from_f64(self.y_mid.hi);
+        let y_lo_0 = DyadicFloat128::new_from_f64(self.x_reduced * f64::from_bits(one_pi_rot.3));
+        let y_lo_1 = DyadicFloat128::new_from_f64(self.y_lo) + y_lo_0;
+        let y_mid_f128 = DyadicFloat128::new_from_f64(self.y_mid.lo) + y_lo_1;
+        let y_hi_f128 = DyadicFloat128::new_from_f64(self.y_hi)
+            + DyadicFloat128::new_from_f64(self.y_mid.hi);
         let y = y_hi_f128 + y_mid_f128;
 
         y * PI_OVER_128_F128
@@ -919,7 +919,7 @@ impl LargeArgumentReduction {
 }
 
 #[inline]
-pub(crate) fn get_sin_k_rational(kk: u64) -> RationalFloat128 {
+pub(crate) fn get_sin_k_rational(kk: u64) -> DyadicFloat128 {
     let idx = if (kk & 64) != 0 {
         64 - (kk & 63)
     } else {
@@ -927,7 +927,7 @@ pub(crate) fn get_sin_k_rational(kk: u64) -> RationalFloat128 {
     };
     let mut ans = SIN_K_PI_OVER_128_F128[idx as usize];
     if (kk & 128) != 0 {
-        ans.sign = RationalSign::Neg;
+        ans.sign = DyadicSign::Neg;
     }
     ans
 }
@@ -1355,7 +1355,7 @@ pub fn f_sin(x: f64) -> f64 {
         argument_reduction.accurate()
     };
 
-    let sin_cos = sincos_eval_rational(&u_f128);
+    let sin_cos = sincos_eval_dyadic(&u_f128);
 
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
     let sin_k_f128 = get_sin_k_rational(k);
@@ -1442,7 +1442,7 @@ pub fn f_cos(x: f64) -> f64 {
         argument_reduction.accurate()
     };
 
-    let sin_cos = sincos_eval_rational(&u_f128);
+    let sin_cos = sincos_eval_dyadic(&u_f128);
 
     // -sin(k * pi/128) = sin((k + 128) * pi/128)
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).

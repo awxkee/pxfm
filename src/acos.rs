@@ -27,10 +27,10 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::asin::asin_eval;
-use crate::asin_eval_rational::asin_eval_rational;
+use crate::asin_eval_dyadic::asin_eval_dyadic;
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
-use crate::rational_float::{RationalFloat128, RationalSign};
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
 #[inline]
 /// Max found ULP 0.5009
@@ -240,26 +240,26 @@ pub fn f_acos(x: f64) -> f64 {
     let t = h * (-0.25) / u;
     let vll = f_fmla(vl, t, vl_lo);
     // m_v = -(v_hi + v_lo + v_ll).
-    let m_v_p = RationalFloat128::new_from_f64(vl) + RationalFloat128::new_from_f64(vll);
-    let mut m_v = RationalFloat128::new_from_f64(vh) + m_v_p;
+    let m_v_p = DyadicFloat128::new_from_f64(vl) + DyadicFloat128::new_from_f64(vll);
+    let mut m_v = DyadicFloat128::new_from_f64(vh) + m_v_p;
     m_v.sign = if x.is_sign_negative() {
-        RationalSign::Neg
+        DyadicSign::Neg
     } else {
-        RationalSign::Pos
+        DyadicSign::Pos
     };
 
     // Perform computations in Float128:
     //   acos(x) = (v_hi + v_lo + vll) * P(u)         , when 0.5 <= x < 1,
     //           = pi - (v_hi + v_lo + vll) * P(u)    , when -1 < x <= -0.5.
     let y_f128 =
-        RationalFloat128::new_from_f64(f_fmla(idx as f64, f64::from_bits(0xbf90000000000000), u));
+        DyadicFloat128::new_from_f64(f_fmla(idx as f64, f64::from_bits(0xbf90000000000000), u));
 
-    let p_f128 = asin_eval_rational(&y_f128, idx);
+    let p_f128 = asin_eval_dyadic(&y_f128, idx);
     let mut r_f128 = m_v * p_f128;
 
     if x.is_sign_negative() {
-        const PI_F128: RationalFloat128 = RationalFloat128 {
-            sign: RationalSign::Pos,
+        const PI_F128: DyadicFloat128 = DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -126,
             mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
         };

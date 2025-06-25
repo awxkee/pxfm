@@ -29,9 +29,9 @@
 use crate::bits::EXP_MASK;
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
-use crate::rational_float::{RationalFloat128, RationalSign};
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::sin::{LargeArgumentReduction, get_sin_k_rational, range_reduction_small};
-use crate::sincos_rational::{r_polyeval9, range_reduction_small_f128};
+use crate::sincos_dyadic::{r_polyeval9, range_reduction_small_f128};
 
 #[inline]
 fn tan_eval(u: Dekker) -> (Dekker, f64) {
@@ -80,56 +80,56 @@ fn tan_eval(u: Dekker) -> (Dekker, f64) {
 }
 
 #[inline]
-fn tan_eval_rational(u: &RationalFloat128) -> RationalFloat128 {
+fn tan_eval_rational(u: &DyadicFloat128) -> DyadicFloat128 {
     let u_sq = u.quick_mul(u);
 
     // tan(x) ~ x + x^3/3 + x^5 * 2/15 + x^7 * 17/315 + x^9 * 62/2835 +
     //          + x^11 * 1382/155925 + x^13 * 21844/6081075 +
     //          + x^15 * 929569/638512875 + x^17 * 6404582/10854718875
     // Relative errors < 2^-127 for |u| < pi/256.
-    const TAN_COEFFS: [RationalFloat128; 9] = [
-        RationalFloat128 {
-            sign: RationalSign::Pos,
+    const TAN_COEFFS: [DyadicFloat128; 9] = [
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -127,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
         }, // 1
-        RationalFloat128 {
-            sign: RationalSign::Pos,
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -129,
             mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaaa_aaaaaaab_u128,
         }, // 1
-        RationalFloat128 {
-            sign: RationalSign::Pos,
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -130,
             mantissa: 0x88888888_88888888_88888888_88888889_u128,
         }, // 2/15
-        RationalFloat128 {
-            sign: RationalSign::Pos,
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -132,
             mantissa: 0xdd0dd0dd_0dd0dd0d_d0dd0dd0_dd0dd0dd_u128,
         }, // 17/315
-        RationalFloat128 {
-            sign: RationalSign::Pos,
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -133,
             mantissa: 0xb327a441_6087cf99_6b5dd24e_ec0b327a_u128,
         }, // 62/2835
-        RationalFloat128 {
-            sign: RationalSign::Pos,
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -134,
             mantissa: 0x91371aaf_3611e47a_da8e1cba_7d900eca_u128,
         }, // 1382/155925
-        RationalFloat128 {
-            sign: RationalSign::Pos,
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -136,
             mantissa: 0xeb69e870_abeefdaf_e606d2e4_d1e65fbc_u128,
         }, // 21844/6081075
-        RationalFloat128 {
-            sign: RationalSign::Pos,
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -137,
             mantissa: 0xbed1b229_5baf15b5_0ec9af45_a2619971_u128,
         }, // 929569/638512875
-        RationalFloat128 {
-            sign: RationalSign::Pos,
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -138,
             mantissa: 0x9aac1240_1b3a2291_1b2ac7e3_e4627d0a_u128,
         }, // 6404582/10854718875
@@ -153,14 +153,14 @@ fn tan_eval_rational(u: &RationalFloat128) -> RationalFloat128 {
 // Using the initial approximation of q ~ (1/b), then apply 2 Newton-Raphson
 // iterations, before multiplying by a.
 #[inline]
-fn newton_raphson_div(a: &RationalFloat128, b: &RationalFloat128, q: f64) -> RationalFloat128 {
-    let q0 = RationalFloat128::new_from_f64(q);
-    const TWO: RationalFloat128 = RationalFloat128::new_from_f64(2.0);
+fn newton_raphson_div(a: &DyadicFloat128, b: &DyadicFloat128, q: f64) -> DyadicFloat128 {
+    let q0 = DyadicFloat128::new_from_f64(q);
+    const TWO: DyadicFloat128 = DyadicFloat128::new_from_f64(2.0);
     let mut b = *b;
-    b.sign = if b.sign == RationalSign::Pos {
-        RationalSign::Neg
+    b.sign = if b.sign == DyadicSign::Pos {
+        DyadicSign::Neg
     } else {
-        RationalSign::Pos
+        DyadicSign::Pos
     };
     let q1 = q0.quick_mul(&TWO.quick_add(&b.quick_mul(&q0)));
     let q2 = q1.quick_mul(&TWO.quick_add(&b.quick_mul(&q1)));

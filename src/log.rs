@@ -26,10 +26,13 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, fmla};
+use crate::common::{f_fmla, fmla, min_normal_f64};
 use crate::dekker::Dekker;
+use crate::log_dyadic::{LOG_STEP_1, LOG_STEP_2, LOG_STEP_3, LOG_STEP_4};
+use crate::log_range_reduction::log_range_reduction;
 use crate::log2::{LOG_COEFFS, LOG_RANGE_REDUCTION, f_polyeval4};
 use crate::log10::LOG_R_DD;
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
 /// Natural logarithm
 #[inline]
@@ -86,25 +89,79 @@ pub const fn log(d: f64) -> f64 {
     fmla(LN2_H, n as f64, r)
 }
 
+// Reuse the output of the fast pass range reduction.
+// -2^-8 <= m_x < 2^-7
+fn log_accurate(e_x: i32, index: i32, m_x: f64) -> f64 {
+    // > P = fpminimax((log(1 + x) - x)/x^2, 2, [|1, 128...|],
+    //                 [-0x1.0002143p-29 , 0x1p-29]);
+    // > P;
+    // > dirtyinfnorm(log(1 + x)/x - x*P, [-0x1.0002143p-29 , 0x1p-29]);
+    // 0x1.99a3...p-121
+    const BIG_COEFFS: [DyadicFloat128; 3] = [
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -129,
+            mantissa: 0x8000_0000_0006a710_b59c58e5_554d581c_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -129,
+            mantissa: 0xaaaa_aaaa_aaaaaabd_de05c7c9_4ae9cbae_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -128,
+            mantissa: 0x8000_0000_00000000_00000000_00000000_u128,
+        },
+    ];
+
+    const LOG_2: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -128,
+        mantissa: 0xb17217f7_d1cf79ab_c9e3b398_03f2f6af_u128,
+    };
+
+    let e_x_f128 = DyadicFloat128::new_from_f64(e_x as f64);
+    let mut sum = LOG_2 * e_x_f128;
+    sum = sum + LOG_STEP_1[index as usize];
+
+    let (v_f128, mut sum) = log_range_reduction(
+        m_x,
+        &[&LOG_STEP_1, &LOG_STEP_2, &LOG_STEP_3, &LOG_STEP_4],
+        sum,
+    );
+
+    sum = sum + v_f128;
+
+    // Polynomial approximation
+    let mut p = v_f128 * BIG_COEFFS[0];
+
+    p = v_f128 * (p + BIG_COEFFS[1]);
+    p = v_f128 * (p + BIG_COEFFS[2]);
+    p = v_f128 * p;
+
+    let r = sum + p;
+    r.fast_as_f64()
+}
+
 /// Natural logarithm using FMA
 ///
-/// Max found ULP 1.1
+/// Max found ULP 0.5
 #[inline]
 pub fn f_log(x: f64) -> f64 {
     let mut x_u = x.to_bits();
 
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
 
-    let mut x_e: i64 = -(E_BIAS as i64);
+    let mut x_e: i32 = -(E_BIAS as i32);
 
-    const MIN_NORMAL: u64 = f64::to_bits(f64::MIN_POSITIVE);
     const MAX_NORMAL: u64 = f64::to_bits(f64::MAX);
 
     if x_u == 1f64.to_bits() {
         // log2(1.0) = +0.0
         return 0.0;
     }
-    if x_u < MIN_NORMAL || x_u > MAX_NORMAL {
+    if x_u < min_normal_f64().to_bits() || x_u > MAX_NORMAL {
         if x == 0.0 {
             return f64::NEG_INFINITY;
         }
@@ -124,13 +181,13 @@ pub fn f_log(x: f64) -> f64 {
     // Range reduction for log2(x_m):
     // For each x_m, we would like to find r such that:
     //   -2^-8 <= r * x_m - 1 < 2^-7
-    let shifted = (x_u >> 45) as i64;
+    let shifted = (x_u >> 45) as i32;
     let index = shifted & 0x7F;
     let r = f64::from_bits(LOG_RANGE_REDUCTION[index as usize]);
 
     // Add unbiased exponent. Add an extra 1 if the 8 leading fractional bits are
     // all 1's.
-    x_e = x_e.wrapping_add(x_u.wrapping_add(1u64 << 45).wrapping_shr(52) as i64);
+    x_e = x_e.wrapping_add(x_u.wrapping_add(1u64 << 45).wrapping_shr(52) as i32);
     let e_x = x_e as f64;
 
     const LOG_2_HI: f64 = f64::from_bits(0x3fe62e42fefa3800);
@@ -194,7 +251,29 @@ pub fn f_log(x: f64) -> f64 {
     );
     let p = f_polyeval4(u_sq, lo + r1.lo, p0, p1, p2);
 
-    r1.hi + p
+    const HI_ERR: f64 = f64::from_bits(0x3aa0000000000000);
+
+    // Extra errors from P is from using x^2 to reduce evaluation latency.
+    const P_ERR: f64 = f64::from_bits(0x3cd0000000000000);
+
+    // Technicallly error of r1.lo is bounded by:
+    //    hi*ulp(log(2)_lo) + C*ulp(u^2)
+    // To simplify the error computation a bit, we replace |hi|*ulp(log(2)_lo)
+    // with the upper bound: 2^11 * ulp(log(2)_lo) = 2^-85.
+    // Total error is bounded by ~ C * ulp(u^2) + 2^-85.
+    let err = f_fmla(u_sq, P_ERR, HI_ERR);
+
+    // Lower bound from the result
+    let left = r1.hi + (p - err);
+    // Upper bound from the result
+    let right = r1.hi + (p + err);
+
+    // // Ziv's test if fast pass is accurate enough.
+    if left == right {
+        return left;
+    }
+
+    log_accurate(x_e, index, u)
 }
 
 #[cfg(test)]
@@ -227,6 +306,13 @@ mod tests {
             "Invalid result {}, expected {}",
             f_log(5f64),
             5f64.ln()
+        );
+        assert_eq!(
+            f_log(23f64),
+            3.13549421592914969080675283181019611844238031484043574199863537748299324598,
+            "Invalid result {}, expected {}",
+            f_log(23f64),
+            3.13549421592914969080675283181019611844238031484043574199863537748299324598,
         );
         assert_eq!(f_log(0.), f64::NEG_INFINITY);
         assert!(f_log(-1.).is_nan());

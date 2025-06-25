@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, min_normal_f64};
 use crate::dekker::Dekker;
 use crate::log2::{LOG_COEFFS, f_polyeval4};
 
@@ -172,14 +172,13 @@ pub fn f_log10(x: f64) -> f64 {
 
     let mut x_e: i64 = -(E_BIAS as i64);
 
-    const MIN_NORMAL: u64 = f64::to_bits(f64::MIN_POSITIVE);
     const MAX_NORMAL: u64 = f64::to_bits(f64::MAX);
 
     if x_u == 1f64.to_bits() {
         // log2(1.0) = +0.0
         return 0.0;
     }
-    if x_u < MIN_NORMAL || x_u > MAX_NORMAL {
+    if x_u < min_normal_f64().to_bits() || x_u > MAX_NORMAL {
         if x == 0.0 {
             return f64::NEG_INFINITY;
         }

@@ -26,10 +26,10 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::asin_eval_rational::asin_eval_rational;
+use crate::asin_eval_dyadic::asin_eval_dyadic;
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
-use crate::rational_float::{RationalFloat128, RationalSign};
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
 static ASIN_COEFFS: [[u64; 12]; 9] = [
     [
@@ -396,27 +396,27 @@ pub fn f_asin(x: f64) -> f64 {
     let t = h * (-0.25) / u;
     let vll = f_fmla(vl, t, vl_lo);
     // m_v = -(v_hi + v_lo + v_ll).
-    let mv0 = RationalFloat128::new_from_f64(vl) + RationalFloat128::new_from_f64(vll);
-    let mut m_v = RationalFloat128::new_from_f64(vh) + mv0;
-    m_v.sign = RationalSign::Neg;
+    let mv0 = DyadicFloat128::new_from_f64(vl) + DyadicFloat128::new_from_f64(vll);
+    let mut m_v = DyadicFloat128::new_from_f64(vh) + mv0;
+    m_v.sign = DyadicSign::Neg;
 
     // Perform computations in Float128:
     //   asin(x) = pi/2 - (v_hi + v_lo + vll) * P(u).
     let y_f128 =
-        RationalFloat128::new_from_f64(f_fmla(idx as f64, f64::from_bits(0xbf90000000000000), u));
+        DyadicFloat128::new_from_f64(f_fmla(idx as f64, f64::from_bits(0xbf90000000000000), u));
 
-    const PI_OVER_TWO_F128: RationalFloat128 = RationalFloat128 {
-        sign: RationalSign::Pos,
+    const PI_OVER_TWO_F128: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
         exponent: -127,
         mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
     };
 
-    let p_f128 = asin_eval_rational(&y_f128, idx);
+    let p_f128 = asin_eval_dyadic(&y_f128, idx);
     let r0_f128 = m_v.quick_mul(&p_f128);
     let mut r_f128 = PI_OVER_TWO_F128.quick_add(&r0_f128);
 
     if x.is_sign_negative() {
-        r_f128.sign = RationalSign::Neg;
+        r_f128.sign = DyadicSign::Neg;
     }
 
     r_f128.fast_as_f64()

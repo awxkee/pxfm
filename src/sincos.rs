@@ -32,7 +32,7 @@ use crate::sin::{
     LargeArgumentReduction, SIN_K_PI_OVER_128, get_sin_k_rational, range_reduction_small,
     sincos_eval,
 };
-use crate::sincos_rational::{range_reduction_small_f128, sincos_eval_rational};
+use crate::sincos_dyadic::{range_reduction_small_f128, sincos_eval_dyadic};
 
 /// Sine and cosine for double precision
 ///
@@ -127,7 +127,7 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
         argument_reduction.accurate()
     };
 
-    let r_sincos = sincos_eval_rational(&u_f128);
+    let r_sincos = sincos_eval_dyadic(&u_f128);
 
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
     let sin_k_f128 = get_sin_k_rational(k);

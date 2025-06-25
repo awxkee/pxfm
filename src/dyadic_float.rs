@@ -31,7 +31,7 @@ use crate::common::f_fmla;
 use std::ops::{Add, Mul};
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
-pub(crate) enum RationalSign {
+pub(crate) enum DyadicSign {
     Pos,
     Neg,
 }
@@ -39,20 +39,15 @@ pub(crate) enum RationalSign {
 const BITS: u32 = 128;
 
 #[derive(Copy, Clone)]
-pub(crate) struct RationalFloat128 {
-    pub(crate) sign: RationalSign,
+pub(crate) struct DyadicFloat128 {
+    pub(crate) sign: DyadicSign,
     pub(crate) exponent: i16,
     pub(crate) mantissa: u128,
 }
 
 #[inline]
-fn f64_from_parts(sign: RationalSign, exp: u64, mantissa: u64) -> f64 {
-    let r_sign = (if sign == RationalSign::Pos {
-        0u64
-    } else {
-        1u64
-    })
-    .wrapping_shl(63);
+fn f64_from_parts(sign: DyadicSign, exp: u64, mantissa: u64) -> f64 {
+    let r_sign = (if sign == DyadicSign::Pos { 0u64 } else { 1u64 }).wrapping_shl(63);
     let r_exp = exp.wrapping_shl(52);
     f64::from_bits(r_sign | r_exp | mantissa)
 }
@@ -97,11 +92,11 @@ const fn explicit_mantissa(x: f64) -> u64 {
     (1u64 << 52) | sig_bits
 }
 
-impl RationalFloat128 {
+impl DyadicFloat128 {
     #[inline]
-    fn zero() -> Self {
+    const fn zero() -> Self {
         Self {
-            sign: RationalSign::Pos,
+            sign: DyadicSign::Pos,
             exponent: 0,
             mantissa: 0,
         }
@@ -110,9 +105,9 @@ impl RationalFloat128 {
     #[inline]
     pub(crate) const fn new_from_f64(x: f64) -> Self {
         let sign = if x.is_sign_negative() {
-            RationalSign::Neg
+            DyadicSign::Neg
         } else {
-            RationalSign::Pos
+            DyadicSign::Pos
         };
         let exponent = explicit_exponent(x) - 52;
         let mantissa = explicit_mantissa(x) as u128;
@@ -147,8 +142,9 @@ impl RationalFloat128 {
         }
     }
 
+    // Don't forget to call if manually created
     #[inline]
-    const fn normalize(&mut self) {
+    pub(crate) const fn normalize(&mut self) {
         if self.mantissa != 0 {
             let shift_length = self.mantissa.leading_zeros();
             self.exponent -= shift_length as i16;
@@ -174,7 +170,7 @@ impl RationalFloat128 {
             a.shift_right((b.exponent - a.exponent) as u32);
         }
 
-        let mut result = RationalFloat128::zero();
+        let mut result = DyadicFloat128::zero();
 
         if a.sign == b.sign {
             // Addition
@@ -209,11 +205,11 @@ impl RationalFloat128 {
 
     #[inline]
     pub(crate) fn quick_mul(&self, rhs: &Self) -> Self {
-        let mut result = RationalFloat128 {
+        let mut result = DyadicFloat128 {
             sign: if self.sign != rhs.sign {
-                RationalSign::Neg
+                DyadicSign::Neg
             } else {
-                RationalSign::Pos
+                DyadicSign::Pos
             },
             exponent: self.exponent + rhs.exponent + BITS as i16,
             mantissa: 0,
@@ -235,7 +231,7 @@ impl RationalFloat128 {
     #[inline]
     pub(crate) fn fast_as_f64(&self) -> f64 {
         if self.mantissa == 0 {
-            return if self.sign == RationalSign::Pos {
+            return if self.sign == DyadicSign::Pos {
                 0.
             } else {
                 -0.0
@@ -305,12 +301,12 @@ impl RationalFloat128 {
             // d_lo is denormal, but the output is normal.
             let scale_up_exponent = 1 - exp_lo;
             let scale_up_factor = f64_from_parts(
-                RationalSign::Pos,
+                DyadicSign::Pos,
                 EXP_BIAS + scale_up_exponent as u64,
                 IMPLICIT_MASK,
             );
             let scale_down_factor = f64_from_parts(
-                RationalSign::Pos,
+                DyadicSign::Pos,
                 EXP_BIAS - scale_up_exponent as u64,
                 IMPLICIT_MASK,
             );
@@ -350,18 +346,18 @@ impl RationalFloat128 {
     }
 }
 
-impl Add<RationalFloat128> for RationalFloat128 {
-    type Output = RationalFloat128;
+impl Add<DyadicFloat128> for DyadicFloat128 {
+    type Output = DyadicFloat128;
     #[inline]
-    fn add(self, rhs: RationalFloat128) -> Self::Output {
+    fn add(self, rhs: DyadicFloat128) -> Self::Output {
         self.quick_add(&rhs)
     }
 }
 
-impl Mul<RationalFloat128> for RationalFloat128 {
-    type Output = RationalFloat128;
+impl Mul<DyadicFloat128> for DyadicFloat128 {
+    type Output = DyadicFloat128;
     #[inline]
-    fn mul(self, rhs: RationalFloat128) -> Self::Output {
+    fn mul(self, rhs: DyadicFloat128) -> Self::Output {
         self.quick_mul(&rhs)
     }
 }
@@ -371,33 +367,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_rational_float() {
-        let ones = RationalFloat128 {
-            sign: RationalSign::Pos,
+    fn test_dyadic_float() {
+        let ones = DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -127,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
         };
         let cvt = ones.fast_as_f64();
         assert_eq!(cvt, 1.0);
 
-        let minus_0_5 = RationalFloat128 {
-            sign: RationalSign::Neg,
+        let minus_0_5 = DyadicFloat128 {
+            sign: DyadicSign::Neg,
             exponent: -128,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
         };
         let cvt0 = minus_0_5.fast_as_f64();
         assert_eq!(cvt0, -1.0 / 2.0);
 
-        let minus_1_f4 = RationalFloat128 {
-            sign: RationalSign::Neg,
+        let minus_1_f4 = DyadicFloat128 {
+            sign: DyadicSign::Neg,
             exponent: -132,
             mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaaa_aaaaaaab_u128,
         };
         let cvt0 = minus_1_f4.fast_as_f64();
         assert_eq!(cvt0, -1.0 / 24.0);
 
-        let minus_1_f8 = RationalFloat128 {
-            sign: RationalSign::Pos,
+        let minus_1_f8 = DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -143,
             mantissa: 0xd00d00d0_0d00d00d_00d00d00_d00d00d0_u128,
         };
@@ -406,9 +402,9 @@ mod tests {
     }
 
     #[test]
-    fn rational_float_add() {
-        let ones = RationalFloat128 {
-            sign: RationalSign::Pos,
+    fn dyadic_float_add() {
+        let ones = DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -127,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
         };
@@ -416,8 +412,8 @@ mod tests {
         let cvt = ones.fast_as_f64();
         assert_eq!(cvt, 1.0);
 
-        let minus_0_5 = RationalFloat128 {
-            sign: RationalSign::Neg,
+        let minus_0_5 = DyadicFloat128 {
+            sign: DyadicSign::Neg,
             exponent: -128,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
         };
@@ -426,9 +422,9 @@ mod tests {
     }
 
     #[test]
-    fn rational_float_mul() {
-        let ones = RationalFloat128 {
-            sign: RationalSign::Pos,
+    fn dyadic_float_mul() {
+        let ones = DyadicFloat128 {
+            sign: DyadicSign::Pos,
             exponent: -127,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
         };
@@ -436,8 +432,8 @@ mod tests {
         let cvt = ones.fast_as_f64();
         assert_eq!(cvt, 1.0);
 
-        let minus_0_5 = RationalFloat128 {
-            sign: RationalSign::Neg,
+        let minus_0_5 = DyadicFloat128 {
+            sign: DyadicSign::Neg,
             exponent: -128,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
         };
@@ -447,29 +443,37 @@ mod tests {
     }
 
     #[test]
-    fn rational_round_trip() {
+    fn dyadic_round_trip() {
         let z00 = 0.0;
-        let zvt00 = RationalFloat128::new_from_f64(z00);
+        let zvt00 = DyadicFloat128::new_from_f64(z00);
         let b00 = zvt00.fast_as_f64();
         assert_eq!(b00, z00);
 
+        let zvt000 = DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: 0,
+            mantissa: 0,
+        };
+        let b000 = zvt000.fast_as_f64();
+        assert_eq!(b000, z00);
+
         let z0 = 1.0;
-        let zvt0 = RationalFloat128::new_from_f64(z0);
+        let zvt0 = DyadicFloat128::new_from_f64(z0);
         let b0 = zvt0.fast_as_f64();
         assert_eq!(b0, z0);
 
         let z1 = 0.5;
-        let zvt1 = RationalFloat128::new_from_f64(z1);
+        let zvt1 = DyadicFloat128::new_from_f64(z1);
         let b1 = zvt1.fast_as_f64();
         assert_eq!(b1, z1);
 
         let z2 = -0.5;
-        let zvt2 = RationalFloat128::new_from_f64(z2);
+        let zvt2 = DyadicFloat128::new_from_f64(z2);
         let b2 = zvt2.fast_as_f64();
         assert_eq!(b2, z2);
 
         let z3 = -532322.54324324232;
-        let zvt3 = RationalFloat128::new_from_f64(z3);
+        let zvt3 = DyadicFloat128::new_from_f64(z3);
         let b3 = zvt3.fast_as_f64();
         assert_eq!(b3, z3);
     }
