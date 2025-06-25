@@ -62,6 +62,7 @@ pub(crate) fn r_fmla(
 }
 
 #[inline(always)]
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn r_polyeval7(
     x: &RationalFloat128,
     a0: &RationalFloat128,
@@ -81,6 +82,7 @@ pub(crate) fn r_polyeval7(
 }
 
 #[inline(always)]
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn r_polyeval9(
     x: &RationalFloat128,
     a0: &RationalFloat128,

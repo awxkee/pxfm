@@ -121,12 +121,11 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
         return (sin_upper, cos_upper);
     }
 
-    let u_f128;
-    if x_e < E_BIAS + 16 {
-        u_f128 = range_reduction_small_f128(x);
+    let u_f128 = if x_e < E_BIAS + 16 {
+        range_reduction_small_f128(x)
     } else {
-        u_f128 = argument_reduction.accurate();
-    }
+        argument_reduction.accurate()
+    };
 
     let r_sincos = sincos_eval_rational(&u_f128);
 

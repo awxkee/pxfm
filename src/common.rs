@@ -149,7 +149,7 @@ pub const fn copysignk(x: f64, y: f64) -> f64 {
 #[inline]
 pub(crate) const fn min_normal_f64() -> f64 {
     let exponent_bits = 1u64 << 52;
-    let bits = 0u64 | exponent_bits;
+    let bits = exponent_bits;
 
     f64::from_bits(bits)
 }

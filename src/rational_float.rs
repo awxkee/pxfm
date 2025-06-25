@@ -72,9 +72,7 @@ fn mulhi_u128(a: u128, b: u128) -> u128 {
     // cross terms with carry propagation
     let mid1 = hi_lo + (lo_lo >> 64);
     let (mid2, carry) = mid1.overflowing_add(lo_hi);
-    let hi = hi_hi + (mid2 >> 64) + if carry { 1 } else { 0 };
-
-    hi
+    hi_hi + (mid2 >> 64) + if carry { 1 } else { 0 }
 }
 
 #[inline]
@@ -86,7 +84,7 @@ const fn explicit_exponent(x: f64) -> i16 {
         const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
         return 1i16 - EXP_BIAS as i16;
     }
-    exp as i16
+    exp
 }
 
 #[inline]
@@ -130,7 +128,7 @@ impl RationalFloat128 {
     #[inline]
     fn shift_right(&mut self, amount: u32) {
         if amount < BITS {
-            self.exponent = self.exponent + amount as i16;
+            self.exponent += amount as i16;
             self.mantissa = self.mantissa.wrapping_shr(amount);
         } else {
             self.exponent = 0;
@@ -141,7 +139,7 @@ impl RationalFloat128 {
     #[inline]
     fn shift_left(&mut self, amount: u32) {
         if amount < BITS {
-            self.exponent = self.exponent - amount as i16;
+            self.exponent -= amount as i16;
             self.mantissa = self.mantissa.wrapping_shl(amount);
         } else {
             self.exponent = 0;
@@ -221,7 +219,7 @@ impl RationalFloat128 {
             mantissa: 0,
         };
 
-        if !(self.mantissa == 0 || self.mantissa == 0) {
+        if !(self.mantissa == 0 || rhs.mantissa == 0) {
             result.mantissa = mulhi_u128(self.mantissa, rhs.mantissa);
             // Check the leading bit directly, should be faster than using clz in
             // normalize().
@@ -290,7 +288,7 @@ impl RationalFloat128 {
             (m_hi as u64 & SIG_MASK) | IMPLICIT_MASK,
         );
 
-        let round_mask = if shift - 1 >= BITS {
+        let round_mask = if shift > BITS {
             0
         } else {
             1u128 << (shift - 1)
