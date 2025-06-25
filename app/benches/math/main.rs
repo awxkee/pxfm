@@ -101,8 +101,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             }
         })
     });
-
-     */
+    
     c.bench_function("libm::sincos", |b| {
         b.iter(|| {
             for i in 1..1000 {
