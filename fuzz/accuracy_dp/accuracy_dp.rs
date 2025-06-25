@@ -3,7 +3,7 @@
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
     f_acos, f_asin, f_atan, f_cbrt, f_cos, f_exp, f_exp2, f_exp10, f_log, f_log2, f_log10, f_pow,
-    f_sin, f_tan,
+    f_sin, f_sincos, f_tan,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
@@ -57,6 +57,34 @@ fn test_method(
         ulp,
         value,
         mpfr_value.to_f32(),
+    );
+}
+
+fn test_method_2_outputs(
+    value: f64,
+    method: fn(f64) -> (f64, f64),
+    mpfr_value0: &Float,
+    mpfr_value1: &Float,
+    method_name: String,
+    max_ulp: f64,
+) {
+    let (xr, yr) = method(value);
+    let ulp = count_ulp_f64(xr, mpfr_value0);
+    assert!(
+        ulp <= max_ulp,
+        "SIN ULP should be less than {max_ulp}, but it was {}, on {} using {method_name} and MPFR {}",
+        ulp,
+        value,
+        mpfr_value0.to_f32(),
+    );
+
+    let ulp = count_ulp_f64(yr, mpfr_value1);
+    assert!(
+        ulp <= max_ulp,
+        "COS ULP should be less than {max_ulp}, but it was {}, on {} using {method_name} and MPFR {}",
+        ulp,
+        value,
+        mpfr_value1.to_f32(),
     );
 }
 
@@ -143,8 +171,28 @@ fuzz_target!(|data: (f64, f64)| {
         "f_exp10".to_string(),
         0.51,
     );
-    test_method(x0, f_sin, &mpfr_x0.clone().sin(), "f_sin".to_string(), 1.0);
-    test_method(x0, f_cos, &mpfr_x0.clone().cos(), "f_cos".to_string(), 1.0);
+    test_method(
+        x0,
+        f_sin,
+        &mpfr_x0.clone().sin(),
+        "f_sin".to_string(),
+        0.5005,
+    );
+    test_method(
+        x0,
+        f_cos,
+        &mpfr_x0.clone().cos(),
+        "f_cos".to_string(),
+        0.5005,
+    );
+    test_method_2_outputs(
+        x0,
+        f_sincos,
+        &mpfr_x0.clone().sin(),
+        &mpfr_x0.clone().cos(),
+        "f_sincos".to_string(),
+        0.5005,
+    );
     test_method(x0, f_tan, &mpfr_x0.clone().tan(), "f_tan".to_string(), 1.0);
     test_method(
         x0,

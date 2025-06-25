@@ -26,13 +26,17 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, min_normal_f64};
 use crate::dekker::Dekker;
-use crate::sin::{LargeArgumentReduction, SIN_K_PI_OVER_128, range_reduction_small, sincos_eval};
+use crate::sin::{
+    LargeArgumentReduction, SIN_K_PI_OVER_128, get_sin_k_rational, range_reduction_small,
+    sincos_eval,
+};
+use crate::sincos_rational::{range_reduction_small_f128, sincos_eval_rational};
 
 /// Sine and cosine for double precision
 ///
-/// ULP 0.5
+/// ULP 0.5005
 #[inline]
 pub fn f_sincos(x: f64) -> (f64, f64) {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
@@ -41,18 +45,20 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
     let y: Dekker;
     let k;
 
+    let mut argument_reduction = LargeArgumentReduction::default();
+
     // |x| < 2^32 (with FMA) or |x| < 2^23 (w/o FMA)
-    if x_e < E_BIAS + 22 {
+    if x_e < E_BIAS + 16 {
         // |x| < 2^-26
         if x_e < E_BIAS - 7 {
-            if x_e < E_BIAS - 26 {
+            if x_e < E_BIAS - 27 {
                 // Signed zeros.
                 if x == 0.0 {
                     return (x, 1.0);
                 }
                 // For |x| < 2^-26, |sin(x) - x| < ulp(x)/2.
                 let s_sin = f_fmla(x, f64::from_bits(0xbc90000000000000), x);
-                let s_cos = 1.0 - f64::EPSILON;
+                let s_cos = 1.0 - min_normal_f64();
                 return (s_sin, s_cos);
             }
             k = 0;
@@ -69,9 +75,7 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
         }
 
         // Large range reduction.
-        let mut argument_reduction = LargeArgumentReduction::default();
-        k = argument_reduction.high_part(x);
-        y = argument_reduction.reduce();
+        (k, y) = argument_reduction.reduce_new(x);
     }
 
     let r_sincos = sincos_eval(y);
@@ -102,8 +106,51 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
     sin_dd.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
     cos_dd.lo += msin_k_sin_y.lo + cos_k_cos_y.lo;
 
-    let sin_x = sin_dd.hi + sin_dd.lo;
-    let cos_x = cos_dd.hi + cos_dd.lo;
+    let sin_lp = sin_dd.lo + r_sincos.err;
+    let sin_lm = sin_dd.lo - r_sincos.err;
+    let cos_lp = cos_dd.lo + r_sincos.err;
+    let cos_lm = cos_dd.lo - r_sincos.err;
+
+    let sin_upper = sin_dd.hi + sin_lp;
+    let sin_lower = sin_dd.hi + sin_lm;
+    let cos_upper = cos_dd.hi + cos_lp;
+    let cos_lower = cos_dd.hi + cos_lm;
+
+    // Ziv's rounding test.
+    if sin_upper == sin_lower && cos_upper == cos_lower {
+        return (sin_upper, cos_upper);
+    }
+
+    let u_f128;
+    if x_e < E_BIAS + 16 {
+        u_f128 = range_reduction_small_f128(x);
+    } else {
+        u_f128 = argument_reduction.accurate();
+    }
+
+    let r_sincos = sincos_eval_rational(&u_f128);
+
+    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    let sin_k_f128 = get_sin_k_rational(k);
+    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
+    let msin_k_f128 = get_sin_k_rational(k.wrapping_add(128));
+
+    let sin_x = if sin_upper == sin_lower {
+        sin_upper
+    } else {
+        // sin(x) = sin((k * pi/128 + u)
+        //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
+
+        ((sin_k_f128 * r_sincos.v_cos) + (cos_k_f128 * r_sincos.v_sin)).fast_as_f64()
+    };
+
+    let cos_x = if cos_upper == cos_lower {
+        cos_upper
+    } else {
+        // cos(x) = cos((k * pi/128 + u)
+        //        = cos(u) * cos(k*pi/128) - sin(u) * sin(k*pi/128)
+        ((cos_k_f128 * r_sincos.v_cos) + (msin_k_f128 * r_sincos.v_sin)).fast_as_f64()
+    };
     (sin_x, cos_x)
 }
 

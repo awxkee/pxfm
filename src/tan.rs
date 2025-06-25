@@ -82,7 +82,7 @@ pub fn f_tan(x: f64) -> f64 {
     let k;
 
     // |x| < 2^16
-    if x_e < E_BIAS + 22 {
+    if x_e < E_BIAS + 16 {
         // |x| < 2^-7
         if x_e < E_BIAS - 7 {
             // |x| < 2^-27, |tan(x) - x| < ulp(x)/2.
