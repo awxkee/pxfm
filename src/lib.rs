@@ -36,6 +36,7 @@
 mod acos;
 mod acosf;
 mod asin;
+mod asin_eval_rational;
 mod asinf;
 mod atan;
 mod atan2;

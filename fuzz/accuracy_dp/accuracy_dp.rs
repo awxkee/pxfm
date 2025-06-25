@@ -53,10 +53,10 @@ fn test_method(
     let ulp = count_ulp_f64(xr, mpfr_value);
     assert!(
         ulp <= max_ulp,
-        "ULP should be less than {max_ulp}, but it was {}, on {} using {method_name} and MPFR {}",
+        "ULP should be less than {max_ulp}, but it was {}, on {} using {method_name} and MPFR {:.19}",
         ulp,
         value,
-        mpfr_value.to_f32(),
+        mpfr_value.to_f64(),
     );
 }
 
@@ -75,7 +75,7 @@ fn test_method_2_outputs(
         "SIN ULP should be less than {max_ulp}, but it was {}, on {} using {method_name} and MPFR {}",
         ulp,
         value,
-        mpfr_value0.to_f32(),
+        mpfr_value0.to_f64(),
     );
 
     let ulp = count_ulp_f64(yr, mpfr_value1);
@@ -84,7 +84,7 @@ fn test_method_2_outputs(
         "COS ULP should be less than {max_ulp}, but it was {}, on {} using {method_name} and MPFR {}",
         ulp,
         value,
-        mpfr_value1.to_f32(),
+        mpfr_value1.to_f64(),
     );
 }
 
@@ -105,7 +105,7 @@ fn test_method_allow_not_normals(
         "ULP should be less than {max_ulp}, but it was {}, on {} using {method_name} on {value} and MPFR {}",
         xr,
         ulp,
-        mpfr_value.to_f32(),
+        mpfr_value.to_f64(),
     );
 }
 
@@ -204,15 +204,15 @@ fuzz_target!(|data: (f64, f64)| {
         x0,
         f_acos,
         &mpfr_x0.clone().acos(),
-        "f_tan".to_string(),
-        0.7,
+        "f_acos".to_string(),
+        0.5009,
     );
     test_method(
         x0,
         f_asin,
         &mpfr_x0.clone().asin(),
         "f_asin".to_string(),
-        0.7,
+        0.50097,
     );
     test_method_allow_not_normals(
         x0,

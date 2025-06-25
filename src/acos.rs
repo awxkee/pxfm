@@ -27,10 +27,13 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::asin::asin_eval;
+use crate::asin_eval_rational::asin_eval_rational;
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
+use crate::rational_float::{RationalFloat128, RationalSign};
 
 #[inline]
+/// Max found ULP 0.5009
 pub fn f_acos(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
@@ -69,8 +72,7 @@ pub fn f_acos(x: f64) -> f64 {
 
     // |x| >= 0.5
 
-    const SIGN: [f64; 2] = [1.0, -1.0];
-    let x_sign = SIGN[if x.is_sign_negative() { 1 } else { 0 }];
+    let x_sign = if x.is_sign_negative() { -1.0 } else { 1.0 };
 
     const PI: Dekker = Dekker::new(
         f64::from_bits(0x3ca1a62633145c07),
@@ -183,7 +185,88 @@ pub fn f_acos(x: f64) -> f64 {
         r_lo = (PI.lo - r0.lo) + r.lo;
     }
 
-    r_hi + (r_lo + err)
+    let r_upper = r_hi + (r_lo + err);
+    let r_lower = r_hi + (r_lo - err);
+
+    if r_upper == r_lower {
+        return r_upper;
+    }
+
+    // Ziv's accuracy test failed, we redo the computations in Float128.
+    // Recalculate mod 1/64.
+    let idx = (u * f64::from_bits(0x4050000000000000)).round() as usize;
+
+    // After the first step of Newton-Raphson approximating v = sqrt(u), we have
+    // that:
+    //   sqrt(u) = v_hi + h / (sqrt(u) + v_hi)
+    //      v_lo = h / (2 * v_hi)
+    // With error:
+    //   sqrt(u) - (v_hi + v_lo) = h * ( 1/(sqrt(u) + v_hi) - 1/(2*v_hi) )
+    //                           = -h^2 / (2*v * (sqrt(u) + v)^2).
+    // Since:
+    //   (sqrt(u) + v_hi)^2 ~ (2sqrt(u))^2 = 4u,
+    // we can add another correction term to (v_hi + v_lo) that is:
+    //   v_ll = -h^2 / (2*v_hi * 4u)
+    //        = -v_lo * (h / 4u)
+    //        = -vl * (h / 8u),
+    // making the errors:
+    //   sqrt(u) - (v_hi + v_lo + v_ll) = O(h^3)
+    // well beyond 128-bit precision needed.
+
+    // Get the rounding error of vl = 2 * v_lo ~ h / vh
+    // Get full product of vh * vl
+    let vl_lo;
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        vl_lo = f_fmla(-v_hi, vl, h) / v_hi;
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        let vh_vl = Dekker::from_exact_mult(v_hi, vl);
+        vl_lo = ((h - vh_vl.hi) - vh_vl.lo) / v_hi;
+    }
+    let t = h * (-0.25) / u;
+    let vll = f_fmla(vl, t, vl_lo);
+    // m_v = -(v_hi + v_lo + v_ll).
+    let m_v_p = RationalFloat128::new_from_f64(vl) + RationalFloat128::new_from_f64(vll);
+    let mut m_v = RationalFloat128::new_from_f64(vh) + m_v_p;
+    m_v.sign = if x.is_sign_negative() {
+        RationalSign::Neg
+    } else {
+        RationalSign::Pos
+    };
+
+    // Perform computations in Float128:
+    //   acos(x) = (v_hi + v_lo + vll) * P(u)         , when 0.5 <= x < 1,
+    //           = pi - (v_hi + v_lo + vll) * P(u)    , when -1 < x <= -0.5.
+    let y_f128 =
+        RationalFloat128::new_from_f64(f_fmla(idx as f64, f64::from_bits(0xbf90000000000000), u));
+
+    let p_f128 = asin_eval_rational(&y_f128, idx);
+    let mut r_f128 = m_v * p_f128;
+
+    if x.is_sign_negative() {
+        const PI_F128: RationalFloat128 = RationalFloat128 {
+            sign: RationalSign::Pos,
+            exponent: -126,
+            mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
+        };
+        r_f128 = PI_F128 + r_f128;
+    }
+
+    r_f128.fast_as_f64()
 }
 
 #[cfg(test)]
