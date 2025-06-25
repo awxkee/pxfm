@@ -217,7 +217,7 @@ fuzz_target!(|data: (f64, f64)| {
     test_method_allow_not_normals(
         x0,
         f_atan,
-        &mpfr_x0.clone().asin(),
+        &mpfr_x0.clone().atan(),
         "f_atan".to_string(),
         0.5001,
     );

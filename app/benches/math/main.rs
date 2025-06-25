@@ -14,7 +14,7 @@ use pxfm::{
 use std::hint::black_box;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    /*c.bench_function("libm::j1", |b| {
+    c.bench_function("libm::j1", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(libm::j1(i as f64 / 1000.0));
@@ -102,6 +102,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+     */
     c.bench_function("libm::sincos", |b| {
         b.iter(|| {
             for i in 1..1000 {
@@ -148,7 +149,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 black_box(f_tan(i as f64 * 1000.0));
             }
         })
-    });*/
+    });
 
     c.bench_function("libm::sin", |b| {
         b.iter(|| {
