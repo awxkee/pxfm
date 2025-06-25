@@ -267,7 +267,7 @@ fn as_exp_accurate(x: f64, t: f64, tz: Dekker, ie: i64) -> f64 {
                 let d: i64 = (((((ix as i64) >> 63) ^ ((v as i64) >> 63)) as u64).wrapping_shl(1)
                     as i64)
                     .wrapping_add(1);
-                ix += d as u64;
+                ix = ix.wrapping_add(d as u64);
                 f.lo = f64::from_bits(ix);
             }
         } else {
