@@ -151,7 +151,7 @@ impl RationalFloat128 {
     const fn normalize(&mut self) {
         if self.mantissa != 0 {
             let shift_length = self.mantissa.leading_zeros();
-            self.exponent = self.exponent - shift_length as i16;
+            self.exponent -= shift_length as i16;
             self.mantissa = self.mantissa.wrapping_shl(shift_length);
         }
     }
