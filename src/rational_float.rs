@@ -78,7 +78,7 @@ fn mulhi_u128(a: u128, b: u128) -> u128 {
 }
 
 #[inline]
-fn explicit_exponent(x: f64) -> i16 {
+const fn explicit_exponent(x: f64) -> i16 {
     let exp = ((x.to_bits() >> 52) & ((1u64 << 11) - 1u64)) as i16 - 1023;
     if x == 0. {
         return 0;
@@ -90,7 +90,7 @@ fn explicit_exponent(x: f64) -> i16 {
 }
 
 #[inline]
-fn explicit_mantissa(x: f64) -> u64 {
+const fn explicit_mantissa(x: f64) -> u64 {
     const MASK: u64 = (1u64 << 52) - 1;
     let sig_bits = x.to_bits() & MASK;
     if x.is_subnormal() || x == 0. {
@@ -110,7 +110,7 @@ impl RationalFloat128 {
     }
 
     #[inline]
-    pub(crate) fn new_from_f64(x: f64) -> Self {
+    pub(crate) const fn new_from_f64(x: f64) -> Self {
         let sign = if x.is_sign_negative() {
             RationalSign::Neg
         } else {
@@ -150,7 +150,7 @@ impl RationalFloat128 {
     }
 
     #[inline]
-    fn normalize(&mut self) {
+    const fn normalize(&mut self) {
         if self.mantissa != 0 {
             let shift_length = self.mantissa.leading_zeros();
             self.exponent = self.exponent - shift_length as i16;
@@ -343,11 +343,6 @@ impl RationalFloat128 {
                 // Output is denormal after rounding, clear the implicit bit for 80-bit
                 // long double.
                 r_bits -= IMPLICIT_MASK;
-
-                // TODO: IEEE Std 754-2019 lets implementers choose whether to check for
-                // "tininess" before or after rounding for base-2 formats, as long as
-                // the same choice is made for all operations. Our choice to check after
-                // rounding might not be the same as the hardware's.
             }
 
             return f64::from_bits(r_bits);

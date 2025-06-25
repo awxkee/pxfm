@@ -193,7 +193,13 @@ fuzz_target!(|data: (f64, f64)| {
         "f_sincos".to_string(),
         0.5005,
     );
-    test_method(x0, f_tan, &mpfr_x0.clone().tan(), "f_tan".to_string(), 1.0);
+    test_method(
+        x0,
+        f_tan,
+        &mpfr_x0.clone().tan(),
+        "f_tan".to_string(),
+        0.50097,
+    );
     test_method(
         x0,
         f_acos,

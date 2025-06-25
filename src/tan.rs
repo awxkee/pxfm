@@ -26,12 +26,15 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bits::EXP_MASK;
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
-use crate::sin::{LargeArgumentReduction, range_reduction_small};
+use crate::rational_float::{RationalFloat128, RationalSign};
+use crate::sin::{LargeArgumentReduction, get_sin_k_rational, range_reduction_small};
+use crate::sincos_rational::{r_polyeval9, range_reduction_small_f128};
 
 #[inline]
-fn tan_eval(u: Dekker) -> Dekker {
+fn tan_eval(u: Dekker) -> (Dekker, f64) {
     // Evaluate tan(y) = tan(x - k * (pi/128))
     // We use the degree-9 Taylor approximation:
     //   tan(y) ~ P(y) = y + y^3/3 + 2*y^5/15 + 17*y^7/315 + 62*y^9/2835
@@ -68,18 +71,114 @@ fn tan_eval(u: Dekker) -> Dekker {
     // Overall, |tan(y) - (u_hi + tan_lo)| < ulp(u_hi^3) <= 2^-71.
     // And the relative errors is:
     // |(tan(y) - (u_hi + tan_lo)) / tan(y) | <= 2*ulp(u_hi^2) < 2^-64
-    Dekker::from_exact_add(u.hi, tan_lo)
+    let err = f_fmla(
+        u_hi_3.abs(),
+        f64::from_bits(0x3cc0000000000000),
+        f64::from_bits(0x3990000000000000),
+    );
+    (Dekker::from_exact_add(u.hi, tan_lo), err)
+}
+
+#[inline]
+fn tan_eval_rational(u: &RationalFloat128) -> RationalFloat128 {
+    let u_sq = u.quick_mul(u);
+
+    // tan(x) ~ x + x^3/3 + x^5 * 2/15 + x^7 * 17/315 + x^9 * 62/2835 +
+    //          + x^11 * 1382/155925 + x^13 * 21844/6081075 +
+    //          + x^15 * 929569/638512875 + x^17 * 6404582/10854718875
+    // Relative errors < 2^-127 for |u| < pi/256.
+    const TAN_COEFFS: [RationalFloat128; 9] = [
+        RationalFloat128 {
+            sign: RationalSign::Pos,
+            exponent: -127,
+            mantissa: 0x80000000_00000000_00000000_00000000_u128,
+        }, // 1
+        RationalFloat128 {
+            sign: RationalSign::Pos,
+            exponent: -129,
+            mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaaa_aaaaaaab_u128,
+        }, // 1
+        RationalFloat128 {
+            sign: RationalSign::Pos,
+            exponent: -130,
+            mantissa: 0x88888888_88888888_88888888_88888889_u128,
+        }, // 2/15
+        RationalFloat128 {
+            sign: RationalSign::Pos,
+            exponent: -132,
+            mantissa: 0xdd0dd0dd_0dd0dd0d_d0dd0dd0_dd0dd0dd_u128,
+        }, // 17/315
+        RationalFloat128 {
+            sign: RationalSign::Pos,
+            exponent: -133,
+            mantissa: 0xb327a441_6087cf99_6b5dd24e_ec0b327a_u128,
+        }, // 62/2835
+        RationalFloat128 {
+            sign: RationalSign::Pos,
+            exponent: -134,
+            mantissa: 0x91371aaf_3611e47a_da8e1cba_7d900eca_u128,
+        }, // 1382/155925
+        RationalFloat128 {
+            sign: RationalSign::Pos,
+            exponent: -136,
+            mantissa: 0xeb69e870_abeefdaf_e606d2e4_d1e65fbc_u128,
+        }, // 21844/6081075
+        RationalFloat128 {
+            sign: RationalSign::Pos,
+            exponent: -137,
+            mantissa: 0xbed1b229_5baf15b5_0ec9af45_a2619971_u128,
+        }, // 929569/638512875
+        RationalFloat128 {
+            sign: RationalSign::Pos,
+            exponent: -138,
+            mantissa: 0x9aac1240_1b3a2291_1b2ac7e3_e4627d0a_u128,
+        }, // 6404582/10854718875
+    ];
+
+    u.quick_mul(&r_polyeval9(
+        &u_sq,
+        &TAN_COEFFS[0],
+        &TAN_COEFFS[1],
+        &TAN_COEFFS[2],
+        &TAN_COEFFS[3],
+        &TAN_COEFFS[4],
+        &TAN_COEFFS[5],
+        &TAN_COEFFS[6],
+        &TAN_COEFFS[7],
+        &TAN_COEFFS[8],
+    ))
+}
+
+// Calculation a / b = a * (1/b) for Float128.
+// Using the initial approximation of q ~ (1/b), then apply 2 Newton-Raphson
+// iterations, before multiplying by a.
+#[inline]
+fn newton_raphson_div(a: &RationalFloat128, b: &RationalFloat128, q: f64) -> RationalFloat128 {
+    let q0 = RationalFloat128::new_from_f64(q);
+    const TWO: RationalFloat128 = RationalFloat128::new_from_f64(2.0);
+    let mut b = *b;
+    b.sign = if b.sign == RationalSign::Pos {
+        RationalSign::Neg
+    } else {
+        RationalSign::Pos
+    };
+    let q1 = q0.quick_mul(&TWO.quick_add(&b.quick_mul(&q0)));
+    let q2 = q1.quick_mul(&TWO.quick_add(&b.quick_mul(&q1)));
+    a.quick_mul(&q2)
 }
 
 /// Tan in double precision
 ///
-/// ULP 1.0
+/// ULP 0.50097
+#[inline]
 pub fn f_tan(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
 
     let y: Dekker;
     let k;
+
+    let mut argument_reduction = LargeArgumentReduction::default();
 
     // |x| < 2^16
     if x_e < E_BIAS + 16 {
@@ -111,12 +210,10 @@ pub fn f_tan(x: f64) -> f64 {
         }
 
         // Large range reduction.
-        let mut argument_reduction = LargeArgumentReduction::default();
-        k = argument_reduction.high_part(x);
-        y = argument_reduction.reduce();
+        (k, y) = argument_reduction.reduce_new(x);
     }
 
-    let tan_y = tan_eval(y);
+    let (tan_y, err) = tan_eval(y);
 
     // Fast look up version, but needs 256-entry table.
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
@@ -135,7 +232,48 @@ pub fn f_tan(x: f64) -> f64 {
     num_dd.lo += cos_k_tan_y.lo - msin_k.lo;
     den_dd.lo += msin_k_tan_y.lo + cos_k.lo;
 
-    Dekker::div(num_dd, den_dd).to_f64()
+    let tan_x = Dekker::div(num_dd, den_dd);
+
+    // Simple error bound: |1 / den_dd| < 2^(1 + floor(-log2(den_dd)))).
+    let den_inv = ((E_BIAS + 1) << (52 + 1)) - (den_dd.hi.to_bits() & EXP_MASK);
+    // For tan_x = (num_dd + err) / (den_dd + err), the error is bounded by:
+    //   | tan_x - num_dd / den_dd |  <= err * ( 1 + | tan_x * den_dd | ).
+    let tan_err = err * f_fmla(f64::from_bits(den_inv), tan_x.hi.abs(), 1.0);
+
+    let err_higher = tan_x.lo + tan_err;
+    let err_lower = tan_x.lo - tan_err;
+
+    let tan_upper = tan_x.hi + err_higher;
+    let tan_lower = tan_x.hi + err_lower;
+
+    // Ziv_s rounding test.
+    if tan_upper == tan_lower {
+        return tan_upper;
+    }
+
+    let u_f128 = if x_e < E_BIAS + 16 {
+        range_reduction_small_f128(x)
+    } else {
+        argument_reduction.accurate()
+    };
+
+    let tan_u = tan_eval_rational(&u_f128);
+
+    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    let sin_k_f128 = get_sin_k_rational(k);
+    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
+    let msin_k_f128 = get_sin_k_rational(k.wrapping_add(128));
+
+    // num_f128 = sin(k*pi/128) + tan(y) * cos(k*pi/128)
+    let num_f128 = sin_k_f128 + (cos_k_f128 * tan_u);
+    // den_f128 = cos(k*pi/128) - tan(y) * sin(k*pi/128)
+    let den_f128 = cos_k_f128 + (msin_k_f128 * tan_u);
+
+    // tan(x) = (sin(k*pi/128) + tan(y) * cos(k*pi/128)) /
+    //          / (cos(k*pi/128) - tan(y) * sin(k*pi/128))
+    // reused from DoubleDouble fputil::div in the fast pass.
+    let result = newton_raphson_div(&num_f128, &den_f128, 1.0 / den_dd.hi);
+    result.fast_as_f64()
 }
 
 #[cfg(test)]

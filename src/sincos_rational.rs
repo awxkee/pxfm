@@ -80,6 +80,29 @@ pub(crate) fn r_polyeval7(
     r_fmla(x, &t5, a0) // ((a3 * x + a2) * x + a1) * x + a0
 }
 
+#[inline(always)]
+pub(crate) fn r_polyeval9(
+    x: &RationalFloat128,
+    a0: &RationalFloat128,
+    a1: &RationalFloat128,
+    a2: &RationalFloat128,
+    a3: &RationalFloat128,
+    a4: &RationalFloat128,
+    a5: &RationalFloat128,
+    a6: &RationalFloat128,
+    a7: &RationalFloat128,
+    a8: &RationalFloat128,
+) -> RationalFloat128 {
+    let t0 = r_fmla(x, a8, a7); // a3 * x + a2
+    let t0a = r_fmla(x, &t0, a6); // a3 * x + a2
+    let t1 = r_fmla(x, &t0a, a5); // a3 * x + a2
+    let t2 = r_fmla(x, &t1, a4); // a3 * x + a2
+    let t3 = r_fmla(x, &t2, a3); // (a3 * x + a2) * x + a1
+    let t4 = r_fmla(x, &t3, a2); // (a3 * x + a2) * x + a1
+    let t5 = r_fmla(x, &t4, a1); // (a3 * x + a2) * x + a1
+    r_fmla(x, &t5, a0) // ((a3 * x + a2) * x + a1) * x + a0
+}
+
 pub(crate) struct SinCosRational {
     pub(crate) v_sin: RationalFloat128,
     pub(crate) v_cos: RationalFloat128,
