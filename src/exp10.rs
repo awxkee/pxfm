@@ -56,18 +56,16 @@ pub fn f_exp10(x: f64) -> f64 {
     }
 
     // check x integer to avoid a spurious inexact exception
-    if ix.wrapping_shl(16) == 0 {
-        if (aix >> 48) <= 0x4036 {
-            let kx = x.round_ties_even();
-            if kx == x {
-                let k = kx as i64;
-                if k >= 0 {
-                    let mut r = 1.0;
-                    for _ in 0..k {
-                        r *= 10.0;
-                    }
-                    return r;
+    if ix.wrapping_shl(16) == 0 && (aix >> 48) <= 0x4036 {
+        let kx = x.round_ties_even();
+        if kx == x {
+            let k = kx as i64;
+            if k >= 0 {
+                let mut r = 1.0;
+                for _ in 0..k {
+                    r *= 10.0;
                 }
+                return r;
             }
         }
     }
@@ -90,7 +88,7 @@ pub fn f_exp10(x: f64) -> f64 {
     const L1: f64 = f64::from_bits(0x3d1f79fef311f12b);
     let dx = f_fmla(-L1, t, f_fmla(-L0, t, x));
     let dx2 = dx * dx;
-    
+
     const CH: [u64; 4] = [
         0x40026bb1bbb55516,
         0x40053524c73cea69,
