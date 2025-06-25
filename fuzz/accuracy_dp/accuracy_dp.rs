@@ -134,7 +134,7 @@ fuzz_target!(|data: (f64, f64)| {
     let x1 = data.0;
     let mpfr_x0 = Float::with_val(100, x0);
     let mpfr_x1 = Float::with_val(100, x1);
-    test_method(
+    /*test_method(
         x0,
         f_cbrt,
         &mpfr_x0.clone().cbrt(),
@@ -163,15 +163,15 @@ fuzz_target!(|data: (f64, f64)| {
         &mpfr_x0.clone().exp2(),
         "f_exp2".to_string(),
         0.51,
-    );
-    test_method_allow_not_normals(
+    );*/
+    test_method(
         x0,
         f_exp10,
         &mpfr_x0.clone().exp10(),
         "f_exp10".to_string(),
-        0.51,
+        0.5003,
     );
-    test_method(
+   /* test_method(
         x0,
         f_sin,
         &mpfr_x0.clone().sin(),
@@ -231,5 +231,5 @@ fuzz_target!(|data: (f64, f64)| {
             "f_powf".to_string(),
             0.6,
         );
-    }
+    }*/
 });

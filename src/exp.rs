@@ -73,7 +73,7 @@ pub const fn exp(d: f64) -> f64 {
     // }
 }
 
-static T0: [(u64, u64); 64] = [
+pub(crate) static EXP_REDUCE_T0: [(u64, u64); 64] = [
     (0x0000000000000000, 0x3ff0000000000000),
     (0xbc719083535b085e, 0x3ff02c9a3e778061),
     (0x3c8d73e2a475b466, 0x3ff059b0d3158574),
@@ -140,7 +140,7 @@ static T0: [(u64, u64); 64] = [
     (0x3c874853f3a5931e, 0x3fffa7c1819e90d8),
 ];
 
-static T1: [(u64, u64); 64] = [
+pub(crate) static EXP_REDUCE_T1: [(u64, u64); 64] = [
     (0x0000000000000000, 0x3ff0000000000000),
     (0x3c9ae8e38c59c72a, 0x3ff000b175effdc7),
     (0xbc57b5d0d58ea8f4, 0x3ff00162f3904052),
@@ -209,7 +209,7 @@ static T1: [(u64, u64); 64] = [
 
 // sets the exponent of a binary64 number to 0 (subnormal range)
 #[inline]
-fn to_denormal(x: f64) -> f64 {
+pub(crate) fn to_denormal(x: f64) -> f64 {
     let mut ix = x.to_bits();
     ix &= 0x000fffffffffffff;
     f64::from_bits(ix)
@@ -322,12 +322,12 @@ pub fn f_exp(x: f64) -> f64 {
     let i1 = jt & 0x3f;
     let ie: i64 = jt >> 12;
     let t0 = Dekker::new(
-        f64::from_bits(T0[i0 as usize].0),
-        f64::from_bits(T0[i0 as usize].1),
+        f64::from_bits(EXP_REDUCE_T0[i0 as usize].0),
+        f64::from_bits(EXP_REDUCE_T0[i0 as usize].1),
     );
     let t1 = Dekker::new(
-        f64::from_bits(T1[i1 as usize].0),
-        f64::from_bits(T1[i1 as usize].1),
+        f64::from_bits(EXP_REDUCE_T1[i1 as usize].0),
+        f64::from_bits(EXP_REDUCE_T1[i1 as usize].1),
     );
     let tz = Dekker::quick_mult(t0, t1);
     const L2: Dekker = Dekker::new(
