@@ -2,7 +2,7 @@ workspace = { members = ["app", "fuzz"] }
 
 [package]
 name = "pxfm"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 documentation = "https://github.com/awxkee/pxfm"
 keywords = ["libm", "math"]
@@ -12,7 +12,7 @@ readme = "README.md"
 repository = "https://github.com/awxkee/pxfm"
 rust-version = "1.85"
 categories = ["mathematics"]
-description = "Fast and precise math"
+description = "Fast and accurate math"
 
 [dependencies]
 num-traits = "0.2"
