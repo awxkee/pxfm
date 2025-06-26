@@ -53,11 +53,7 @@ pub(crate) fn range_reduction_small_f128(x: f64) -> DyadicFloat128 {
 }
 
 #[inline(always)]
-pub(crate) fn r_fmla(
-    a: &DyadicFloat128,
-    b: &DyadicFloat128,
-    c: &DyadicFloat128,
-) -> DyadicFloat128 {
+pub(crate) fn r_fmla(a: &DyadicFloat128, b: &DyadicFloat128, c: &DyadicFloat128) -> DyadicFloat128 {
     a.quick_mul(b).quick_add(c)
 }
 

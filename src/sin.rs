@@ -860,8 +860,8 @@ impl LargeArgumentReduction {
         let y_lo_0 = DyadicFloat128::new_from_f64(self.x_reduced * f64::from_bits(one_pi_rot.3));
         let y_lo_1 = DyadicFloat128::new_from_f64(self.y_lo) + y_lo_0;
         let y_mid_f128 = DyadicFloat128::new_from_f64(self.y_mid.lo) + y_lo_1;
-        let y_hi_f128 = DyadicFloat128::new_from_f64(self.y_hi)
-            + DyadicFloat128::new_from_f64(self.y_mid.hi);
+        let y_hi_f128 =
+            DyadicFloat128::new_from_f64(self.y_hi) + DyadicFloat128::new_from_f64(self.y_mid.hi);
         let y = y_hi_f128 + y_mid_f128;
 
         y * PI_OVER_128_F128

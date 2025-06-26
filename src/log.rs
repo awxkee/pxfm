@@ -28,11 +28,11 @@
  */
 use crate::common::{f_fmla, fmla, min_normal_f64};
 use crate::dekker::Dekker;
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log_dyadic::{LOG_STEP_1, LOG_STEP_2, LOG_STEP_3, LOG_STEP_4};
 use crate::log_range_reduction::log_range_reduction;
 use crate::log2::{LOG_COEFFS, LOG_RANGE_REDUCTION, f_polyeval4};
 use crate::log10::LOG_R_DD;
-use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
 /// Natural logarithm
 #[inline]
@@ -101,17 +101,17 @@ fn log_accurate(e_x: i32, index: i32, m_x: f64) -> f64 {
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -129,
-            mantissa: 0x8000_0000_0006a710_b59c58e5_554d581c_u128,
+            mantissa: 0x8000_0000_0006_a710_b59c_58e5_554d_581c_u128,
         },
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -129,
-            mantissa: 0xaaaa_aaaa_aaaaaabd_de05c7c9_4ae9cbae_u128,
+            mantissa: 0xaaaa_aaaa_aaaa_aabd_de05_c7c9_4ae9_cbae_u128,
         },
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -128,
-            mantissa: 0x8000_0000_00000000_00000000_00000000_u128,
+            mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
         },
     ];
 

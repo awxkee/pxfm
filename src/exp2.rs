@@ -104,9 +104,9 @@ pub fn f_exp2(x: f64) -> f64 {
     let p2 = f_fmla(z2, p1, p0);
 
     let mut fl = f_fmla(tz, p2, ti0.lo);
-    
+
     const EPS: f64 = f64::from_bits(0x3c0833beace2b6fe);
-    
+
     if ix <= 0xc08ff00000000000u64 {
         // x >= -1022
         if frac != 0 {

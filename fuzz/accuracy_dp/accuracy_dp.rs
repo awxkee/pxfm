@@ -147,14 +147,14 @@ fuzz_target!(|data: (f64, f64)| {
         f_log2,
         &mpfr_x0.clone().log2(),
         "f_log2".to_string(),
-        1.1,
+        0.5,
     );
     test_method(
         x0,
         f_log10,
         &mpfr_x0.clone().log10(),
         "f_log10".to_string(),
-        1.1,
+        0.5,
     );
     test_method(x0, f_exp, &mpfr_x0.clone().exp(), "f_exp".to_string(), 0.5);
     test_method(

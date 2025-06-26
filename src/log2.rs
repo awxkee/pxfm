@@ -28,6 +28,9 @@
  */
 use crate::common::{f_fmla, min_normal_f64};
 use crate::dekker::Dekker;
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::log_range_reduction::log_range_reduction;
+use crate::log2_dyadic::{LOG2_STEP_1, LOG2_STEP_2, LOG2_STEP_3, LOG2_STEP_4};
 
 pub(crate) static LOG_RANGE_REDUCTION: [u64; 128] = [
     0x3ff0000000000000,
@@ -429,13 +432,6 @@ pub(crate) static LOG_CD: [u64; 128] = [
     0xbf70000000000000,
 ];
 
-#[inline(always)]
-pub(crate) fn f_polyeval4(x: f64, a0: f64, a1: f64, a2: f64, a3: f64) -> f64 {
-    let t1 = f_fmla(x, a3, a2); // a3 * x + a2
-    let t2 = f_fmla(x, t1, a1); // (a3 * x + a2) * x + a1
-    f_fmla(x, t2, a0) // ((a3 * x + a2) * x + a1) * x + a0
-}
-
 pub(crate) const LOG_COEFFS: [u64; 6] = [
     0xbfdfffffffffffff,
     0x3fd5555555554a9b,
@@ -445,9 +441,64 @@ pub(crate) const LOG_COEFFS: [u64; 6] = [
     0x3fc21a02c4e624d7,
 ];
 
+#[inline(always)]
+pub(crate) fn f_polyeval4(x: f64, a0: f64, a1: f64, a2: f64, a3: f64) -> f64 {
+    let t1 = f_fmla(x, a3, a2); // a3 * x + a2
+    let t2 = f_fmla(x, t1, a1); // (a3 * x + a2) * x + a1
+    f_fmla(x, t2, a0) // ((a3 * x + a2) * x + a1) * x + a0
+}
+
+// Reuse the output of the fast pass range reduction.
+// -2^-8 <= m_x < 2^-7
+fn log2_accurate(e_x: i64, index: usize, m_x: f64) -> f64 {
+    // > P = fpminimax(log2(1 + x)/x, 3, [|128...|], [-0x1.0002143p-29 , 0x1p-29]);
+    // > P;
+    // > dirtyinfnorm(log2(1 + x)/x - P, [-0x1.0002143p-29 , 0x1p-29]);
+    // 0x1.27ad5...p-121
+    const BIG_COEFFS: [DyadicFloat128; 4] = [
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -129,
+            mantissa: 0xb8aa3b29_5c2b21e3_3eccf694_0d66bbcc_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -129,
+            mantissa: 0xf6384ee1_d01febc9_ee39a6d6_49394bb1_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -128,
+            mantissa: 0xb8aa3b29_5c17f0bb_be87fed0_67ea2ad5_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -127,
+            mantissa: 0xb8aa3b29_5c17f0bb_be87fed0_691d3e3f_u128,
+        },
+    ];
+    let mut sum = DyadicFloat128::new_from_f64(e_x as f64);
+    sum = sum + LOG2_STEP_1[index];
+
+    let (v_f128, sum) = log_range_reduction(
+        m_x,
+        &[&LOG2_STEP_1, &LOG2_STEP_2, &LOG2_STEP_3, &LOG2_STEP_4],
+        sum,
+    );
+
+    // Polynomial approximation
+    let mut p = v_f128 * BIG_COEFFS[0];
+    p = v_f128 * (p + BIG_COEFFS[1]);
+    p = v_f128 * (p + BIG_COEFFS[2]);
+    p = v_f128 * (p + BIG_COEFFS[3]);
+
+    let r = sum + p;
+    r.fast_as_f64()
+}
+
 /// Natural logarithm using FMA
 ///
-/// Max found ULP 1.1
+/// Max found ULP 0.5
 #[inline]
 pub fn f_log2(x: f64) -> f64 {
     let mut x_u = x.to_bits();
@@ -564,8 +615,18 @@ pub fn f_log2(x: f64) -> f64 {
 
     // Overall, if we choose sufficiently large constant C, the total error is
     // bounded by (C * ulp(u^2)).
+    let err = u_sq * f64::from_bits(0x3ce0000000000000);
+    // Lower bound from the result
+    let left = r3.hi + (r3.lo - err);
+    // Upper bound from the result
+    let right = r3.hi + (r3.lo + err);
 
-    r3.hi + r3.lo
+    // Ziv's test if fast pass is accurate enough.
+    if left == right {
+        return left;
+    }
+
+    log2_accurate(x_e, index as usize, u)
 }
 
 #[cfg(test)]
