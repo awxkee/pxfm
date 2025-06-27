@@ -2,7 +2,7 @@ workspace = { members = ["app", "fuzz"] }
 
 [package]
 name = "pxfm"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 documentation = "https://github.com/awxkee/pxfm"
 keywords = ["libm", "math"]
