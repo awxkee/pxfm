@@ -196,7 +196,7 @@ static A: [(u64, u64); 129] = [
 ];
 
 #[inline]
-fn poly_dd(x: Dekker, poly: [(u64, u64); 3], l: f64) -> Dekker {
+pub(crate) fn poly_dd_3(x: Dekker, poly: [(u64, u64); 3], l: f64) -> Dekker {
     let zch = poly[2];
     let ach = f64::from_bits(zch.0) + l;
     let acl = (f64::from_bits(zch.0) - ach) + l + f64::from_bits(zch.1);
@@ -259,7 +259,7 @@ fn atan_refine(x: f64, a: f64) -> f64 {
     let zw1 = f_fmla(h2.hi, f64::from_bits(CL[1]), f64::from_bits(CL[0]));
     let zfl = f_fmla(h2.hi, zw1, h4 * zw0);
 
-    let mut f = poly_dd(h2, CH, zfl);
+    let mut f = poly_dd_3(h2, CH, zfl);
     f = Dekker::quick_mult(h3, f);
     let (ah, mut az);
     if i == 0 {

@@ -36,6 +36,14 @@ pub(crate) struct Dekker {
 
 impl Dekker {
     #[inline]
+    pub(crate) const fn from_bit_pair(pair: (u64, u64)) -> Self {
+        Self {
+            lo: f64::from_bits(pair.0),
+            hi: f64::from_bits(pair.1),
+        }
+    }
+
+    #[inline]
     pub(crate) const fn new(lo: f64, hi: f64) -> Self {
         Dekker { lo, hi }
     }
@@ -170,6 +178,29 @@ impl Dekker {
         let t2 = f_fmla(a.lo, b.hi, t1);
         r.lo = t2;
         r
+    }
+
+    #[inline]
+    pub(crate) fn mult(a: Dekker, b: Dekker) -> Self {
+        let ahlh = b.hi * a.lo;
+        let alhh = b.lo * a.hi;
+        let ahhh = b.hi * a.hi;
+        let mut ahhl = f_fmla(b.hi, a.hi, -ahhh);
+        ahhl += alhh + ahlh;
+        let ch = ahhh + ahhl;
+        let l = (ahhh - ch) + ahhl;
+        Self { lo: l, hi: ch }
+    }
+
+    #[inline]
+    pub(crate) fn quick_mult_f64(a: Dekker, b: f64) -> Self {
+        let ahlh = b * a.lo;
+        let ahhh = b * a.hi;
+        let mut ahhl = f_fmla(b, a.hi, -ahhh);
+        ahhl += ahlh;
+        let ch = ahhh + ahhl;
+        let l = (ahhh - ch) + ahhl;
+        Dekker::new(l, ch)
     }
 
     #[inline]
