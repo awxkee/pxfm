@@ -7,13 +7,21 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 use pxfm::{
     exp, f_acos, f_acosf, f_asin, f_asinf, f_atan, f_atan2, f_atan2f, f_atanf, f_cbrt, f_cbrtf,
-    f_cos, f_cosf, f_coshf, f_cospif, f_exp, f_exp2, f_exp2f, f_exp10, f_exp10f, f_expf, f_j1,
-    f_log, f_log2, f_log2f, f_log10, f_log10f, f_logf, f_pow, f_powf, f_sin, f_sincos, f_sincosf,
-    f_sinf, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanhf, f_tanpif, powf,
+    f_cos, f_cosf, f_coshf, f_cospi, f_cospif, f_exp, f_exp2, f_exp2f, f_exp10, f_exp10f, f_expf,
+    f_j1, f_log, f_log2, f_log2f, f_log10, f_log10f, f_logf, f_pow, f_powf, f_sin, f_sincos,
+    f_sincosf, f_sinf, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanhf, f_tanpif, powf,
 };
 use std::hint::black_box;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
+    c.bench_function("pxfm: f_cospi", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_cospi(i as f64 / 1000.0));
+            }
+        })
+    });
+
     c.bench_function("pxfm: f_sinpi", |b| {
         b.iter(|| {
             for i in 1..1000 {
