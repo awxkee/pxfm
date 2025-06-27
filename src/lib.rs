@@ -85,6 +85,7 @@ mod sqrtf;
 mod tan;
 mod tanf;
 mod tanhf;
+mod tanpif;
 mod trunc;
 
 pub use acos::f_acos;
@@ -132,4 +133,5 @@ pub use sqrtf::sqrtf;
 pub use tan::f_tan;
 pub use tanf::f_tanf;
 pub use tanhf::f_tanhf;
+pub use tanpif::f_tanpif;
 pub use trunc::{trunc, truncf};
