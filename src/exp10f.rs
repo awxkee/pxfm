@@ -28,9 +28,9 @@
  */
 use crate::common::{f_fmla, f_fmlaf};
 
-struct ExpBReduc {
-    hi: f64,
-    lo: f64,
+pub(crate) struct ExpBReduc {
+    pub(crate) hi: f64,
+    pub(crate) lo: f64,
 }
 
 const MID_BITS: u32 = 5;
@@ -73,7 +73,7 @@ const EXP_2_MID: [u64; 32] = [
     0x3fff50765b6e4540,
 ];
 
-const COEFFS: [u64; 5] = [
+pub(crate) const EXP10F_COEFFS: [u64; 5] = [
     0x40026bb1bbb55515,
     0x40053524c73bd3ea,
     0x4000470591dff149,
@@ -83,7 +83,7 @@ const COEFFS: [u64; 5] = [
 
 /// Range reduction function equivalent to exp_b_range_reduc
 #[inline]
-fn exp_b_range_reduc(x: f32) -> ExpBReduc {
+pub(crate) fn exp_b_range_reduc(x: f32) -> ExpBReduc {
     let xd = x as f64;
 
     // kd = round(log2(b) * x)
@@ -154,11 +154,19 @@ pub fn f_exp10f(x: f32) -> f32 {
     // 10^lo ~ 1 + COEFFS[0] * lo + ... + COEFFS[4] * lo^5
     let lo2 = rr.lo * rr.lo;
     // c0 = 1 + COEFFS[0] * lo
-    let c0 = f_fmla(rr.lo, f64::from_bits(COEFFS[0]), 1.0);
+    let c0 = f_fmla(rr.lo, f64::from_bits(EXP10F_COEFFS[0]), 1.0);
     // c1 = COEFFS[1] + COEFFS[2] * lo
-    let c1 = f_fmla(rr.lo, f64::from_bits(COEFFS[2]), f64::from_bits(COEFFS[1]));
+    let c1 = f_fmla(
+        rr.lo,
+        f64::from_bits(EXP10F_COEFFS[2]),
+        f64::from_bits(EXP10F_COEFFS[1]),
+    );
     // c2 = COEFFS[3] + COEFFS[4] * lo
-    let c2 = f_fmla(rr.lo, f64::from_bits(COEFFS[4]), f64::from_bits(COEFFS[3]));
+    let c2 = f_fmla(
+        rr.lo,
+        f64::from_bits(EXP10F_COEFFS[4]),
+        f64::from_bits(EXP10F_COEFFS[3]),
+    );
     // p = c1 + c2 * lo^2
     //   = COEFFS[1] + COEFFS[2] * lo + COEFFS[3] * lo^2 + COEFFS[4] * lo^3
     let p = f_fmla(lo2, c2, c1);
