@@ -320,7 +320,7 @@ mod tests {
 
     #[test]
     fn test_f_cospif() {
-        assert_eq!(f_sinpif(115.30706), -0.5696978);
+        assert_eq!(f_cospif(115.30706), -0.5696978);
         assert!(f_cospif(f32::INFINITY).is_nan());
     }
 }
