@@ -134,7 +134,7 @@ static LIX: [u64; 32] = [
 ];
 
 #[inline]
-fn as_special(x: f32) -> f32 {
+pub(crate) fn special_logf(x: f32) -> f32 {
     let t = x.to_bits();
     if t == 0xbf800000u32 {
         // +0.0
@@ -200,7 +200,7 @@ pub fn f_log1pf(x: f32) -> f32 {
         f64::from_bits(r) as f32
     } else {
         if ux >= 0xbf800000u32 || ax >= 0x7f800000u32 {
-            return as_special(x);
+            return special_logf(x);
         }
         let tp = (z + 1.).to_bits();
         let mut e: i32 = (tp >> 52) as i32;

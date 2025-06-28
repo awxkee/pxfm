@@ -30,6 +30,9 @@ use crate::common::f_fmla;
 use crate::exp10f::EXP10F_COEFFS;
 use crate::logf::f_polyeval3;
 
+/// Computes 10^x - 1
+///
+/// Max ULP 0.5
 #[inline]
 pub fn f_exp10m1f(x: f32) -> f32 {
     let x_u = x.to_bits();
