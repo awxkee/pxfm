@@ -47,6 +47,41 @@ pub(crate) fn poly_dekker_generic<const N: usize>(x: Dekker, poly: [(u64, u64); 
     ch
 }
 
+static ATAN2F_TABLE: [(u64, u64); 32] = [
+    (0x3ff0000000000000, 0xba88c1dac5492248),
+    (0xbfd5555555555555, 0xbc755553bf3a2abe),
+    (0x3fc999999999999a, 0xbc699deed1ec9071),
+    (0xbfc2492492492492, 0xbc5fd99c8d18269a),
+    (0x3fbc71c71c71c717, 0xbc2651eee4c4d9d0),
+    (0xbfb745d1745d1649, 0xbc5632683d6c44a6),
+    (0x3fb3b13b13b11c63, 0x3c5bf69c1f8af41d),
+    (0xbfb11111110e6338, 0x3c23c3e431e8bb68),
+    (0x3fae1e1e1dc45c4a, 0xbc4be2db05c77bbf),
+    (0xbfaaf286b8164b4f, 0x3c2a4673491f0942),
+    (0x3fa86185e9ad4846, 0x3c4e12e32d79fcee),
+    (0xbfa642c6d5161fae, 0x3c43ce76c1ca03f0),
+    (0x3fa47ad6f277e5bf, 0xbc3abd8d85bdb714),
+    (0xbfa2f64a2ee8896d, 0x3c2ef87d4b615323),
+    (0x3fa1a6a2b31741b5, 0x3c1a5d9d973547ee),
+    (0xbfa07fbdad65e0a6, 0xbc265ac07f5d35f4),
+    (0x3f9ee9932a9a5f8b, 0x3c2f8b9623f6f55a),
+    (0xbf9ce8b5b9584dc6, 0x3c2fe5af96e8ea2d),
+    (0x3f9ac9cb288087b7, 0xbc3450cdfceaf5ca),
+    (0xbf984b025351f3e6, 0x3c2579561b0d73da),
+    (0x3f952f5b8ecdd52b, 0x3c3036bd2c6fba47),
+    (0xbf9163a8c44909dc, 0x3c318f735ffb9f16),
+    (0x3f8a400dce3eea6f, 0xbc2c90569c0c1b5c),
+    (0xbf81caa78ae6db3a, 0xbc24c60f8161ea09),
+    (0x3f752672453c0731, 0x3c1834efb598c338),
+    (0xbf65850c5be137cf, 0xbc0445fc150ca7f5),
+    (0x3f523eb98d22e1ca, 0xbbf388fbaf1d7830),
+    (0xbf38f4e974a40741, 0x3bd271198a97da34),
+    (0x3f1a5cf2e9cf76e5, 0xbbb887eb4a63b665),
+    (0xbef420c270719e32, 0x3b8efd595b27888b),
+    (0x3ec3ba2d69b51677, 0xbb64fb06829cdfc7),
+    (0xbe829b7e6f676385, 0xbb2a783b6de718fb),
+];
+
 #[inline]
 fn cr_atan2f_tiny(y: f32, x: f32) -> f32 {
     let dy = y as f64;
@@ -214,41 +249,7 @@ pub fn f_atan2f(y: f32, x: f32) -> f32 {
             zl = f_fmla(zh, -zy, zx) / zy;
         }
         let z2 = Dekker::quick_mult(Dekker::new(zl, zh), Dekker::new(zl, zh));
-        static C: [(u64, u64); 32] = [
-            (0x3ff0000000000000, 0xba88c1dac5492248),
-            (0xbfd5555555555555, 0xbc755553bf3a2abe),
-            (0x3fc999999999999a, 0xbc699deed1ec9071),
-            (0xbfc2492492492492, 0xbc5fd99c8d18269a),
-            (0x3fbc71c71c71c717, 0xbc2651eee4c4d9d0),
-            (0xbfb745d1745d1649, 0xbc5632683d6c44a6),
-            (0x3fb3b13b13b11c63, 0x3c5bf69c1f8af41d),
-            (0xbfb11111110e6338, 0x3c23c3e431e8bb68),
-            (0x3fae1e1e1dc45c4a, 0xbc4be2db05c77bbf),
-            (0xbfaaf286b8164b4f, 0x3c2a4673491f0942),
-            (0x3fa86185e9ad4846, 0x3c4e12e32d79fcee),
-            (0xbfa642c6d5161fae, 0x3c43ce76c1ca03f0),
-            (0x3fa47ad6f277e5bf, 0xbc3abd8d85bdb714),
-            (0xbfa2f64a2ee8896d, 0x3c2ef87d4b615323),
-            (0x3fa1a6a2b31741b5, 0x3c1a5d9d973547ee),
-            (0xbfa07fbdad65e0a6, 0xbc265ac07f5d35f4),
-            (0x3f9ee9932a9a5f8b, 0x3c2f8b9623f6f55a),
-            (0xbf9ce8b5b9584dc6, 0x3c2fe5af96e8ea2d),
-            (0x3f9ac9cb288087b7, 0xbc3450cdfceaf5ca),
-            (0xbf984b025351f3e6, 0x3c2579561b0d73da),
-            (0x3f952f5b8ecdd52b, 0x3c3036bd2c6fba47),
-            (0xbf9163a8c44909dc, 0x3c318f735ffb9f16),
-            (0x3f8a400dce3eea6f, 0xbc2c90569c0c1b5c),
-            (0xbf81caa78ae6db3a, 0xbc24c60f8161ea09),
-            (0x3f752672453c0731, 0x3c1834efb598c338),
-            (0xbf65850c5be137cf, 0xbc0445fc150ca7f5),
-            (0x3f523eb98d22e1ca, 0xbbf388fbaf1d7830),
-            (0xbf38f4e974a40741, 0x3bd271198a97da34),
-            (0x3f1a5cf2e9cf76e5, 0xbbb887eb4a63b665),
-            (0xbef420c270719e32, 0x3b8efd595b27888b),
-            (0x3ec3ba2d69b51677, 0xbb64fb06829cdfc7),
-            (0xbe829b7e6f676385, 0xbb2a783b6de718fb),
-        ];
-        let mut p = poly_dekker_generic(z2, C);
+        let mut p = poly_dekker_generic(z2, ATAN2F_TABLE);
         zh *= SGN[gt as usize];
         zl *= SGN[gt as usize];
         p = Dekker::quick_mult(Dekker::new(zl, zh), p);

@@ -30,6 +30,8 @@ use crate::asinpif::ASINCOSF_PI_TABLE;
 use crate::common::f_fmla;
 
 /// Computes acos(PI*x)
+///
+/// Max ULP 0.5
 #[inline]
 pub fn f_acospif(x: f32) -> f32 {
     let ax = x.abs();
