@@ -93,6 +93,7 @@ mod tanhf;
 mod tanpi;
 mod tanpif;
 mod trunc;
+mod log1pf;
 
 pub use acos::f_acos;
 pub use acosf::f_acosf;
@@ -145,3 +146,4 @@ pub use tanhf::f_tanhf;
 pub use tanpi::f_tanpi;
 pub use tanpif::f_tanpif;
 pub use trunc::{trunc, truncf};
+pub use log1pf::f_log1pf;
