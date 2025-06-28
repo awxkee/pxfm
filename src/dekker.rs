@@ -85,6 +85,14 @@ impl Dekker {
     }
 
     #[inline]
+    pub(crate) const fn from_exact_sub(a: f64, b: f64) -> Dekker {
+        let r_hi = a - b;
+        let t = a - r_hi;
+        let r_lo = t - b;
+        Dekker::new(r_lo, r_hi)
+    }
+
+    #[inline]
     pub(crate) const fn from_full_exact_add(a: f64, b: f64) -> Dekker {
         let r_hi = a + b;
         let t1 = r_hi - a;
@@ -190,6 +198,24 @@ impl Dekker {
         let ch = ahhh + ahhl;
         let l = (ahhh - ch) + ahhl;
         Self { lo: l, hi: ch }
+    }
+
+    #[inline]
+    pub(crate) fn mult_f64(a: Dekker, b: f64) -> Self {
+        let ahlh = b * a.lo;
+        let ahhh = b * a.hi;
+        let mut ahhl = f_fmla(b, a.hi, -ahhh);
+        ahhl += ahlh;
+        let ch = ahhh + ahhl;
+        let l = (ahhh - ch) + ahhl;
+        Dekker::new(l, ch)
+    }
+
+    #[inline]
+    pub(crate) fn add_f64(a: Dekker, b: f64) -> Self {
+        let t = Dekker::from_exact_add(a.hi, b);
+        let l = a.lo + t.lo;
+        Self { lo: l, hi: t.hi }
     }
 
     #[inline]
