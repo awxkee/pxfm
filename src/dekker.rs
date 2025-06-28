@@ -212,21 +212,17 @@ impl Dekker {
     }
 
     #[inline]
+    pub(crate) fn quick_mult_f64(a: Dekker, b: f64) -> Self {
+        let h = b * a.hi;
+        let l = b * a.lo + f_fmla(b, a.hi, -h);
+        Self { lo: l, hi: h }
+    }
+
+    #[inline]
     pub(crate) fn add_f64(a: Dekker, b: f64) -> Self {
         let t = Dekker::from_exact_add(a.hi, b);
         let l = a.lo + t.lo;
         Self { lo: l, hi: t.hi }
-    }
-
-    #[inline]
-    pub(crate) fn quick_mult_f64(a: Dekker, b: f64) -> Self {
-        let ahlh = b * a.lo;
-        let ahhh = b * a.hi;
-        let mut ahhl = f_fmla(b, a.hi, -ahhh);
-        ahhl += ahlh;
-        let ch = ahhh + ahhl;
-        let l = (ahhh - ch) + ahhl;
-        Dekker::new(l, ch)
     }
 
     #[inline]

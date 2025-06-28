@@ -255,7 +255,7 @@ fn as_sinpi_refine(iq: i32, z: f64) -> f64 {
         SH,
         f64::from_bits(0xbb632d2cc920dcb4) * x2,
     );
-    sl = Dekker::quick_mult_f64(sl, x * f64::from_bits(0x3f30000000000000));
+    sl = Dekker::mult_f64(sl, x * f64::from_bits(0x3f30000000000000));
     let cll0 = x2
         * f_fmla(
             f64::from_bits(0x39ce1f50604fa0ff),
