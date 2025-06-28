@@ -70,7 +70,7 @@ static OFF_F64: [f64; 8] = [0.0, 0.5, 1.0, 0.5, -0.0, -0.5, -1.0, -0.5];
 static SGNF: [f32; 2] = [1., -1.];
 static SGN: [f64; 2] = [1., -1.];
 
-/// Computes atan(x/y * PI)
+/// Computes atan(x/y) / PI
 ///
 /// Max found ULP 0.5
 #[inline]
