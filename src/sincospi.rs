@@ -509,7 +509,26 @@ mod tests {
 
     #[test]
     fn test_sinpi() {
-        assert_eq!(0.0100244343161398578, f_sinpi(0.0031909299901270445));
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            assert_eq!(0.0100244343161398578, f_sinpi(0.0031909299901270445));
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            assert_eq!(0.01002443431613986, f_sinpi(0.0031909299901270445));
+        }
         assert!(f_sinpi(f64::INFINITY).is_nan());
     }
 

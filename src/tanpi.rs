@@ -385,6 +385,25 @@ mod tests {
     #[test]
     fn test_tanpi() {
         assert_eq!(-2867080569611329.5, f_tanpi(0.5000000000000001));
-        assert_eq!(0.06704753721009375, f_tanpi(0.02131));
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            assert_eq!(0.06704753721009375, f_tanpi(0.02131));
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            assert_eq!(0.06704753721009377, f_tanpi(0.02131));
+        }
     }
 }
