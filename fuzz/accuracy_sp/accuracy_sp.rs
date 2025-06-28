@@ -2,8 +2,8 @@
 
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
-    f_acosf, f_asinf, f_cbrtf, f_cosf, f_coshf, f_cospif, f_exp2f, f_exp10f, f_expf, f_log2f,
-    f_log10f, f_logf, f_powf, f_sinf, f_sinhf, f_sinpif, f_tanf, f_tanhf, f_tanpif,
+    f_acosf, f_asinf, f_cbrtf, f_cosf, f_coshf, f_cospif, f_exp2f, f_exp2m1f, f_exp10f, f_expf,
+    f_log2f, f_log10f, f_logf, f_powf, f_sinf, f_sinhf, f_sinpif, f_tanf, f_tanhf, f_tanpif,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
@@ -98,6 +98,12 @@ fuzz_target!(|data: (f32, f32)| {
     let x1 = data.0;
     let mpfr_x0 = Float::with_val(70, x0);
     let mpfr_x1 = Float::with_val(70, x1);
+    test_method(
+        x0,
+        f_exp2m1f,
+        &mpfr_x0.clone().exp2_m1(),
+        "f_exp2m1f".to_string(),
+    );
     test_method(
         x0,
         f_tanpif,

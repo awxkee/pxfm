@@ -103,6 +103,9 @@ pub(crate) fn poly_dd_5(x: Dekker, poly: [(u64, u64); 5], l: f64) -> Dekker {
     ch
 }
 
+/// Computes tan(PI*x)
+///
+/// Max found ULP 5.0001
 #[inline]
 pub fn f_tanpi(x: f64) -> f64 {
     let ix = x.to_bits();
@@ -178,19 +181,17 @@ pub fn f_tanpi(x: f64) -> f64 {
                 // x mod 2^-7 = 0
                 if (iq & 31) == 0 {
                     let jq: i64 = sm >> (s.wrapping_add(6));
-                    if (jq & 1) != 0 {
+                    return if (jq & 1) != 0 {
                         if (jq & 2) != 0 {
-                            return f64::NEG_INFINITY;
+                            f64::NEG_INFINITY
                         } else {
-                            return f64::INFINITY;
+                            f64::INFINITY
                         }
+                    } else if ((jq ^ sgn) & 2) != 0 {
+                        -0.0
                     } else {
-                        if ((jq ^ sgn) & 2) != 0 {
-                            return -0.0;
-                        } else {
-                            return 0.0;
-                        }
-                    }
+                        0.0
+                    };
                 }
                 // avoid spurious inexact exception for x=1/4 mod 1/2
                 let kq: u64 = ((m as u64).wrapping_shl(s1 as u32)) >> 58;
@@ -203,7 +204,7 @@ pub fn f_tanpi(x: f64) -> f64 {
                     return -f64::copysign(1., x);
                 }
             }
-            z = f64::copysign(1., x) * z;
+            z *= f64::copysign(1., x);
         }
         let mut z2 = z * z;
         let z4 = z2 * z2;
