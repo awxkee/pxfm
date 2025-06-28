@@ -286,12 +286,12 @@ fn as_expm1_accurate(x: f64) -> f64 {
             0x3c62f49b2fbfb5b6,
         ];
 
-        let fl = x
-            * (f64::from_bits(CL[0])
-                + x * (f64::from_bits(CL[1])
-                    + x * (f64::from_bits(CL[2])
-                        + x * (f64::from_bits(CL[3])
-                            + x * (f64::from_bits(CL[4]) + x * f64::from_bits(CL[5]))))));
+        let fl0 = f_fmla(x, f64::from_bits(CL[5]), f64::from_bits(CL[4]));
+        let fl1 = f_fmla(x, fl0, f64::from_bits(CL[3]));
+        let fl2 = f_fmla(x, fl1, f64::from_bits(CL[2]));
+        let fl3 = f_fmla(x, fl2, f64::from_bits(CL[1]));
+
+        let fl = x * f_fmla(x, fl3, f64::from_bits(CL[0]));
         let mut f = opoly_dd_generic(Dekker::new(fl, x), EXPM1_DD1);
         f = Dekker::quick_mult_f64(f, x);
         f = Dekker::quick_mult_f64(f, x);
@@ -360,7 +360,7 @@ fn as_expm1_accurate(x: f64) -> f64 {
 
 /// Computes e^x - 1
 ///
-/// Max found ULP 0.5005
+/// Max found ULP 0.5000
 #[inline]
 pub fn f_expm1(x: f64) -> f64 {
     let ix = x.to_bits();
