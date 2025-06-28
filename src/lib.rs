@@ -35,9 +35,11 @@
 )]
 mod acos;
 mod acosf;
+mod acospif;
 mod asin;
 mod asin_eval_dyadic;
 mod asinf;
+mod asinpif;
 mod atan;
 mod atan2;
 mod atan2f;
@@ -99,8 +101,10 @@ mod trunc;
 
 pub use acos::f_acos;
 pub use acosf::f_acosf;
+pub use acospif::f_acospif;
 pub use asin::f_asin;
 pub use asinf::f_asinf;
+pub use asinpif::f_asinpif;
 pub use atan::f_atan;
 pub use atan2::f_atan2;
 pub use atan2f::f_atan2f;

@@ -6,15 +6,31 @@
  */
 use criterion::{Criterion, criterion_group, criterion_main};
 use pxfm::{
-    exp, f_acos, f_acosf, f_asin, f_asinf, f_atan, f_atan2, f_atan2f, f_atanf, f_cbrt, f_cbrtf,
-    f_cos, f_cosf, f_coshf, f_cospi, f_cospif, f_exp, f_exp2, f_exp2f, f_exp2m1f, f_exp10,
-    f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_j1, f_log, f_log1pf, f_log2, f_log2f, f_log2p1f,
-    f_log10, f_log10f, f_log10p1f, f_logf, f_pow, f_powf, f_sin, f_sincos, f_sincosf, f_sinf,
-    f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanhf, f_tanpi, f_tanpif, powf,
+    exp, f_acos, f_acosf, f_acospif, f_asin, f_asinf, f_asinpif, f_atan, f_atan2, f_atan2f,
+    f_atanf, f_cbrt, f_cbrtf, f_cos, f_cosf, f_coshf, f_cospi, f_cospif, f_exp, f_exp2, f_exp2f,
+    f_exp2m1f, f_exp10, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_j1, f_log, f_log1pf, f_log2,
+    f_log2f, f_log2p1f, f_log10, f_log10f, f_log10p1f, f_logf, f_pow, f_powf, f_sin, f_sincos,
+    f_sincosf, f_sinf, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanhf, f_tanpi, f_tanpif, powf,
 };
 use std::hint::black_box;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
+    c.bench_function("pxfm: f_acospif", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_acospif(i as f32 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_asinpif", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_asinpif(i as f32 / 1000.0));
+            }
+        })
+    });
+
     c.bench_function("pxfm: f_log10p1f", |b| {
         b.iter(|| {
             for i in 1..1000 {
