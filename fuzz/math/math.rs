@@ -3,8 +3,9 @@
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
     f_acos, f_acosf, f_asin, f_asinf, f_atan, f_atan2, f_atan2f, f_atanf, f_cbrt, f_cbrtf, f_cos,
-    f_cosf, f_coshf, f_exp, f_exp2, f_exp2f, f_exp10, f_exp10f, f_expf, f_log, f_log2, f_log2f,
-    f_log10, f_log10f, f_logf, f_sin, f_sincos, f_sinf, f_sinhf, f_sinpif, f_tanf,
+    f_cosf, f_coshf, f_cospi, f_cospif, f_exp, f_exp2, f_exp2f, f_exp2m1f, f_exp10, f_exp10f,
+    f_exp10m1f, f_expf, f_expm1f, f_log, f_log2, f_log2f, f_log10, f_log10f, f_logf, f_sin,
+    f_sincos, f_sinf, f_sinhf, f_sinpi, f_sinpif, f_tanf, f_tanpi, f_tanpif,
 };
 
 fuzz_target!(|data: (u64, f32)| {
@@ -46,4 +47,13 @@ fuzz_target!(|data: (u64, f32)| {
     _ = f_atan2f(z_f32, z1);
     _ = f_atan2(z_f64, z1 as f64);
     _ = f_sinpif(z_f32);
+    _ = f_exp10m1f(z_f32);
+    _ = f_exp2m1f(z_f32);
+    _ = f_expm1f(z_f32);
+    _ = f_tanpif(z_f32);
+    _ = f_sinpif(z_f32);
+    _ = f_cospif(z_f32);
+    _ = f_sinpi(z_f64);
+    _ = f_cospi(z_f64);
+    _ = f_tanpi(z_f64);
 });
