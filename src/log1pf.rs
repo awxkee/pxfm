@@ -151,6 +151,8 @@ fn as_special(x: f32) -> f32 {
 }
 
 /// Computes log(x+1)
+///
+/// Max ULP 0.5
 #[inline]
 pub fn f_log1pf(x: f32) -> f32 {
     const B: [u64; 8] = [
