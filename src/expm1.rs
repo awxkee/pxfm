@@ -345,14 +345,12 @@ fn as_expm1_accurate(x: f64) -> f64 {
             let fhz = Dekker::from_exact_add(f64::from_bits(off), f.hi);
             f.hi = fhz.hi;
             e = fhz.lo;
+        } else if ie < 104 {
+            let fhz = Dekker::from_exact_add(f.hi, f64::from_bits(off));
+            f.hi = fhz.hi;
+            e = fhz.lo;
         } else {
-            if ie < 104 {
-                let fhz = Dekker::from_exact_add(f.hi, f64::from_bits(off));
-                f.hi = fhz.hi;
-                e = fhz.lo;
-            } else {
-                e = 0.;
-            }
+            e = 0.;
         }
         f.lo += e;
         let dst = Dekker::from_exact_add(f.hi, f.lo);
@@ -450,7 +448,7 @@ pub fn f_expm1(x: f64) -> f64 {
         const L2L: f64 = f64::from_bits(0x3d0718432a1b0e26);
         let dx = f_fmla(L2L, t, f_fmla(-L2H, t, x));
         let dx2 = dx * dx;
-        
+
         const CH: [u64; 4] = [
             0x3ff0000000000000,
             0x3fe0000000000000,
@@ -473,14 +471,12 @@ pub fn f_expm1(x: f64) -> f64 {
             let flz = Dekker::from_exact_add(f64::from_bits(off), fh);
             e = flz.lo;
             fh = flz.hi;
+        } else if ie < 75 {
+            let flz = Dekker::from_exact_add(fh, f64::from_bits(off));
+            e = flz.lo;
+            fh = flz.hi;
         } else {
-            if ie < 75 {
-                let flz = Dekker::from_exact_add(fh, f64::from_bits(off));
-                e = flz.lo;
-                fh = flz.hi;
-            } else {
-                e = 0.;
-            }
+            e = 0.;
         }
         fl += e;
         let ub = fh + (fl + eps);
