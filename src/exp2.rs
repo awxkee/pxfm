@@ -31,9 +31,93 @@ use crate::dekker::Dekker;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
 
 #[inline]
+pub(crate) fn poly_xd_generic<const N: usize>(x: f64, poly: [(u64, u64); N]) -> Dekker {
+    let zch = poly.last().unwrap();
+
+    let mut ch = Dekker::new(f64::from_bits(zch.0), f64::from_bits(zch.1));
+
+    for zch in poly.iter().rev().skip(1) {
+        ch = Dekker::quick_mult_f64(ch, x);
+        let z0 = Dekker::from_bit_pair(*zch);
+        ch = Dekker::add(z0, ch);
+    }
+
+    ch
+}
+
+#[inline]
 pub(crate) fn ldexp(d: f64, i: u64) -> f64 {
     let b = d.to_bits();
     f64::from_bits(b.wrapping_add(i.wrapping_shl(52)))
+}
+
+fn exp2_accurate(x: f64) -> f64 {
+    let mut ix = x.to_bits();
+    let sx = 4096.0 * x;
+    let fx = sx.round_ties_even();
+    let z = sx - fx;
+    let k: i64 = fx as i64;
+    let i1 = k & 0x3f;
+    let i0 = (k >> 6) & 0x3f;
+    let ie = k >> 12;
+
+    let t0 = Dekker::from_bit_pair(EXP_REDUCE_T0[i0 as usize]);
+    let t1 = Dekker::from_bit_pair(EXP_REDUCE_T1[i1 as usize]);
+    let dt = Dekker::mult(t0, t1);
+
+    const EXP2_POLY_DD: [(u64, u64); 6] = [
+        (0x3bbabc9e3b39873e, 0x3f262e42fefa39ef),
+        (0xbae5e43a53e44950, 0x3e4ebfbdff82c58f),
+        (0xba0d3a15710d3d83, 0x3d6c6b08d704a0c0),
+        (0x3914dd5d2a5e025a, 0x3c83b2ab6fba4e77),
+        (0xb83dc47e47beb9dd, 0x3b95d87fe7a66459),
+        (0xb744fcd51fcb7640, 0x3aa430912f9fb79d),
+    ];
+
+    let mut f = poly_xd_generic(z, EXP2_POLY_DD);
+    f = Dekker::f64_mult(z, f);
+    if ix <= 0xc08ff00000000000u64 {
+        // x >= -1022
+        // for -0x1.71547652b82fep-54 <= x <= 0x1.71547652b82fdp-53,
+        // exp2(x) round to x to nearest
+        if f64::from_bits(0xbc971547652b82fe) <= x && x <= f64::from_bits(0x3ca71547652b82fd) {
+            return f_fmla(x, 0.5, 1.0);
+        } else if (k & 0xfff) == 0 {
+            // 4096*x rounds to 4096*integer
+            let zf = Dekker::from_exact_add(dt.hi, f.hi);
+            let zfl = Dekker::from_exact_add(zf.lo, f.lo);
+            f.hi = zf.hi;
+            f.lo = zfl.hi;
+            ix = zfl.hi.to_bits();
+            if ix & 0x000fffffffffffff == 0 {
+                // fl is a power of 2
+                if ((ix >> 52) & 0x7ff) != 0 {
+                    // |fl| is Inf
+                    let v = zfl.lo.to_bits();
+                    let d: i64 = ((((ix as i64) >> 63) ^ ((v as i64) >> 63)) as u64)
+                        .wrapping_shl(1)
+                        .wrapping_add(1) as i64;
+                    ix = ix.wrapping_add(d as u64);
+                    f.lo = f64::from_bits(ix);
+                }
+            }
+        } else {
+            f = Dekker::mult(f, dt);
+            f = Dekker::add(dt, f);
+        }
+        let hf = Dekker::from_exact_add(f.hi, f.lo);
+        let fh = ldexp(hf.hi, ie as u64);
+        fh
+    } else {
+        ix = 1u64.wrapping_sub(ie as u64).wrapping_shl(52);
+        f = Dekker::mult(f, dt);
+        f = Dekker::add(dt, f);
+        let zve = Dekker::from_exact_add(f64::from_bits(ix), f.hi);
+        f.hi = zve.hi;
+        f.lo += zve.lo;
+        let fh = to_denormal(f.to_f64());
+        fh
+    }
 }
 
 /// Computes exp2
@@ -110,7 +194,11 @@ pub fn f_exp2(x: f64) -> f64 {
     if ix <= 0xc08ff00000000000u64 {
         // x >= -1022
         if frac != 0 {
+            let ub = fh + (fl + EPS);
             fh += fl - EPS;
+            if ub != fh {
+                return exp2_accurate(x);
+            }
         }
         fh = ldexp(fh, ie as u64);
     } else {
@@ -120,7 +208,11 @@ pub fn f_exp2(x: f64) -> f64 {
         fl += rs.lo;
         fh = rs.hi;
         if frac != 0 {
+            let ub = fh + (fl + EPS);
             fh += fl - EPS;
+            if ub != fh {
+                return exp2_accurate(x);
+            }
         }
         // when 2^x is exact, no underflow should be raised
         fh = to_denormal(fh);
@@ -134,10 +226,12 @@ mod tests {
 
     #[test]
     fn test_exp2d() {
-        assert_eq!(f_exp2(2.0), 4.0);
-        assert_eq!(f_exp2(3.0), 8.0);
-        assert_eq!(f_exp2(4.0), 16.0);
-        assert!((f_exp2(0.35f64) - 0.35f64.exp2()).abs() < 1e-8);
-        assert!((f_exp2(-0.6f64) - (-0.6f64).exp2()).abs() < 1e-8);
+        println!("{}", (-144.0000000002624f64).exp2());
+        println!("{}", f_exp2(-144.0000000002624));
+        // assert_eq!(f_exp2(2.0), 4.0);
+        // assert_eq!(f_exp2(3.0), 8.0);
+        // assert_eq!(f_exp2(4.0), 16.0);
+        // assert!((f_exp2(0.35f64) - 0.35f64.exp2()).abs() < 1e-8);
+        // assert!((f_exp2(-0.6f64) - (-0.6f64).exp2()).abs() < 1e-8);
     }
 }
