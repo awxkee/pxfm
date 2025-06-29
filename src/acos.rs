@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::acospi::PI_OVER_TWO_F128;
 use crate::asin::asin_eval;
 use crate::asin_eval_dyadic::asin_eval_dyadic;
 use crate::common::f_fmla;
@@ -33,6 +34,8 @@ use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
 #[inline]
+/// Computes acos(x)
+///
 /// Max found ULP 0.5009
 pub fn f_acos(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
@@ -67,7 +70,61 @@ pub fn f_acos(x: f64) -> f64 {
         // Use Dekker's 2SUM algorithm to compute the lower part.
         let mut r_lo = ((PI_OVER_TWO.hi - r_hi) - r0.hi) - r0.lo;
         r_lo = f_fmla(-x, p.lo, r_lo + PI_OVER_TWO.lo);
-        return r_hi + (r_lo + err);
+
+        let r_upper = r_hi + (r_lo + err);
+        let r_lower = r_hi + (r_lo - err);
+
+        if r_upper == r_lower {
+            return r_upper;
+        }
+
+        // Ziv's accuracy test failed, perform 128-bit calculation.
+
+        // Recalculate mod 1/64.
+        let idx = (x_sq.hi * f64::from_bits(0x4050000000000000)).round() as usize;
+
+        // Get x^2 - idx/64 exactly.  When FMA is available, double-double
+        // multiplication will be correct for all rounding modes.  Otherwise we use
+        // Float128 directly.
+        let mut x_f128 = DyadicFloat128::new_from_f64(x);
+
+        let u: DyadicFloat128;
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            // u = x^2 - idx/64
+            let u_hi = DyadicFloat128::new_from_f64(f_fmla(
+                idx as f64,
+                f64::from_bits(0xbf90000000000000),
+                x_sq.hi,
+            ));
+            u = u_hi.quick_add(&DyadicFloat128::new_from_f64(x_sq.lo));
+        }
+
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let x_sq_f128 = x_f128.quick_mul(&x_f128);
+            u = x_sq_f128.quick_add(&DyadicFloat128::new_from_f64(
+                idx as f64 * f64::from_bits(0xbf90000000000000),
+            ));
+        }
+
+        let p_f128 = asin_eval_dyadic(&u, idx);
+        // Flip the sign of x_f128 to perform subtraction.
+        x_f128.sign = x_f128.sign.negate();
+        let r = PI_OVER_TWO_F128.quick_add(&x_f128.quick_mul(&p_f128));
+        return r.fast_as_f64();
     }
 
     // |x| >= 0.5

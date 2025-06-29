@@ -36,7 +36,6 @@
 mod acos;
 mod acosf;
 mod acospi;
-mod acospi_table;
 mod acospif;
 mod asin;
 mod asin_eval_dyadic;

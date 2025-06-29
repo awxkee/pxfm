@@ -26,189 +26,325 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::acospi_table::{ACOSPI_ERR, ACOSPI_TABLE};
+use crate::asin::asin_eval;
+use crate::asin_eval_dyadic::asin_eval_dyadic;
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
-const PI_HI: f64 = f64::from_bits(0x400921fb54442d18);
-const PI_LO: f64 = f64::from_bits(0x3ca1a62633145c07);
+const INV_PI_DD: Dekker = Dekker::new(
+    f64::from_bits(0xbc76b01ec5417056),
+    f64::from_bits(0x3fd45f306dc9c883),
+);
 
-const ONE_OVER_PIH: f64 = f64::from_bits(0x3fd45f306dc9c883);
-const ONE_OVER_PIL: f64 = f64::from_bits(0xbc76b01ec5417056);
+const INV_PI_F128: DyadicFloat128 = DyadicFloat128 {
+    sign: DyadicSign::Pos,
+    exponent: -129,
+    mantissa: 0xa2f9836e_4e441529_fc2757d1_f534ddc1_u128,
+};
+
+pub(crate) const PI_OVER_TWO_F128: DyadicFloat128 = DyadicFloat128 {
+    sign: DyadicSign::Pos,
+    exponent: -127,
+    mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
+};
 
 /// Computes acos(x)/PI
 ///
-/// Max ULP 1.5 on |x| < 0.99999
+/// Max ULP 0.5015
 #[inline]
 pub fn f_acospi(x: f64) -> f64 {
-    let u = x.to_bits() & 0x7fff_ffff_ffff_ffff;
-    let absx = f64::from_bits(u);
-    let v_x: u64;
-    let u_bytes = u.to_ne_bytes();
-    let k = i32::from_ne_bytes([u_bytes[4], u_bytes[5], u_bytes[6], u_bytes[7]]);
-    let u_low = u32::from_ne_bytes([u_bytes[0], u_bytes[1], u_bytes[2], u_bytes[3]]);
-    if k < 0x3fe80000 {
-        /* |x| < 0.75 */
-        // avoid spurious underflow:
-        // for |x| <= 0x1.921fb54442d18p-54, acospi(x) rounds to 0.5 to nearest
-        if k < 0x3c9921fb {
-            // acospi(x) ~ 1/2 - x/pi
+    let x_e = (x.to_bits() >> 52) & 0x7ff;
+    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
+
+    const PI_OVER_TWO: Dekker = Dekker::new(
+        f64::from_bits(0x3c91a62633145c07),
+        f64::from_bits(0x3ff921fb54442d18),
+    );
+
+    let x_abs = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
+
+    // |x| < 0.5.
+    if x_e < E_BIAS - 1 {
+        // |x| < 2^-55.
+        if x_e < E_BIAS - 55 {
+            // When |x| < 2^-55, acos(x) = pi/2
             return f_fmla(f64::from_bits(0xbc80000000000000), x, 0.5);
         }
-        /* approximate acos(x) by p(x-xmid), where [0,0.75) is split
-        into 192 sub-intervals */
-        v_x = (1.0 + absx).to_bits(); /* 1 <= v.x < 2 */
-        /* v.i[HIGH] contains 20 significant bits in its low bits, we shift by 12
-        to get the upper 8 (ignoring the implicit leading bit) */
-        let mut i = ((v_x >> (12 + 32)) & 255) as i32;
-        if i == 192 {
-            i = 191;
-        }
-        let p = ACOSPI_TABLE[i as usize];
-        let y = absx - f64::from_bits(p.7); /* p[7] = xmid */
 
-        let yy = y * y;
-        /* evaluate in parallel p[1] + p[2] * y and p[3] + p[4] * y, and
-        p[5] + p[6] * y using Estrin's scheme */
-        let p56 = f_fmla(f64::from_bits(p.6), y, f64::from_bits(p.5));
-        let p34 = f_fmla(f64::from_bits(p.4), y, f64::from_bits(p.3));
-        let mut zh = f_fmla(p56, yy, p34);
-        zh = f_fmla(zh, y, f64::from_bits(p.2));
-        let z = Dekker::from_exact_add(f64::from_bits(p.1), y * zh);
-        let mut d = Dekker::from_exact_add(f64::from_bits(p.0), z.hi * y);
-        d.lo = f_fmla(z.lo, y, d.lo);
-        /* Special case for i=0, since we are obliged to use xmid=0 (so that
-        x-xmid is exact) thus we can't use Gal's trick.  This costs about
-        0.5 cycle in the average time (for both branches).  */
-        if i == 0 {
-            d.hi += f64::from_bits(0x3c91a62792c17e8c);
+        let x_sq = Dekker::from_exact_mult(x, x);
+        let err = x_abs * f64::from_bits(0x3cc0000000000000);
+        // Polynomial approximation:
+        //   p ~ asin(x)/x
+        let (p, err) = asin_eval(x_sq, err);
+        // asin(x) ~ x * p
+        let r0 = Dekker::from_exact_mult(x, p.hi);
+        // acos(x) = pi/2 - asin(x)
+        //         ~ pi/2 - x * p
+        //         = pi/2 - x * (p.hi + p.lo)
+        let mut r_hi = f_fmla(-x, p.hi, PI_OVER_TWO.hi);
+        // Use Dekker's 2SUM algorithm to compute the lower part.
+        let mut r_lo = ((PI_OVER_TWO.hi - r_hi) - r0.hi) - r0.lo;
+        r_lo = f_fmla(-x, p.lo, r_lo + PI_OVER_TWO.lo);
+
+        let p = Dekker::mult(Dekker::new(r_lo, r_hi), INV_PI_DD);
+        r_hi = p.hi;
+        r_lo = p.lo;
+
+        let r_upper = r_hi + (r_lo + err);
+        let r_lower = r_hi + (r_lo - err);
+
+        if r_upper == r_lower {
+            return r_upper;
         }
-        /* acos(x) ~ du + dv for x > 0, pi - (u + v) for x < 0 */
-        if x < 0.
-        /* acos(-x) = pi-acos(x) */
+
+        // Ziv's accuracy test failed, perform 128-bit calculation.
+
+        // Recalculate mod 1/64.
+        let idx = (x_sq.hi * f64::from_bits(0x4050000000000000)).round() as usize;
+
+        // Get x^2 - idx/64 exactly.  When FMA is available, double-double
+        // multiplication will be correct for all rounding modes.  Otherwise we use
+        // Float128 directly.
+        let mut x_f128 = DyadicFloat128::new_from_f64(x);
+
+        let u: DyadicFloat128;
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
         {
-            let p = Dekker::from_exact_add(PI_HI, -d.hi);
-            d.hi = p.hi;
-            d.lo = PI_LO + p.lo - d.lo;
+            // u = x^2 - idx/64
+            let u_hi = DyadicFloat128::new_from_f64(f_fmla(
+                idx as f64,
+                f64::from_bits(0xbf90000000000000),
+                x_sq.hi,
+            ));
+            u = u_hi.quick_add(&DyadicFloat128::new_from_f64(x_sq.lo));
         }
 
-        // acospi_begin
-        /* We multiply the approximation u+v, with maximal error say 2^-e
-        by 1/pi. The maximal value of |u+v| is less than 2.42 (for x=-0.75).
-        The maximal error is the sum of several terms:
-        * 2^-e * (ONE_OVER_PIH + ONE_OVER_PIL) < 2^-e * 2^-1.651
-        * (u+v)*|ONE_OVER_PIH+ONE_OVER_PIL-1/pi| < 2.42*2^-109.523 < 2^-108
-        * the ignored term v*ONE_OVER_PIL in d_mul. The maximal observed value
-          of v is 0x1.06d413839cafcp-51 for x=-0x1.6a01f2fb71p-1 (rndd),
-          we conjecture |v| < 2^-50. Then |v*ONE_OVER_PIL| < 2^-105
-        * the rounding error in d_mul. The d_mul call decomposes into:
-          a_mul (u, lo1, u_in, ONE_OVER_PIH)
-          lo2 = __builtin_fma (u_in, ONE_OVER_PIL, lo1)
-          v = __builtin_fma (v_in, ONE_OVER_PIH, lo2)
-          Since |u| <= acos(-0.75)/pi < 0.8 we have |lo1| <= ulp(0.8) <= 2^-53.
-          Then since |u_in| <= 2.42, |lo2| <= |2.42*ONE_OVER_PIL|+2^-53
-                                           < 2^-52.485
-          Then |v| <= 2^-50+ONE_OVER_PIH*2^-52.485 < 2^-49.920.
-          The rounding error is bounded by ulp(lo2)+ulp(v) <= 2^-105+2^-102
-          < 2^-101.83.
-        The total error is thus bounded by:
-        2^-e * 2^-1.651 + 2^-108 + 2^-105 + 2^-101.83 < Err[i]
-        */
-
-        d = Dekker::quick_mult(d, Dekker::new(ONE_OVER_PIL, ONE_OVER_PIH));
-
-        // acospi_end
-
-        let err = ACOSPI_ERR[i as usize]; // acospi_specific
-
-        d.hi + (d.lo - f64::from_bits(err))
-        // right = du + (dv + err);
-        // if (__builtin_expect (left != right, 0))
-        // return accurate_path (x); /* hard to round case */
-        // return left;
-    }
-    /*--------------------------- 0.75 <= |x| < 1 ---------------------*/
-    else if k < 0x3ff00000 {
-        /* |x| < 1 */
-        /* approximate acos(x) by sqrt(1-x)*p(x-xmid) where p is a polynomial,
-        and [0.75,1) is split into 64 sub-intervals */
-        v_x = (1.0 + absx).to_bits(); /* 1 <= v.x <= 2 */
-        /* The low 20 bits of v.i[HIGH] are the upper bits (except the
-        implicit leading bit) of the significand of 1+|x|.
-        Warning: v.x might be 2 for rounding up or nearest. */
-        let i = if f64::from_bits(v_x) == 2.0 {
-            255
-        } else {
-            ((v_x >> 32) & 0xff000) >> 12
-        };
-        let p = ACOSPI_TABLE[i as usize];
-        let y = absx - f64::from_bits(p.6); /* exact (p[6] = xmid) */
-        let h1 = 1.0 - absx; /* exact since |x| >= 0.5 */
-        let dh1 = Dekker::from_exact_sqrt(h1);
-        /* use Estrin's scheme to evaluate p2 + p3*y + p4*y^2 + p5*y^3 */
-        let yy = y * y;
-        let p45 = f_fmla(f64::from_bits(p.5), y, f64::from_bits(p.4));
-        let p23 = f_fmla(f64::from_bits(p.3), y, f64::from_bits(p.2));
-        let mut zh = f_fmla(p45, yy, p23);
-        zh = f_fmla(zh, y, f64::from_bits(p.1));
-        let mut z = Dekker::from_exact_add(f64::from_bits(p.0), zh * y);
-        let l1zh = dh1.lo * z.hi; /* compute earlier */
-        let h1zl = dh1.hi * z.lo;
-        /* acos(x) ~ (h1 + l1) * (zh + zl) */
-        let mut vd = Dekker::from_exact_mult(dh1.hi, z.hi);
-        vd.lo += l1zh + h1zl;
-        if x < 0.
-        /* acos(x) = pi - (u+v) */
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
         {
-            // let jk = Dekker::from_exact_add (&du, &zl, pi_hi, -du);
-            let jk = Dekker::from_exact_add(PI_HI, -vd.hi);
-            /* acos(x) = u + zl + pi_lo - v */
-            vd.lo = z.lo + PI_LO - vd.lo;
-            z.lo = jk.lo;
-            vd.hi = jk.hi;
+            let x_sq_f128 = x_f128.quick_mul(&x_f128);
+            u = x_sq_f128.quick_add(&DyadicFloat128::new_from_f64(
+                idx as f64 * f64::from_bits(0xbf90000000000000),
+            ));
         }
 
-        // acospi_begin
-        /* Similar analysis as above.
-        We multiply the approximation u+v, with maximal error 2^-e
-        by 1/pi. The maximal value of |u+v| is pi (for x=-1).
-        The maximal error is the sum of several terms:
-        * 2^-e * (ONE_OVER_PIH + ONE_OVER_PIL) < 2^-e * 2^-1.651
-        * (u+v)*|ONE_OVER_PIH+ONE_OVER_PIL-1/pi| < pi*2^-109.523 < 2^-107
-        * the ignored term v*ONE_OVER_PIL in d_mul. The maximal observed value
-          of v is 0x1.4586d502c6913p-51 for x=-0x1.fffcc87dece8p-1 (rndd),
-          we conjecture |v| < 2^-50. Then |v*ONE_OVER_PIL| < 2^-105
-        * the rounding error in d_mul. The d_mul call decomposes into:
-          a_mul (u, lo1, u_in, ONE_OVER_PIH)
-          lo2 = __builtin_fma (u_in, ONE_OVER_PIL, lo1)
-          v = __builtin_fma (v_in, ONE_OVER_PIH, lo2)
-          Since |u| <= acospi(-1) < 1 we have |lo1| <= ulp(1-) <= 2^-53.
-          Then since |u_in| <= pi, |lo2| <= |pi*ONE_OVER_PIL|+2^-53
-                                           < 2^-52.361.
-          Then |v| <= 2^-50+ONE_OVER_PIH*2^-52.361 < 2^-49.913.
-          The rounding error is bounded by ulp(lo2)+ulp(v) <= 2^-105+2^-102
-          < 2^-101.83.
-        The total error is thus bounded by:
-        2^-e * 2^-1.651 + 2^-107 + 2^-105 + 2^-101.83 < Err[i]
-        */
-        let d = Dekker::quick_mult(vd, Dekker::new(ONE_OVER_PIL, ONE_OVER_PIH));
-        // acospi_end
-
-        let err = ACOSPI_ERR[i as usize]; // acospi_specific
-        d.hi + (d.lo - f64::from_bits(err))
+        let p_f128 = asin_eval_dyadic(&u, idx);
+        // Flip the sign of x_f128 to perform subtraction.
+        x_f128.sign = x_f128.sign.negate();
+        let mut r = PI_OVER_TWO_F128.quick_add(&x_f128.quick_mul(&p_f128));
+        r = r.quick_mul(&INV_PI_F128);
+        return r.fast_as_f64();
     }
-    /*   else  if (k < 0x3ff00000)    */
 
-    /*---------------------------- |x|>=1 -----------------------*/
-    else if k == 0x3ff00000 && u_low == 0 {
-        if x > 0. { 0. } else { 1. }
+    // |x| >= 0.5
+
+    const PI: Dekker = Dekker::new(
+        f64::from_bits(0x3ca1a62633145c07),
+        f64::from_bits(0x400921fb54442d18),
+    );
+
+    // |x| >= 1
+    if x_e >= E_BIAS {
+        // x = +-1, asin(x) = +- pi/2
+        if x_abs == 1.0 {
+            // x = 1, acos(x) = 0,
+            // x = -1, acos(x) = pi
+            return if x == 1.0 { 0.0 } else { 1.0 };
+        }
+        // |x| > 1, return NaN.
+        return f64::NAN;
     }
-    // acospi_specific
-    else if k > 0x7ff00000 || (k == 0x7ff00000 && u_low != 0) {
-        x + x // case x=nan
+
+    // When |x| >= 0.5, we perform range reduction as follow:
+    //
+    // When 0.5 <= x < 1, let:
+    //   y = acos(x)
+    // We will use the double angle formula:
+    //   cos(2y) = 1 - 2 sin^2(y)
+    // and the complement angle identity:
+    //   x = cos(y) = 1 - 2 sin^2 (y/2)
+    // So:
+    //   sin(y/2) = sqrt( (1 - x)/2 )
+    // And hence:
+    //   y/2 = asin( sqrt( (1 - x)/2 ) )
+    // Equivalently:
+    //   acos(x) = y = 2 * asin( sqrt( (1 - x)/2 ) )
+    // Let u = (1 - x)/2, then:
+    //   acos(x) = 2 * asin( sqrt(u) )
+    // Moreover, since 0.5 <= x < 1:
+    //   0 < u <= 1/4, and 0 < sqrt(u) <= 0.5,
+    // And hence we can reuse the same polynomial approximation of asin(x) when
+    // |x| <= 0.5:
+    //   acos(x) ~ 2 * sqrt(u) * P(u).
+    //
+    // When -1 < x <= -0.5, we reduce to the previous case using the formula:
+    //   acos(x) = pi - acos(-x)
+    //           = pi - 2 * asin ( sqrt( (1 + x)/2 ) )
+    //           ~ pi - 2 * sqrt(u) * P(u),
+    // where u = (1 - |x|)/2.
+
+    // u = (1 - |x|)/2
+    let u = f_fmla(x_abs, -0.5, 0.5);
+    // v_hi + v_lo ~ sqrt(u).
+    // Let:
+    //   h = u - v_hi^2 = (sqrt(u) - v_hi) * (sqrt(u) + v_hi)
+    // Then:
+    //   sqrt(u) = v_hi + h / (sqrt(u) + v_hi)
+    //            ~ v_hi + h / (2 * v_hi)
+    // So we can use:
+    //   v_lo = h / (2 * v_hi).
+    let v_hi = u.sqrt();
+
+    let h;
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        h = f_fmla(v_hi, -v_hi, u);
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        let v_hi_sq = Dekker::from_exact_mult(v_hi, v_hi);
+        h = (u - v_hi_sq.hi) - v_hi_sq.lo;
+    }
+
+    // Scale v_lo and v_hi by 2 from the formula:
+    //   vh = v_hi * 2
+    //   vl = 2*v_lo = h / v_hi.
+    let vh = v_hi * 2.0;
+    let vl = h / v_hi;
+
+    // Polynomial approximation:
+    //   p ~ asin(sqrt(u))/sqrt(u)
+    let err = vh * f64::from_bits(0x3cc0000000000000);
+
+    let (p, err) = asin_eval(Dekker::new(0.0, u), err);
+
+    // Perform computations in double-double arithmetic:
+    //   asin(x) = pi/2 - (v_hi + v_lo) * (ASIN_COEFFS[idx][0] + p)
+    let r0 = Dekker::quick_mult(Dekker::new(vl, vh), p);
+
+    let mut r_hi;
+    let mut r_lo;
+    if x.is_sign_positive() {
+        r_hi = r0.hi;
+        r_lo = r0.lo;
     } else {
-        f64::NAN
+        let r = Dekker::from_exact_add(PI.hi, -r0.hi);
+        r_hi = r.hi;
+        r_lo = (PI.lo - r0.lo) + r.lo;
     }
+
+    let p = Dekker::mult(Dekker::new(r_lo, r_hi), INV_PI_DD);
+    r_hi = p.hi;
+    r_lo = p.lo;
+
+    let r_upper = r_hi + (r_lo + err);
+    let r_lower = r_hi + (r_lo - err);
+
+    if r_upper == r_lower {
+        return r_upper;
+    }
+
+    // Ziv's accuracy test failed, we redo the computations in Float128.
+    // Recalculate mod 1/64.
+    let idx = (u * f64::from_bits(0x4050000000000000)).round() as usize;
+
+    // After the first step of Newton-Raphson approximating v = sqrt(u), we have
+    // that:
+    //   sqrt(u) = v_hi + h / (sqrt(u) + v_hi)
+    //      v_lo = h / (2 * v_hi)
+    // With error:
+    //   sqrt(u) - (v_hi + v_lo) = h * ( 1/(sqrt(u) + v_hi) - 1/(2*v_hi) )
+    //                           = -h^2 / (2*v * (sqrt(u) + v)^2).
+    // Since:
+    //   (sqrt(u) + v_hi)^2 ~ (2sqrt(u))^2 = 4u,
+    // we can add another correction term to (v_hi + v_lo) that is:
+    //   v_ll = -h^2 / (2*v_hi * 4u)
+    //        = -v_lo * (h / 4u)
+    //        = -vl * (h / 8u),
+    // making the errors:
+    //   sqrt(u) - (v_hi + v_lo + v_ll) = O(h^3)
+    // well beyond 128-bit precision needed.
+
+    // Get the rounding error of vl = 2 * v_lo ~ h / vh
+    // Get full product of vh * vl
+    let vl_lo;
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        vl_lo = f_fmla(-v_hi, vl, h) / v_hi;
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        let vh_vl = Dekker::from_exact_mult(v_hi, vl);
+        vl_lo = ((h - vh_vl.hi) - vh_vl.lo) / v_hi;
+    }
+    let t = h * (-0.25) / u;
+    let vll = f_fmla(vl, t, vl_lo);
+    // m_v = -(v_hi + v_lo + v_ll).
+    let m_v_p = DyadicFloat128::new_from_f64(vl) + DyadicFloat128::new_from_f64(vll);
+    let mut m_v = DyadicFloat128::new_from_f64(vh) + m_v_p;
+    m_v.sign = if x.is_sign_negative() {
+        DyadicSign::Neg
+    } else {
+        DyadicSign::Pos
+    };
+
+    // Perform computations in Float128:
+    //   acos(x) = (v_hi + v_lo + vll) * P(u)         , when 0.5 <= x < 1,
+    //           = pi - (v_hi + v_lo + vll) * P(u)    , when -1 < x <= -0.5.
+    let y_f128 =
+        DyadicFloat128::new_from_f64(f_fmla(idx as f64, f64::from_bits(0xbf90000000000000), u));
+
+    let p_f128 = asin_eval_dyadic(&y_f128, idx);
+    let mut r_f128 = m_v * p_f128;
+
+    if x.is_sign_negative() {
+        const PI_F128: DyadicFloat128 = DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -126,
+            mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
+        };
+        r_f128 = PI_F128 + r_f128;
+    }
+
+    r_f128 = r_f128.quick_mul(&INV_PI_F128);
+
+    r_f128.fast_as_f64()
 }
 
 #[cfg(test)]

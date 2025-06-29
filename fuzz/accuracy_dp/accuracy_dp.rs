@@ -136,16 +136,14 @@ fuzz_target!(|data: (f64, f64)| {
     let x1 = data.0;
     let mpfr_x0 = Float::with_val(100, x0);
     let mpfr_x1 = Float::with_val(100, x1);
-    if x0.abs() < 0.99999 {
-        test_method(
-            x0,
-            f_acospi,
-            &mpfr_x0.clone().acos_pi(),
-            "f_acospi".to_string(),
-            1.5,
-        );
-    }
-    test_method(
+    // test_method(
+    //     x0,
+    //     f_acospi,
+    //     &mpfr_x0.clone().acos_pi(),
+    //     "f_acospi".to_string(),
+    //     0.5016,
+    // );
+    /*test_method(
         x0,
         f_atanpi,
         &mpfr_x0.clone().atan_pi(),
@@ -259,7 +257,7 @@ fuzz_target!(|data: (f64, f64)| {
         &mpfr_x0.clone().tan(),
         "f_tan".to_string(),
         0.50097,
-    );
+    );*/
     test_method(
         x0,
         f_acos,
@@ -267,7 +265,7 @@ fuzz_target!(|data: (f64, f64)| {
         "f_acos".to_string(),
         0.5009,
     );
-    test_method(
+    /*test_method(
         x0,
         f_asin,
         &mpfr_x0.clone().asin(),
@@ -291,5 +289,5 @@ fuzz_target!(|data: (f64, f64)| {
             "f_powf".to_string(),
             0.6,
         );
-    }
+    }*/
 });

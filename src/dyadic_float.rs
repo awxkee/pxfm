@@ -30,15 +30,25 @@ use crate::bits::EXP_MASK;
 use crate::common::f_fmla;
 use std::ops::{Add, Mul};
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub(crate) enum DyadicSign {
     Pos,
     Neg,
 }
 
+impl DyadicSign {
+    #[inline]
+    pub(crate) fn negate(self) -> Self {
+        match self {
+            DyadicSign::Pos => DyadicSign::Neg,
+            DyadicSign::Neg => DyadicSign::Pos,
+        }
+    }
+}
+
 const BITS: u32 = 128;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub(crate) struct DyadicFloat128 {
     pub(crate) sign: DyadicSign,
     pub(crate) exponent: i16,

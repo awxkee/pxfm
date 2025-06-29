@@ -1505,7 +1505,6 @@ pub(crate) fn r_polyeval16(
     r_fmla(x, &t14, a0)
 }
 
-#[inline]
 pub(crate) fn asin_eval_dyadic(u: &DyadicFloat128, idx: usize) -> DyadicFloat128 {
     let coeffs = ASIN_COEFFS_F128[idx];
     r_polyeval16(
