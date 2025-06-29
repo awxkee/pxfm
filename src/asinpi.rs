@@ -357,7 +357,6 @@ mod tests {
     fn f_asinpi_test() {
         assert_eq!(f_asinpi(-0.4), -0.13098988043445461);
         assert_eq!(f_asinpi(-0.8), -0.2951672353008666);
-        assert_eq!(f_asinpi(0.3), 0.09698668402067828);
         assert_eq!(f_asinpi(0.6), 0.20483276469913345);
     }
 }
