@@ -87,8 +87,8 @@ fn atanpi_small(x: f64) -> f64 {
     );
     corr = f_fmla(x * f64::from_bits(0x4690000000000000), ONE_OVER_PIL, corr);
     // now return h + corr * 2^-106
-    let res = f_fmla(corr, f64::from_bits(0x3950000000000000), h);
-    res
+
+    f_fmla(corr, f64::from_bits(0x3950000000000000), h)
 }
 
 /* Deal with the case where |x| is large:
@@ -295,7 +295,7 @@ pub fn f_atanpi(x: f64) -> f64 {
         }
         let u: u64 = t & 0x0007ffffffffffff;
         let ut = u >> (51 - 16);
-        let ut2 = ut * ut >> 16;
+        let ut2 = (ut * ut) >> 16;
         let vc = ATAN_CIRCLE[i as usize];
         i = (((vc[0] as u64).wrapping_shl(16)) + ut * (vc[1] as u64) - ut2 * (vc[2] as u64))
             >> (16 + 9);
