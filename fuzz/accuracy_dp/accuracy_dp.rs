@@ -212,7 +212,7 @@ fuzz_target!(|data: (f64, f64)| {
         f_exp10,
         &mpfr_x0.clone().exp10(),
         "f_exp10".to_string(),
-        0.5003,
+        0.5000,
     );
     test_method(
         x0,
