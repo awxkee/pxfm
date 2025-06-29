@@ -29,7 +29,7 @@
 use crate::asinpif::ASINCOSF_PI_TABLE;
 use crate::common::f_fmla;
 
-/// Computes acos(PI*x)
+/// Computes acos(x)/PI
 ///
 /// Max ULP 0.5
 #[inline]

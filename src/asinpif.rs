@@ -191,7 +191,7 @@ pub(crate) static ASINCOSF_PI_TABLE: [[u64; 8]; 16] = [
     ],
 ];
 
-/// Computes asin(PI*x)
+/// Computes asin(x)/PI
 ///
 /// Max ULP 0.5
 #[inline]

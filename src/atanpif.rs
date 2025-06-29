@@ -28,7 +28,7 @@
  */
 use crate::common::f_fmla;
 
-/// Computes atan(pi)/PI
+/// Computes atan(x)/PI
 ///
 /// Max ULP 0.5
 #[inline]
