@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::acospi::PI_OVER_TWO_F128;
+use crate::acospi::INV_PI_DD;
 use crate::asin::asin_eval;
 use crate::asin_eval_dyadic::asin_eval_dyadic;
 use crate::common::f_fmla;
@@ -34,45 +34,80 @@ use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
 #[inline]
-/// Computes acos(x)
+/// Computes asin(x)/PI
 ///
-/// Max found ULP 0.5009
-pub fn f_acos(x: f64) -> f64 {
+/// Max found ULP 0.5016
+pub fn f_asinpi(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-
-    const PI_OVER_TWO: Dekker = Dekker::new(
-        f64::from_bits(0x3c91a62633145c07),
-        f64::from_bits(0x3ff921fb54442d18),
-    );
 
     let x_abs = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
 
     // |x| < 0.5.
     if x_e < E_BIAS - 1 {
-        // |x| < 2^-55.
-        if x_e < E_BIAS - 55 {
-            // When |x| < 2^-55, acos(x) = pi/2
-            return (x_abs + f64::from_bits(0x35f0000000000000)) + PI_OVER_TWO.hi;
+        // |x| < 2^-26.
+        if x_e < E_BIAS - 26 {
+            // When |x| < 2^-26, the relative error of the approximation asin(x) ~ x
+            // is:
+            //   |asin(x) - x| / |asin(x)| < |x^3| / (6|x|)
+            //                             = x^2 / 6
+            //                             < 2^-54
+            //                             < epsilon(1)/2.
+            //   = x otherwise. ,
+            if x.abs() == 0. {
+                return x;
+            }
+
+            if x_e < E_BIAS - 56 {
+                if (x_abs.to_bits().wrapping_shl(12)) == 0x59af9a1194efe000u64 {
+                    let e = (x.to_bits() >> 52) & 0x7ff;
+                    let h = f64::from_bits(0x3c7b824198b94a89);
+                    let l = f64::from_bits(0x391fffffffffffff);
+                    let mut t = (if x > 0. { 1.0f64 } else { -1.0f64 }).to_bits();
+                    t = t.wrapping_sub(0x3c9u64.wrapping_sub(e).wrapping_shl(52));
+                    return f_fmla(l, f64::from_bits(t), h * f64::from_bits(t));
+                }
+
+                let h = x * INV_PI_DD.hi;
+                let sx = x * f64::from_bits(0x4690000000000000); /* scale x */
+                let mut l = f_fmla(sx, INV_PI_DD.hi, -h * f64::from_bits(0x4690000000000000));
+                l = f_fmla(sx, INV_PI_DD.lo, l);
+                /* scale back */
+                let res = f_fmla(l, f64::from_bits(0x3950000000000000), h);
+                return res;
+            }
+
+            /* We use the Sollya polynomial 0x1.45f306dc9c882a53f84eafa3ea4p-2 * x
+            + 0x1.b2995e7b7b606p-5 * x^3, with relative error bounded by 2^-106.965
+            on [2^-53, 2^-26] */
+            const C1H: f64 = f64::from_bits(0x3fd45f306dc9c883);
+            const C1L: f64 = f64::from_bits(0xbc76b01ec5417057);
+            const C3: f64 = f64::from_bits(0x3fab2995e7b7b606);
+            let h = C1H;
+            let l = f_fmla(C3, x * x, C1L);
+            /* multiply h+l by x */
+            let hh = h * x;
+            let mut ll = f_fmla(h, x, -hh);
+            /* hh+ll = h*x */
+            ll = f_fmla(l, x, ll);
+            return hh + ll;
         }
 
         let x_sq = Dekker::from_exact_mult(x, x);
         let err = x_abs * f64::from_bits(0x3cc0000000000000);
         // Polynomial approximation:
         //   p ~ asin(x)/x
-        let (p, err) = asin_eval(x_sq, err);
-        // asin(x) ~ x * p
-        let r0 = Dekker::from_exact_mult(x, p.hi);
-        // acos(x) = pi/2 - asin(x)
-        //         ~ pi/2 - x * p
-        //         = pi/2 - x * (p.hi + p.lo)
-        let r_hi = f_fmla(-x, p.hi, PI_OVER_TWO.hi);
-        // Use Dekker's 2SUM algorithm to compute the lower part.
-        let mut r_lo = ((PI_OVER_TWO.hi - r_hi) - r0.hi) - r0.lo;
-        r_lo = f_fmla(-x, p.lo, r_lo + PI_OVER_TWO.lo);
 
-        let r_upper = r_hi + (r_lo + err);
-        let r_lower = r_hi + (r_lo - err);
+        let (p, err) = asin_eval(x_sq, err);
+        // asin(x) ~ x * (ASIN_COEFFS[idx][0] + p)
+        let mut r0 = Dekker::from_exact_mult(x, p.hi);
+        let mut r_lo = f_fmla(x, p.lo, r0.lo);
+
+        r0 = Dekker::mult(Dekker::new(r_lo, r0.hi), INV_PI_DD);
+        r_lo = r0.lo;
+
+        let r_upper = r0.hi + (r_lo + err);
+        let r_lower = r0.hi + (r_lo - err);
 
         if r_upper == r_lower {
             return r_upper;
@@ -86,7 +121,7 @@ pub fn f_acos(x: f64) -> f64 {
         // Get x^2 - idx/64 exactly.  When FMA is available, double-double
         // multiplication will be correct for all rounding modes. Otherwise, we use
         // Float128 directly.
-        let mut x_f128 = DyadicFloat128::new_from_f64(x);
+        let x_f128 = DyadicFloat128::new_from_f64(x);
 
         let u: DyadicFloat128;
         #[cfg(any(
@@ -116,69 +151,36 @@ pub fn f_acos(x: f64) -> f64 {
         {
             let x_sq_f128 = x_f128.quick_mul(&x_f128);
             u = x_sq_f128.quick_add(&DyadicFloat128::new_from_f64(
-                idx as f64 * f64::from_bits(0xbf90000000000000),
+                idx as f64 * (f64::from_bits(0xbf90000000000000)),
             ));
         }
 
         let p_f128 = asin_eval_dyadic(&u, idx);
-        // Flip the sign of x_f128 to perform subtraction.
-        x_f128.sign = x_f128.sign.negate();
-        let r = PI_OVER_TWO_F128.quick_add(&x_f128.quick_mul(&p_f128));
+        let mut r = x_f128.quick_mul(&p_f128);
+        r = r.quick_mul(&crate::acospi::INV_PI_F128);
         return r.fast_as_f64();
     }
 
-    // |x| >= 0.5
+    const PI_OVER_TWO: Dekker = Dekker::new(
+        f64::from_bits(0x3c91a62633145c07),
+        f64::from_bits(0x3ff921fb54442d18),
+    );
 
     let x_sign = if x.is_sign_negative() { -1.0 } else { 1.0 };
-
-    const PI: Dekker = Dekker::new(
-        f64::from_bits(0x3ca1a62633145c07),
-        f64::from_bits(0x400921fb54442d18),
-    );
 
     // |x| >= 1
     if x_e >= E_BIAS {
         // x = +-1, asin(x) = +- pi/2
         if x_abs == 1.0 {
-            // x = 1, acos(x) = 0,
-            // x = -1, acos(x) = pi
-            return if x == 1.0 {
-                0.0
-            } else {
-                f_fmla(-x_sign, PI.hi, PI.lo)
-            };
+            // return +- pi/2
+            return x * 0.5; // asinpi_specific
         }
         // |x| > 1, return NaN.
+        if x.is_nan() {
+            return x;
+        }
         return f64::NAN;
     }
-
-    // When |x| >= 0.5, we perform range reduction as follow:
-    //
-    // When 0.5 <= x < 1, let:
-    //   y = acos(x)
-    // We will use the double angle formula:
-    //   cos(2y) = 1 - 2 sin^2(y)
-    // and the complement angle identity:
-    //   x = cos(y) = 1 - 2 sin^2 (y/2)
-    // So:
-    //   sin(y/2) = sqrt( (1 - x)/2 )
-    // And hence:
-    //   y/2 = asin( sqrt( (1 - x)/2 ) )
-    // Equivalently:
-    //   acos(x) = y = 2 * asin( sqrt( (1 - x)/2 ) )
-    // Let u = (1 - x)/2, then:
-    //   acos(x) = 2 * asin( sqrt(u) )
-    // Moreover, since 0.5 <= x < 1:
-    //   0 < u <= 1/4, and 0 < sqrt(u) <= 0.5,
-    // And hence we can reuse the same polynomial approximation of asin(x) when
-    // |x| <= 0.5:
-    //   acos(x) ~ 2 * sqrt(u) * P(u).
-    //
-    // When -1 < x <= -0.5, we reduce to the previous case using the formula:
-    //   acos(x) = pi - acos(-x)
-    //           = pi - 2 * asin ( sqrt( (1 + x)/2 ) )
-    //           ~ pi - 2 * sqrt(u) * P(u),
-    // where u = (1 - |x|)/2.
 
     // u = (1 - |x|)/2
     let u = f_fmla(x_abs, -0.5, 0.5);
@@ -187,11 +189,12 @@ pub fn f_acos(x: f64) -> f64 {
     //   h = u - v_hi^2 = (sqrt(u) - v_hi) * (sqrt(u) + v_hi)
     // Then:
     //   sqrt(u) = v_hi + h / (sqrt(u) + v_hi)
-    //            ~ v_hi + h / (2 * v_hi)
+    //           ~ v_hi + h / (2 * v_hi)
     // So we can use:
     //   v_lo = h / (2 * v_hi).
+    // Then,
+    //   asin(x) ~ pi/2 - 2*(v_hi + v_lo) * P(u)
     let v_hi = u.sqrt();
-
     let h;
     #[cfg(any(
         all(
@@ -214,7 +217,6 @@ pub fn f_acos(x: f64) -> f64 {
         let v_hi_sq = Dekker::from_exact_mult(v_hi, v_hi);
         h = (u - v_hi_sq.hi) - v_hi_sq.lo;
     }
-
     // Scale v_lo and v_hi by 2 from the formula:
     //   vh = v_hi * 2
     //   vl = 2*v_lo = h / v_hi.
@@ -230,20 +232,40 @@ pub fn f_acos(x: f64) -> f64 {
     // Perform computations in double-double arithmetic:
     //   asin(x) = pi/2 - (v_hi + v_lo) * (ASIN_COEFFS[idx][0] + p)
     let r0 = Dekker::quick_mult(Dekker::new(vl, vh), p);
+    let mut r = Dekker::from_exact_add(PI_OVER_TWO.hi, -r0.hi);
 
-    let r_hi;
-    let r_lo;
-    if x.is_sign_positive() {
-        r_hi = r0.hi;
-        r_lo = r0.lo;
-    } else {
-        let r = Dekker::from_exact_add(PI.hi, -r0.hi);
-        r_hi = r.hi;
-        r_lo = (PI.lo - r0.lo) + r.lo;
+    let mut r_lo = PI_OVER_TWO.lo - r0.lo + r.lo;
+
+    let p = Dekker::mult(Dekker::new(r_lo, r.hi), INV_PI_DD);
+    r_lo = p.lo;
+    r.hi = p.hi;
+
+    let (r_upper, r_lower);
+
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        r_upper = f_fmla(r.hi, x_sign, f_fmla(r_lo, x_sign, err));
+        r_lower = f_fmla(r.hi, x_sign, f_fmla(r_lo, x_sign, -err));
     }
-
-    let r_upper = r_hi + (r_lo + err);
-    let r_lower = r_hi + (r_lo - err);
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        let r_lo = r_lo * x_sign;
+        let r_hi = r.hi * x_sign;
+        r_upper = r_hi + (r_lo + err);
+        r_lower = r.hi + (r_lo - err);
+    }
 
     if r_upper == r_lower {
         return r_upper;
@@ -294,34 +316,35 @@ pub fn f_acos(x: f64) -> f64 {
         let vh_vl = Dekker::from_exact_mult(v_hi, vl);
         vl_lo = ((h - vh_vl.hi) - vh_vl.lo) / v_hi;
     }
+
+    // vll = 2*v_ll = -vl * (h / (4u)).
     let t = h * (-0.25) / u;
     let vll = f_fmla(vl, t, vl_lo);
     // m_v = -(v_hi + v_lo + v_ll).
-    let m_v_p = DyadicFloat128::new_from_f64(vl) + DyadicFloat128::new_from_f64(vll);
-    let mut m_v = DyadicFloat128::new_from_f64(vh) + m_v_p;
-    m_v.sign = if x.is_sign_negative() {
-        DyadicSign::Neg
-    } else {
-        DyadicSign::Pos
-    };
+    let mv0 = DyadicFloat128::new_from_f64(vl) + DyadicFloat128::new_from_f64(vll);
+    let mut m_v = DyadicFloat128::new_from_f64(vh) + mv0;
+    m_v.sign = DyadicSign::Neg;
 
     // Perform computations in Float128:
-    //   acos(x) = (v_hi + v_lo + vll) * P(u)         , when 0.5 <= x < 1,
-    //           = pi - (v_hi + v_lo + vll) * P(u)    , when -1 < x <= -0.5.
+    //   asin(x) = pi/2 - (v_hi + v_lo + vll) * P(u).
     let y_f128 =
         DyadicFloat128::new_from_f64(f_fmla(idx as f64, f64::from_bits(0xbf90000000000000), u));
 
+    const PI_OVER_TWO_F128: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -127,
+        mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
+    };
+
     let p_f128 = asin_eval_dyadic(&y_f128, idx);
-    let mut r_f128 = m_v * p_f128;
+    let r0_f128 = m_v.quick_mul(&p_f128);
+    let mut r_f128 = PI_OVER_TWO_F128.quick_add(&r0_f128);
 
     if x.is_sign_negative() {
-        const PI_F128: DyadicFloat128 = DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -126,
-            mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
-        };
-        r_f128 = PI_F128 + r_f128;
+        r_f128.sign = DyadicSign::Neg;
     }
+
+    r_f128 = r_f128.quick_mul(&crate::acospi::INV_PI_F128);
 
     r_f128.fast_as_f64()
 }
@@ -329,10 +352,12 @@ pub fn f_acos(x: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
-    fn f_acos_test() {
-        assert_eq!(f_acos(0.7), 0.7953988301841436);
-        assert_eq!(f_acos(-0.1), 1.6709637479564565);
-        assert_eq!(f_acos(-0.4), 1.9823131728623846);
+    fn f_asinpi_test() {
+        assert_eq!(f_asinpi(-0.4), -0.13098988043445461);
+        assert_eq!(f_asinpi(-0.8), -0.2951672353008666);
+        assert_eq!(f_asinpi(0.3), 0.09698668402067828);
+        assert_eq!(f_asinpi(0.6), 0.20483276469913345);
     }
 }

@@ -32,12 +32,12 @@ use crate::common::f_fmla;
 use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
-const INV_PI_DD: Dekker = Dekker::new(
+pub(crate) const INV_PI_DD: Dekker = Dekker::new(
     f64::from_bits(0xbc76b01ec5417056),
     f64::from_bits(0x3fd45f306dc9c883),
 );
 
-const INV_PI_F128: DyadicFloat128 = DyadicFloat128 {
+pub(crate) const INV_PI_F128: DyadicFloat128 = DyadicFloat128 {
     sign: DyadicSign::Pos,
     exponent: -129,
     mantissa: 0xa2f9836e_4e441529_fc2757d1_f534ddc1_u128,
@@ -104,7 +104,7 @@ pub fn f_acospi(x: f64) -> f64 {
         let idx = (x_sq.hi * f64::from_bits(0x4050000000000000)).round() as usize;
 
         // Get x^2 - idx/64 exactly.  When FMA is available, double-double
-        // multiplication will be correct for all rounding modes.  Otherwise we use
+        // multiplication will be correct for all rounding modes. Otherwise, we use
         // Float128 directly.
         let mut x_f128 = DyadicFloat128::new_from_f64(x);
 
