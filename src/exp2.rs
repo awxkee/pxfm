@@ -106,8 +106,8 @@ fn exp2_accurate(x: f64) -> f64 {
             f = Dekker::add(dt, f);
         }
         let hf = Dekker::from_exact_add(f.hi, f.lo);
-        let fh = ldexp(hf.hi, ie as u64);
-        fh
+
+        ldexp(hf.hi, ie as u64)
     } else {
         ix = 1u64.wrapping_sub(ie as u64).wrapping_shl(52);
         f = Dekker::mult(f, dt);
@@ -115,8 +115,8 @@ fn exp2_accurate(x: f64) -> f64 {
         let zve = Dekker::from_exact_add(f64::from_bits(ix), f.hi);
         f.hi = zve.hi;
         f.lo += zve.lo;
-        let fh = to_denormal(f.to_f64());
-        fh
+
+        to_denormal(f.to_f64())
     }
 }
 
