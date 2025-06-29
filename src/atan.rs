@@ -29,7 +29,7 @@
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
 
-static C: [[u16; 3]; 31] = [
+pub(crate) static ATAN_CIRCLE: [[u16; 3]; 31] = [
     [419, 81, 0],
     [500, 81, 0],
     [582, 163, 0],
@@ -63,7 +63,7 @@ static C: [[u16; 3]; 31] = [
     [65467, 151, 44],
 ];
 
-static A: [(u64, u64); 129] = [
+pub(crate) static ATAN_REDUCE: [(u64, u64); 129] = [
     (0x0000000000000000, 0x0000000000000000),
     (0x3f89224e047e368e, 0x3c1a3ca6c727c59d),
     (0x3f992346247a91f0, 0x3bf138b0ef96a186),
@@ -219,7 +219,6 @@ pub(crate) fn poly_dd_3(x: Dekker, poly: [(u64, u64); 3], l: f64) -> Dekker {
     ch
 }
 
-#[inline]
 fn atan_refine(x: f64, a: f64) -> f64 {
     const CH: [(u64, u64); 3] = [
         (0xbfd5555555555555, 0xbc75555555555555),
@@ -238,7 +237,7 @@ fn atan_refine(x: f64, a: f64) -> f64 {
         let hz = -1.0 / x;
         Dekker::new(f_fmla(hz, x, 1.) * hz, -1.0 / x)
     } else {
-        let ta = f64::copysign(f64::from_bits(A[i as usize].0), x);
+        let ta = f64::copysign(f64::from_bits(ATAN_REDUCE[i as usize].0), x);
         let zta = x * ta;
         let ztal = f_fmla(x, ta, -zta);
         let zmta = x - ta;
@@ -251,8 +250,8 @@ fn atan_refine(x: f64, a: f64) -> f64 {
         let hl = f_fmla(rl, zmta, f_fmla(r, zmta, -hz));
         Dekker::new(hl, hz)
     };
-    let h2 = Dekker::quick_mult(h, h);
-    let h3 = Dekker::quick_mult(h, h2);
+    let h2 = Dekker::mult(h, h);
+    let h3 = Dekker::mult(h, h2);
     let h4 = h2.hi * h2.hi;
 
     let zw0 = f_fmla(h2.hi, f64::from_bits(CL[3]), f64::from_bits(CL[2]));
@@ -260,7 +259,7 @@ fn atan_refine(x: f64, a: f64) -> f64 {
     let zfl = f_fmla(h2.hi, zw1, h4 * zw0);
 
     let mut f = poly_dd_3(h2, CH, zfl);
-    f = Dekker::quick_mult(h3, f);
+    f = Dekker::mult(h3, f);
     let (ah, mut az);
     if i == 0 {
         ah = h.hi;
@@ -268,7 +267,7 @@ fn atan_refine(x: f64, a: f64) -> f64 {
     } else {
         let mut df = 0.;
         if i < 128 {
-            df = f64::copysign(1.0, x) * f64::from_bits(A[i as usize].1);
+            df = f64::copysign(1.0, x) * f64::from_bits(ATAN_REDUCE[i as usize].1);
         }
         let id = f64::copysign(i as f64, x);
         ah = f64::from_bits(0x3f8921fb54442d00) * id;
@@ -288,7 +287,7 @@ fn atan_refine(x: f64, a: f64) -> f64 {
 
 /// Computes atan in double precision
 ///
-/// ULP 0.5001
+/// ULP 0.5000
 #[inline]
 pub fn f_atan(x: f64) -> f64 {
     const CH: [u64; 4] = [
@@ -353,13 +352,13 @@ pub fn f_atan(x: f64) -> f64 {
         let u: u64 = t & 0x0007ffffffffffff;
         let ut: u64 = u.wrapping_shr(51 - 16);
         let ut2: u64 = (ut * ut).wrapping_shr(16);
-        let lc = C[i as usize];
+        let lc = ATAN_CIRCLE[i as usize];
         i = (((lc[0] as u64)
             .wrapping_shl(16)
             .wrapping_add(ut * lc[1] as u64)
             .wrapping_sub(ut2 * lc[2] as u64))
             >> (16 + 9)) as i64;
-        let la = A[i as usize];
+        let la = ATAN_REDUCE[i as usize];
         let ta = f64::copysign(1.0, x) * f64::from_bits(la.0);
         let id = f64::copysign(1.0, x) * i as f64;
         al = f_fmla(

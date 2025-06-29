@@ -2,8 +2,8 @@
 
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
-    f_acos, f_asin, f_atan, f_cbrt, f_cos, f_cospi, f_exp, f_exp2, f_exp2m1, f_exp10, f_exp10m1,
-    f_expm1, f_log, f_log2, f_log10, f_pow, f_sin, f_sincos, f_sinpi, f_tan, f_tanpi,
+    f_acos, f_asin, f_atan, f_atanpi, f_cbrt, f_cos, f_cospi, f_exp, f_exp2, f_exp2m1, f_exp10,
+    f_exp10m1, f_expm1, f_log, f_log2, f_log10, f_pow, f_sin, f_sincos, f_sinpi, f_tan, f_tanpi,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
@@ -137,6 +137,13 @@ fuzz_target!(|data: (f64, f64)| {
     let mpfr_x1 = Float::with_val(100, x1);
     test_method(
         x0,
+        f_atanpi,
+        &mpfr_x0.clone().atan_pi(),
+        "f_atanpi".to_string(),
+        0.5,
+    );
+    test_method(
+        x0,
         f_exp10m1,
         &mpfr_x0.clone().exp10_m1(),
         "f_exp10m1".to_string(),
@@ -257,12 +264,12 @@ fuzz_target!(|data: (f64, f64)| {
         "f_asin".to_string(),
         0.50097,
     );
-    test_method_allow_not_normals(
+    test_method(
         x0,
         f_atan,
         &mpfr_x0.clone().atan(),
         "f_atan".to_string(),
-        0.5001,
+        0.5000,
     );
     // Powf currently not really bets handles extra large argument, ULP 10000 for extra large argument
     if x0.abs() < 1e12 && x1.abs() < 1e12 {
