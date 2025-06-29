@@ -35,6 +35,8 @@
 )]
 mod acos;
 mod acosf;
+mod acospi;
+mod acospi_table;
 mod acospif;
 mod asin;
 mod asin_eval_dyadic;
@@ -107,6 +109,7 @@ mod trunc;
 
 pub use acos::f_acos;
 pub use acosf::f_acosf;
+pub use acospi::f_acospi;
 pub use acospif::f_acospif;
 pub use asin::f_asin;
 pub use asinf::f_asinf;

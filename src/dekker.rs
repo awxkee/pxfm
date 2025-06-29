@@ -212,6 +212,18 @@ impl Dekker {
     }
 
     #[inline]
+    pub(crate) fn from_exact_sqrt(x: f64) -> Self {
+        let h = x.sqrt();
+        /* h = sqrt(x) * (1 + e1) with |e1| < 2^-52
+        thus h^2 = x * (1 + e2) with |e2| < 2^-50.999 */
+        let e = -f_fmla(h, h, -x); // exact
+        
+        /* e = x - h^2 */
+        let l = e / (h + h);
+        Self { lo: l, hi: h }
+    }
+
+    #[inline]
     pub(crate) fn f64_mult(a: f64, b: Dekker) -> Dekker {
         let mut p = Dekker::from_exact_mult(a, b.hi);
         p.lo = f_fmla(a, b.lo, p.lo);

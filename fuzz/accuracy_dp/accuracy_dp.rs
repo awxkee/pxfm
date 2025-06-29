@@ -2,8 +2,9 @@
 
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
-    f_acos, f_asin, f_atan, f_atanpi, f_cbrt, f_cos, f_cospi, f_exp, f_exp2, f_exp2m1, f_exp10,
-    f_exp10m1, f_expm1, f_log, f_log2, f_log10, f_pow, f_sin, f_sincos, f_sinpi, f_tan, f_tanpi,
+    f_acos, f_acospi, f_asin, f_atan, f_atanpi, f_cbrt, f_cos, f_cospi, f_exp, f_exp2, f_exp2m1,
+    f_exp10, f_exp10m1, f_expm1, f_log, f_log2, f_log10, f_pow, f_sin, f_sincos, f_sinpi, f_tan,
+    f_tanpi,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
@@ -135,6 +136,15 @@ fuzz_target!(|data: (f64, f64)| {
     let x1 = data.0;
     let mpfr_x0 = Float::with_val(100, x0);
     let mpfr_x1 = Float::with_val(100, x1);
+    if x0.abs() < 0.99999 {
+        test_method(
+            x0,
+            f_acospi,
+            &mpfr_x0.clone().acos_pi(),
+            "f_acospi".to_string(),
+            1.5,
+        );
+    }
     test_method(
         x0,
         f_atanpi,
