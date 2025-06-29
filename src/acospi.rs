@@ -120,8 +120,8 @@ pub fn f_acospi(x: f64) -> f64 {
         // acospi_end
 
         let err = ACOSPI_ERR[i as usize]; // acospi_specific
-        let left = d.hi + (d.lo - f64::from_bits(err));
-        return left;
+
+        d.hi + (d.lo - f64::from_bits(err))
         // right = du + (dv + err);
         // if (__builtin_expect (left != right, 0))
         // return accurate_path (x); /* hard to round case */
@@ -195,20 +195,19 @@ pub fn f_acospi(x: f64) -> f64 {
         // acospi_end
 
         let err = ACOSPI_ERR[i as usize]; // acospi_specific
-        let left = d.hi + (d.lo - f64::from_bits(err));
-        return left;
+        d.hi + (d.lo - f64::from_bits(err))
     }
     /*   else  if (k < 0x3ff00000)    */
 
     /*---------------------------- |x|>=1 -----------------------*/
     else if k == 0x3ff00000 && u_low == 0 {
-        return if x > 0. { 0. } else { 1. };
+        if x > 0. { 0. } else { 1. }
     }
     // acospi_specific
     else if k > 0x7ff00000 || (k == 0x7ff00000 && u_low != 0) {
-        return x + x; // case x=nan
+        x + x // case x=nan
     } else {
-        return f64::NAN;
+        f64::NAN
     }
 }
 

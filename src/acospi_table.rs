@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#[allow(clippy::type_complexity)]
 pub(crate) static ACOSPI_TABLE: [(u64, u64, u64, u64, u64, u64, u64, u64); 256] = [
     (
         0x3ff921fb54442d18,
