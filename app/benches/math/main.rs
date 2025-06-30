@@ -17,7 +17,7 @@ use pxfm::{
 use std::hint::black_box;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    /*c.bench_function("pxfm: f_log10p1", |b| {
+    c.bench_function("pxfm: f_log10p1", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_log10p1(i as f64 / 1000.0));
@@ -103,7 +103,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 black_box(f_expm1(i as f64 / 1000.0));
             }
         })
-    });*/
+    });
 
     c.bench_function("pxfm: f_atan2pif", |b| {
         b.iter(|| {
