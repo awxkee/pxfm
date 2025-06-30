@@ -26,47 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::atan2f::poly_dekker_generic;
 use crate::common::f_fmla;
-use crate::dekker::Dekker;
-
-static ATANPIF_DD: [(u64, u64); 32] = [
-    (0x3fd45f306dc9c883, 0xbc76b01ec5513324),
-    (0xbfbb2995e7b7b604, 0x3c5e402b0c13eedc),
-    (0x3fb04c26be3b06cf, 0xbc3571d178a53ef0),
-    (0xbfa7483758e69c03, 0x3c0819a6ed7aaf38),
-    (0x3fa21bb9452523ff, 0xbc3234d866fb9807),
-    (0xbf9da1bace3cc54e, 0xbbfc84f6ada49294),
-    (0x3f9912b1c23345dd, 0xbc3534890fbc1650),
-    (0xbf95bade52f5f52a, 0x3c3f783bafc832f6),
-    (0x3f932c69d084c5c0, 0x3c3042d155953025),
-    (0xbf9127bcfb3e8c7d, 0xbc385aae199a7b6b),
-    (0x3f8f0af43b11a731, 0x3c28f03563566630),
-    (0xbf8c57e86801029e, 0x3c2dcdf3e3b38eb4),
-    (0x3f8a136408617ea1, 0x3c0a71affb36c6c4),
-    (0xbf8824ac7814ba37, 0x3c28928b295c0898),
-    (0x3f86794e32ea5471, 0x3c20b4334fb41e63),
-    (0xbf8501d57f643d97, 0x3c2516785bf1376e),
-    (0x3f83adf02ff2400a, 0xbc1b0e30bb8c8076),
-    (0xbf8267702f94faa0, 0xbc17a4d3a1850cc6),
-    (0x3f810dce97099686, 0x3c2fcc208eee2571),
-    (0xbf7eee49cdad8002, 0xbbf9109b3f1bab82),
-    (0x3f7af93bc191a929, 0x3c1069fd3b47d7b0),
-    (0xbf76240751b54675, 0xbc172dc8cfd03b6f),
-    (0x3f70b61e84080884, 0x3c0825824c80941b),
-    (0xbf66a72a8a74e3a5, 0x3c08786a82fd117e),
-    (0x3f5aede3217d939d, 0xbbb93b626982e1fe),
-    (0xbf4b66568f09ebee, 0xbbd704a39121d0a5),
-    (0x3f373af3977fa973, 0xbbbaa050e2244ea3),
-    (0xbf1fc69d85ed28c9, 0x3bb867f17b764ca0),
-    (0x3f00c883a9270162, 0xbb96842833896dd9),
-    (0xbed9a0b27b6dfe15, 0x3b6427fc2f4e1327),
-    (0x3ea91e15e7ab5bdc, 0xbb2730dbc6279d0d),
-    (0xbe67b1119c1ff867, 0x3b0145f9980759c4),
-];
 
 static OFF: [f32; 8] = [0.0, 0.5, 1.0, 0.5, -0.0, -0.5, -1.0, -0.5];
-static OFF_F64: [f64; 8] = [0.0, 0.5, 1.0, 0.5, -0.0, -0.5, -1.0, -0.5];
 static SGNF: [f32; 2] = [1., -1.];
 static SGN: [f64; 2] = [1., -1.];
 
@@ -176,47 +138,5 @@ pub fn f_atan2pif(y: f32, x: f32) -> f32 {
 
         r = cn0 / cd0;
     }
-    r = f_fmla(z, r, OFF[i as usize] as f64);
-    let res = r.to_bits();
-    if (res.wrapping_shl(1)) > 0x6d40000000000000 && ((res.wrapping_add(8)) & 0xfffffff) <= 16 {
-        // |res| > 0x1p-149
-        if ax == ay {
-            static OFF2: [f64; 4] = [0.25, 0.75, -0.25, -0.75];
-            r = OFF2[((uy >> 31) * 2 + (ux >> 31)) as usize];
-        } else {
-            let (zh, zl);
-            if gt == 0 {
-                zh = zy / zx;
-                zl = f_fmla(zh, -zx, zy) / zx;
-            } else {
-                zh = zx / zy;
-                zl = f_fmla(zh, -zy, zx) / zy;
-            }
-            let mut zd = Dekker::new(zl, zh);
-            let zd2 = Dekker::quick_mult(zd, zd);
-            let mut p = poly_dekker_generic(zd2, ATANPIF_DD);
-            zd.hi *= SGN[gt];
-            zd.lo *= SGN[gt];
-            p = Dekker::quick_mult(zd, p);
-            let sh = p.hi + OFF_F64[i as usize];
-            let sl = ((OFF_F64[i as usize] - sh) + p.hi) + p.lo;
-            let rf = sh as f32;
-            let th = rf as f64;
-            let dh = sh - th;
-            let tm = dh + sl;
-            r = th + tm;
-            let d = (r - th).to_bits();
-            if d.wrapping_shl(12) == 0 {
-                let ad = f64::from_bits(d & 0x7fff_ffff_ffff_ffff);
-                let am = tm.abs();
-                if ad > am {
-                    r -= f64::from_bits(d) * f64::from_bits(0x3f50000000000000);
-                }
-                if ad < am {
-                    r += f64::from_bits(d) * f64::from_bits(0x3f50000000000000);
-                }
-            }
-        }
-    }
-    r as f32
+    f_fmla(z, r, OFF[i as usize] as f64) as f32
 }
