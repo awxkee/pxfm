@@ -29,11 +29,12 @@
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
 use crate::log2p1_tables::{LOG2P1_EXACT, LOG2P1_INVERSE, LOG2P1_LOG_DD_INVERSE};
+
 /* put in h+l a double-double approximation of log(z)-z for
 |z| < 0.03125, with absolute error bounded by 2^-67.14
 (see analyze_p1a(-0.03125,0.03125) from log1p.sage) */
 #[inline]
-fn p_1a(z: f64) -> Dekker {
+pub(crate) fn log_p_1a(z: f64) -> Dekker {
     let z2: Dekker = if z.abs() >= f64::from_bits(0x3000000000000000) {
         Dekker::from_exact_mult(z, z)
     } else {
@@ -106,7 +107,7 @@ fn p_1(z: f64) -> Dekker {
 }
 
 #[inline]
-fn log_fast(e: i32, v_u: u64) -> Dekker {
+pub(crate) fn log_fast(e: i32, v_u: u64) -> Dekker {
     let m: u64 = 0x10000000000000u64.wrapping_add(v_u & 0xfffffffffffff);
     /* x = m/2^52 */
     /* if x > sqrt(2), we divide it by 2 to avoid cancellation */
@@ -290,7 +291,7 @@ fn log2p1_fast(x: f64, e: i32) -> (Dekker, f64) {
             };
             return (Dekker::new(0.0, result), 0.0);
         }
-        let mut p = p_1a(x);
+        let mut p = log_p_1a(x);
         let p_lo = p.lo;
         p = Dekker::from_exact_add(x, p.hi);
         p.lo += p_lo;
