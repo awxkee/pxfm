@@ -257,7 +257,7 @@ fn log2p1_accurate_tiny(x: f64) -> f64 {
     let mut zh = Dekker::f64_mult(sx, Dekker::new(INVLOG2L, INVLOG2H));
 
     let res = zh.to_f64() * f64::from_bits(0x3950000000000000); // expected result
-    zh.lo = f_fmla(-res, f64::from_bits(0x4690000000000000), zh.hi) + zh.lo;
+    zh.lo += f_fmla(-res, f64::from_bits(0x4690000000000000), zh.hi);
     // the correction to apply to res is l*2^-106
     /* For all rounding modes, we have underflow
     for |x| <= 0x1.62e42fefa39eep-1023 */
