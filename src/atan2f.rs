@@ -94,9 +94,8 @@ fn cr_atan2f_tiny(y: f32, x: f32) -> f32 {
     let cz = C * z;
     e = e / x as f64 + cz * zz;
     let mut t = z.to_bits();
-    if (t & 0xfffffffu64) == 0
-    /* boundary case */
-    {
+    if (t & 0xfffffffu64) == 0 {
+        /* boundary case */
         /* If z and e are of same sign (resp. of different signs), we increase
         (resp. decrease) the significand of t by 1 to avoid a double-rounding
         issue when rounding t.f to binary32. */
