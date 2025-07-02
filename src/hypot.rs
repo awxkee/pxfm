@@ -45,7 +45,7 @@ fn hypot_denorm(a: u64, b: u64) -> f64 {
     // af and bf are x and y multiplied by 2^1074, thus integers
     a = a.wrapping_shl(1);
     b = b.wrapping_shl(1);
-    let mut rm = (af * af + bf * bf).sqrt() as u64;
+    let mut rm = f_fmla(af, af, bf * bf).sqrt() as u64;
     let mut tm: i64 = rm.wrapping_shl(1) as i64;
     let mut denom: i64 = a
         .wrapping_mul(a)
