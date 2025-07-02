@@ -391,6 +391,6 @@ mod tests {
 
     #[test]
     fn test_atanh() {
-        println!("{}", f_atanh(-0.24218760943040252));
+        assert_eq!(f_atanh(-0.24218760943040252), -0.24709672810738792);
     }
 }
