@@ -847,7 +847,6 @@ pub(crate) struct LargeArgumentReduction {
 }
 
 impl LargeArgumentReduction {
-    #[inline]
     pub(crate) fn accurate(&self) -> DyadicFloat128 {
         const PI_OVER_128_F128: DyadicFloat128 = DyadicFloat128 {
             sign: DyadicSign::Pos,

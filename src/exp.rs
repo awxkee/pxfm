@@ -215,7 +215,6 @@ pub(crate) fn to_denormal(x: f64) -> f64 {
     f64::from_bits(ix)
 }
 
-#[inline]
 fn as_exp_accurate(x: f64, t: f64, tz: Dekker, ie: i64) -> f64 {
     const COEFFS: [(u64, u64); 7] = [
         (0x3ff0000000000000, 0x0000000000000000),

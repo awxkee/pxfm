@@ -100,7 +100,6 @@ fn search_from_table(x: f32, r: f64) -> f32 {
     r as f32
 }
 
-#[inline]
 pub(crate) fn sincos_reduce_big(u: u32) -> (f64, i32) {
     const IPI: [u64; 4] = [
         0xfe5163abdebbc562,

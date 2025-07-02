@@ -253,7 +253,6 @@ fn exp_2(x: f64) -> Dekker {
     q
 }
 
-#[inline]
 fn exp10m1_accurate_tiny(x: f64) -> f64 {
     let x2 = x * x;
     let x4 = x2 * x2;

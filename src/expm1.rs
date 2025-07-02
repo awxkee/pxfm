@@ -413,11 +413,7 @@ pub fn f_expm1(x: f64) -> f64 {
                 return x + x;
             } // nan
             if aix == 0x7ff0000000000000u64 {
-                if (ix >> 63) != 0 {
-                    return -1.0;
-                } else {
-                    return x;
-                }
+                return if (ix >> 63) != 0 { -1.0 } else { x };
             }
             if (ix >> 63) == 0 {
                 const Z: f64 = f64::from_bits(0x7fe0000000000000);

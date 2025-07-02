@@ -96,7 +96,6 @@ static S2: [i32; 193] = [
 //   sum: adding -log(r1) - log(r2) - log(r3) - log(r4) to the resulted sum.
 //   return value: the reduced argument v satisfying:
 //                 -0x1.0002143p-29 <= v < 0x1p-29,  and  ulp(v) >= 2^(-125).
-#[inline]
 pub(crate) fn log_range_reduction(
     m_x: f64,
     log_table: &[&[DyadicFloat128]; 4],

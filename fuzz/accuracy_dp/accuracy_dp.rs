@@ -4,8 +4,8 @@ use libfuzzer_sys::fuzz_target;
 use pxfm::{
     f_acos, f_acosh, f_acospi, f_asin, f_asinh, f_asinpi, f_atan, f_atan2, f_atan2pi, f_atanh,
     f_atanpi, f_cbrt, f_cos, f_cosh, f_cospi, f_exp, f_exp2, f_exp2m1, f_exp10, f_exp10m1, f_expm1,
-    f_j1, f_log, f_log1p, f_log2, f_log2p1, f_log10, f_log10p1, f_pow, f_sin, f_sincos, f_sinh,
-    f_sinpi, f_tan, f_tanh, f_tanpi,
+    f_hypot, f_j1, f_log, f_log1p, f_log2, f_log2p1, f_log10, f_log10p1, f_pow, f_sin, f_sincos,
+    f_sinh, f_sinpi, f_tan, f_tanh, f_tanpi,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
@@ -365,6 +365,14 @@ fuzz_target!(|data: (f64, f64)| {
         &mpfr_x0.clone().atan(),
         "f_atan".to_string(),
         0.5000,
+    );
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_hypot,
+        &mpfr_x0.clone().hypot(&mpfr_x1),
+        "f_hypot".to_string(),
+        0.5,
     );
     // Powf currently not really bets handles extra large argument, ULP 10000 for extra large argument
     if x0.abs() < 1e12 && x1.abs() < 1e12 {

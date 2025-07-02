@@ -34,7 +34,6 @@ const ONE_OVER_PIH: f64 = f64::from_bits(0x3fd45f306dc9c883);
 const ONE_OVER_PIL: f64 = f64::from_bits(0xbc76b01ec5417056);
 const ONE_OVER_3PI: f64 = f64::from_bits(0x3fbb2995e7b7b604); // approximates 1/(3pi)
 
-#[inline]
 fn atanpi_small(x: f64) -> f64 {
     if x == 0. {
         return x;
@@ -96,7 +95,6 @@ for x > 0, atanpi(x) = 1/2 - 1/pi * 1/x + 1/(3pi) * 1/x^3 + O(1/x^5)
 for x < 0, atanpi(x) = -1/2 - 1/pi * 1/x + 1/(3pi) * 1/x^3 + O(1/x^5).
 The next term 1/5*x^5/pi is smaller than 2^-107 * atanpi(x)
 when |x| > 0x1.bep20. */
-#[inline]
 fn atanpi_asympt(x: f64) -> f64 {
     let h = f64::copysign(0.5, x);
     // approximate 1/x as yh + yl
