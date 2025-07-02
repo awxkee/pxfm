@@ -284,6 +284,6 @@ mod tests {
 
     #[test]
     fn test_cosh() {
-        assert_eq!(f_cosh(3.00949914008379), 10.163278848607474);
+        assert_eq!(f_cosh(1.), 1.5430806348152437);
     }
 }

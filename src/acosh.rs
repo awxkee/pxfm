@@ -212,7 +212,7 @@ fn acosh_refine(x: f64, a: f64) -> f64 {
     let ed = e as f64;
     let v = (a - ed + f64::from_bits(0x3ff0000800000000)).to_bits();
     let i = (v.wrapping_sub(0x3ffu64 << 52)) >> (52 - 16);
-    let i1 = (i >> 12) & 0x1f;
+    let i1 = (i >> 12) & 0xf;
     let i2 = (i >> 8) & 0xf;
     let i3 = (i >> 4) & 0xf;
     let i4 = i & 0xf;
@@ -684,5 +684,6 @@ mod tests {
     fn test() {
         assert_eq!(f_acosh(1.52), 0.9801016289951905);
         assert_eq!(f_acosh(1.86), 1.2320677765479648);
+        println!("{}", f_acosh(4628012477609672704.));
     }
 }

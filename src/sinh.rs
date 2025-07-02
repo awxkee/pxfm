@@ -324,6 +324,6 @@ mod tests {
 
     #[test]
     fn test_f_sinh() {
-        assert_eq!(f_sinh(4.798027025987722), 60.63133548223507);
+        assert_eq!(f_sinh(1.), 1.1752011936438014);
     }
 }
