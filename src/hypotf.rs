@@ -26,7 +26,6 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
 use crate::logf::EXP_MASK_F32;
 
 #[inline]
@@ -103,6 +102,7 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
         all(target_arch = "aarch64", target_feature = "neon")
     ))]
     {
+        use crate::common::f_fmla;
         sum_sq = f_fmla(bd, bd, a_sq);
     }
     #[cfg(not(any(
@@ -142,6 +142,7 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
             all(target_arch = "aarch64", target_feature = "neon")
         ))]
         {
+            use crate::common::f_fmla;
             sum_sq_lo = f_fmla(bd, bd, a_sq - sum_sq);
             err = sum_sq_lo - f_fmla(r_d, r_d, -sum_sq);
         }

@@ -139,7 +139,7 @@ fn hypot_hard(x: f64, y: f64) -> f64 {
     let mut ls: i32 = (BS as i32).wrapping_sub(de);
     if ls >= 0 {
         lm <<= ls;
-        m2 += lm * lm;
+        m2 = m2.wrapping_add(lm.wrapping_mul(lm));
     } else {
         let lm2: u128 = (lm as u128).wrapping_mul(lm as u128);
         ls = ls.wrapping_mul(2);
