@@ -120,7 +120,7 @@ fn hypot_hard(x: f64, y: f64) -> f64 {
     let mut lm = (yi & 0x000fffffffffffff) | (1u64 << 52);
     let be: i32 = (xi >> 52) as i32;
     let le: i32 = (yi >> 52) as i32;
-    let ri = (x * x + y * y).sqrt().to_bits();
+    let ri = f_fmla(x, x, y * y).sqrt().to_bits();
     const BS: u32 = 2;
     let mut rm: u64 = ri & 0x000fffffffffffff;
     let mut re: i32 = ((ri >> 52) as i32).wrapping_sub(0x3ff);
