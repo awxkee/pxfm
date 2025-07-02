@@ -240,9 +240,11 @@ pub fn f_atanpi(x: f64) -> f64 {
         let x2 = x * x;
         let x3 = x * x2;
         let x4 = x2 * x2;
-        let f = x3
-            * ((f64::from_bits(CH2[0]) + x2 * f64::from_bits(CH2[1]))
-                + x4 * (f64::from_bits(CH2[2]) + x2 * f64::from_bits(CH2[3])));
+
+        let f0 = f_fmla(x2, f64::from_bits(CH2[3]), f64::from_bits(CH2[2]));
+        let f1 = f_fmla(x2, f64::from_bits(CH2[1]), f64::from_bits(CH2[0]));
+
+        let f = x3 * f_fmla(x4, f0, f1);
         // begin_atanpi
         /* Here x+f approximates atan(x), with absolute error bounded by
         0x4.8p-52*f (see atan.c). After multiplying by 1/pi this error

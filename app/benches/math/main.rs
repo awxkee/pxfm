@@ -6,17 +6,239 @@
  */
 use criterion::{Criterion, criterion_group, criterion_main};
 use pxfm::{
-    exp, f_acos, f_acosf, f_acospi, f_acospif, f_asin, f_asinf, f_asinpi, f_asinpif, f_atan,
-    f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf, f_atanpi, f_atanpif, f_cbrt, f_cbrtf, f_cos,
-    f_cosf, f_coshf, f_cospi, f_cospif, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10,
-    f_exp10f, f_exp10m1, f_exp10m1f, f_expf, f_expm1, f_expm1f, f_j1, f_log, f_log1p, f_log1pf,
-    f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_pow,
-    f_powf, f_sin, f_sincos, f_sincosf, f_sinf, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanhf,
-    f_tanpi, f_tanpif, powf,
+    exp, f_acos, f_acosf, f_acosh, f_acoshf, f_acospi, f_acospif, f_asin, f_asinf, f_asinh,
+    f_asinhf, f_asinpi, f_asinpif, f_atan, f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf,
+    f_atanh, f_atanhf, f_atanpi, f_atanpif, f_cbrt, f_cbrtf, f_cos, f_cosf, f_cosh, f_coshf,
+    f_cospi, f_cospif, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
+    f_exp10m1f, f_expf, f_expm1, f_expm1f, f_j1, f_log, f_log1p, f_log1pf, f_log2, f_log2f,
+    f_log2p1, f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_pow, f_powf, f_sin,
+    f_sincos, f_sincosf, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanh,
+    f_tanhf, f_tanpi, f_tanpif, powf,
 };
 use std::hint::black_box;
+use std::time::Duration;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
+    let mut c = c.benchmark_group("Fast");
+    c.warm_up_time(Duration::new(1, 100));
+    c.sample_size(15);
+
+    c.bench_function("libm: atanh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::atanh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("system: atanh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f64::atanh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_atanh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_atanh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("libm: tanh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::tanh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("system: tanh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f64::tanh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_tanh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_tanh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("libm: atanhf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::atanhf(i as f32 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("system: atanhf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f32::atanh(i as f32 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_atanhf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_atanhf(i as f32 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("libm: acoshf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::acoshf(i as f32 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("system: acoshf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f32::acosh(i as f32 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_acoshf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_acoshf(i as f32 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("libm: asinhf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::asinf(i as f32 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("system: asinhf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f32::asinh(i as f32 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_asinhf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_asinhf(i as f32 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("libm: cosh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::cosh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("system: cosh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f64::cosh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_cosh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_cosh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("libm: sinh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::sinh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("system: sinh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f64::sinh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_sinh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_sinh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("libm: asinh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::asinh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("system: asinh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f64::asinh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_asinh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_asinh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("libm: acosh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::acosh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("system: acosh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f64::acosh(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_acosh", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_acosh(i as f64 / 1000.0));
+            }
+        })
+    });
+
     c.bench_function("pxfm: f_log10p1", |b| {
         b.iter(|| {
             for i in 1..1000 {
@@ -153,7 +375,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("system: ln_1p", |b| {
+    c.bench_function("system: ln_1pf", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f32::ln_1p(i as f32 / 1000.0));
@@ -1120,6 +1342,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             }
         })
     });
+    c.finish();
 }
 
 criterion_group!(benches, criterion_benchmark);

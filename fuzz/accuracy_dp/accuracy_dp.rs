@@ -2,9 +2,10 @@
 
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
-    f_acos, f_acospi, f_asin, f_asinpi, f_atan, f_atan2, f_atan2pi, f_atanpi, f_cbrt, f_cos,
-    f_cospi, f_exp, f_exp2, f_exp2m1, f_exp10, f_exp10m1, f_expm1, f_log, f_log1p, f_log2,
-    f_log2p1, f_log10, f_log10p1, f_pow, f_sin, f_sincos, f_sinpi, f_tan, f_tanpi,
+    f_acos, f_acosh, f_acospi, f_asin, f_asinh, f_asinpi, f_atan, f_atan2, f_atan2pi, f_atanh,
+    f_atanpi, f_cbrt, f_cos, f_cosh, f_cospi, f_exp, f_exp2, f_exp2m1, f_exp10, f_exp10m1, f_expm1,
+    f_j1, f_log, f_log1p, f_log2, f_log2p1, f_log10, f_log10p1, f_pow, f_sin, f_sincos, f_sinh,
+    f_sinpi, f_tan, f_tanh, f_tanpi,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
@@ -136,6 +137,48 @@ fuzz_target!(|data: (f64, f64)| {
     let x1 = data.0;
     let mpfr_x0 = Float::with_val(100, x0);
     let mpfr_x1 = Float::with_val(100, x1);
+    test_method(
+        x0,
+        f_atanh,
+        &mpfr_x0.clone().atanh(),
+        "f_atanh".to_string(),
+        0.500,
+    );
+    test_method(
+        x0,
+        f_tanh,
+        &mpfr_x0.clone().tanh(),
+        "f_tanh".to_string(),
+        0.500,
+    );
+    test_method(
+        x0,
+        f_cosh,
+        &mpfr_x0.clone().cosh(),
+        "f_cosh".to_string(),
+        0.500,
+    );
+    test_method(
+        x0,
+        f_sinh,
+        &mpfr_x0.clone().sinh(),
+        "f_sinh".to_string(),
+        0.500,
+    );
+    test_method(
+        x0,
+        f_asinh,
+        &mpfr_x0.clone().asinh(),
+        "f_asinh".to_string(),
+        0.500,
+    );
+    test_method(
+        x0,
+        f_acosh,
+        &mpfr_x0.clone().acosh(),
+        "f_acosh".to_string(),
+        0.500,
+    );
     test_method_2vals_ignore_nan(
         x0,
         x1,

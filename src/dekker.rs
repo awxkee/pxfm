@@ -103,6 +103,17 @@ impl Dekker {
         Dekker::new(r_lo, r_hi)
     }
 
+    // #[inline]
+    // pub(crate) const fn from_full_exact_sub(a: f64, b: f64) -> Self {
+    //     let r_hi = a - b;
+    //     let t1 = r_hi - a;
+    //     let t2 = r_hi - t1;
+    //     let t3 = -b - t1;
+    //     let t4 = a - t2;
+    //     let r_lo = t3 + t4;
+    //     Dekker::new(r_lo, r_hi)
+    // }
+
     #[inline]
     pub(crate) fn add(a: Dekker, b: Dekker) -> Dekker {
         let s = a.hi + b.hi;
@@ -110,6 +121,67 @@ impl Dekker {
         let l = ((b.hi - d) + (a.hi + (d - s))) + (a.lo + b.lo);
         Dekker::new(l, s)
     }
+
+    // #[inline]
+    // pub(crate) fn from_div(a: f64, b: f64) -> Self {
+    //     let q_hi = a / b;
+    //     let r = f_fmla(-q_hi, b, a);
+    //     let q_lo = r / b;
+    //     Self::new(q_lo, q_hi)
+    // }
+    //
+    // #[inline]
+    // pub(crate) fn from_sqrt(x: f64) -> Self {
+    //     let h = x.sqrt();
+    //     /* h = sqrt(x) * (1 + e1) with |e1| < 2^-52
+    //        thus h^2 = x * (1 + e2) with |e2| < 2^-50.999 */
+    //     let e = -f_fmla (h, h, -x); // exact
+    //     /* e = x - h^2 */
+    //     let l = e / (h + h);
+    //     Dekker::new(l, h)
+    // }
+
+    // #[inline]
+    // pub(crate) fn div_dd_f64(a: Dekker, b: f64) -> Self {
+    //     let q1 = a.hi / b;
+    //     let r = f_fmla(-q1, b, a.hi);
+    //     let r = r + a.lo;
+    //     let q2 = r / b;
+    //
+    //     Dekker::new(q2, q1)
+    // }
+    //
+    // #[inline]
+    // pub(crate) fn neg(self) -> Self {
+    //     Self {
+    //         lo: -self.lo, hi: -self.hi,
+    //     }
+    // }
+
+    // #[inline]
+    // pub(crate) fn from_f64_div_dd(a: f64, b: Dekker) -> Self {
+    //     let q1 = a / b.hi;
+    //
+    //     let prod = Dekker::from_exact_mult(q1, b.hi);
+    //     let prod_lo = f_fmla(q1, b.lo, prod.lo);
+    //     let rem = f_fmla(-1.0, prod.hi, a) - prod_lo;
+    //
+    //     let q2 = rem / b.hi;
+    //
+    //     Dekker::new(q2, q1)
+    // }
+
+    // #[inline]
+    // pub(crate) fn mla_f64(a: Dekker, b: f64, c: f64) -> Self {
+    //     let q = Dekker::mult_f64(a, b);
+    //     Dekker::add_f64(q, c)
+    // }
+    //
+    // #[inline]
+    // pub(crate) fn mla_dd_f64(a: Dekker, b: Dekker, c: f64) -> Self {
+    //     let q = Dekker::quick_mult(a, b);
+    //     Dekker::add_f64(q, c)
+    // }
 
     #[inline]
     pub(crate) fn div(a: Dekker, b: Dekker) -> Dekker {
