@@ -143,8 +143,8 @@ pub fn f_cosh(x: f64) -> f64 {
     let j1 = jl & 0x3f;
     let j0 = (jl >> 6) & 0x3f;
     let je = jl >> 12;
-    let mut sp = ((1022 + ie) as u64).wrapping_shl(52);
-    let sm = ((1022 + je) as u64).wrapping_shl(52);
+    let mut sp = (1022i64.wrapping_add(ie) as u64).wrapping_shl(52);
+    let sm = (1022i64.wrapping_add(je) as u64).wrapping_shl(52);
     let sn0 = EXP_REDUCE_T0[i0 as usize];
     let sn1 = EXP_REDUCE_T1[i1 as usize];
     let t0h = f64::from_bits(sn0.1);
@@ -156,7 +156,7 @@ pub fn f_cosh(x: f64) -> f64 {
 
     const L2H: f64 = f64::from_bits(0x3f262e42ff000000);
     const L2L: f64 = f64::from_bits(0x3d0718432a1b0e26);
-    let dx = f_fmla(-L2H, t, ax) + L2L * t;
+    let dx = f_fmla(L2L, t, f_fmla(-L2H, t, ax));
     let dx2 = dx * dx;
     let mx = -dx;
     const CH: [u64; 4] = [
