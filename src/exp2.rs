@@ -226,12 +226,10 @@ mod tests {
 
     #[test]
     fn test_exp2d() {
-        println!("{}", (-144.0000000002624f64).exp2());
-        println!("{}", f_exp2(-144.0000000002624));
-        // assert_eq!(f_exp2(2.0), 4.0);
-        // assert_eq!(f_exp2(3.0), 8.0);
-        // assert_eq!(f_exp2(4.0), 16.0);
-        // assert!((f_exp2(0.35f64) - 0.35f64.exp2()).abs() < 1e-8);
-        // assert!((f_exp2(-0.6f64) - (-0.6f64).exp2()).abs() < 1e-8);
+        assert_eq!(f_exp2(2.0), 4.0);
+        assert_eq!(f_exp2(3.0), 8.0);
+        assert_eq!(f_exp2(4.0), 16.0);
+        assert!((f_exp2(0.35f64) - 0.35f64.exp2()).abs() < 1e-8);
+        assert!((f_exp2(-0.6f64) - (-0.6f64).exp2()).abs() < 1e-8);
     }
 }

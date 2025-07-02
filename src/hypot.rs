@@ -150,8 +150,8 @@ fn hypot_hard(x: f64, y: f64) -> f64 {
     let mut denom: i64;
     loop {
         rm += 1 + if rm >= (1u64 << 53) { 1 } else { 0 };
-        let tm: u64 = rm << k;
-        let rm2: u64 = tm * tm;
+        let tm: u64 = rm.wrapping_shl(k as u32);
+        let rm2: u64 = tm.wrapping_mul(tm);
         denom = (m2 as i64).wrapping_sub(rm2 as i64);
         if denom > 0 {
             break;
