@@ -68,12 +68,12 @@ pub(crate) fn r_polyeval7(
     a5: &DyadicFloat128,
     a6: &DyadicFloat128,
 ) -> DyadicFloat128 {
-    let t1 = r_fmla(x, a6, a5); // a3 * x + a2
-    let t2 = r_fmla(x, &t1, a4); // a3 * x + a2
-    let t3 = r_fmla(x, &t2, a3); // (a3 * x + a2) * x + a1
-    let t4 = r_fmla(x, &t3, a2); // (a3 * x + a2) * x + a1
-    let t5 = r_fmla(x, &t4, a1); // (a3 * x + a2) * x + a1
-    r_fmla(x, &t5, a0) // ((a3 * x + a2) * x + a1) * x + a0
+    let t1 = r_fmla(x, a6, a5);
+    let t2 = r_fmla(x, &t1, a4);
+    let t3 = r_fmla(x, &t2, a3);
+    let t4 = r_fmla(x, &t3, a2);
+    let t5 = r_fmla(x, &t4, a1);
+    r_fmla(x, &t5, a0)
 }
 
 #[inline(always)]
@@ -90,14 +90,14 @@ pub(crate) fn r_polyeval9(
     a7: &DyadicFloat128,
     a8: &DyadicFloat128,
 ) -> DyadicFloat128 {
-    let t0 = r_fmla(x, a8, a7); // a3 * x + a2
-    let t0a = r_fmla(x, &t0, a6); // a3 * x + a2
-    let t1 = r_fmla(x, &t0a, a5); // a3 * x + a2
-    let t2 = r_fmla(x, &t1, a4); // a3 * x + a2
-    let t3 = r_fmla(x, &t2, a3); // (a3 * x + a2) * x + a1
-    let t4 = r_fmla(x, &t3, a2); // (a3 * x + a2) * x + a1
-    let t5 = r_fmla(x, &t4, a1); // (a3 * x + a2) * x + a1
-    r_fmla(x, &t5, a0) // ((a3 * x + a2) * x + a1) * x + a0
+    let t0 = r_fmla(x, a8, a7);
+    let t0a = r_fmla(x, &t0, a6);
+    let t1 = r_fmla(x, &t0a, a5);
+    let t2 = r_fmla(x, &t1, a4);
+    let t3 = r_fmla(x, &t2, a3);
+    let t4 = r_fmla(x, &t3, a2);
+    let t5 = r_fmla(x, &t4, a1);
+    r_fmla(x, &t5, a0)
 }
 
 pub(crate) struct SinCosDyadic {

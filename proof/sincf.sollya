@@ -1,0 +1,98 @@
+f = sin(x) / x;
+
+I = [0.0; 0.25];
+P = fpminimax(f, [|0, 2, 4, 6|], [|1, D, D, D|], I, relative, floating);
+print("Sinc [0, 0.25]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [0.25; 0.75];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12|], [|1, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [0.25, 0.75]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [0.75; 1.57];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12|], [|1, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [0.75, 1.57]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [1.57; 2.1];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12|], [|1, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [1.57, 2.1]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [2.1; 2.45];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12|], [|1, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [2.1, 2.45]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [2.45; 2.61];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12|], [|1, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [2.45, 2.61]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [2.61; 2.85];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12|], [|1, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [2.61, 2.85]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [2.85; 3.2];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], [|1, D, D, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [2.85, 3.2]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [3.2; 3.8];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], [|1, D, D, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [3.2, 3.8]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [3.8; 4.35];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], [|1, D, D, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [3.8, 4.35]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [4.35; 4.95];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], [|1, D, D, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [4.35, 4.95]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [4.95; 5.45];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], [|1, D, D, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [4.95, 5.45]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [5.45; 6.0];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], [|1, D, D, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [5.45, 6.0]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));
+
+I = [6.0; 6.45];
+R = remez(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], I);
+P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12, 14, 16|], [|1, D, D, D, D, D, D, D, D|], I, relative, floating, 0, R);
+print("Sinc [6.0, 6.45]");
+print(P);
+for i from 0 to degree(P) by 2 do printdouble(coeff(P, i));

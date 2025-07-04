@@ -1,14 +1,11 @@
 #![no_main]
+#![allow(static_mut_refs)]
 
 use libfuzzer_sys::fuzz_target;
-use pxfm::{
-    f_acos, f_acosh, f_acospi, f_asin, f_asinh, f_asinpi, f_atan, f_atan2, f_atan2pi, f_atanh,
-    f_atanpi, f_cbrt, f_cos, f_cosh, f_cospi, f_exp, f_exp2, f_exp2m1, f_exp10, f_exp10m1, f_expm1,
-    f_hypot, f_j1, f_log, f_log1p, f_log2, f_log2p1, f_log10, f_log10p1, f_pow, f_sin, f_sincos,
-    f_sinh, f_sinpi, f_tan, f_tanh, f_tanpi,
-};
+use pxfm::*;
 use rug::ops::Pow;
 use rug::{Assign, Float};
+use std::sync::atomic::AtomicUsize;
 
 pub fn count_ulp_f64(d: f64, c: &Float) -> f64 {
     let c2 = c.to_f64();
@@ -61,6 +58,28 @@ fn test_method(
         xr,
         mpfr_value.to_f64(),
     );
+}
+
+#[derive(Copy, Clone, Debug)]
+struct Outlier {
+    ulp: f64,
+    on: f64,
+}
+
+fn test_method_outlier(
+    value: f64,
+    method: fn(f64) -> f64,
+    mpfr_value: &Float,
+    method_name: String,
+    max_ulp: f64,
+) -> Option<Outlier> {
+    let xr = method(value);
+    let ulp = count_ulp_f64(xr, mpfr_value);
+    if ulp > max_ulp {
+        Some(Outlier { ulp, on: value })
+    } else {
+        None
+    }
 }
 
 fn test_method_2_outputs(

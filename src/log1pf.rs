@@ -133,7 +133,6 @@ static LIX: [u64; 32] = [
     0x3fe5ee02a9281675,
 ];
 
-#[inline]
 pub(crate) fn special_logf(x: f32) -> f32 {
     let t = x.to_bits();
     if t == 0xbf800000u32 {

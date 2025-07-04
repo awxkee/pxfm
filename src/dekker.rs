@@ -122,13 +122,48 @@ impl Dekker {
         Dekker::new(l, s)
     }
 
-    // #[inline]
-    // pub(crate) fn from_div(a: f64, b: f64) -> Self {
-    //     let q_hi = a / b;
-    //     let r = f_fmla(-q_hi, b, a);
-    //     let q_lo = r / b;
-    //     Self::new(q_lo, q_hi)
-    // }
+    #[inline]
+    pub(crate) fn sub(a: Dekker, b: Dekker) -> Dekker {
+        let s = a.hi - b.hi;
+        let d = s - a.hi;
+        let l = ((-b.hi - d) + (a.hi + (d - s))) + (a.lo - b.lo);
+        Dekker::new(l, s)
+    }
+
+    #[inline]
+    pub(crate) fn from_exact_div(a: f64, b: f64) -> Self {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let q_hi = a / b;
+            let r = f_fmla(-q_hi, b, a);
+            let q_lo = r / b;
+            Self::new(q_lo, q_hi)
+        }
+
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let q_hi = a / b;
+
+            let p = Dekker::from_exact_mult(q_hi, b);
+            let r = Dekker::from_exact_sub(a, p.hi);
+            let r = r.hi + (r.lo - p.lo);
+            let q_lo = r / b;
+
+            Self::new(q_lo, q_hi)
+        }
+    }
     //
     // #[inline]
     // pub(crate) fn from_sqrt(x: f64) -> Self {
@@ -253,48 +288,179 @@ impl Dekker {
 
     #[inline]
     pub(crate) fn quick_mult(a: Dekker, b: Dekker) -> Self {
-        let mut r = Dekker::from_exact_mult(a.hi, b.hi);
-        let t1 = f_fmla(a.hi, b.lo, r.lo);
-        let t2 = f_fmla(a.lo, b.hi, t1);
-        r.lo = t2;
-        r
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let mut r = Dekker::from_exact_mult(a.hi, b.hi);
+            let t1 = f_fmla(a.hi, b.lo, r.lo);
+            let t2 = f_fmla(a.lo, b.hi, t1);
+            r.lo = t2;
+            r
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            Dekker::mult(a, b)
+        }
     }
 
     #[inline]
     pub(crate) fn mult(a: Dekker, b: Dekker) -> Self {
-        let ahlh = b.hi * a.lo;
-        let alhh = b.lo * a.hi;
-        let ahhh = b.hi * a.hi;
-        let mut ahhl = f_fmla(b.hi, a.hi, -ahhh);
-        ahhl += alhh + ahlh;
-        let ch = ahhh + ahhl;
-        let l = (ahhh - ch) + ahhl;
-        Self { lo: l, hi: ch }
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let ahlh = b.hi * a.lo;
+            let alhh = b.lo * a.hi;
+            let ahhh = b.hi * a.hi;
+            let mut ahhl = f_fmla(b.hi, a.hi, -ahhh);
+            ahhl += alhh + ahlh;
+            let ch = ahhh + ahhl;
+            let l = (ahhh - ch) + ahhl;
+            Self { lo: l, hi: ch }
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let zp = Dekker::from_exact_mult(a.hi, b.hi);
+
+            let p2 = a.hi * b.lo;
+            let p3 = a.lo * b.hi;
+
+            let e1 = Dekker::from_exact_add(zp.lo, p2);
+            let e2 = Dekker::from_exact_add(e1.hi, p3);
+
+            let hi = zp.hi + e2.hi;
+            let lo = (zp.hi - hi) + e2.hi + e1.lo + e2.lo;
+
+            Self { lo, hi }
+        }
     }
 
     #[inline]
     pub(crate) fn mult_f64(a: Dekker, b: f64) -> Self {
-        let ahlh = b * a.lo;
-        let ahhh = b * a.hi;
-        let mut ahhl = f_fmla(b, a.hi, -ahhh);
-        ahhl += ahlh;
-        let ch = ahhh + ahhl;
-        let l = (ahhh - ch) + ahhl;
-        Dekker::new(l, ch)
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let ahlh = b * a.lo;
+            let ahhh = b * a.hi;
+            let mut ahhl = f_fmla(b, a.hi, -ahhh);
+            ahhl += ahlh;
+            let ch = ahhh + ahhl;
+            let l = (ahhh - ch) + ahhl;
+            Dekker::new(l, ch)
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let z = Dekker::from_exact_mult(a.hi, b);
+            let lo_mul = a.lo * b;
+            let s = z.lo + lo_mul;
+            let r_hi = z.hi + s;
+            let r_lo = s - (r_hi - z.hi);
+
+            Dekker { hi: r_hi, lo: r_lo }
+        }
     }
 
     #[inline]
     pub(crate) fn f64_mult(a: f64, b: Dekker) -> Dekker {
-        let mut p = Dekker::from_exact_mult(a, b.hi);
-        p.lo = f_fmla(a, b.lo, p.lo);
-        p
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let mut p = Dekker::from_exact_mult(a, b.hi);
+            p.lo = f_fmla(a, b.lo, p.lo);
+            p
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let z = Dekker::from_exact_mult(a, b.hi);
+            let lo_mul = a * b.lo;
+
+            let s = z.lo + lo_mul;
+
+            let r_hi = z.hi + s;
+            let r_lo = s - (r_hi - z.hi);
+
+            Dekker { hi: r_hi, lo: r_lo }
+        }
     }
 
     #[inline]
     pub(crate) fn quick_mult_f64(a: Dekker, b: f64) -> Self {
-        let h = b * a.hi;
-        let l = b * a.lo + f_fmla(b, a.hi, -h);
-        Self { lo: l, hi: h }
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let h = b * a.hi;
+            let l = b * a.lo + f_fmla(b, a.hi, -h);
+            Self { lo: l, hi: h }
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let h = a.hi * b;
+
+            let a_split = Dekker::split(a.hi);
+            let b_split = Dekker::split(b);
+
+            let err = (((a_split.hi * b_split.hi - h) + a_split.hi * b_split.lo)
+                + a_split.lo * b_split.hi)
+                + a_split.lo * b_split.lo;
+
+            let l = a.lo * b + err;
+
+            Self { lo: l, hi: h }
+        }
     }
 
     #[inline]
@@ -314,5 +480,27 @@ impl Dekker {
     #[inline]
     pub(crate) const fn to_f64(self) -> f64 {
         self.lo + self.hi
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_f64_mult() {
+        let d1 = 1.1231;
+        let d2 = Dekker::new(1e-22, 3.2341);
+        let p = Dekker::f64_mult(d1, d2);
+        assert_eq!(p.hi, 3.6322177100000004);
+        assert_eq!(p.lo, -1.971941841373783e-16);
+    }
+
+    #[test]
+    fn test_mult_64() {
+        let d1 = 1.1231;
+        let d2 = Dekker::new(1e-22, 3.2341);
+        let p = Dekker::mult_f64(d2, d1);
+        assert_eq!(p.hi, 3.6322177100000004);
+        assert_eq!(p.lo, -1.971941841373783e-16);
     }
 }

@@ -132,11 +132,12 @@ fn as_atanh_zero(x: f64) -> f64 {
 
     let x2 = x * x;
     let x2l = f_fmla(x, x, -x2);
-    let y2 = x2
-        * (f64::from_bits(CL[0])
-            + x2 * (f64::from_bits(CL[1])
-                + x2 * (f64::from_bits(CL[2])
-                    + x2 * (f64::from_bits(CL[3]) + x2 * f64::from_bits(CL[4])))));
+
+    let yw0 = f_fmla(x2, f64::from_bits(CL[4]), f64::from_bits(CL[3]));
+    let yw1 = f_fmla(x2, yw0, f64::from_bits(CL[2]));
+    let yw2 = f_fmla(x2, yw1, f64::from_bits(CL[1]));
+
+    let y2 = x2 * f_fmla(x2, yw2, f64::from_bits(CL[0]));
 
     let mut y1 = lpoly_xd_generic(Dekker::new(x2l, x2), CH, y2);
     y1 = Dekker::mult_f64(y1, x);
