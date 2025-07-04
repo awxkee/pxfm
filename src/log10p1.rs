@@ -137,6 +137,17 @@ fn log10p1_accurate(x: f64) -> f64 {
     c = c + bx;
     /* |C-log(1+xl/xh)| ~ 2e-64 */
     y = y + c;
+
+    // Sage Math:
+    // from sage.all import *
+    //
+    // def format_hex2(value):
+    //     l = hex(value)[2:]
+    //     n = 4
+    //     x = [l[i:i + n] for i in range(0, len(l), n)]
+    //     return "0x" + "_".join(x) + "_u128"
+    // (s, m, e) = (RealField(128)(1)/RealField(128)(10)).log().sign_mantissa_exponent();
+    // print(format_hex2(m));
     const LOG10_INV: DyadicFloat128 = DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -129,
@@ -321,7 +332,7 @@ mod tests {
 
     #[test]
     fn test_log10p1() {
-        println!("{}", f_log10p1(0.9061508178774318));
+        println!("{}", f_log10p1(1.4467782378051763));
         // assert!(f_log10p1(-2.0).is_nan());
         // assert_eq!(f_log10p1(9.0), 1.0);
         // assert_eq!(f_log10p1(2.0), 0.47712125471966244);

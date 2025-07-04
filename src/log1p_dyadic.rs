@@ -71,7 +71,7 @@ pub(crate) fn log1p_accurate(e_x: i32, index: usize, m_x: Dekker) -> f64 {
     const LOG_2: DyadicFloat128 = DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xb17217f7_d1cf79ab_c9e3b398_03f2f6af_u128,
+        mantissa: 0x935d_8ddd_aaa8_ac16_ea56_d62b_82d3_0a29_u128,
     };
 
     let e_x_f128 = DyadicFloat128::new_from_f64(e_x as f64);
