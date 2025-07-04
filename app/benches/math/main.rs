@@ -12,8 +12,8 @@ use pxfm::{
     f_cospi, f_cospif, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
     f_exp10m1f, f_expf, f_expm1, f_expm1f, f_hypot, f_j1, f_log, f_log1p, f_log1pf, f_log2,
     f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_pow, f_powf,
-    f_sin, f_sinc, f_sincf, f_sincos, f_sincosf, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan,
-    f_tanf, f_tanh, f_tanhf, f_tanpi, f_tanpif, powf,
+    f_sin, f_sincf, f_sincos, f_sincosf, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf,
+    f_tanh, f_tanhf, f_tanpi, f_tanpif, powf,
 };
 use std::hint::black_box;
 use std::time::Duration;

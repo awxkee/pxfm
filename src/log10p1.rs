@@ -332,10 +332,9 @@ mod tests {
 
     #[test]
     fn test_log10p1() {
-        println!("{}", f_log10p1(1.4467782378051763));
-        // assert!(f_log10p1(-2.0).is_nan());
-        // assert_eq!(f_log10p1(9.0), 1.0);
-        // assert_eq!(f_log10p1(2.0), 0.47712125471966244);
-        // assert_eq!(f_log10p1(-0.5), -0.3010299956639812);
+        assert!(f_log10p1(-2.0).is_nan());
+        assert_eq!(f_log10p1(9.0), 1.0);
+        assert_eq!(f_log10p1(2.0), 0.47712125471966244);
+        assert_eq!(f_log10p1(-0.5), -0.3010299956639812);
     }
 }
