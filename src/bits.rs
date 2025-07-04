@@ -49,6 +49,11 @@ pub(crate) const fn get_exponent_f64(x: f64) -> i64 {
 }
 
 #[inline]
+pub(crate) const fn biased_exponent_f64(x: f64) -> i64 {
+    (x.to_bits() as i64 & EXP_MASK as i64) >> 52
+}
+
+#[inline]
 pub(crate) const fn mask_trailing_ones(len: u64) -> u64 {
     if len >= 64 {
         u64::MAX

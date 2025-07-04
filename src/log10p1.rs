@@ -28,18 +28,20 @@
  */
 use crate::common::*;
 use crate::dekker::Dekker;
-use crate::log2p1::{log_fast, log_p_1a};
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::log2p1::{log_fast, log_p_1a, log2_dyadic};
 use crate::log10p1_tables::{LOG10P1_EXACT_INT_S_TABLE, LOG10P1_EXACT_INT_TABLE};
 
-const INVLOG10H: f64 = f64::from_bits(0x3fdbcb7b1526e50e);
-const INVLOG10L: f64 = f64::from_bits(0x3c695355baaafad3);
+const INV_LOG10_DD: Dekker = Dekker::new(
+    f64::from_bits(0x3c695355baaafad3),
+    f64::from_bits(0x3fdbcb7b1526e50e),
+);
 
 /* deal with |x| < 2^-900, then log10p1(x) ~ x/log(10) */
-
 fn log10p1_accurate_tiny(x: f64) -> f64 {
     /* first scale x to avoid truncation of l in the underflow region */
     let sx = x * f64::from_bits(0x4690000000000000);
-    let mut px = Dekker::f64_mult(sx, Dekker::new(INVLOG10L, INVLOG10H));
+    let mut px = Dekker::f64_mult(sx, INV_LOG10_DD);
 
     let res = px.to_f64() * f64::from_bits(0x3950000000000000); // expected result
     px.lo += dd_fmla(-res, f64::from_bits(0x4690000000000000), px.hi);
@@ -109,6 +111,41 @@ fn log10p1_accurate_small(x: f64) -> f64 {
     pz.to_f64()
 }
 
+fn log10p1_accurate(x: f64) -> f64 {
+    let ax = x.abs();
+
+    if ax < f64::from_bits(0x3fa0000000000000) {
+        return if ax < f64::from_bits(0x07b0000000000000) {
+            log10p1_accurate_tiny(x)
+        } else {
+            log10p1_accurate_small(x)
+        };
+    }
+    let dx = if x > 1.0 {
+        Dekker::from_exact_add(x, 1.0)
+    } else {
+        Dekker::from_exact_add(1.0, x)
+    };
+    let x_d = DyadicFloat128::new_from_f64(dx.hi);
+    let mut y = log2_dyadic(&x_d, dx.hi);
+    let mut c = DyadicFloat128::from_div_f64(dx.lo, dx.hi);
+    let mut bx = c * c;
+    /* multiply X by -1/2 */
+    bx.exponent -= 1;
+    bx.sign = DyadicSign::Neg;
+    /* C <- C - C^2/2 */
+    c = c + bx;
+    /* |C-log(1+xl/xh)| ~ 2e-64 */
+    y = y + c;
+    const LOG10_INV: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -129,
+        mantissa: 0xde5b_d8a9_3728_7195_355b_aaaf_ad33_dc32_u128,
+    };
+    y = y * LOG10_INV;
+    y.fast_as_f64()
+}
+
 #[inline]
 fn log10p1_fast(x: f64, e: i32) -> (Dekker, f64) {
     if e < -5
@@ -138,7 +175,7 @@ fn log10p1_fast(x: f64, e: i32) -> (Dekker, f64) {
         positive, since we add/subtract it in the rounding test.
         We also get that the ratio |l/h| is bounded by 2^-50.96. */
         /* now we multiply h+l by 1/log(2) */
-        p = Dekker::quick_mult(p, Dekker::new(INVLOG10L, INVLOG10H));
+        p = Dekker::quick_mult(p, INV_LOG10_DD);
         /* the d_mul() call decomposes into:
          a_mul (h_out, l1, h, INVLOG10H)
          l2 = __builtin_fma (h, INVLOG10L, l1)
@@ -205,7 +242,7 @@ fn log10p1_fast(x: f64, e: i32) -> (Dekker, f64) {
     0x1.b6p-69 + 2^-104 + 2^-71 < 2^-68.02. */
 
     /* now multiply h+l by 1/log(2) */
-    p = Dekker::quick_mult(p, Dekker::new(INVLOG10L, INVLOG10H));
+    p = Dekker::quick_mult(p, INV_LOG10_DD);
     /* the d_mul() call decomposes into:
        a_mul (h_out, l1, h, INVLOG10H)
        l2 = __builtin_fma (h, INVLOG10L, l1)
@@ -236,7 +273,7 @@ fn log10p1_fast(x: f64, e: i32) -> (Dekker, f64) {
 
 /// Computes log10(x+1)
 ///
-/// Max ULP 0.504
+/// Max ULP 0.50006
 #[inline]
 pub fn f_log10p1(x: f64) -> f64 {
     let x_u = x.to_bits();
@@ -269,5 +306,25 @@ pub fn f_log10p1(x: f64) -> f64 {
 
     /* now x = m*2^e with 1 <= m < 2 (m = v.f) and -1074 <= e <= 1023 */
     let (p, err) = log10p1_fast(x, e);
-    p.hi + (p.lo - err)
+    let left = p.hi + (p.lo - err);
+    let right = p.hi + (p.lo + err);
+    if left == right {
+        return left;
+    }
+
+    log10p1_accurate(x)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_log10p1() {
+        println!("{}", f_log10p1(0.9061508178774318));
+        // assert!(f_log10p1(-2.0).is_nan());
+        // assert_eq!(f_log10p1(9.0), 1.0);
+        // assert_eq!(f_log10p1(2.0), 0.47712125471966244);
+        // assert_eq!(f_log10p1(-0.5), -0.3010299956639812);
+    }
 }

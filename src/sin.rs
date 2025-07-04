@@ -1558,7 +1558,6 @@ pub fn f_cos(x: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rug::{Assign, Float};
 
     #[test]
     fn cos_test() {

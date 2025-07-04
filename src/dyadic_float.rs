@@ -28,7 +28,7 @@
  */
 use crate::bits::EXP_MASK;
 use crate::common::f_fmla;
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Sub};
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub(crate) enum DyadicSign {
@@ -85,6 +85,23 @@ fn mulhi_u128(a: u128, b: u128) -> u128 {
 }
 
 #[inline]
+fn mulhi_u128_u64(x: u128, y: u64) -> u128 {
+    let x_hi = (x >> 64) as u64;
+    let x_lo = x as u64;
+
+    let lo_lo = (x_lo as u128).wrapping_mul(y as u128);
+    let hi_lo = (x_hi as u128).wrapping_mul(y as u128);
+
+    // Now, the total product is:
+    // product = hi_lo << 64 + lo_lo
+    // We want the high 128 bits, so:
+    // high = hi_lo + (lo_lo >> 64)
+
+    let carry = lo_lo >> 64;
+    hi_lo.wrapping_add(carry)
+}
+
+#[inline]
 const fn explicit_exponent(x: f64) -> i16 {
     let exp = ((x.to_bits() >> 52) & ((1u64 << 11) - 1u64)) as i16 - 1023;
     if x == 0. {
@@ -134,6 +151,71 @@ impl DyadicFloat128 {
         new_val
     }
 
+    // #[inline]
+    // pub(crate) fn new(sign: DyadicSign, exponent: i16, mantissa: u128) -> Self {
+    //     let mut new_item = DyadicFloat128 {
+    //         sign,
+    //         exponent,
+    //         mantissa,
+    //     };
+    //     new_item.normalize();
+    //     new_item
+    // }
+
+    #[inline]
+    pub(crate) fn accurate_reciprocal(a: f64) -> Self {
+        // we convert 4/a and divide by 4 to avoid a spurious underflow
+        let mut r = DyadicFloat128::new_from_f64(4.0 / a); /* accurate to about 53 bits */
+        r.exponent -= 2;
+        /* we use Newton's iteration: r -> r + r*(1-a*r) */
+        let ba = DyadicFloat128::new_from_f64(-a);
+        let mut q = ba * r;
+        const F128_ONE: DyadicFloat128 = DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -127,
+            mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
+        };
+        q = F128_ONE + q;
+        q = r * q;
+        r + q
+    }
+
+    #[inline]
+    pub(crate) fn from_div_f64(a: f64, b: f64) -> Self {
+        let reciprocal = DyadicFloat128::accurate_reciprocal(b);
+        let da = DyadicFloat128::new_from_f64(a);
+        let p = reciprocal * da;
+        if p.mantissa == 0 {
+            return Self::zero();
+        }
+        p
+    }
+
+    /// Multiply self by integer scalar `b`.
+    /// Returns a new normalized DyadicFloat128.
+    pub(crate) fn mul_int64(&self, b: i64) -> DyadicFloat128 {
+        if b == 0 {
+            return DyadicFloat128::zero();
+        }
+
+        let abs_b = b.unsigned_abs();
+        let sign = if (b < 0) ^ (self.sign == DyadicSign::Neg) {
+            DyadicSign::Neg
+        } else {
+            DyadicSign::Pos
+        };
+
+        let mut result = DyadicFloat128 {
+            sign,
+            exponent: self.exponent + 64,
+            mantissa: 0,
+        };
+
+        result.mantissa = mulhi_u128_u64(self.mantissa, abs_b);
+        result.normalize();
+        result
+    }
+
     #[inline]
     fn shift_right(&mut self, amount: u32) {
         if amount < BITS {
@@ -164,6 +246,20 @@ impl DyadicFloat128 {
             self.exponent -= shift_length as i16;
             self.mantissa = self.mantissa.wrapping_shl(shift_length);
         }
+    }
+
+    #[inline]
+    pub(crate) fn negated(&self) -> Self {
+        Self {
+            sign: self.sign.negate(),
+            exponent: self.exponent,
+            mantissa: self.mantissa,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn quick_sub(&self, rhs: &Self) -> Self {
+        self.quick_add(&rhs.negated())
     }
 
     #[inline]
@@ -357,6 +453,43 @@ impl DyadicFloat128 {
 
         r
     }
+    //
+    // // Approximate reciprocal - given a nonzero `a`, make a good approximation to 1/a.
+    // // The method is Newton-Raphson iteration, based on quick_mul.
+    // #[inline]
+    // fn approximate_reciprocal(&self) -> DyadicFloat128 {
+    //     // Given an approximation x to 1/a, a better one is x' = x(2-ax).
+    //     //
+    //     // You can derive this by using the Newton-Raphson formula with the function
+    //     // f(x) = 1/x - a. But another way to see that it works is to say: suppose
+    //     // that ax = 1-e for some small error e. Then ax' = ax(2-ax) = (1-e)(1+e) =
+    //     // 1-e^2. So the error in x' is the square of the error in x, i.e. the number
+    //     // of correct bits in x' is double the number in x.
+    //
+    //     // An initial approximation to the reciprocal
+    //     let mut x = DyadicFloat128 {
+    //         sign: DyadicSign::Pos,
+    //         exponent: -32 - self.exponent - BITS as i16,
+    //         mantissa: self.mantissa >> (BITS - 32),
+    //     };
+    //     x.normalize();
+    //
+    //     // The constant 2, which we'll need in every iteration
+    //     let two = DyadicFloat128::new(DyadicSign::Pos, 1, 1);
+    //
+    //     // We expect at least 31 correct bits from our 32-bit starting approximation
+    //     let mut ok_bits = 31usize;
+    //
+    //     // The number of good bits doubles in each iteration, except that rounding
+    //     // errors introduce a little extra each time. Subtract a bit from our
+    //     // accuracy assessment to account for that.
+    //     while ok_bits < BITS as usize {
+    //         x = x * (two - (*self * x));
+    //         ok_bits = 2 * ok_bits - 1;
+    //     }
+    //
+    //     x
+    // }
 }
 
 impl Add<DyadicFloat128> for DyadicFloat128 {
@@ -364,6 +497,14 @@ impl Add<DyadicFloat128> for DyadicFloat128 {
     #[inline]
     fn add(self, rhs: DyadicFloat128) -> Self::Output {
         self.quick_add(&rhs)
+    }
+}
+
+impl Sub<DyadicFloat128> for DyadicFloat128 {
+    type Output = DyadicFloat128;
+    #[inline]
+    fn sub(self, rhs: DyadicFloat128) -> Self::Output {
+        self.quick_sub(&rhs)
     }
 }
 
@@ -489,5 +630,51 @@ mod tests {
         let zvt3 = DyadicFloat128::new_from_f64(z3);
         let b3 = zvt3.fast_as_f64();
         assert_eq!(b3, z3);
+    }
+
+    // #[test]
+    // fn dyadic_float_reciprocal() {
+    //     let ones = DyadicFloat128 {
+    //         sign: DyadicSign::Pos,
+    //         exponent: -127,
+    //         mantissa: 0x80000000_00000000_00000000_00000000_u128,
+    //     }
+    //     .approximate_reciprocal();
+    //
+    //     let cvt = ones.fast_as_f64();
+    //     assert_eq!(cvt, 0.8998870849609375);
+    //
+    //     let minus_0_5 = DyadicFloat128::new_from_f64(4.).approximate_reciprocal();
+    //     let cvt0 = minus_0_5.fast_as_f64();
+    //     assert_eq!(cvt0, 0.22497177124023438);
+    // }
+
+    #[test]
+    fn dyadic_float_from_div() {
+        let from_div = DyadicFloat128::from_div_f64(1.0, 4.0);
+        let cvt = from_div.fast_as_f64();
+        assert_eq!(cvt, 0.25);
+    }
+
+    #[test]
+    fn dyadic_float_accurate_reciprocal() {
+        let from_div = DyadicFloat128::accurate_reciprocal(4.0);
+        let cvt = from_div.fast_as_f64();
+        assert_eq!(cvt, 0.25);
+    }
+
+    #[test]
+    fn dyadic_float_mul_int() {
+        let from_div = DyadicFloat128::new_from_f64(4.0);
+        let m1 = from_div.mul_int64(-2);
+        assert_eq!(m1.fast_as_f64(), -8.0);
+
+        let from_div = DyadicFloat128::new_from_f64(-4.0);
+        let m1 = from_div.mul_int64(-2);
+        assert_eq!(m1.fast_as_f64(), 8.0);
+
+        let from_div = DyadicFloat128::new_from_f64(2.5);
+        let m1 = from_div.mul_int64(2);
+        assert_eq!(m1.fast_as_f64(), 5.0);
     }
 }

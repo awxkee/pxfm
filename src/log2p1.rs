@@ -26,9 +26,13 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bits::{biased_exponent_f64, get_exponent_f64, mantissa_f64};
 use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::log2p1_dyadic_tables::{LOG2P1_F128_POLY, LOG2P1_INVERSE_2, LOG2P1_LOG_INV_2};
 use crate::log2p1_tables::{LOG2P1_EXACT, LOG2P1_INVERSE, LOG2P1_LOG_DD_INVERSE};
+use crate::sincos_dyadic::r_fmla;
 
 /* put in h+l a double-double approximation of log(z)-z for
 |z| < 0.03125, with absolute error bounded by 2^-67.14
@@ -176,8 +180,10 @@ pub(crate) fn log_fast(e: i32, v_u: u64) -> Dekker {
     vl
 }
 
-const INVLOG2H: f64 = f64::from_bits(0x3ff71547652b82fe);
-const INVLOG2L: f64 = f64::from_bits(0x3c7777d0ffda0d24);
+const INV_LOG2_DD: Dekker = Dekker::new(
+    f64::from_bits(0x3c7777d0ffda0d24),
+    f64::from_bits(0x3ff71547652b82fe),
+);
 
 fn log2p1_accurate_small(x: f64) -> f64 {
     static P_ACC: [u64; 24] = [
@@ -216,7 +222,7 @@ fn log2p1_accurate_small(x: f64) -> f64 {
         h = dd_fmla(h, x, f64::from_bits(P_ACC[(i + 6) as usize])); // degree i
     }
     let mut l = 0.;
-    for i in (8..10).rev() {
+    for i in (8..=10).rev() {
         let mut p = Dekker::f64_mult(x, Dekker::new(l, h));
         l = p.lo;
         p = Dekker::from_exact_add(f64::from_bits(P_ACC[(i + 6) as usize]), p.hi);
@@ -255,7 +261,7 @@ fn log2p1_accurate_tiny(x: f64) -> f64 {
 
     /* first scale x to avoid truncation of l in the underflow region */
     let sx = x * f64::from_bits(0x4690000000000000);
-    let mut zh = Dekker::f64_mult(sx, Dekker::new(INVLOG2L, INVLOG2H));
+    let mut zh = Dekker::f64_mult(sx, INV_LOG2_DD);
 
     let res = zh.to_f64() * f64::from_bits(0x3950000000000000); // expected result
     zh.lo += dd_fmla(-res, f64::from_bits(0x4690000000000000), zh.hi);
@@ -302,7 +308,7 @@ fn log2p1_fast(x: f64, e: i32) -> (Dekker, f64) {
         positive, since we add/subtract it in the rounding test.
         We also get that the ratio |l/h| is bounded by 2^-50.96. */
         /* now we multiply h+l by 1/log(2) */
-        p = Dekker::quick_mult(p, Dekker::new(INVLOG2L, INVLOG2H));
+        p = Dekker::quick_mult(p, INV_LOG2_DD);
 
         /* the d_mul() call decomposes into:
          a_mul (h_out, l1, h, INVLOG2H)
@@ -369,7 +375,7 @@ fn log2p1_fast(x: f64, e: i32) -> (Dekker, f64) {
     0x1.b6p-69 + 2^-104 + 2^-71 < 2^-68.02. */
 
     /* now multiply h+l by 1/log(2) */
-    p = Dekker::quick_mult(p, Dekker::new(INVLOG2L, INVLOG2H));
+    p = Dekker::quick_mult(p, INV_LOG2_DD);
     /* the d_mul() call decomposes into:
        a_mul (h_out, l1, h, INVLOG2H)
        l2 = __builtin_fma (h, INVLOG2L, l1)
@@ -397,9 +403,168 @@ fn log2p1_fast(x: f64, e: i32) -> (Dekker, f64) {
     (p, f64::from_bits(0x3bb2300000000000)) /* 2^-67.82 < 0x1.23p-68 */
 }
 
-/// Computes log2(1+x)
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn r_polyeval13(
+    x: &DyadicFloat128,
+    a0: &DyadicFloat128,
+    a1: &DyadicFloat128,
+    a2: &DyadicFloat128,
+    a3: &DyadicFloat128,
+    a4: &DyadicFloat128,
+    a5: &DyadicFloat128,
+    a6: &DyadicFloat128,
+    a7: &DyadicFloat128,
+    a8: &DyadicFloat128,
+    a9: &DyadicFloat128,
+    a10: &DyadicFloat128,
+    a11: &DyadicFloat128,
+    a12: &DyadicFloat128,
+) -> DyadicFloat128 {
+    let z00 = r_fmla(x, a12, a11);
+    let t0 = r_fmla(x, &z00, a10);
+    let k0 = r_fmla(x, &t0, a9);
+    let k1 = r_fmla(x, &k0, a8);
+    let z0 = r_fmla(x, &k1, a7);
+    let t0a = r_fmla(x, &z0, a6);
+    let t1 = r_fmla(x, &t0a, a5);
+    let t2 = r_fmla(x, &t1, a4);
+    let t3 = r_fmla(x, &t2, a3);
+    let t4 = r_fmla(x, &t3, a2);
+    let t5 = r_fmla(x, &t4, a1);
+    r_fmla(x, &t5, a0)
+}
+
+fn log_dyadic_taylor_poly(x: &DyadicFloat128) -> DyadicFloat128 {
+    r_polyeval13(
+        x,
+        &LOG2P1_F128_POLY[0],
+        &LOG2P1_F128_POLY[1],
+        &LOG2P1_F128_POLY[2],
+        &LOG2P1_F128_POLY[3],
+        &LOG2P1_F128_POLY[4],
+        &LOG2P1_F128_POLY[5],
+        &LOG2P1_F128_POLY[6],
+        &LOG2P1_F128_POLY[7],
+        &LOG2P1_F128_POLY[8],
+        &LOG2P1_F128_POLY[9],
+        &LOG2P1_F128_POLY[10],
+        &LOG2P1_F128_POLY[11],
+        &LOG2P1_F128_POLY[12],
+    )
+    .quick_mul(x)
+}
+
+pub(crate) fn log2_dyadic(d: &DyadicFloat128, x: f64) -> DyadicFloat128 {
+    let biased_exp = biased_exponent_f64(x);
+    let e = get_exponent_f64(x);
+    let base_mant = mantissa_f64(x);
+    let mant = base_mant + if biased_exp != 0 { 1u64 << 52 } else { 0 };
+    let lead = mant.leading_zeros();
+
+    let kk = e - (if lead > 11 { lead - 12 } else { 0 }) as i64;
+    let mut fe: i16 = kk as i16;
+
+    let adjusted_mant = mant << lead;
+
+    // Find the lookup index
+    let mut i: i16 = (adjusted_mant >> 55) as i16;
+
+    if adjusted_mant > 0xb504f333f9de6484 {
+        fe = fe.wrapping_add(1);
+        i >>= 1;
+    }
+
+    let mut x = *d;
+
+    x.exponent = x.exponent.wrapping_sub(fe);
+    let inverse_2 = LOG2P1_INVERSE_2[(i - 128) as usize];
+    let mut z = x * inverse_2;
+
+    const F128_MINUS_ONE: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Neg,
+        exponent: -127,
+        mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
+    };
+
+    z = z + F128_MINUS_ONE;
+
+    const LOG2: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -128,
+        mantissa: 0xb172_17f7_d1cf_79ab_c9e3_b398_03f2_f6af_u128,
+    };
+
+    // E·log(2)
+    let r = LOG2.mul_int64(fe as i64);
+
+    let mut p = log_dyadic_taylor_poly(&z);
+    p = LOG2P1_LOG_INV_2[(i - 128) as usize] + p;
+    p + r
+}
+
+fn log2p1_accurate(x: f64) -> f64 {
+    let ax = x.abs();
+
+    if ax < f64::from_bits(0x3fa0000000000000) {
+        return if ax < f64::from_bits(0x3960000000000000) {
+            log2p1_accurate_tiny(x)
+        } else {
+            log2p1_accurate_small(x)
+        };
+    }
+    let dx = if x > 1.0 {
+        Dekker::from_exact_add(x, 1.0)
+    } else {
+        Dekker::from_exact_add(1.0, x)
+    };
+    /* log2p1(x) is exact when 1+x = 2^e, thus when 2^e-1 is exactly
+    representable. This can only occur when xl=0 here. */
+    let mut t: u64 = x.to_bits();
+    if dx.lo == 0. {
+        /* check if xh is a power of two */
+        t = dx.hi.to_bits();
+        if (t.wrapping_shl(12)) == 0 {
+            let e = ((t >> 52) as i32).wrapping_sub(0x3ff);
+            return e as f64;
+        }
+    }
+    /* if x=2^e, the accurate path will fail for directed roundings */
+    if (t.wrapping_shl(12)) == 0 {
+        let e: i32 = ((t >> 52) as i32).wrapping_sub(0x3ff); // x = 2^e
+
+        /* for e >= 49, log2p1(x) rounds to e for rounding to nearest;
+        for e >= 48, log2p1(x) rounds to e for rounding toward zero;
+        for e >= 48, log2p1(x) rounds to nextabove(e) for rounding up;
+        for e >= 48, log2p1(x) rounds to e for rounding down. */
+        if e >= 49 {
+            return e as f64 + f64::from_bits(0x3cf0000000000000); // 0x1p-48 = 1/2 ulp(49)
+        }
+    }
+    let x_d = DyadicFloat128::new_from_f64(dx.hi);
+    let mut y = log2_dyadic(&x_d, dx.hi);
+    let mut c = DyadicFloat128::from_div_f64(dx.lo, dx.hi);
+    let mut bx = c * c;
+    /* multiply X by -1/2 */
+    bx.exponent -= 1;
+    bx.sign = DyadicSign::Neg;
+    /* C <- C - C^2/2 */
+    c = c + bx;
+    /* |C-log(1+xl/xh)| ~ 2e-64 */
+    y = y + c;
+    const LOG2_INV: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -115,
+        mantissa: 0xb8aa_3b29_5c17_f0bb_be87_fed0_691d_3e89_u128,
+    };
+    y = y * LOG2_INV;
+    y.exponent -= 12;
+    y.fast_as_f64()
+}
+
+/// Computes log2(x+1)
 ///
-/// Max ULP 0.504
+/// Max ULP 0.50002
 #[inline]
 pub fn f_log2p1(x: f64) -> f64 {
     let x_u = x.to_bits();
@@ -449,7 +614,12 @@ pub fn f_log2p1(x: f64) -> f64 {
 
     /* now x = m*2^e with 1 <= m < 2 (m = v.f) and -1074 <= e <= 1023 */
     let (p, err) = log2p1_fast(x, e);
-    p.hi + (p.lo - err)
+    let left = p.hi + (p.lo - err);
+    let right = p.hi + (p.lo + err);
+    if left == right {
+        return left;
+    }
+    log2p1_accurate(x)
 }
 
 #[cfg(test)]

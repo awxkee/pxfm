@@ -33,6 +33,12 @@
     clippy::approx_constant,
     clippy::manual_range_contains
 )]
+#![deny(
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::print_literal,
+    clippy::print_in_format_impl
+)]
 mod acos;
 mod acosf;
 mod acosh;
@@ -97,6 +103,7 @@ mod log2;
 mod log2_dyadic;
 mod log2f;
 mod log2p1;
+mod log2p1_dyadic_tables;
 mod log2p1_tables;
 mod log2p1f;
 mod log_dyadic;

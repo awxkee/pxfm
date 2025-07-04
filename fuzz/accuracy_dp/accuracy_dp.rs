@@ -220,14 +220,14 @@ fuzz_target!(|data: (f64, f64)| {
         f_log10p1,
         &mpfr_x0.clone().log10_1p(),
         "f_log10p1".to_string(),
-        0.504,
+        0.50006,
     );
     test_method(
         x0,
         f_log2p1,
         &mpfr_x0.clone().log2_1p(),
         "f_log2p1".to_string(),
-        0.504,
+        0.50002,
     );
     test_method(
         x0,
