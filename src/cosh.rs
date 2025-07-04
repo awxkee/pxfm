@@ -242,7 +242,7 @@ pub fn f_cosh(x: f64) -> f64 {
         let q1h = f64::from_bits(tq1.1);
         let q1l = f64::from_bits(tq1.0);
         let mut qh = q0h * q1h;
-        let mut ql = f_fmla(q0h, q1l, q1h * q0l) + f_fmla(q0h, q1h, -qh);
+        let mut ql = f_fmla(q0h, q1l, q1h * q0l) + dd_fmla(q0h, q1h, -qh);
         th *= f64::from_bits(sp);
         tl *= f64::from_bits(sp);
         qh *= f64::from_bits(sm);
