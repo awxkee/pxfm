@@ -16,4 +16,3 @@ description = "Fast and accurate math"
 
 [dependencies]
 num-traits = "0.2"
-rug = "1.27.0"
