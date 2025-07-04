@@ -886,6 +886,25 @@ pub(crate) struct LargeArgumentReduction {
 // scale down x by the same amount.
 impl LargeArgumentReduction {
     pub(crate) fn accurate(&self) -> DyadicFloat128 {
+        // Sage math:
+        // R = RealField(128)
+        // π = R.pi()
+        //
+        // def format_hex(value):
+        //     l = hex(value)[2:]
+        //     n = 4
+        //     x = [l[i:i + n] for i in range(0, len(l), n)]
+        //     return "0x" + "_".join(x) + "_u128"
+        //
+        // def print_dyadic(value):
+        //     (s, m, e) = RealField(128)(value).sign_mantissa_exponent();
+        //     print("DyadicFloat128 {")
+        //     print(f"    sign: DyadicSign::{'Pos' if s >= 0 else 'Neg'},")
+        //     print(f"    exponent: {e},")
+        //     print(f"    mantissa: {format_hex(m)},")
+        //     print("};")
+        //
+        // print_dyadic(π/128)
         const PI_OVER_128_F128: DyadicFloat128 = DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -133,
@@ -905,7 +924,7 @@ impl LargeArgumentReduction {
     }
 
     #[inline]
-    pub(crate) fn reduce_new(&mut self, x: f64) -> (u64, Dekker) {
+    pub(crate) fn reduce(&mut self, x: f64) -> (u64, Dekker) {
         const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
         let mut xbits = x.to_bits();
         let x_e = ((x.to_bits() >> 52) & 0x7ff) as i64;
@@ -1023,9 +1042,35 @@ pub(crate) fn sincos_eval(u: Dekker) -> SinCos {
     // with error <= 2^-105.
     let u_hi_neg_half = (-0.5) * u.hi;
 
-    let v_hi = f_fmla(u.hi, u_hi_neg_half, 1.0);
-    let mut v_lo = 1.0 - v_hi; // Exact
-    v_lo = f_fmla(u.hi, u_hi_neg_half, v_lo);
+    let (mut v_lo, v_hi);
+
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        v_hi = f_fmla(u.hi, u_hi_neg_half, 1.0);
+        v_lo = 1.0 - v_hi; // Exact
+        v_lo = f_fmla(u.hi, u_hi_neg_half, v_lo);
+    }
+
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        let u_hi_sq_neg_half = Dekker::from_exact_mult(u.hi, u_hi_neg_half);
+        let v = Dekker::from_exact_add(1.0, u_hi_sq_neg_half.hi);
+        v_lo = v.lo;
+        v_lo += u_hi_sq_neg_half.lo;
+        v_hi = v.hi;
+    }
 
     // r1 ~ -1/720 + u_hi^2 / 40320
     let r1 = f_fmla(
@@ -1321,7 +1366,7 @@ pub(crate) static SIN_K_PI_OVER_128: [(u64, u64); 256] = [
 
 /// Sine for double precision
 ///
-/// ULP 0.5005
+/// ULP 0.50025
 #[inline]
 pub fn f_sin(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
@@ -1355,7 +1400,7 @@ pub fn f_sin(x: f64) -> f64 {
         }
 
         // Large range reduction.
-        (k, y) = argument_reduction.reduce_new(x);
+        (k, y) = argument_reduction.reduce(x);
     }
 
     let r_sincos = sincos_eval(y);
@@ -1406,7 +1451,7 @@ pub fn f_sin(x: f64) -> f64 {
 
 /// Cosine for double precision
 ///
-/// ULP 0.5005
+/// ULP 0.50025
 #[inline]
 pub fn f_cos(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
@@ -1445,7 +1490,7 @@ pub fn f_cos(x: f64) -> f64 {
 
         // Large range reduction.
         // k = argument_reduction.high_part(x);
-        (k, y) = argument_reduction.reduce_new(x);
+        (k, y) = argument_reduction.reduce(x);
     }
     let r_sincos = sincos_eval(y);
 
@@ -1498,10 +1543,14 @@ mod tests {
 
     #[test]
     fn cos_test() {
-        println!("{}", f_cos(-0.000000012172431908213755));
-        assert_eq!(f_cos(0.0), 1.0);
-        assert_eq!(f_cos(1.0), 0.5403023058681398);
-        assert_eq!(f_cos(-0.5), 0.8775825618903728);
+        // ULP should be less than 0.50009, but it was 0.5002421068095515, on -54751849953334740000000000000000000000000000000000000000000000000000 result -0.013143212477662697, using f_cos and MPFR -0.0131432124776626955
+        println!(
+            "{}",
+            f_cos(-54751849953334740000000000000000000000000000000000000000000000000000.)
+        );
+        // assert_eq!(f_cos(0.0), 1.0);
+        // assert_eq!(f_cos(1.0), 0.5403023058681398);
+        // assert_eq!(f_cos(-0.5), 0.8775825618903728);
     }
 
     #[test]

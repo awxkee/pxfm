@@ -782,7 +782,6 @@ fn eval_sinc(x: f64, c: &[u64; 6], c_dyadic: &[DyadicFloat128; 8], err: f64) -> 
     );
     let p0 = Dekker::from_exact_add(f64::from_bits(c[0]), p);
 
-    let err = err;
     let lb = p0.hi + (p0.lo - err);
     let ub = p0.hi + (p0.lo + err);
     // Ziv's accuracy test
@@ -807,7 +806,6 @@ fn eval_sinc2(x: f64, c: &[u64; 8], c_dyadic: &[DyadicFloat128; 10], err: f64) -
     );
     let p0 = Dekker::from_exact_add(f64::from_bits(c[0]), p);
 
-    let err = err;
     let lb = p0.hi + (p0.lo - err);
     let ub = p0.hi + (p0.lo + err);
     // Ziv's accuracy test
@@ -834,7 +832,6 @@ fn eval_sinc3(x: f64, c: &[u64; 10], c_dyadic: &[DyadicFloat128; 12], err: f64) 
     );
     let p0 = Dekker::from_exact_add(f64::from_bits(c[0]), p);
 
-    let err = err;
     let lb = p0.hi + (p0.lo - err);
     let ub = p0.hi + (p0.lo + err);
     // Ziv's accuracy test

@@ -209,7 +209,7 @@ pub fn f_tan(x: f64) -> f64 {
         }
 
         // Large range reduction.
-        (k, y) = argument_reduction.reduce_new(x);
+        (k, y) = argument_reduction.reduce(x);
     }
 
     let (tan_y, err) = tan_eval(y);

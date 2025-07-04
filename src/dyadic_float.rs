@@ -257,9 +257,9 @@ impl DyadicFloat128 {
         const IMPLICIT_MASK: u64 = SIG_MASK - FRACTION_MASK;
         const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
 
-        let mut exp_hi = self.exponent as i64 + ((BITS - 1) as i64 + EXP_BIAS as i64);
+        let mut exp_hi = self.exponent as i32 + ((BITS - 1) as i32 + EXP_BIAS as i32);
 
-        if exp_hi > 2 * EXP_BIAS as i64 {
+        if exp_hi > 2 * EXP_BIAS as i32 {
             // Results overflow.
             let d_hi = f64_from_parts(self.sign, 2 * EXP_BIAS, IMPLICIT_MASK);
             // volatile prevents constant propagation that would result in infinity
@@ -276,12 +276,11 @@ impl DyadicFloat128 {
             denorm = true;
             shift = (BITS - PRECISION) + (1 - exp_hi) as u32;
 
-            exp_hi = EXP_BIAS as i64;
+            exp_hi = EXP_BIAS as i32;
         }
 
-        let exp_lo = exp_hi - PRECISION as i64 - 1;
-        //        let m_hi =
-        //             shift >= MantissaType::BITS ? MantissaType(0) : mantissa >> shift;
+        let exp_lo = exp_hi.wrapping_sub(PRECISION as i32).wrapping_sub(1);
+
         let m_hi = if shift >= BITS {
             0
         } else {
@@ -297,9 +296,9 @@ impl DyadicFloat128 {
         let round_mask = if shift > BITS {
             0
         } else {
-            1u128 << (shift - 1)
+            1u128.wrapping_shl(shift.wrapping_sub(1))
         };
-        let sticky_mask = round_mask - 1u128;
+        let sticky_mask = round_mask.wrapping_sub(1u128);
 
         let round_bit = (self.mantissa & round_mask) != 0;
         let sticky_bit = (self.mantissa & sticky_mask) != 0;
@@ -333,11 +332,11 @@ impl DyadicFloat128 {
 
         d_lo = f64_from_parts(self.sign, exp_lo as u64, IMPLICIT_MASK);
 
-        const SIG_LEN: u64 = 53;
         // Still correct without FMA instructions if `d_lo` is not underflow.
         let r = f_fmla(d_lo, round_and_sticky as f64, d_hi);
 
         if denorm {
+            const SIG_LEN: u64 = 52;
             // Exponent before rounding is in denormal range, simply clear the
             // exponent field.
             let clear_exp: u64 = (exp_hi as u64) << SIG_LEN;

@@ -108,82 +108,94 @@ pub(crate) struct SinCosDyadic {
 pub(crate) fn sincos_eval_dyadic(u: &DyadicFloat128) -> SinCosDyadic {
     let u_sq = u.quick_mul(u);
 
-    // sin(u) ~ x - x^3/3! + x^5/5! - x^7/7! + x^9/9! - x^11/11! + x^13/13!
+    // f = sin(x);
+    //
+    // I = [-pi/256; pi/256];
+    // P = fpminimax(f, [|1, 3, 5, 7, 9, 11, 13|], [|1, 128...|], I, relative, floating);
+    // print("Sin [-pi/256; pi/256]");
+    // print(P);
+    // for i from 1 to degree(P) by 2 do print(coeff(P, i));
     const SIN_COEFFS: [DyadicFloat128; 7] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -127,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        }, // 1
+        },
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -130,
-            mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaaa_aaaaaaab_u128,
-        }, // -1/3!
+            mantissa: 0xaaaaaaaa_aaaaa800_00000000_00000000_u128,
+        },
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -134,
-            mantissa: 0x88888888_88888888_88888888_88888889_u128,
-        }, // 1/5!
+            mantissa: 0x88888888_88888800_00000000_00000000_u128,
+        },
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -140,
-            mantissa: 0xd00d00d0_0d00d00d_00d00d00_d00d00d0_u128,
-        }, // -1/7!
+            mantissa: 0xd00d00d0_0d00d000_00000000_00000000_u128,
+        },
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -146,
-            mantissa: 0xb8ef1d2a_b6399c7d_560e4472_800b8ef2_u128,
-        }, // 1/9!
+            mantissa: 0xb8ef1d2a_b639a000_00000000_00000000_u128,
+        },
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -153,
-            mantissa: 0xd7322b3f_aa271c7f_3a3f25c1_bee38f10_u128,
-        }, // -1/11!
+            mantissa: 0xd7322b3f_a7275800_00000000_00000000_u128,
+        },
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -160,
-            mantissa: 0xb092309d_43684be5_1c198e91_d7b4269e_u128,
-        }, // 1/13!
+            mantissa: 0xb09213e3_e0c59800_00000000_00000000_u128,
+        },
     ];
 
-    // cos(u) ~ 1 - x^2/2 + x^4/4! - x^6/6! + x^8/8! - x^10/10! + x^12/12!
+    // f = cos(x);
+    //
+    // I = [-pi/256; pi/256];
+    // P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12|], [|1, 128...|], I, relative, floating);
+    // print("Cos [-pi/256; pi/256]");
+    // print(P);
+    // for i from 0 to degree(P) by 2 do print(coeff(P, i));
     const COS_COEFFS: [DyadicFloat128; 7] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -127,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        }, // 1.0
+        },
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -128,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        }, // 1/2
+        },
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -132,
-            mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaaa_aaaaaaab_u128,
-        }, // 1/4!
+            mantissa: 0xaaaaaaaa_aaaaa800_00000000_00000000_u128,
+        },
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -137,
-            mantissa: 0xb60b60b6_0b60b60b_60b60b60_b60b60b6_u128,
-        }, // 1/6!
+            mantissa: 0xb60b60b6_0b60b800_00000000_00000000_u128,
+        },
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -143,
-            mantissa: 0xd00d00d0_0d00d00d_00d00d00_d00d00d0_u128,
-        }, // 1/8!
+            mantissa: 0xd00d00d0_0d00d000_00000000_00000000_u128,
+        },
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -149,
-            mantissa: 0x93f27dbb_c4fae397_780b69f5_333c725b_u128,
-        }, // 1/10!
+            mantissa: 0x93f27dbb_c22b1000_00000000_00000000_u128,
+        },
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -156,
-            mantissa: 0x8f76c77f_c6c4bdaa_26d4c3d6_7f425f60_u128,
-        }, // 1/12!
+            mantissa: 0x8f76ac91_ba722800_00000000_00000000_u128,
+        },
     ];
 
     let sin_u = u.quick_mul(&r_polyeval7(
@@ -212,11 +224,39 @@ pub(crate) fn sincos_eval_dyadic(u: &DyadicFloat128) -> SinCosDyadic {
     }
 }
 
+/*
+   Sage math:
+   # Sin K PI over 128
+   R = RealField(128)
+   π = R.pi()
+
+   def format_hex(value):
+       l = hex(value)[2:]
+       n = 4
+       x = [l[i:i + n] for i in range(0, len(l), n)]
+       return "0x" + "_".join(x) + "_u128"
+
+   def print_dyadic(value):
+       (s, m, e) = RealField(128)(value).sign_mantissa_exponent();
+       print("DyadicFloat128 {")
+       print(f"    sign: DyadicSign::{'Pos' if s >= 0 else 'Neg'},")
+       print(f"    exponent: {e},")
+       print(f"    mantissa: {format_hex(m)},")
+       print("},")
+
+   # Generate array entries
+   print("pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [")
+   for k in range(65):
+       value = R(k) * π / 128
+       print_dyadic(value.sin())
+
+   print("];")
+*/
 pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: 0,
-        mantissa: 0,
+        mantissa: 0x0_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -246,7 +286,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -130,
-        mantissa: 0x9640_8374_7309_d113_000a_89a1_1e07_c1fe_u128,
+        mantissa: 0x9640_8374_7309_d113_000a_89a1_1e07_c1ff_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -261,7 +301,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -130,
-        mantissa: 0xe05c_1353_f27b_17e5_0ebc_61ad_e6ca_83cd_u128,
+        mantissa: 0xe05c_1353_f27b_17e5_0ebc_61ad_e6ca_83cc_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -311,12 +351,12 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -129,
-        mantissa: 0xe633_74c9_8e22_f0b4_2872_ce1b_fc7a_d1cd_u128,
+        mantissa: 0xe633_74c9_8e22_f0b4_2872_ce1b_fc7a_d1cc_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -129,
-        mantissa: 0xf15a_e9c0_37b1_d8f0_6c48_e9e3_420b_0f1e_u128,
+        mantissa: 0xf15a_e9c0_37b1_d8f0_6c48_e9e3_420b_0f1d_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -336,7 +376,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0x8e39_d9cd_7346_4364_bba4_cfec_bff5_4867_u128,
+        mantissa: 0x8e39_d9cd_7346_4364_bba4_cfec_bff5_4868_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -351,7 +391,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0x9d7f_d149_0285_c9e3_e25e_3954_9638_ae68_u128,
+        mantissa: 0x9d7f_d149_0285_c9e3_e25e_3954_9638_ae67_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -361,7 +401,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xa736_55df_1f2f_489e_149f_6e75_9934_68a3_u128,
+        mantissa: 0xa736_55df_1f2f_489e_149f_6e75_9934_68a2_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -371,7 +411,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xb085_baa8_e966_f6da_e4ca_d00d_5c94_bcd2_u128,
+        mantissa: 0xb085_baa8_e966_f6da_e4ca_d00d_5c94_bcd1_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -386,7 +426,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xbdae_f913_557d_76f0_ac85_320f_528d_6d5d_u128,
+        mantissa: 0xbdae_f913_557d_76f0_ac85_320f_528d_6d5c_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -406,7 +446,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xcd9f_023f_9c3a_059e_23af_31db_7179_a4aa_u128,
+        mantissa: 0xcd9f_023f_9c3a_059e_23af_31db_7179_a4a9_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -416,7 +456,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xd4db_3148_750d_1819_f630_e8b6_dac8_3e69_u128,
+        mantissa: 0xd4db_3148_750d_1819_f630_e8b6_dac8_3e68_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -426,12 +466,12 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xdb94_1a28_cb71_ec87_2c19_b632_53da_43fc_u128,
+        mantissa: 0xdb94_1a28_cb71_ec87_2c19_b632_53da_43fb_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xdebe_0563_7ca9_4cfb_4b19_aa71_fec3_ae6d_u128,
+        mantissa: 0xdebe_0563_7ca9_4cfb_4b19_aa71_fec3_ae6c_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -441,7 +481,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xe4aa_5909_a08f_a7b4_1227_85ae_67f5_515d_u128,
+        mantissa: 0xe4aa_5909_a08f_a7b4_1227_85ae_67f5_515c_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -466,12 +506,12 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xf109_0827_b437_25fd_6712_7db3_5b28_7316_u128,
+        mantissa: 0xf109_0827_b437_25fd_6712_7db3_5b28_7315_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xf314_4762_4708_8f74_a548_6bdc_455d_56a2_u128,
+        mantissa: 0xf314_4762_4708_8f74_a548_6bdc_455d_56a3_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -486,12 +526,12 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xf853_f7dc_9186_b952_c7ad_c6b4_9888_91bb_u128,
+        mantissa: 0xf853_f7dc_9186_b952_c7ad_c6b4_9888_91ba_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xf9c7_9d63_272c_4628_4504_ae08_d19b_2980_u128,
+        mantissa: 0xf9c7_9d63_272c_4628_4504_ae08_d19b_2981_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -506,7 +546,7 @@ pub(crate) static SIN_K_PI_OVER_128_F128: [DyadicFloat128; 65] = [
     DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
-        mantissa: 0xfd3a_abf8_4528_b50b_eae6_bd95_1c1d_abbe_u128,
+        mantissa: 0xfd3a_abf8_4528_b50b_eae6_bd95_1c1d_abbd_u128,
     },
     DyadicFloat128 {
         sign: DyadicSign::Pos,

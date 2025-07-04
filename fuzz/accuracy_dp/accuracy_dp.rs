@@ -340,14 +340,14 @@ fuzz_target!(|data: (f64, f64)| {
         f_sin,
         &mpfr_x0.clone().sin(),
         "f_sin".to_string(),
-        0.5005,
+        0.50009,
     );
     test_method(
         x0,
         f_cos,
         &mpfr_x0.clone().cos(),
         "f_cos".to_string(),
-        0.5005,
+        0.50025,
     );
     test_method_2_outputs(
         x0,
@@ -355,7 +355,7 @@ fuzz_target!(|data: (f64, f64)| {
         &mpfr_x0.clone().sin(),
         &mpfr_x0.clone().cos(),
         "f_sincos".to_string(),
-        0.5005,
+        0.50009,
     );
     test_method(
         x0,
