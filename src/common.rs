@@ -28,6 +28,7 @@
  */
 use num_traits::MulAdd;
 use std::ops::{Add, Mul};
+
 #[cfg(any(
     all(
         any(target_arch = "x86", target_arch = "x86_64"),
@@ -83,6 +84,33 @@ pub(crate) const fn fmla(a: f64, b: f64, c: f64) -> f64 {
 #[inline(always)]
 pub(crate) fn f_fmla(a: f64, b: f64, c: f64) -> f64 {
     mlaf(c, a, b)
+}
+
+// Executes mandatory FMA
+// if not available will be simulated through Dekker and Veltkamp
+#[inline(always)]
+pub(crate) fn dd_fmla(a: f64, b: f64, c: f64) -> f64 {
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        f_fmla(a, b, c)
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        use crate::dekker::Dekker;
+        Dekker::dd_f64_mul_add(a, b, c)
+    }
 }
 
 #[allow(dead_code)]

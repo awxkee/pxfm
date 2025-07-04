@@ -379,7 +379,6 @@ mod tests {
 
     #[test]
     fn test_log10d() {
-        println!("{}", f_log10(10.));
         assert!((f_log10(0.35) - 0.35f64.log10()).abs() < 1e-8);
         assert!((f_log10(0.9) - 0.9f64.log10()).abs() < 1e-8);
         assert!((f_log10(10.) - 10f64.log10()).abs() < 1e-8);

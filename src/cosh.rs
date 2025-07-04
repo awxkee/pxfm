@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::acosh::lpoly_xd_generic;
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 use crate::sinh::hyperbolic_exp_accurate;
@@ -46,7 +46,7 @@ fn as_cosh_zero(x: f64) -> f64 {
         0x3d2ae9891efb6691,
     ];
     let x2 = x * x;
-    let x2l = f_fmla(x, x, -x2);
+    let x2l = dd_fmla(x, x, -x2);
 
     let yw0 = f_fmla(x2, f64::from_bits(CL[3]), f64::from_bits(CL[2]));
     let yw1 = f_fmla(x2, yw0, f64::from_bits(CL[1]));
@@ -285,5 +285,7 @@ mod tests {
     #[test]
     fn test_cosh() {
         assert_eq!(f_cosh(1.), 1.5430806348152437);
+        assert_eq!(f_cosh(1.5454354343), 2.451616191647056);
+        assert_eq!(f_cosh(15.5454354343), 2820115.0888771466);
     }
 }

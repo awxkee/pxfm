@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#[allow(unused_imports)]
 use crate::common::*;
 
 #[derive(Copy, Clone, Default, Debug)]
@@ -101,6 +102,14 @@ impl Dekker {
         let t4 = a - t2;
         let r_lo = t3 + t4;
         Dekker::new(r_lo, r_hi)
+    }
+
+    #[allow(unused)]
+    #[inline]
+    pub(crate) fn dd_f64_mul_add(a: f64, b: f64, c: f64) -> f64 {
+        let ddx2 = Dekker::from_exact_mult(a, b);
+        let zv = Dekker::add_f64(ddx2, c);
+        zv.to_f64()
     }
 
     // #[inline]

@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use std::hint::black_box;
 
@@ -239,8 +239,7 @@ pub fn f_hypot(x: f64, y: f64) -> f64 {
 
     let de = xd.wrapping_sub(yd);
     if de > (27u64 << 52) {
-        let r = f_fmla(f64::from_bits(0x3e40000000000000), v, u);
-        return r;
+        return dd_fmla(f64::from_bits(0x3e40000000000000), v, u);
     }
     let off: i64 = ((0x3ffu64 << 52) as i64).wrapping_sub((xd & emsk) as i64);
     xd = xd.wrapping_add(off as u64);
@@ -248,15 +247,15 @@ pub fn f_hypot(x: f64, y: f64) -> f64 {
     x = f64::from_bits(xd);
     y = f64::from_bits(yd);
     let x2 = x * x;
-    let dx2 = f_fmla(x, x, -x2);
+    let dx2 = dd_fmla(x, x, -x2);
     let y2 = y * y;
-    let dy2 = f_fmla(y, y, -y2);
+    let dy2 = dd_fmla(y, y, -y2);
     let r2 = x2 + y2;
     let ir2 = 0.5 / r2;
     let dr2 = ((x2 - r2) + y2) + (dx2 + dy2);
     let mut th = r2.sqrt();
     let rsqrt = th * ir2;
-    let dz = dr2 - f_fmla(th, th, -r2);
+    let dz = dr2 - dd_fmla(th, th, -r2);
     let mut tl = rsqrt * dz;
     let p = Dekker::from_exact_add(th, tl);
     th = p.hi;

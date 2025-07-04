@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, min_normal_f64};
+use crate::common::{dd_fmla, f_fmla, min_normal_f64};
 use crate::dekker::Dekker;
 use crate::sin::{
     LargeArgumentReduction, SIN_K_PI_OVER_128, get_sin_k_rational, range_reduction_small,
@@ -57,7 +57,7 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
                     return (x, 1.0);
                 }
                 // For |x| < 2^-26, |sin(x) - x| < ulp(x)/2.
-                let s_sin = f_fmla(x, f64::from_bits(0xbc90000000000000), x);
+                let s_sin = dd_fmla(x, f64::from_bits(0xbc90000000000000), x);
                 let s_cos = 1.0 - min_normal_f64();
                 return (s_sin, s_cos);
             }

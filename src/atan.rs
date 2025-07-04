@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 
 pub(crate) static ATAN_CIRCLE: [[u16; 3]; 31] = [
@@ -235,19 +235,19 @@ fn atan_refine(x: f64, a: f64) -> f64 {
     let i = ((phi >> (52 - 8)) & 0xff) as i64;
     let h: Dekker = if i == 128 {
         let hz = -1.0 / x;
-        Dekker::new(f_fmla(hz, x, 1.) * hz, -1.0 / x)
+        Dekker::new(dd_fmla(hz, x, 1.) * hz, -1.0 / x)
     } else {
         let ta = f64::copysign(f64::from_bits(ATAN_REDUCE[i as usize].0), x);
         let zta = x * ta;
-        let ztal = f_fmla(x, ta, -zta);
+        let ztal = dd_fmla(x, ta, -zta);
         let zmta = x - ta;
         let v = 1.0 + zta;
         let d = 1.0 - v;
         let ev = (d + zta) - ((d + v) - 1.0) + ztal;
         let r = 1.0 / v;
-        let rl = f_fmla(-ev, r, f_fmla(r, -v, 1.0)) * r;
+        let rl = f_fmla(-ev, r, dd_fmla(r, -v, 1.0)) * r;
         let hz = r * zmta;
-        let hl = f_fmla(rl, zmta, f_fmla(r, zmta, -hz));
+        let hl = f_fmla(rl, zmta, dd_fmla(r, zmta, -hz));
         Dekker::new(hl, hz)
     };
     let h2 = Dekker::mult(h, h);
@@ -376,7 +376,7 @@ pub fn f_atan(x: f64) -> f64 {
     let f1 = f_fmla(h2, f64::from_bits(CH[1]), f64::from_bits(CH[0]));
 
     let f = f_fmla(h4, f0, f1);
-    al = f_fmla(h, f, al);
+    al = dd_fmla(h, f, al);
     let ub = f_fmla(h, f64::from_bits(0x3ccf800000000000), al) + ah;
     let lb = f_fmla(-h, f64::from_bits(0x3ccf800000000000), al) + ah;
     // Ziv's accuracy test

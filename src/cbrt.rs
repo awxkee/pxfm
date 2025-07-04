@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 
 /// Computes cube root
 ///
@@ -103,10 +103,10 @@ pub fn f_cbrt(x: f64) -> f64 {
     and rr an approximation of 1/zz. We now perform another iteration of
     Newton-Raphson, this time with a linear approximation only. */
     y2 = y * y;
-    let y2l = f_fmla(y, y, -y2);
+    let y2l = dd_fmla(y, y, -y2);
     /* y2 + y2l = y^2 exactly */
     let y3 = y2 * y;
-    let y3l = f_fmla(y, y2l, f_fmla(y, y2, -y3));
+    let y3l = f_fmla(y, y2l, dd_fmla(y, y2, -y3));
     /* y3 + y3l approximates y^3 with about 106 bits of accuracy */
     h = ((y3 - f64::from_bits(zz)) + y3l) * rr;
     /* the approximation of zz^(1/3) is y - dy */

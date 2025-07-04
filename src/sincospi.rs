@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::atan::poly_dd_3;
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::sincospi_tables::{
     SINCOS_PI_CM2, SINCOS_PI_SM2, SINCOS_PI_SN2, SINPI_CM1, SINPI_SM1, SINPI_SN1,
@@ -193,9 +193,9 @@ fn as_cospi_zero(x: f64) -> f64 {
 #[inline]
 fn as_sinpi_zero(x: f64) -> f64 {
     let x2 = x * x;
-    let dx2 = f_fmla(x, x, -x2);
+    let dx2 = dd_fmla(x, x, -x2);
     let x3 = x2 * x;
-    let dx3 = f_fmla(x2, x, -x3) + dx2 * x;
+    let dx3 = dd_fmla(x2, x, -x3) + dx2 * x;
     const CH: [(u64, u64); 4] = [
         (0xc014abbce625be53, 0x3cb05511c68477be),
         (0x400466bc6775aae2, 0xbc96dc0cbefae1da),
@@ -216,9 +216,9 @@ fn as_sinpi_zero(x: f64) -> f64 {
     let mut b = y0.to_bits() & 0x000fffffffffffff;
     b = b.wrapping_add(85u64 << 51);
     y0 = (y0 + f64::from_bits(b)) - f64::from_bits(b);
-    let y0l = f_fmla(PI0, x, -y0);
+    let y0l = dd_fmla(PI0, x, -y0);
     let y1 = PI1 * x;
-    let y2 = f_fmla(PI2, x, f_fmla(PI1, x, -y1));
+    let y2 = f_fmla(PI2, x, dd_fmla(PI1, x, -y1));
     let mut y = Dekker::add(Dekker::new(y2, y1), Dekker::new(0., y0l));
     y = Dekker::add(y, f);
     let k0 = Dekker::from_full_exact_add(y.hi, y0);
@@ -240,7 +240,7 @@ fn as_sinpi_zero(x: f64) -> f64 {
 fn as_sinpi_refine(iq: i32, z: f64) -> f64 {
     let x = z * f64::from_bits(0x3c00000000000000);
     let x2 = x * x;
-    let dx2 = f_fmla(x, x, -x2);
+    let dx2 = dd_fmla(x, x, -x2);
     const SH: [(u64, u64); 3] = [
         (0x400921fb54442d18, 0x3ca1a62633145c06),
         (0xbe94abbce625be53, 0x3b305511cbc65743),
@@ -320,18 +320,18 @@ pub fn f_sinpi(x: f64) -> f64 {
             if x.abs() < f64::from_bits(0x0350000000000000) {
                 let t = x * f64::from_bits(0x4690000000000000);
                 let zh = p.hi * t;
-                let zl = f_fmla(p.lo, t, f_fmla(p.hi, t, -zh));
+                let zl = f_fmla(p.lo, t, dd_fmla(p.hi, t, -zh));
                 let r = zh + zl;
                 let rs = r * f64::from_bits(0x3950000000000000);
                 let rt = rs * f64::from_bits(0x4690000000000000);
-                return f_fmla((zh - rt) + zl, f64::from_bits(0x3950000000000000), rs);
+                return dd_fmla((zh - rt) + zl, f64::from_bits(0x3950000000000000), rs);
             }
             let zh = p.hi * x;
-            let zl = f_fmla(p.lo, x, f_fmla(p.hi, x, -zh));
+            let zl = dd_fmla(p.lo, x, f_fmla(p.hi, x, -zh));
             return zh + zl;
         }
         let zh = p.hi * x;
-        let mut zl = f_fmla(p.lo, x, f_fmla(p.hi, x, -zh));
+        let mut zl = f_fmla(p.lo, x, dd_fmla(p.hi, x, -zh));
         let x2 = x * x;
         let x3 = x2 * x;
         let x4 = x2 * x2;
@@ -509,32 +509,17 @@ mod tests {
 
     #[test]
     fn test_sinpi() {
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            assert_eq!(0.0100244343161398578, f_sinpi(0.0031909299901270445));
-        }
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            assert_eq!(0.01002443431613986, f_sinpi(0.0031909299901270445));
-        }
+        assert_eq!(f_sinpi(0.0031909299901270445), 0.0100244343161398578);
+        assert_eq!(f_sinpi(0.11909245901270445), 0.36547215190661003);
+        assert_eq!(f_sinpi(0.99909245901270445), 0.0028511202357662186);
         assert!(f_sinpi(f64::INFINITY).is_nan());
     }
 
     #[test]
     fn test_cospi() {
         assert_eq!(0.9999497540959953, f_cospi(0.0031909299901270445));
+        assert_eq!(0.9308216542079669, f_cospi(0.11909299901270445));
+        assert_eq!(-0.1536194873288318, f_cospi(0.54909299901270445));
         assert!(f_cospi(f64::INFINITY).is_nan());
     }
 }

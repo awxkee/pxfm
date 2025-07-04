@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
 use crate::exp2::ldexp;
@@ -101,7 +101,7 @@ fn as_exp10_accurate(x: f64) -> f64 {
 
     let dx = x - L0 * t;
     let mut dxl = L1 * t;
-    let dxll = f_fmla(L2, t, f_fmla(L1, t, -dxl));
+    let dxll = f_fmla(L2, t, dd_fmla(L1, t, -dxl));
     let dxh = dx + dxl;
     dxl = ((dx - dxh) + dxl) + dxll;
     let mut f = poly_dd_6(Dekker::new(dxl, dxh), EXP10_POLY_DD, 0.);

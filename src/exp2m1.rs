@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp2::ldexp;
 
@@ -312,9 +312,9 @@ fn q_2(dz: Dekker) -> Dekker {
     ];
 
     let z = dz.to_f64();
-    let mut q = f_fmla(f64::from_bits(Q_2[8]), dz.hi, f64::from_bits(Q_2[7]));
-    q = f_fmla(q, z, f64::from_bits(Q_2[6]));
-    q = f_fmla(q, z, f64::from_bits(Q_2[5]));
+    let mut q = dd_fmla(f64::from_bits(Q_2[8]), dz.hi, f64::from_bits(Q_2[7]));
+    q = dd_fmla(q, z, f64::from_bits(Q_2[6]));
+    q = dd_fmla(q, z, f64::from_bits(Q_2[5]));
 
     // multiply q by z and add Q_2[3] + Q_2[4]
 
@@ -407,9 +407,9 @@ fn exp2m1_accurate_tiny(x: f64) -> f64 {
         0x3d33150b3d792231,
         0x3cec184260bfad7e,
     ];
-    let mut c13 = f_fmla(f64::from_bits(Q[20]), x, f64::from_bits(Q[19])); // degree 13
-    let c11 = f_fmla(f64::from_bits(Q[18]), x, f64::from_bits(Q[17])); // degree 11
-    c13 = f_fmla(f64::from_bits(Q[21]), x2, c13); // degree 13
+    let mut c13 = dd_fmla(f64::from_bits(Q[20]), x, f64::from_bits(Q[19])); // degree 13
+    let c11 = dd_fmla(f64::from_bits(Q[18]), x, f64::from_bits(Q[17])); // degree 11
+    c13 = dd_fmla(f64::from_bits(Q[21]), x2, c13); // degree 13
     // add Q[16]*x+c11*x2+c13*x4 to Q[15] (degree 9)
     let mut p = Dekker::from_exact_add(
         f64::from_bits(Q[15]),
@@ -515,12 +515,12 @@ fn exp2m1_fast_tiny(x: f64) -> Exp2m1 {
     ];
     let x2 = x * x;
     let x4 = x2 * x2;
-    let mut c8 = f_fmla(f64::from_bits(P[10]), x, f64::from_bits(P[9])); // degree 8
-    let c6 = f_fmla(f64::from_bits(P[8]), x, f64::from_bits(P[7])); // degree 6
-    let mut c4 = f_fmla(f64::from_bits(P[6]), x, f64::from_bits(P[5])); // degree 4
-    c8 = f_fmla(f64::from_bits(P[11]), x2, c8); // degree 8
-    c4 = f_fmla(c6, x2, c4); // degree 4
-    c4 = f_fmla(c8, x4, c4); // degree 4
+    let mut c8 = dd_fmla(f64::from_bits(P[10]), x, f64::from_bits(P[9])); // degree 8
+    let c6 = dd_fmla(f64::from_bits(P[8]), x, f64::from_bits(P[7])); // degree 6
+    let mut c4 = dd_fmla(f64::from_bits(P[6]), x, f64::from_bits(P[5])); // degree 4
+    c8 = dd_fmla(f64::from_bits(P[11]), x2, c8); // degree 8
+    c4 = dd_fmla(c6, x2, c4); // degree 4
+    c4 = dd_fmla(c8, x4, c4); // degree 4
 
     let mut p = Dekker::from_exact_mult(c4, x);
     let p0 = Dekker::from_exact_add(f64::from_bits(P[4]), p.hi);
@@ -600,24 +600,24 @@ pub fn f_exp2m1(d: f64) -> f64 {
             // scale x by 2^106
             x *= f64::from_bits(0x4690000000000000);
             let mut z = Dekker::from_exact_mult(LN2H, x);
-            z.lo = f_fmla(LN2L, x, z.lo);
+            z.lo = dd_fmla(LN2L, x, z.lo);
             let mut h2 = z.to_f64(); // round to 53-bit precision
             // scale back, hoping to avoid double rounding
             h2 *= f64::from_bits(0x3950000000000000);
             // now subtract back h2 * 2^106 from h to get the correction term
-            let mut h = f_fmla(-h2, f64::from_bits(0x4690000000000000), z.hi);
+            let mut h = dd_fmla(-h2, f64::from_bits(0x4690000000000000), z.hi);
             // add l
             h += z.lo;
             /* add h2 + h * 2^-106. Warning: when h=0, 2^-106*h2 might be exact,
             thus no underflow will be raised. We have underflow for
             0 < x <= 0x1.71547652b82fep-1022 for RNDZ, and for
             0 < x <= 0x1.71547652b82fdp-1022 for RNDN/RNDU. */
-            let res = f_fmla(h, f64::from_bits(0x3950000000000000), h2);
+            let res = dd_fmla(h, f64::from_bits(0x3950000000000000), h2);
             return res;
         } else {
             const C2: f64 = f64::from_bits(0x3fcebfbdff82c58f); // log(2)^2/2
             let mut z = Dekker::from_exact_mult(LN2H, x);
-            z.lo = f_fmla(LN2L, x, z.lo);
+            z.lo = dd_fmla(LN2L, x, z.lo);
             /* h+l approximates the first term x*log(2) */
             /* we add C2*x^2 last, so that in case there is a cancellation in
             LN2L*x+l, it will contribute more bits */

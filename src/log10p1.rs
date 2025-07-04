@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::log2p1::{log_fast, log_p_1a};
 use crate::log10p1_tables::{LOG10P1_EXACT_INT_S_TABLE, LOG10P1_EXACT_INT_TABLE};
@@ -42,12 +42,12 @@ fn log10p1_accurate_tiny(x: f64) -> f64 {
     let mut px = Dekker::f64_mult(sx, Dekker::new(INVLOG10L, INVLOG10H));
 
     let res = px.to_f64() * f64::from_bits(0x3950000000000000); // expected result
-    px.lo += f_fmla(-res, f64::from_bits(0x4690000000000000), px.hi);
+    px.lo += dd_fmla(-res, f64::from_bits(0x4690000000000000), px.hi);
     // the correction to apply to res is l*2^-106
     /* For RNDN, we have underflow for |x| <= 0x1.26bb1bbb55515p-1021,
     and for rounding away, for |x| < 0x1.26bb1bbb55515p-1021. */
 
-    f_fmla(px.lo, f64::from_bits(0x3950000000000000), res)
+    dd_fmla(px.lo, f64::from_bits(0x3950000000000000), res)
 }
 
 fn log10p1_accurate_small(x: f64) -> f64 {
@@ -87,9 +87,9 @@ fn log10p1_accurate_small(x: f64) -> f64 {
     with a double only, and even with degree 10 (this does not increase
     the number of exceptional cases) */
 
-    let mut h = f_fmla(f64::from_bits(P_ACC[24]), x, f64::from_bits(P_ACC[23])); // degree 16
+    let mut h = dd_fmla(f64::from_bits(P_ACC[24]), x, f64::from_bits(P_ACC[23])); // degree 16
     for i in (10..=15).rev() {
-        h = f_fmla(h, x, f64::from_bits(P_ACC[(i + 7) as usize])); // degree i
+        h = dd_fmla(h, x, f64::from_bits(P_ACC[(i + 7) as usize])); // degree i
     }
 
     // degree 9

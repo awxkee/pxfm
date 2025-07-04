@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::acosh::lpoly_xd_generic;
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 
@@ -42,7 +42,7 @@ pub(crate) fn hyperbolic_exp_accurate(x: f64, t: f64, zt: Dekker) -> Dekker {
     const L2LL: f64 = f64::from_bits(0x3999ff0342542fc3);
     let dx = x - L2H * t;
     let mut dxl = L2L * t;
-    let dxll = f_fmla(L2LL, t, f_fmla(L2L, t, -dxl));
+    let dxll = f_fmla(L2LL, t, dd_fmla(L2L, t, -dxl));
     let dxh = dx + dxl;
     dxl = ((dx - dxh) + dxl) + dxll;
 
@@ -74,7 +74,7 @@ fn as_sinh_zero(x: f64) -> f64 {
         (0xbaedefcf17a6ab79, 0x3e5ae64567f54482),
     ];
     let x2 = x * x;
-    let x2l = f_fmla(x, x, -x2);
+    let x2l = dd_fmla(x, x, -x2);
 
     let yw0 = f_fmla(
         x2,
@@ -119,7 +119,7 @@ pub fn f_sinh(x: f64) -> f64 {
 
     const S: f64 = f64::from_bits(0x40b71547652b82fe);
     let ax = x.abs();
-    let v0 = f_fmla(ax, S, f64::from_bits(0x4198000002000000));
+    let v0 = dd_fmla(ax, S, f64::from_bits(0x4198000002000000));
     let jt = v0.to_bits();
     let v = v0.to_bits() & 0xfffffffffc000000;
     let t = f64::from_bits(v) - f64::from_bits(0x4198000000000000);
@@ -132,7 +132,7 @@ pub fn f_sinh(x: f64) -> f64 {
             /* We have underflow exactly when 0 < |x| < 2^-1022:
             for RNDU, sinh(2^-1022-2^-1074) would round to 2^-1022-2^-1075
             with unbounded exponent range */
-            return f_fmla(x, f64::from_bits(0x3c80000000000000), x);
+            return dd_fmla(x, f64::from_bits(0x3c80000000000000), x);
         }
         const C: [u64; 5] = [
             0x3fc5555555555555,
@@ -184,7 +184,7 @@ pub fn f_sinh(x: f64) -> f64 {
     let t1h = f64::from_bits(sn1.1);
     let t1l = f64::from_bits(sn1.0);
     let mut th = t0h * t1h;
-    let mut tl = f_fmla(t0h, t1l, t1h * t0l) + f_fmla(t0h, t1h, -th);
+    let mut tl = f_fmla(t0h, t1l, t1h * t0l) + dd_fmla(t0h, t1h, -th);
     const L2H: f64 = f64::from_bits(0x3f262e42ff000000);
     const L2L: f64 = f64::from_bits(0x3d0718432a1b0e26);
     let dx = f_fmla(L2L, t, f_fmla(-L2H, t, ax));
@@ -264,7 +264,7 @@ pub fn f_sinh(x: f64) -> f64 {
             qh = q0h * q1h;
             let q0l = f64::from_bits(EXP_REDUCE_T0[j0 as usize].0);
             let q1l = f64::from_bits(EXP_REDUCE_T1[j1 as usize].0);
-            let mut ql = f_fmla(q0h, q1l, q1h * q0l) + f_fmla(q0h, q1h, -qh);
+            let mut ql = f_fmla(q0h, q1l, q1h * q0l) + dd_fmla(q0h, q1h, -qh);
             qh *= f64::from_bits(sm);
             ql *= f64::from_bits(sm);
             let qq = hyperbolic_exp_accurate(-ax, -t, Dekker::new(ql, qh));

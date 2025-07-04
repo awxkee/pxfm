@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 
 pub(crate) static ACOSH_ASINH_LL: [[(u64, u64, u64); 17]; 4] = [
@@ -190,11 +190,11 @@ fn acosh_refine(x: f64, a: f64) -> f64 {
 
     let z: Dekker = if ix < 0x4190000000000000u64 {
         let x2h = x * x;
-        let x2l = f_fmla(x, x, -x2h);
+        let x2l = dd_fmla(x, x, -x2h);
         let w = Dekker::from_exact_add(x2h - 1., x2l);
         let sh = w.hi.sqrt();
         let ish = 0.5 / w.hi;
-        let sl = (ish * sh) * (w.lo - f_fmla(sh, sh, -w.hi));
+        let sl = (ish * sh) * (w.lo - dd_fmla(sh, sh, -w.hi));
         let mut p = Dekker::from_exact_add(x, sh);
         p.lo += sl;
         Dekker::from_exact_add(p.hi, p.lo)
@@ -244,11 +244,11 @@ fn acosh_refine(x: f64, a: f64) -> f64 {
     let t34 = f64::from_bits(ACOSH_SINH_REFINE_T3[i3 as usize])
         * f64::from_bits(ACOSH_ASINH_REFINE_T4[i4 as usize]);
     let th = t12 * t34;
-    let tl = f_fmla(t12, t34, -th);
+    let tl = dd_fmla(t12, t34, -th);
     let dh = th * f64::from_bits(t);
-    let dl = f_fmla(th, f64::from_bits(t), -dh);
+    let dl = dd_fmla(th, f64::from_bits(t), -dh);
     let sh = tl * f64::from_bits(t);
-    let sl = f_fmla(tl, f64::from_bits(t), -sh);
+    let sl = dd_fmla(tl, f64::from_bits(t), -sh);
 
     let mut dx = Dekker::from_exact_add(dh - 1., dl);
     if z.lo != 0.0 {
@@ -553,7 +553,7 @@ pub fn f_acosh(x: f64) -> f64 {
         let iz = (-0.25) / z;
         let zt = 2. * z;
         let sh = zt.sqrt();
-        let sl = f_fmla(sh, sh, -zt) * (sh * iz);
+        let sl = dd_fmla(sh, sh, -zt) * (sh * iz);
         const CL: [u64; 9] = [
             0xbfb5555555555555,
             0x3f93333333332f95,
@@ -591,10 +591,10 @@ pub fn f_acosh(x: f64) -> f64 {
         off = 0x3ff;
         let x2h = x * x;
         let wh = x2h - 1.;
-        let wl = f_fmla(x, x, -x2h);
+        let wl = dd_fmla(x, x, -x2h);
         let sh = wh.sqrt();
         let ish = 0.5 / wh;
-        let sl = (wl - f_fmla(sh, sh, -wh)) * (sh * ish);
+        let sl = (wl - dd_fmla(sh, sh, -wh)) * (sh * ish);
         let mut pt = Dekker::from_exact_add(x, sh);
         pt.lo += sl;
         t = pt.hi.to_bits();
@@ -638,7 +638,7 @@ pub fn f_acosh(x: f64) -> f64 {
     let i2 = j & 0x1f;
     let r =
         f64::from_bits(ACOSH_ASINH_R1[i1 as usize]) * f64::from_bits(ACOSH_ASINH_R2[i2 as usize]);
-    let dx = f_fmla(r, f64::from_bits(t), -1.);
+    let dx = dd_fmla(r, f64::from_bits(t), -1.);
     let dx2 = dx * dx;
 
     const C: [u64; 5] = [
@@ -684,6 +684,6 @@ mod tests {
     fn test() {
         assert_eq!(f_acosh(1.52), 0.9801016289951905);
         assert_eq!(f_acosh(1.86), 1.2320677765479648);
-        println!("{}", f_acosh(4628012477609672704.));
+        assert_eq!(f_acosh(4.52), 2.189191592518765);
     }
 }

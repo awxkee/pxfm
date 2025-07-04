@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::atan2f::poly_dekker_generic;
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp2::ldexp;
 
@@ -298,7 +298,7 @@ fn as_expm1_accurate(x: f64) -> f64 {
         f = Dekker::quick_mult_f64(f, x);
         let hx = 0.5 * x;
         let x2h = x * hx;
-        let x2l = f_fmla(x, hx, -x2h);
+        let x2l = dd_fmla(x, hx, -x2h);
         f = Dekker::add(Dekker::new(x2l, x2h), f);
         let v0 = Dekker::from_exact_add(x, f.hi);
         let v1 = Dekker::from_exact_add(v0.lo, f.lo);
@@ -332,7 +332,7 @@ fn as_expm1_accurate(x: f64) -> f64 {
 
         let dx = x - L2H * t;
         let dxl = L2L * t;
-        let dxll = L2LL * t + f_fmla(L2L, t, -dxl);
+        let dxll = L2LL * t + dd_fmla(L2L, t, -dxl);
         let dxh = dx + dxl;
         let dxl = (dx - dxh) + dxl + dxll;
         let mut f = poly_dekker_generic(Dekker::new(dxl, dxh), EXPM1_DD2);

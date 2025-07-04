@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::log2p1_tables::{LOG2P1_EXACT, LOG2P1_INVERSE, LOG2P1_LOG_DD_INVERSE};
 
@@ -62,14 +62,14 @@ pub(crate) fn log_p_1a(z: f64) -> Dekker {
         0xbfb9a82ac77c05f4,
         0x3fb74b40dd1707d3,
     ];
-    let p910 = f_fmla(f64::from_bits(PA[10]), z, f64::from_bits(PA[9]));
-    let p78 = f_fmla(f64::from_bits(PA[8]), z, f64::from_bits(PA[7]));
-    let p56 = f_fmla(f64::from_bits(PA[6]), z, f64::from_bits(PA[5]));
-    let p34 = f_fmla(f64::from_bits(PA[4]), z, f64::from_bits(PA[3]));
-    let p710 = f_fmla(p910, z2.hi, p78);
-    let p36 = f_fmla(p56, z2.hi, p34);
-    let mut ph = f_fmla(p710, z4h, p36);
-    ph = f_fmla(ph, z, f64::from_bits(PA[2]));
+    let p910 = dd_fmla(f64::from_bits(PA[10]), z, f64::from_bits(PA[9]));
+    let p78 = dd_fmla(f64::from_bits(PA[8]), z, f64::from_bits(PA[7]));
+    let p56 = dd_fmla(f64::from_bits(PA[6]), z, f64::from_bits(PA[5]));
+    let p34 = dd_fmla(f64::from_bits(PA[4]), z, f64::from_bits(PA[3]));
+    let p710 = dd_fmla(p910, z2.hi, p78);
+    let p36 = dd_fmla(p56, z2.hi, p34);
+    let mut ph = dd_fmla(p710, z4h, p36);
+    ph = dd_fmla(ph, z, f64::from_bits(PA[2]));
     ph *= z2.hi;
     let mut p = Dekker::from_exact_add(-0.5 * z2.hi, ph * z);
     p.lo += -0.5 * z2.lo;
@@ -92,11 +92,11 @@ fn p_1(z: f64) -> Dekker {
         0x3fc2476b9058e396,
     ];
     let z2 = Dekker::from_exact_mult(z, z);
-    let p56 = f_fmla(f64::from_bits(P[6]), z, f64::from_bits(P[5]));
-    let p34 = f_fmla(f64::from_bits(P[4]), z, f64::from_bits(P[3]));
-    let mut ph = f_fmla(p56, z2.hi, p34);
+    let p56 = dd_fmla(f64::from_bits(P[6]), z, f64::from_bits(P[5]));
+    let p34 = dd_fmla(f64::from_bits(P[4]), z, f64::from_bits(P[3]));
+    let mut ph = dd_fmla(p56, z2.hi, p34);
     /* ph approximates P[3]+P[4]*z+P[5]*z^2+P[6]*z^3 */
-    ph = f_fmla(ph, z, f64::from_bits(P[2]));
+    ph = dd_fmla(ph, z, f64::from_bits(P[2]));
     /* ph approximates P[2]+P[3]*z+P[4]*z^2+P[5]*z^3+P[6]*z^4 */
     ph *= z2.hi;
     /* ph approximates P[2]*z^2+P[3]*z^3+P[4]*z^4+P[5]*z^5+P[6]*z^6 */
@@ -123,7 +123,7 @@ pub(crate) fn log_fast(e: i32, v_u: u64) -> Dekker {
     let log2_inv_dd = LOG2P1_LOG_DD_INVERSE[(i - OFFSET) as usize];
     let l1 = f64::from_bits(log2_inv_dd.1);
     let l2 = f64::from_bits(log2_inv_dd.0);
-    let z = f_fmla(r, y, -1.0); /* exact */
+    let z = dd_fmla(r, y, -1.0); /* exact */
     /* evaluate P(z), for |z| < 0.00212097167968735 */
 
     let p = p_1(z);
@@ -156,7 +156,7 @@ pub(crate) fn log_fast(e: i32, v_u: u64) -> Dekker {
     rounding error on ph + ... is bounded by ulp(2^-18.7) = 2^-71, which
     yields a cumulated error bound of 2^-71 + 2^-95 + 2^-94 < 2^-70.99. */
 
-    vl.lo = f_fmla(ee, LOG2_L, vl.lo);
+    vl.lo = dd_fmla(ee, LOG2_L, vl.lo);
     /* let l_in be the input value of *l, and l_out the output value.
     We have |l_in| < 2^-18.7 (from above)
     and |e*log2_l| <= 1074*0x1.ef35793c7673p-45
@@ -211,9 +211,9 @@ fn log2p1_accurate_small(x: f64) -> f64 {
     where c[d] is the degree-d coefficient of Pacc, thus we can compute
     with a double only */
 
-    let mut h = f_fmla(f64::from_bits(P_ACC[23]), x, f64::from_bits(P_ACC[22])); // degree 16
+    let mut h = dd_fmla(f64::from_bits(P_ACC[23]), x, f64::from_bits(P_ACC[22])); // degree 16
     for i in (11..=15).rev() {
-        h = f_fmla(h, x, f64::from_bits(P_ACC[(i + 6) as usize])); // degree i
+        h = dd_fmla(h, x, f64::from_bits(P_ACC[(i + 6) as usize])); // degree i
     }
     let mut l = 0.;
     for i in (8..10).rev() {
@@ -239,13 +239,13 @@ fn log2p1_accurate_tiny(x: f64) -> f64 {
     // exceptional values
     if x.abs() == f64::from_bits(0x0002c316a14459d8) {
         return if x > 0. {
-            f_fmla(
+            dd_fmla(
                 f64::from_bits(0x1a70000000000000),
                 f64::from_bits(0x1a70000000000000),
                 f64::from_bits(0x0003fc1ce8b1583f),
             )
         } else {
-            f_fmla(
+            dd_fmla(
                 f64::from_bits(0x9a70000000000000),
                 f64::from_bits(0x1a70000000000000),
                 f64::from_bits(0x8003fc1ce8b1583f),
@@ -258,11 +258,11 @@ fn log2p1_accurate_tiny(x: f64) -> f64 {
     let mut zh = Dekker::f64_mult(sx, Dekker::new(INVLOG2L, INVLOG2H));
 
     let res = zh.to_f64() * f64::from_bits(0x3950000000000000); // expected result
-    zh.lo += f_fmla(-res, f64::from_bits(0x4690000000000000), zh.hi);
+    zh.lo += dd_fmla(-res, f64::from_bits(0x4690000000000000), zh.hi);
     // the correction to apply to res is l*2^-106
     /* For all rounding modes, we have underflow
     for |x| <= 0x1.62e42fefa39eep-1023 */
-    f_fmla(zh.lo, f64::from_bits(0x3950000000000000), res)
+    dd_fmla(zh.lo, f64::from_bits(0x3950000000000000), res)
 }
 
 /* Given x > -1, put in (h,l) a double-double approximation of log2(1+x),
@@ -457,7 +457,6 @@ mod tests {
     use super::*;
     #[test]
     fn test_log2p1() {
-        println!("{}", f_log2p1(0.00006669877554532304));
         assert_eq!(f_log2p1(0.00006669877554532304), 0.00009622278377734607);
         assert_eq!(f_log2p1(1.00006669877554532304), 1.0000481121941047);
         assert_eq!(f_log2p1(-0.90006669877554532304), -3.322890675865049);

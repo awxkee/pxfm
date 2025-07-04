@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::asinpif::ASINCOSF_PI_TABLE;
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 
 /// Computes acos(x)/PI
 ///
@@ -69,7 +69,7 @@ pub fn f_acospif(x: f32) -> f32 {
         /* For |x| <= 0x1.0fd288p-127, c0 += c4*(z4*z4) would raise a spurious
         underflow exception, we use an FMA instead, where c4 * z4 does not
         underflow. */
-        c0 = f_fmla(c4 * z4, z4, c0);
+        c0 = dd_fmla(c4 * z4, z4, c0);
         f_fmla(-z, c0, 0.5) as f32
     } else {
         let f = (1. - az).sqrt();

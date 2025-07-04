@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::atan::poly_dd_3;
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 
 static TANPI_REDUCE: [(u64, u64); 32] = [
@@ -251,8 +251,8 @@ pub fn f_tanpi(x: f64) -> f64 {
 
             let imh = 1.0 / m.hi;
             t.hi = n.hi * imh;
-            t.lo = f_fmla(n.hi, imh, -t.hi)
-                + (n.lo + n.hi * (f_fmla(-m.hi, imh, 1.) - m.lo * imh)) * imh;
+            t.lo = dd_fmla(n.hi, imh, -t.hi)
+                + (n.lo + n.hi * (dd_fmla(-m.hi, imh, 1.) - m.lo * imh)) * imh;
         }
         eps += eps * (t.hi * t.hi);
         let lb = t.hi + (t.lo - eps);
@@ -271,7 +271,7 @@ pub fn f_tanpi(x: f64) -> f64 {
         ];
         const CL: [u64; 3] = [0x3bd45f32f25dab7f, 0x3b145f3030c82af4, 0x3a5464490600a978];
         z2 = z * z;
-        let dz2 = f_fmla(z, z, -z2);
+        let dz2 = dd_fmla(z, z, -z2);
 
         let tlo0 = f_fmla(z2, f64::from_bits(CL[2]), f64::from_bits(CL[1]));
 
@@ -298,8 +298,8 @@ pub fn f_tanpi(x: f64) -> f64 {
 
             let imh = 1.0 / m.hi;
             t.hi = n.hi * imh;
-            t.lo = f_fmla(n.hi, imh, -t.hi)
-                + (n.lo + n.hi * (f_fmla(-m.hi, imh, 1.) - m.lo * imh)) * imh;
+            t.lo = dd_fmla(n.hi, imh, -t.hi)
+                + (n.lo + n.hi * (dd_fmla(-m.hi, imh, 1.) - m.lo * imh)) * imh;
         }
         t = Dekker::from_exact_add(t.hi, t.lo);
         res = t.hi;
@@ -362,8 +362,8 @@ pub fn f_tanpi(x: f64) -> f64 {
 
             const CL: [u64; 2] = [0x40845f472e3aed7d, 0x40a45f33be0e9598];
 
-            let dx2 = f_fmla(x, x, -x2);
-            let dx3 = f_fmla(x2, x, -x3) + dx2 * x;
+            let dx2 = dd_fmla(x, x, -x2);
+            let dx3 = dd_fmla(x2, x, -x3) + dx2 * x;
             t.lo = x2 * f_fmla(x2, f64::from_bits(CL[1]), f64::from_bits(CL[0]));
             t = poly_dd_3(Dekker::new(dx2, x2), CH, t.lo);
             t = Dekker::mult(Dekker::new(dx3, x3), t);
@@ -385,25 +385,6 @@ mod tests {
     #[test]
     fn test_tanpi() {
         assert_eq!(-2867080569611329.5, f_tanpi(0.5000000000000001));
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            assert_eq!(0.06704753721009375, f_tanpi(0.02131));
-        }
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            assert_eq!(0.06704753721009377, f_tanpi(0.02131));
-        }
+        assert_eq!(0.06704753721009375, f_tanpi(0.02131));
     }
 }

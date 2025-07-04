@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp2m1::{EXP_M1_2_TABLE1, EXP_M1_2_TABLE2};
 
@@ -172,9 +172,9 @@ fn q_2(dz: Dekker) -> Dekker {
     ];
 
     let z = dz.to_f64();
-    let mut q = f_fmla(f64::from_bits(Q_2[8]), dz.hi, f64::from_bits(Q_2[7]));
-    q = f_fmla(q, z, f64::from_bits(Q_2[6]));
-    q = f_fmla(q, z, f64::from_bits(Q_2[5]));
+    let mut q = dd_fmla(f64::from_bits(Q_2[8]), dz.hi, f64::from_bits(Q_2[7]));
+    q = dd_fmla(q, z, f64::from_bits(Q_2[6]));
+    q = dd_fmla(q, z, f64::from_bits(Q_2[5]));
 
     // multiply q by z and add Q_2[3] + Q_2[4]
 
@@ -218,16 +218,16 @@ fn exp_2(x: f64) -> Dekker {
     const LOG2_10M: f64 = f64::from_bits(0xbb89dc1da9800000);
     const LOG2_10L: f64 = f64::from_bits(0xb984fd20dba1f655);
 
-    let yhh = f_fmla(-k, LOG2_10H, x); // exact, |yh| <= 2^-13
+    let yhh = dd_fmla(-k, LOG2_10H, x); // exact, |yh| <= 2^-13
 
     let mut ky0 = Dekker::from_exact_add(yhh, -k * LOG2_10M);
-    ky0.lo = f_fmla(-k, LOG2_10L, ky0.lo);
+    ky0.lo = dd_fmla(-k, LOG2_10L, ky0.lo);
 
     /* now x = k + yh, thus 2^x = 2^k * 2^yh, and we multiply yh by log(10)
     to use the accurate path of exp() */
 
     let mut ky = Dekker::f64_mult(ky0.hi, Dekker::new(LN10L, LN10H));
-    ky.lo = f_fmla(ky0.lo, LN10H, ky.lo);
+    ky.lo = dd_fmla(ky0.lo, LN10H, ky.lo);
 
     let ik = k as i64;
     let im = (ik >> 12).wrapping_add(0x3ff);
@@ -288,9 +288,9 @@ fn exp10m1_accurate_tiny(x: f64) -> f64 {
         0x3e6006cf8378cf9b,
         0x3e368862b132b6e2,
     ];
-    let mut c13 = f_fmla(f64::from_bits(Q[23]), x, f64::from_bits(Q[22])); // degree 15
-    let c11 = f_fmla(f64::from_bits(Q[21]), x, f64::from_bits(Q[20])); // degree 14
-    c13 = f_fmla(f64::from_bits(Q[24]), x2, c13); // degree 15
+    let mut c13 = dd_fmla(f64::from_bits(Q[23]), x, f64::from_bits(Q[22])); // degree 15
+    let c11 = dd_fmla(f64::from_bits(Q[21]), x, f64::from_bits(Q[20])); // degree 14
+    c13 = dd_fmla(f64::from_bits(Q[24]), x2, c13); // degree 15
     // add Q[19]*x+c13*x2+c15*x4 to Q[18] (degree 11)
     let mut p = Dekker::from_exact_add(
         f64::from_bits(Q[18]),
@@ -415,12 +415,12 @@ fn exp10m1_fast_tiny(x: f64) -> Exp10m1 {
     ];
     let x2 = x * x;
     let x4 = x2 * x2;
-    let mut c9 = f_fmla(f64::from_bits(P[12]), x, f64::from_bits(P[11])); // degree 9
-    let c7 = f_fmla(f64::from_bits(P[10]), x, f64::from_bits(P[9])); // degree 7
-    let mut c5 = f_fmla(f64::from_bits(P[8]), x, f64::from_bits(P[7])); // degree 5
-    c9 = f_fmla(f64::from_bits(P[13]), x2, c9); // degree 9
-    c5 = f_fmla(c7, x2, c5); // degree 5
-    c5 = f_fmla(c9, x4, c5); // degree 5
+    let mut c9 = dd_fmla(f64::from_bits(P[12]), x, f64::from_bits(P[11])); // degree 9
+    let c7 = dd_fmla(f64::from_bits(P[10]), x, f64::from_bits(P[9])); // degree 7
+    let mut c5 = dd_fmla(f64::from_bits(P[8]), x, f64::from_bits(P[7])); // degree 5
+    c9 = dd_fmla(f64::from_bits(P[13]), x2, c9); // degree 9
+    c5 = dd_fmla(c7, x2, c5); // degree 5
+    c5 = dd_fmla(c9, x4, c5); // degree 5
 
     let mut p = Dekker::from_exact_mult(c5, x);
     let p0 = Dekker::from_exact_add(f64::from_bits(P[6]), p.hi);
@@ -499,14 +499,14 @@ pub fn f_exp10m1(d: f64) -> f64 {
                 return x;
             }
             if x.abs() == f64::from_bits(0x000086c73059343c) {
-                return f_fmla(
+                return dd_fmla(
                     -f64::copysign(f64::from_bits(0x1e60010000000000), x),
                     f64::from_bits(0x1e50000000000000),
                     f64::copysign(f64::from_bits(0x000136568740cb56), x),
                 );
             }
             if x.abs() == f64::from_bits(0x00013a7b70d0248c) {
-                return f_fmla(
+                return dd_fmla(
                     f64::copysign(f64::from_bits(0x1e5ffe0000000000), x),
                     f64::from_bits(0x1e50000000000000),
                     f64::copysign(f64::from_bits(0x0002d41f3b972fc7), x),
@@ -516,27 +516,27 @@ pub fn f_exp10m1(d: f64) -> f64 {
             // scale x by 2^106
             x *= f64::from_bits(0x4690000000000000);
             let mut z = Dekker::from_exact_mult(LN10H, x);
-            z.lo = f_fmla(LN10L, x, z.lo);
+            z.lo = dd_fmla(LN10L, x, z.lo);
             let mut h2 = z.to_f64(); // round to 53-bit precision
             // scale back, hoping to avoid double rounding
             h2 *= f64::from_bits(0x3950000000000000);
             // now subtract back h2 * 2^106 from h to get the correction term
-            let mut h = f_fmla(-h2, f64::from_bits(0x4690000000000000), z.hi);
+            let mut h = dd_fmla(-h2, f64::from_bits(0x4690000000000000), z.hi);
             // add l
             h += z.lo;
             /* add h2 + h * 2^-106. Warning: when h=0, 2^-106*h2 might be exact,
             thus no underflow will be raised. We have underflow for
             0 < x <= 0x1.71547652b82fep-1022 for RNDZ, and for
             0 < x <= 0x1.71547652b82fdp-1022 for RNDN/RNDU. */
-            f_fmla(h, f64::from_bits(0x3950000000000000), h2)
+            dd_fmla(h, f64::from_bits(0x3950000000000000), h2)
         } else {
             const C2: f64 = f64::from_bits(0x40053524c73cea69); // log(2)^2/2
             let mut z = Dekker::from_exact_mult(LN10H, x);
-            z.lo = f_fmla(LN10L, x, z.lo);
+            z.lo = dd_fmla(LN10L, x, z.lo);
             /* h+l approximates the first term x*log(2) */
             /* we add C2*x^2 last, so that in case there is a cancellation in
             LN10L*x+l, it will contribute more bits */
-            z.lo += C2 * x * x;
+            z.lo = dd_fmla(C2 * x, x, z.lo);
             z.to_f64()
         };
     }

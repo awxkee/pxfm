@@ -30,7 +30,7 @@ use crate::acosh::{
     ACOSH_ASINH_B, ACOSH_ASINH_LL, ACOSH_ASINH_R1, ACOSH_ASINH_R2, ACOSH_ASINH_REFINE_T2,
     ACOSH_ASINH_REFINE_T4, ACOSH_SINH_REFINE_T1, ACOSH_SINH_REFINE_T3, lpoly_xd_generic,
 };
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 
 static ATANH_L1: [(u64, u64); 33] = [
@@ -131,7 +131,7 @@ fn as_atanh_zero(x: f64) -> f64 {
     ];
 
     let x2 = x * x;
-    let x2l = f_fmla(x, x, -x2);
+    let x2l: f64 = dd_fmla(x, x, -x2);
 
     let yw0 = f_fmla(x2, f64::from_bits(CL[4]), f64::from_bits(CL[3]));
     let yw1 = f_fmla(x2, yw0, f64::from_bits(CL[2]));
@@ -285,11 +285,15 @@ pub fn f_atanh(x: f64) -> f64 {
             0x3faa0b56308cba0b,
             0x3fafb6341208ad2e,
         ];
-        let dx2 = f_fmla(x, x, -x2);
+        let dx2: f64 = dd_fmla(x, x, -x2);
+
         let x4 = x2 * x2;
         let x3 = x2 * x;
         let x8 = x4 * x4;
-        let dx3 = f_fmla(dx2, x, f_fmla(x2, x, -x3));
+
+        let zdx3: f64 = dd_fmla(x2, x, -x3);
+
+        let dx3 = f_fmla(dx2, x, zdx3);
 
         let pw0 = f_fmla(x2, f64::from_bits(C[7]), f64::from_bits(C[6]));
         let pw1 = f_fmla(x2, f64::from_bits(C[5]), f64::from_bits(C[4]));
