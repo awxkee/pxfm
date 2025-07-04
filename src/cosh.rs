@@ -152,7 +152,7 @@ pub fn f_cosh(x: f64) -> f64 {
     let t1h = f64::from_bits(sn1.1);
     let t1l = f64::from_bits(sn1.0);
     let mut th = t0h * t1h;
-    let mut tl = f_fmla(t0h, t1l, t1h * t0l) + f_fmla(t0h, t1h, -th);
+    let mut tl = f_fmla(t0h, t1l, t1h * t0l) + dd_fmla(t0h, t1h, -th);
 
     const L2H: f64 = f64::from_bits(0x3f262e42ff000000);
     const L2L: f64 = f64::from_bits(0x3d0718432a1b0e26);
@@ -225,7 +225,7 @@ pub fn f_cosh(x: f64) -> f64 {
             qh = q0h * q1h;
             let q0l = f64::from_bits(EXP_REDUCE_T0[j0 as usize].0);
             let q1l = f64::from_bits(EXP_REDUCE_T1[j1 as usize].0);
-            let mut ql = f_fmla(q0h, q1l, q1h * q0l) + f_fmla(q0h, q1h, -qh);
+            let mut ql = f_fmla(q0h, q1l, q1h * q0l) + dd_fmla(q0h, q1h, -qh);
             qh *= f64::from_bits(sm);
             ql *= f64::from_bits(sm);
             let qq = hyperbolic_exp_accurate(-ax, -t, Dekker::new(ql, qh));
