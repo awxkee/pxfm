@@ -316,14 +316,14 @@ impl Dekker {
 
     #[inline]
     pub(crate) fn mult(a: Dekker, b: Dekker) -> Self {
-        // #[cfg(any(
-        //     all(
-        //         any(target_arch = "x86", target_arch = "x86_64"),
-        //         target_feature = "fma"
-        //     ),
-        //     all(target_arch = "aarch64", target_feature = "neon")
-        // ))]
-        // {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
             let ahlh = b.hi * a.lo;
             let alhh = b.lo * a.hi;
             let ahhh = b.hi * a.hi;
@@ -332,28 +332,28 @@ impl Dekker {
             let ch = ahhh + ahhl;
             let l = (ahhh - ch) + ahhl;
             Self { lo: l, hi: ch }
-        // }
-        // #[cfg(not(any(
-        //     all(
-        //         any(target_arch = "x86", target_arch = "x86_64"),
-        //         target_feature = "fma"
-        //     ),
-        //     all(target_arch = "aarch64", target_feature = "neon")
-        // )))]
-        // {
-        //     let zp = Dekker::from_exact_mult(a.hi, b.hi);
-        //
-        //     let p2 = a.hi * b.lo;
-        //     let p3 = a.lo * b.hi;
-        //
-        //     let e1 = Dekker::from_exact_add(zp.lo, p2);
-        //     let e2 = Dekker::from_exact_add(e1.hi, p3);
-        //
-        //     let hi = zp.hi + e2.hi;
-        //     let lo = (zp.hi - hi) + e2.hi + e1.lo + e2.lo;
-        //
-        //     Self { lo, hi }
-        // }
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let zp = Dekker::from_exact_mult(a.hi, b.hi);
+
+            let p2 = a.hi * b.lo;
+            let p3 = a.lo * b.hi;
+
+            let e1 = Dekker::from_exact_add(zp.lo, p2);
+            let e2 = Dekker::from_exact_add(e1.hi, p3);
+
+            let hi = zp.hi + e2.hi;
+            let lo = (zp.hi - hi) + e2.hi + e1.lo + e2.lo;
+
+            Self { lo, hi }
+        }
     }
 
     #[inline]
