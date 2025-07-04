@@ -36,7 +36,7 @@ use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 #[inline]
 /// Computes acos(x)
 ///
-/// Max found ULP 0.5009
+/// Max found ULP 0.5
 pub fn f_acos(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;

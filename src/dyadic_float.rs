@@ -64,20 +64,24 @@ fn f64_from_parts(sign: DyadicSign, exp: u64, mantissa: u64) -> f64 {
 
 #[inline]
 fn mulhi_u128(a: u128, b: u128) -> u128 {
-    let a_lo = a as u64;
-    let a_hi = (a >> 64) as u64;
-    let b_lo = b as u64;
-    let b_hi = (b >> 64) as u64;
+    let a_lo = a as u64 as u128;
+    let a_hi = (a >> 64) as u64 as u128;
+    let b_lo = b as u64 as u128;
+    let b_hi = (b >> 64) as u64 as u128;
 
-    let lo_lo = a_lo as u128 * b_lo as u128;
-    let hi_lo = a_hi as u128 * b_lo as u128;
-    let lo_hi = a_lo as u128 * b_hi as u128;
-    let hi_hi = a_hi as u128 * b_hi as u128;
+    let lo_lo = a_lo * b_lo;
+    let lo_hi = a_lo * b_hi;
+    let hi_lo = a_hi * b_lo;
+    let hi_hi = a_hi * b_hi;
 
-    // cross terms with carry propagation
-    let mid1 = hi_lo + (lo_lo >> 64);
-    let (mid2, carry) = mid1.overflowing_add(lo_hi);
-    hi_hi + (mid2 >> 64) + if carry { 1 } else { 0 }
+    let carry = (lo_lo >> 64)
+        .wrapping_add(lo_hi & 0xffff_ffff_ffff_ffff)
+        .wrapping_add(hi_lo & 0xffff_ffff_ffff_ffff);
+    let mid = (lo_hi >> 64)
+        .wrapping_add(hi_lo >> 64)
+        .wrapping_add(carry >> 64);
+
+    hi_hi.wrapping_add(mid)
 }
 
 #[inline]
@@ -202,11 +206,11 @@ impl DyadicFloat128 {
         if a.mantissa >= b.mantissa {
             result.sign = a.sign;
             result.exponent = a.exponent;
-            result.mantissa = a.mantissa - b.mantissa;
+            result.mantissa = a.mantissa.wrapping_sub(b.mantissa);
         } else {
             result.sign = b.sign;
             result.exponent = b.exponent;
-            result.mantissa = b.mantissa - a.mantissa;
+            result.mantissa = b.mantissa.wrapping_sub(a.mantissa);
         }
 
         result.normalize();

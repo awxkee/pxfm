@@ -234,7 +234,7 @@ fn log10p1_fast(x: f64, e: i32) -> (Dekker, f64) {
     (p, f64::from_bits(0x3bb0a00000000000)) /* 2^-67.92 < 0x1.0ap-68 */
 }
 
-/// Computes log(x+1)
+/// Computes log10(x+1)
 ///
 /// Max ULP 0.504
 #[inline]

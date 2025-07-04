@@ -4,4 +4,5 @@ Cargo.lock
 app/target
 rust-toolchain.toml
 .cargo
-/proof/.ipynb_checkpoints/
+/proof/.ipynb_checkpoints/*
+.ipynb_checkpoints

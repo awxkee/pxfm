@@ -36,7 +36,7 @@ use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 #[inline]
 /// Computes asin(x)/PI
 ///
-/// Max found ULP 0.5016
+/// Max found ULP 0.5
 pub fn f_asinpi(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;

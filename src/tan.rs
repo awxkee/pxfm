@@ -168,7 +168,7 @@ fn newton_raphson_div(a: &DyadicFloat128, b: &DyadicFloat128, q: f64) -> DyadicF
 
 /// Tan in double precision
 ///
-/// ULP 0.50097
+/// ULP 0.5
 #[inline]
 pub fn f_tan(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;

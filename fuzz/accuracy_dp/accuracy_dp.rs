@@ -5,7 +5,6 @@ use libfuzzer_sys::fuzz_target;
 use pxfm::*;
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::sync::atomic::AtomicUsize;
 
 pub fn count_ulp_f64(d: f64, c: &Float) -> f64 {
     let c2 = c.to_f64();
@@ -151,6 +150,8 @@ fn test_method_2vals_ignore_nan(
     );
 }
 
+static mut MAX_ULP: f64 = 0f64;
+
 fuzz_target!(|data: (f64, f64)| {
     let x0 = data.0;
     let x1 = data.0;
@@ -161,14 +162,14 @@ fuzz_target!(|data: (f64, f64)| {
         f_atanh,
         &mpfr_x0.clone().atanh(),
         "f_atanh".to_string(),
-        0.500,
+        0.5,
     );
     test_method(
         x0,
         f_tanh,
         &mpfr_x0.clone().tanh(),
         "f_tanh".to_string(),
-        0.500,
+        0.5,
     );
     test_method(
         x0,
@@ -182,21 +183,21 @@ fuzz_target!(|data: (f64, f64)| {
         f_sinh,
         &mpfr_x0.clone().sinh(),
         "f_sinh".to_string(),
-        0.500,
+        0.5,
     );
     test_method(
         x0,
         f_asinh,
         &mpfr_x0.clone().asinh(),
         "f_asinh".to_string(),
-        0.500,
+        0.5,
     );
     test_method(
         x0,
         f_acosh,
         &mpfr_x0.clone().acosh(),
         "f_acosh".to_string(),
-        0.500,
+        0.5,
     );
     test_method_2vals_ignore_nan(
         x0,
@@ -240,14 +241,14 @@ fuzz_target!(|data: (f64, f64)| {
         f_asinpi,
         &mpfr_x0.clone().asin_pi(),
         "f_asinpi".to_string(),
-        0.5016,
+        0.5,
     );
     test_method(
         x0,
         f_acospi,
         &mpfr_x0.clone().acos_pi(),
         "f_acospi".to_string(),
-        0.5016,
+        0.5,
     );
     test_method(
         x0,
@@ -335,55 +336,37 @@ fuzz_target!(|data: (f64, f64)| {
         "f_exp10".to_string(),
         0.5000,
     );
-    test_method(
-        x0,
-        f_sin,
-        &mpfr_x0.clone().sin(),
-        "f_sin".to_string(),
-        0.50009,
-    );
-    test_method(
-        x0,
-        f_cos,
-        &mpfr_x0.clone().cos(),
-        "f_cos".to_string(),
-        0.50025,
-    );
+    test_method(x0, f_sin, &mpfr_x0.clone().sin(), "f_sin".to_string(), 0.5);
+    test_method(x0, f_cos, &mpfr_x0.clone().cos(), "f_cos".to_string(), 0.5);
     test_method_2_outputs(
         x0,
         f_sincos,
         &mpfr_x0.clone().sin(),
         &mpfr_x0.clone().cos(),
         "f_sincos".to_string(),
-        0.50009,
+        0.5,
     );
-    test_method(
-        x0,
-        f_tan,
-        &mpfr_x0.clone().tan(),
-        "f_tan".to_string(),
-        0.50097,
-    );
+    test_method(x0, f_tan, &mpfr_x0.clone().tan(), "f_tan".to_string(), 0.5);
     test_method(
         x0,
         f_acos,
         &mpfr_x0.clone().acos(),
         "f_acos".to_string(),
-        0.5009,
+        0.5,
     );
     test_method(
         x0,
         f_asin,
         &mpfr_x0.clone().asin(),
         "f_asin".to_string(),
-        0.5009,
+        0.5,
     );
     test_method(
         x0,
         f_atan,
         &mpfr_x0.clone().atan(),
         "f_atan".to_string(),
-        0.5000,
+        0.5,
     );
     test_method_2vals_ignore_nan(
         x0,

@@ -36,7 +36,7 @@ use crate::sincos_dyadic::{range_reduction_small_f128, sincos_eval_dyadic};
 
 /// Sine and cosine for double precision
 ///
-/// ULP 0.50009
+/// ULP 0.5
 #[inline]
 pub fn f_sincos(x: f64) -> (f64, f64) {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
