@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, f_fmla};
+use crate::common::*;
 use crate::dekker::Dekker;
 use crate::log2p1::{log_fast, log_p_1a};
 use crate::log10p1_tables::{LOG10P1_EXACT_INT_S_TABLE, LOG10P1_EXACT_INT_TABLE};
