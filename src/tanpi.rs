@@ -211,6 +211,7 @@ pub fn f_tanpi(x: f64) -> f64 {
         let mut z2 = z * z;
         let z4 = z2 * z2;
         let z3 = z * z2;
+
         const C: [u64; 4] = [
             0x3304abbce625be51,
             0x2a6466bc6776a9b1,
@@ -235,7 +236,7 @@ pub fn f_tanpi(x: f64) -> f64 {
 
         if iq == 32 {
             let ith = -1.0 / t.hi;
-            t.lo = (f_fmla(ith, t.hi, 1.) + t.lo * ith) * ith;
+            t.lo = (dd_fmla(ith, t.hi, 1.) + t.lo * ith) * ith;
             t.hi = ith;
         } else {
             let mut n = Dekker::from_bit_pair(TANPI_REDUCE[iq as usize]);
