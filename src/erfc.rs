@@ -336,6 +336,8 @@ mod tests {
 
     #[test]
     fn test_erfc() {
-        println!("{}", f_erfcf(-3.6679688));
+        assert_eq!(f_erfcf(0.0), 1.0);
+        assert_eq!(f_erfcf(0.5), 0.47950011);
+        assert_eq!(f_erfcf(1.0), 0.1572992);
     }
 }
