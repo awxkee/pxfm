@@ -3,7 +3,7 @@
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
     f_acosf, f_acoshf, f_acospif, f_asinf, f_asinh, f_asinhf, f_asinpif, f_atan2f, f_atan2pif,
-    f_atanhf, f_atanpif, f_cbrtf, f_cosf, f_coshf, f_cospif, f_exp2f, f_exp2m1f, f_exp10f,
+    f_atanhf, f_atanpif, f_cbrtf, f_cosf, f_coshf, f_cospif, f_erff, f_exp2f, f_exp2m1f, f_exp10f,
     f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_log1pf, f_log2f, f_log2p1f, f_log10f, f_log10p1f,
     f_logf, f_powf, f_sincf, f_sinf, f_sinhf, f_sinpif, f_tanf, f_tanhf, f_tanpif,
 };
@@ -125,6 +125,7 @@ fuzz_target!(|data: (f32, f32)| {
         mpfr_x0.clone().sin().div(&mpfr_x0)
     };
 
+    test_method(x0, f_erff, &mpfr_x0.clone().erf(), "f_erff".to_string());
     if x0.abs() < 6.60 {
         test_method_max_ulp(x0, f_sincf, &sinc_x0, "f_sincf".to_string(), 0.5000);
     }

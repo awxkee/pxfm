@@ -296,7 +296,6 @@ pub fn f_acos(x: f64) -> f64 {
     }
     let t = h * (-0.25) / u;
     let vll = f_fmla(vl, t, vl_lo);
-    // m_v = -(v_hi + v_lo + v_ll).
     let m_v_p = DyadicFloat128::new_from_f64(vl) + DyadicFloat128::new_from_f64(vll);
     let mut m_v = DyadicFloat128::new_from_f64(vh) + m_v_p;
     m_v.sign = if x.is_sign_negative() {
