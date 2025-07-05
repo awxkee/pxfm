@@ -139,8 +139,10 @@ pub fn f_tanpi(x: f64) -> f64 {
                     } else {
                         f64::INFINITY
                     }
+                } else if (jq ^ sgn) & 2 != 0 {
+                    -0.0
                 } else {
-                    if (jq ^ sgn) & 2 != 0 { -0.0 } else { 0.0 }
+                    0.0
                 }
             } else {
                 let nh;
