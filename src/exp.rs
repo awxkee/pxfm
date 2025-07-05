@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::atan2f::poly_dekker_generic;
-use crate::common::{f_fmla, fmla, pow2i, rintk};
+use crate::common::{dd_fmla, f_fmla, fmla, pow2i, rintk};
 use crate::dekker::Dekker;
 use crate::exp2::ldexp;
 
@@ -239,7 +239,7 @@ fn as_exp_accurate(x: f64, t: f64, tz: Dekker, ie: i64) -> f64 {
     const L2LL: f64 = f64::from_bits(0x3999ff0342542fc3);
     let dx = f_fmla(-L2.hi, t, x);
     let mut dxl = L2.lo * t;
-    let dxll = f_fmla(L2LL, t, f_fmla(L2.lo, t, -dxl));
+    let dxll = f_fmla(L2LL, t, dd_fmla(L2.lo, t, -dxl));
     let dxh = dx + dxl;
     dxl = (dx - dxh) + dxl + dxll;
     let dx = Dekker::new(dxl, dxh);

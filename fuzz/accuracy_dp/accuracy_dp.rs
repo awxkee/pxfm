@@ -150,8 +150,6 @@ fn test_method_2vals_ignore_nan(
     );
 }
 
-static mut MAX_ULP: f64 = 0f64;
-
 fuzz_target!(|data: (f64, f64)| {
     let x0 = data.0;
     let x1 = data.0;
@@ -220,14 +218,14 @@ fuzz_target!(|data: (f64, f64)| {
         f_log10p1,
         &mpfr_x0.clone().log10_1p(),
         "f_log10p1".to_string(),
-        0.50006,
+        0.5,
     );
     test_method(
         x0,
         f_log2p1,
         &mpfr_x0.clone().log2_1p(),
         "f_log2p1".to_string(),
-        0.50002,
+        0.5,
     );
     test_method(
         x0,
@@ -262,28 +260,28 @@ fuzz_target!(|data: (f64, f64)| {
         f_exp10m1,
         &mpfr_x0.clone().exp10_m1(),
         "f_exp10m1".to_string(),
-        0.5001,
+        0.5,
     );
     test_method(
         x0,
         f_exp2m1,
         &mpfr_x0.clone().exp2_m1(),
         "f_exp2m1".to_string(),
-        0.5000,
+        0.5,
     );
     test_method(
         x0,
         f_expm1,
         &mpfr_x0.clone().exp_m1(),
         "f_expm1".to_string(),
-        0.5005,
+        0.5,
     );
     test_method(
         x0,
         f_tanpi,
         &mpfr_x0.clone().tan_pi(),
         "f_tanpi".to_string(),
-        0.5001,
+        0.5,
     );
     test_method(
         x0,
@@ -327,14 +325,14 @@ fuzz_target!(|data: (f64, f64)| {
         f_exp2,
         &mpfr_x0.clone().exp2(),
         "f_exp2".to_string(),
-        0.5000,
+        0.5,
     );
     test_method(
         x0,
         f_exp10,
         &mpfr_x0.clone().exp10(),
         "f_exp10".to_string(),
-        0.5000,
+        0.5,
     );
     test_method(x0, f_sin, &mpfr_x0.clone().sin(), "f_sin".to_string(), 0.5);
     test_method(x0, f_cos, &mpfr_x0.clone().cos(), "f_cos".to_string(), 0.5);

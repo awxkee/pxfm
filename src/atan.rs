@@ -287,7 +287,7 @@ fn atan_refine(x: f64, a: f64) -> f64 {
 
 /// Computes atan in double precision
 ///
-/// ULP 0.5000
+/// ULP 0.5
 #[inline]
 pub fn f_atan(x: f64) -> f64 {
     const CH: [u64; 4] = [
@@ -361,7 +361,7 @@ pub fn f_atan(x: f64) -> f64 {
         let la = ATAN_REDUCE[i as usize];
         let ta = f64::copysign(1.0, x) * f64::from_bits(la.0);
         let id = f64::copysign(1.0, x) * i as f64;
-        al = f_fmla(
+        al = dd_fmla(
             f64::copysign(1.0, x),
             f64::from_bits(la.1),
             f64::from_bits(0x3c88469898cc5170) * id,

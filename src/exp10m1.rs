@@ -350,8 +350,8 @@ fn exp10m1_accurate_tiny(x: f64) -> f64 {
 
     // multiply h+l by x and add Q[0]+Q[1] (degree 2)
     p = Dekker::f64_mult(x, p);
-    let p0 = Dekker::from_exact_add(f64::from_bits(Q[1]), p.hi);
-    p.lo += p0.lo + f64::from_bits(Q[0]);
+    let p0 = Dekker::from_exact_add(f64::from_bits(Q[0]), p.hi);
+    p.lo += p0.lo + f64::from_bits(Q[1]);
     p.hi = p0.hi;
 
     // multiply h+l by x
@@ -455,7 +455,7 @@ fn exp10m1_fast_tiny(x: f64) -> Exp10m1 {
 
 /// Computes 10^x - 1
 ///
-/// Max found ULP 0.5001
+/// Max found ULP 0.5
 #[inline]
 pub fn f_exp10m1(d: f64) -> f64 {
     let mut x = d;

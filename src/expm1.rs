@@ -248,13 +248,13 @@ static EXPM1_DD1: [(u64, u64); 11] = [
 ];
 
 static EXPM1_DD2: [(u64, u64); 7] = [
-    (0x0000000000000000, 0x3ff0000000000000),
-    (0x39c712f72ecec2cf, 0x3fe0000000000000),
-    (0x3c65555555554d07, 0x3fc5555555555555),
-    (0x3c455194d28275da, 0x3fa5555555555555),
-    (0x3c012faa0e1c0f7b, 0x3f81111111111111),
-    (0xbbf4ba45ab25d2a3, 0x3f56c16c16da6973),
-    (0xbbc9091d845ecd36, 0x3f2a01a019eb7f31),
+    (0x3ff0000000000000, 0x0000000000000000),
+    (0x3fe0000000000000, 0x39c712f72ecec2cf),
+    (0x3fc5555555555555, 0x3c65555555554d07),
+    (0x3fa5555555555555, 0x3c455194d28275da),
+    (0x3f81111111111111, 0x3c012faa0e1c0f7b),
+    (0x3f56c16c16da6973, 0xbbf4ba45ab25d2a3),
+    (0x3f2a01a019eb7f31, 0xbbc9091d845ecd36),
 ];
 
 #[inline]
@@ -330,9 +330,9 @@ fn as_expm1_accurate(x: f64) -> f64 {
         const L2L: f64 = f64::from_bits(0x3d0718432a1b0e26);
         const L2LL: f64 = f64::from_bits(0x3999ff0342542fc3);
 
-        let dx = x - L2H * t;
+        let dx = f_fmla(-L2H, t, x);
         let dxl = L2L * t;
-        let dxll = L2LL * t + dd_fmla(L2L, t, -dxl);
+        let dxll = f_fmla(L2LL, t, dd_fmla(L2L, t, -dxl));
         let dxh = dx + dxl;
         let dxl = (dx - dxh) + dxl + dxll;
         let mut f = poly_dekker_generic(Dekker::new(dxl, dxh), EXPM1_DD2);
@@ -360,7 +360,7 @@ fn as_expm1_accurate(x: f64) -> f64 {
 
 /// Computes e^x - 1
 ///
-/// Max found ULP 0.5000
+/// Max found ULP 0.5
 #[inline]
 pub fn f_expm1(x: f64) -> f64 {
     let ix = x.to_bits();
@@ -442,7 +442,7 @@ pub fn f_expm1(x: f64) -> f64 {
 
         const L2H: f64 = f64::from_bits(0x3f262e42ff000000);
         const L2L: f64 = f64::from_bits(0x3d0718432a1b0e26);
-        let dx = f_fmla(L2L, t, f_fmla(-L2H, t, x));
+        let dx = dd_fmla(L2L, t, f_fmla(-L2H, t, x));
         let dx2 = dx * dx;
 
         const CH: [u64; 4] = [
@@ -490,6 +490,9 @@ mod tests {
 
     #[test]
     fn test_expm1() {
-        println!("{:19}", f_expm1(-0.10597532319167226));
+        assert_eq!(f_expm1(36.52188110363568), 7265264535836525.);
+        assert_eq!(f_expm1(2.), 6.38905609893065);
+        assert_eq!(f_expm1(0.4321321), 0.5405386068701713);
+        assert_eq!(f_expm1(-0.0000004321321), -4.321320066309375e-7);
     }
 }

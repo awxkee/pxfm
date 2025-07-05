@@ -285,8 +285,9 @@ pub fn f_tanpi(x: f64) -> f64 {
         } else {
             let mut n = Dekker::from_bit_pair(TANPI_REDUCE[iq as usize]);
             static S2: [f64; 2] = [-1., 1.];
-            n.hi *= S2[(ms + 1) as usize];
-            n.lo *= S2[(ms + 1) as usize];
+            let sgn = S2[(ms + 1) as usize];
+            n.hi *= sgn;
+            n.lo *= sgn;
             let mut m = Dekker::mult(t, n);
             let z0 = Dekker::from_exact_sub(1.0, m.hi);
             m.hi = z0.hi;

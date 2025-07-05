@@ -30,8 +30,11 @@ use crate::atan::{ATAN_CIRCLE, ATAN_REDUCE, poly_dd_3};
 use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 
-const ONE_OVER_PIH: f64 = f64::from_bits(0x3fd45f306dc9c883);
-const ONE_OVER_PIL: f64 = f64::from_bits(0xbc76b01ec5417056);
+const ONE_OVER_PI_DD: Dekker = Dekker::new(
+    f64::from_bits(0xbc76b01ec5417056),
+    f64::from_bits(0x3fd45f306dc9c883),
+);
+
 const ONE_OVER_3PI: f64 = f64::from_bits(0x3fbb2995e7b7b604); // approximates 1/(3pi)
 
 fn atanpi_small(x: f64) -> f64 {
@@ -76,15 +79,19 @@ fn atanpi_small(x: f64) -> f64 {
             };
         }
     }
-    let h = x * ONE_OVER_PIH;
-    /* Assuming h = x*ONE_OVER_PIH - e, the correction term is
+    let h = x * ONE_OVER_PI_DD.hi;
+    /* Assuming h = x*ONE_OVER_PI_DD.hi - e, the correction term is
     e + x * ONE_OVER_PIL, but we need to scale values to avoid underflow. */
     let mut corr = dd_fmla(
         x * f64::from_bits(0x4690000000000000),
-        ONE_OVER_PIH,
+        ONE_OVER_PI_DD.hi,
         -h * f64::from_bits(0x4690000000000000),
     );
-    corr = dd_fmla(x * f64::from_bits(0x4690000000000000), ONE_OVER_PIL, corr);
+    corr = dd_fmla(
+        x * f64::from_bits(0x4690000000000000),
+        ONE_OVER_PI_DD.lo,
+        corr,
+    );
     // now return h + corr * 2^-106
 
     dd_fmla(corr, f64::from_bits(0x3950000000000000), h)
@@ -101,7 +108,7 @@ fn atanpi_asympt(x: f64) -> f64 {
     let yh = 1.0 / x;
     // Newton's iteration for the inverse is y = y + y*(1-x*y)
     let yl = yh * dd_fmla(yh, -x, 1.0);
-    let mut m = Dekker::mult(Dekker::new(yl, yh), Dekker::new(ONE_OVER_PIH, ONE_OVER_PIL));
+    let mut m = Dekker::mult(Dekker::new(yl, yh), ONE_OVER_PI_DD);
     // m + l ~ 1/pi * 1/x
     m.hi = -m.hi;
     m.lo = dd_fmla(ONE_OVER_3PI * yh, yh * yh, -m.lo);
@@ -122,9 +129,9 @@ fn atanpi_asympt(x: f64) -> f64 {
 
 #[inline]
 fn atanpi_tiny(x: f64) -> f64 {
-    let h = x * ONE_OVER_PIH;
-    let mut l = dd_fmla(x, ONE_OVER_PIH, -h);
-    l = dd_fmla(x, ONE_OVER_PIL, l);
+    let h = x * ONE_OVER_PI_DD.hi;
+    let mut l = dd_fmla(x, ONE_OVER_PI_DD.hi, -h);
+    l = dd_fmla(x, ONE_OVER_PI_DD.lo, l);
     l = dd_fmla(-ONE_OVER_3PI * x, x * x, l);
     h + l
 }
@@ -200,15 +207,14 @@ fn as_atan_refine2(x: f64, a: f64) -> f64 {
     let v2 = Dekker::from_exact_add(ah, al);
     let v1 = Dekker::from_exact_add(v2.lo, at);
 
-    let z0 = Dekker::mult(
-        Dekker::new(v1.hi, v2.hi),
-        Dekker::new(ONE_OVER_PIL, ONE_OVER_PIH),
-    );
+    let z0 = Dekker::quick_mult(Dekker::new(v1.hi, v2.hi), ONE_OVER_PI_DD);
     // atanpi_end
     z0.to_f64()
 }
 
 /// Computes atan(x) / pi
+///
+/// Max ULP 0.5
 #[inline]
 pub fn f_atanpi(x: f64) -> f64 {
     const CH: [u64; 4] = [
@@ -250,7 +256,7 @@ pub fn f_atanpi(x: f64) -> f64 {
         we have |f| < 2^-16*|x|, thus the error is bounded by
         0x1.6fp-52*2^-16*|x| < 0x1.6fp-68. */
         // multiply x + f by 1/pi
-        let hy = Dekker::quick_mult(Dekker::new(f, x), Dekker::new(ONE_OVER_PIL, ONE_OVER_PIH));
+        let hy = Dekker::quick_mult(Dekker::new(f, x), ONE_OVER_PI_DD);
         /* The rounding error in muldd and the approximation error between
         1/pi and ONE_OVER_PIH + ONE_OVER_PIL are covered by the difference
         between 0x4.8p-52*pi and 0x1.6fp-52, which is > 2^-61.8. */
@@ -324,7 +330,7 @@ pub fn f_atanpi(x: f64) -> f64 {
     let e0 = h * f64::from_bits(0x3ccf800000000000); // original value in atan.c
     let ub0 = (a.lo + e0) + a.hi; // original value in atan.c
     a = Dekker::from_exact_add(a.hi, a.lo);
-    a = Dekker::quick_mult(a, Dekker::new(ONE_OVER_PIL, ONE_OVER_PIH));
+    a = Dekker::quick_mult(a, ONE_OVER_PI_DD);
     /* The rounding error in muldd() and the approximation error between 1/pi
     and ONE_OVER_PIH+ONE_OVER_PIL are absorbed when rounding up 0x3.fp-52*pi
     to 0x1.41p-52. */

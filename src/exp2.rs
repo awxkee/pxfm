@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
 
@@ -81,7 +81,7 @@ fn exp2_accurate(x: f64) -> f64 {
         // for -0x1.71547652b82fep-54 <= x <= 0x1.71547652b82fdp-53,
         // exp2(x) round to x to nearest
         if f64::from_bits(0xbc971547652b82fe) <= x && x <= f64::from_bits(0x3ca71547652b82fd) {
-            return f_fmla(x, 0.5, 1.0);
+            return dd_fmla(x, 0.5, 1.0);
         } else if (k & 0xfff) == 0 {
             // 4096*x rounds to 4096*integer
             let zf = Dekker::from_exact_add(dt.hi, f.hi);

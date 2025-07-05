@@ -44,6 +44,14 @@ impl DyadicSign {
             DyadicSign::Neg => DyadicSign::Pos,
         }
     }
+
+    // #[inline]
+    // pub(crate) fn to_bit(self) -> u8 {
+    //     match self {
+    //         DyadicSign::Pos => 0,
+    //         DyadicSign::Neg => 1,
+    //     }
+    // }
 }
 
 const BITS: u32 = 128;
@@ -82,23 +90,6 @@ fn mulhi_u128(a: u128, b: u128) -> u128 {
         .wrapping_add(carry >> 64);
 
     hi_hi.wrapping_add(mid)
-}
-
-#[inline]
-fn mulhi_u128_u64(x: u128, y: u64) -> u128 {
-    let x_hi = (x >> 64) as u64;
-    let x_lo = x as u64;
-
-    let lo_lo = (x_lo as u128).wrapping_mul(y as u128);
-    let hi_lo = (x_hi as u128).wrapping_mul(y as u128);
-
-    // Now, the total product is:
-    // product = hi_lo << 64 + lo_lo
-    // We want the high 128 bits, so:
-    // high = hi_lo + (lo_lo >> 64)
-
-    let carry = lo_lo >> 64;
-    hi_lo.wrapping_add(carry)
 }
 
 #[inline]
@@ -184,11 +175,7 @@ impl DyadicFloat128 {
     pub(crate) fn from_div_f64(a: f64, b: f64) -> Self {
         let reciprocal = DyadicFloat128::accurate_reciprocal(b);
         let da = DyadicFloat128::new_from_f64(a);
-        let p = reciprocal * da;
-        if p.mantissa == 0 {
-            return Self::zero();
-        }
-        p
+        reciprocal * da
     }
 
     /// Multiply self by integer scalar `b`.
@@ -205,13 +192,28 @@ impl DyadicFloat128 {
             DyadicSign::Pos
         };
 
+        let mut hi_prod = (self.mantissa >> 64).wrapping_mul(abs_b as u128);
+        let m = hi_prod.leading_zeros();
+        hi_prod <<= m;
+
+        let mut lo_prod = (self.mantissa & 0xffff_ffff_ffff_ffff).wrapping_mul(abs_b as u128);
+        lo_prod = (lo_prod << (m - 1)) >> 63;
+
+        let (mut product, overflow) = hi_prod.overflowing_add(lo_prod);
+
         let mut result = DyadicFloat128 {
             sign,
-            exponent: self.exponent + 64,
-            mantissa: 0,
+            exponent: self.exponent + 64 - m as i16,
+            mantissa: product,
         };
 
-        result.mantissa = mulhi_u128_u64(self.mantissa, abs_b);
+        if overflow {
+            // Overflow means an implicit bit in the 129th place, which we shift down.
+            product += product & 0x1;
+            result.mantissa = (product >> 1) | (1u128 << 127);
+            result.shift_right(1);
+        }
+
         result.normalize();
         result
     }
@@ -453,6 +455,7 @@ impl DyadicFloat128 {
 
         r
     }
+
     //
     // // Approximate reciprocal - given a nonzero `a`, make a good approximation to 1/a.
     // // The method is Newton-Raphson iteration, based on quick_mul.

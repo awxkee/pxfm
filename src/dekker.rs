@@ -446,7 +446,7 @@ impl Dekker {
         ))]
         {
             let h = b * a.hi;
-            let l = b * a.lo + f_fmla(b, a.hi, -h);
+            let l = f_fmla(b, a.lo, f_fmla(b, a.hi, -h));
             Self { lo: l, hi: h }
         }
         #[cfg(not(any(
