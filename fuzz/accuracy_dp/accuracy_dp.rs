@@ -163,7 +163,7 @@ fuzz_target!(|data: (f64, f64)| {
         0.5,
     );
 
-    /*test_method(x0, f_erf, &mpfr_x0.clone().erf(), "f_erf".to_string(), 0.5);
+    test_method(x0, f_erf, &mpfr_x0.clone().erf(), "f_erf".to_string(), 0.5);
     test_method(
         x0,
         f_atanh,
@@ -393,5 +393,5 @@ fuzz_target!(|data: (f64, f64)| {
             "f_powf".to_string(),
             0.6,
         );
-    }*/
+    }
 });
