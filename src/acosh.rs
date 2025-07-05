@@ -185,6 +185,7 @@ pub(crate) static ACOSH_ASINH_REFINE_T4: [u64; 16] = [
     0x3feffeb350000000,
 ];
 
+#[cold]
 fn acosh_refine(x: f64, a: f64) -> f64 {
     let ix = x.to_bits();
 

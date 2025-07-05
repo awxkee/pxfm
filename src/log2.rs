@@ -450,6 +450,7 @@ pub(crate) fn f_polyeval4(x: f64, a0: f64, a1: f64, a2: f64, a3: f64) -> f64 {
 
 // Reuse the output of the fast pass range reduction.
 // -2^-8 <= m_x < 2^-7
+#[cold]
 fn log2_accurate(e_x: i64, index: usize, m_x: f64) -> f64 {
     // > P = fpminimax(log2(1 + x)/x, 3, [|128...|], [-0x1.0002143p-29 , 0x1p-29]);
     // > P;

@@ -136,6 +136,7 @@ fn atanpi_tiny(x: f64) -> f64 {
     h + l
 }
 
+#[cold]
 fn as_atan_refine2(x: f64, a: f64) -> f64 {
     if x.abs() > f64::from_bits(0x413be00000000000) {
         return atanpi_asympt(x);

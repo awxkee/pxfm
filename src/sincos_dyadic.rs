@@ -29,6 +29,7 @@
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::sin::ONE_TWENTY_EIGHT_OVER_PI;
 
+#[cold]
 pub(crate) fn range_reduction_small_f128(x: f64) -> DyadicFloat128 {
     const PI_OVER_128_F128: DyadicFloat128 = DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -105,6 +106,7 @@ pub(crate) struct SinCosDyadic {
     pub(crate) v_cos: DyadicFloat128,
 }
 
+#[cold]
 pub(crate) fn sincos_eval_dyadic(u: &DyadicFloat128) -> SinCosDyadic {
     let u_sq = u.quick_mul(u);
 

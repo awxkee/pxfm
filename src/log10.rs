@@ -166,6 +166,7 @@ pub(crate) static LOG_R_DD: [(u64, u64); 128] = [
 
 // Reuse the output of the fast pass range reduction.
 // -2^-8 <= m_x < 2^-7
+#[cold]
 fn log10_accurate(e_x: i64, index: usize, m_x: f64) -> f64 {
     // > P = fpminimax(log10(1 + x)/x, 3, [|128...|], [-0x1.0002143p-29 , 0x1p-29]);
     // > P;

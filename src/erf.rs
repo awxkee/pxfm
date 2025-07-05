@@ -36,9 +36,9 @@ const TWO_OVER_SQRT_PI: Dekker = Dekker::new(
     f64::from_bits(0x3ff20dd750429b6d),
 );
 
-struct Erf {
-    result: Dekker,
-    err: f64,
+pub(crate) struct Erf {
+    pub(crate) result: Dekker,
+    pub(crate) err: f64,
 }
 
 /* for |z| < 1/8, assuming z >= 2^-61, thus no underflow can occur */
@@ -93,7 +93,8 @@ fn cr_erf_accurate_tiny(x: f64) -> Dekker {
 /* Assuming 0 <= z <= 0x1.7afb48dc96626p+2, put in h+l an accurate
 approximation of erf(z).
 Assumes z >= 2^-61, thus no underflow can occur. */
-fn erf_accurate(x: f64) -> Dekker {
+#[cold]
+pub(crate) fn erf_accurate(x: f64) -> Dekker {
     if x < 0.125
     /* z < 1/8 */
     {
@@ -134,7 +135,7 @@ fn erf_accurate(x: f64) -> Dekker {
 /* Assuming 0 <= z <= 5.9215871957945065, put in h+l an approximation
 of erf(z). Return err the maximal relative error:
 |(h + l)/erf(z) - 1| < err*|h+l| */
-fn erf_fast(x: f64) -> Erf {
+pub(crate) fn erf_fast(x: f64) -> Erf {
     /* we split [0,5.9215871957945065] into intervals i/16 <= z < (i+1)/16,
        and for each interval, we use a minimax polynomial:
        * for i=0 (0 <= z < 1/16) we use a polynomial evaluated at zero,

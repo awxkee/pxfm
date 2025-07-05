@@ -237,6 +237,7 @@ fn as_sinpi_zero(x: f64) -> f64 {
     k0.hi + k1.hi
 }
 
+#[cold]
 fn as_sinpi_refine(iq: i32, z: f64) -> f64 {
     let x = z * f64::from_bits(0x3c00000000000000);
     let x2 = x * x;

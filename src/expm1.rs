@@ -275,6 +275,7 @@ pub(crate) fn opoly_dd_generic<const N: usize>(x: Dekker, poly: [(u64, u64); N])
     ch
 }
 
+#[cold]
 fn as_expm1_accurate(x: f64) -> f64 {
     let mut ix;
     if x.abs() < 0.25 {

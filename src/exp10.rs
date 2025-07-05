@@ -77,6 +77,7 @@ pub(crate) fn poly_dd_6(x: Dekker, poly: [(u64, u64); 6], l: f64) -> Dekker {
     ch
 }
 
+#[cold]
 fn as_exp10_accurate(x: f64) -> f64 {
     const EXP10_POLY_DD: [(u64, u64); 6] = [
         (0x40026bb1bbb55516, 0xbcaf48ad494ea102),

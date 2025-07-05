@@ -503,6 +503,7 @@ pub(crate) fn log2_dyadic(d: &DyadicFloat128, x: f64) -> DyadicFloat128 {
     p + r
 }
 
+#[cold]
 fn log2p1_accurate(x: f64) -> f64 {
     let ax = x.abs();
 

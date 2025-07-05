@@ -31,6 +31,7 @@ use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 
+#[cold]
 pub(crate) fn hyperbolic_exp_accurate(x: f64, t: f64, zt: Dekker) -> Dekker {
     static CH: [(u64, u64); 3] = [
         (0x3a16c16bd194535d, 0x3ff0000000000000),
@@ -65,6 +66,7 @@ pub(crate) fn hyperbolic_exp_accurate(x: f64, t: f64, zt: Dekker) -> Dekker {
     Dekker::new(vl, vh)
 }
 
+#[cold]
 fn as_sinh_zero(x: f64) -> f64 {
     static CH: [(u64, u64); 5] = [
         (0x3c6555555555552f, 0x3fc5555555555555),
@@ -279,7 +281,7 @@ pub fn f_sinh(x: f64) -> f64 {
         let q1h = f64::from_bits(tq1.1);
         let q1l = f64::from_bits(tq1.0);
         let mut qh = q0h * q1h;
-        let mut ql = f_fmla(q0h, q1l, q1h * q0l) + f_fmla(q0h, q1h, -qh);
+        let mut ql = f_fmla(q0h, q1l, q1h * q0l) + dd_fmla(q0h, q1h, -qh);
         th *= f64::from_bits(sp);
         tl *= f64::from_bits(sp);
         qh *= f64::from_bits(sm);

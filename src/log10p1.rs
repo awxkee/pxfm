@@ -111,6 +111,7 @@ fn log10p1_accurate_small(x: f64) -> f64 {
     pz.to_f64()
 }
 
+#[cold]
 fn log10p1_accurate(x: f64) -> f64 {
     let ax = x.abs();
 

@@ -885,6 +885,7 @@ pub(crate) struct LargeArgumentReduction {
 // (c_hi, c_mid, c_lo, c_lo_2) by a fixed power of 2 (based on the index) and
 // scale down x by the same amount.
 impl LargeArgumentReduction {
+    #[cold]
     pub(crate) fn accurate(&self) -> DyadicFloat128 {
         // Sage math:
         // R = RealField(128)

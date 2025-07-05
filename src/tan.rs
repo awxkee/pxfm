@@ -79,6 +79,7 @@ fn tan_eval(u: Dekker) -> (Dekker, f64) {
     (Dekker::from_exact_add(u.hi, tan_lo), err)
 }
 
+#[cold]
 fn tan_eval_rational(u: &DyadicFloat128) -> DyadicFloat128 {
     let u_sq = u.quick_mul(u);
 

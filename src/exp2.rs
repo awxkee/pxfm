@@ -28,6 +28,7 @@
  */
 use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
+use crate::dyadic_float::{DyadicSign, f64_from_parts};
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
 
 #[inline]
@@ -51,6 +52,60 @@ pub(crate) fn ldexp(d: f64, i: u64) -> f64 {
     f64::from_bits(b.wrapping_add(i.wrapping_shl(52)))
 }
 
+#[inline]
+pub(crate) fn ldexpi(d: f64, i: i32) -> f64 {
+    let mut n = i;
+    let exp_max = 1023;
+    let exp_min = -1022;
+
+    const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
+    // 2 ^ Emax, maximum positive with null significand (0x1p1023 for f64)
+    let f_exp_max = f64_from_parts(DyadicSign::Pos, EXP_BIAS << 1, 0);
+
+    // 2 ^ Emin, minimum positive normal with null significand (0x1p-1022 for f64)
+    let f_exp_min = f64_from_parts(DyadicSign::Pos, 1, 0);
+
+    let mut x = d;
+
+    if n < exp_min {
+        // 2 ^ sig_total_bits, moltiplier to normalize subnormals (0x1p53 for f64)
+        let f_pow_subnorm = f64_from_parts(DyadicSign::Pos, 52 + EXP_BIAS, 0);
+
+        let mul = f_exp_min * f_pow_subnorm;
+        let add = -exp_min - 52i32;
+
+        // Worse case negative `n`: `x`  is the maximum positive value, the result is `F::MIN`.
+        // This must be reachable by three scaling multiplications (two here and one final).
+        debug_assert!(-exp_min + 52i32 + exp_max <= add * 2 + -exp_min);
+
+        x *= mul;
+        n += add;
+
+        if n < exp_min {
+            x *= mul;
+            n += add;
+
+            if n < exp_min {
+                n = exp_min;
+            }
+        }
+    } else if n > exp_max {
+        x *= f_exp_max;
+        n -= exp_max;
+        if n > exp_max {
+            x *= f_exp_max;
+            n -= exp_max;
+            if n > exp_max {
+                n = exp_max;
+            }
+        }
+    }
+
+    let scale = f64_from_parts(DyadicSign::Pos, (EXP_BIAS as i32 + n) as u64, 0);
+    x * scale
+}
+
+#[cold]
 fn exp2_accurate(x: f64) -> f64 {
     let mut ix = x.to_bits();
     let sx = 4096.0 * x;

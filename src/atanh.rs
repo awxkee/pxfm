@@ -159,6 +159,7 @@ fn as_atanh_zero(x: f64) -> f64 {
     y0.hi + p.hi
 }
 
+#[cold]
 fn atanh_refine(x: f64, a: f64, z: Dekker) -> f64 {
     let mut t = z.hi.to_bits();
     let ex: i32 = (t >> 52) as i32;

@@ -45,13 +45,13 @@ impl DyadicSign {
         }
     }
 
-    // #[inline]
-    // pub(crate) fn to_bit(self) -> u8 {
-    //     match self {
-    //         DyadicSign::Pos => 0,
-    //         DyadicSign::Neg => 1,
-    //     }
-    // }
+    #[inline]
+    pub(crate) const fn to_bit(self) -> u8 {
+        match self {
+            DyadicSign::Pos => 0,
+            DyadicSign::Neg => 1,
+        }
+    }
 }
 
 const BITS: u32 = 128;
@@ -64,8 +64,8 @@ pub(crate) struct DyadicFloat128 {
 }
 
 #[inline]
-fn f64_from_parts(sign: DyadicSign, exp: u64, mantissa: u64) -> f64 {
-    let r_sign = (if sign == DyadicSign::Pos { 0u64 } else { 1u64 }).wrapping_shl(63);
+pub(crate) const fn f64_from_parts(sign: DyadicSign, exp: u64, mantissa: u64) -> f64 {
+    let r_sign = (if sign.to_bit() == 0 { 0u64 } else { 1u64 }).wrapping_shl(63);
     let r_exp = exp.wrapping_shl(52);
     f64::from_bits(r_sign | r_exp | mantissa)
 }

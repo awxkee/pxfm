@@ -359,6 +359,7 @@ fn exp10m1_accurate_tiny(x: f64) -> f64 {
     p.to_f64()
 }
 
+#[cold]
 fn exp10m1_accurate(x: f64) -> f64 {
     let t = x.to_bits();
     let ux = t;

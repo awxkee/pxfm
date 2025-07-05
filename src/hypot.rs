@@ -31,11 +31,13 @@ use crate::dekker::Dekker;
 use std::hint::black_box;
 
 // case hypot(x,y) >= 2^1024
+#[cold]
 fn hypot_overflow() -> f64 {
     const Z: f64 = f64::from_bits(0x7fefffffffffffff);
     black_box(Z) + black_box(Z)
 }
 
+#[cold]
 fn hypot_denorm(a: u64, b: u64) -> f64 {
     let mut a = a;
     let mut b = b;
@@ -111,6 +113,7 @@ fn hypot_denorm(a: u64, b: u64) -> f64 {
 and fits in a 128-bit integer, so the approximation is squared (which
 also fits in a 128-bit integer), compared and adjusted if necessary using
 the exact value of x^2+y^2. */
+#[cold]
 fn hypot_hard(x: f64, y: f64) -> f64 {
     let op = 1.0 + f64::from_bits(0x3c90000000000000);
     let om = 1.0 - f64::from_bits(0x3c90000000000000);

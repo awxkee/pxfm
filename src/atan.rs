@@ -219,6 +219,7 @@ pub(crate) fn poly_dd_3(x: Dekker, poly: [(u64, u64); 3], l: f64) -> Dekker {
     ch
 }
 
+#[cold]
 fn atan_refine(x: f64, a: f64) -> f64 {
     const CH: [(u64, u64); 3] = [
         (0xbfd5555555555555, 0xbc75555555555555),

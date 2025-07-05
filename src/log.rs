@@ -91,6 +91,7 @@ pub const fn log(d: f64) -> f64 {
 
 // Reuse the output of the fast pass range reduction.
 // -2^-8 <= m_x < 2^-7
+#[cold]
 fn log_accurate(e_x: i32, index: i32, m_x: f64) -> f64 {
     // > P = fpminimax((log(1 + x) - x)/x^2, 2, [|1, 128...|],
     //                 [-0x1.0002143p-29 , 0x1p-29]);

@@ -34,6 +34,7 @@ use crate::acosh::{
 use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 
+#[cold]
 fn asinh_refine(x: f64, a: f64, z: Dekker) -> f64 {
     let mut t = z.hi.to_bits();
     let ex: i32 = (t >> 52) as i32;
@@ -122,6 +123,7 @@ fn asinh_refine(x: f64, a: f64, z: Dekker) -> f64 {
     v02.hi + v12.hi
 }
 
+#[cold]
 fn as_asinh_zero(x: f64, x2h: f64, x2l: f64) -> f64 {
     static CH: [(u64, u64); 12] = [
         (0xbc65555555555555, 0xbfc5555555555555),

@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::acosh::lpoly_xd_generic;
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 use crate::sinh::hyperbolic_exp_accurate;
@@ -46,7 +46,7 @@ fn as_tanh_zero(x: f64) -> f64 {
         (0xbbb0831108273a74, 0x3f1967e18ad3facf),
     ];
     let x2 = x * x;
-    let x2l = f_fmla(x, x, -x2);
+    let x2l = dd_fmla(x, x, -x2);
     const CL: [u64; 6] = [
         0xbf0497d8e6462927,
         0x3ef0b1318c243bd7,
@@ -111,7 +111,7 @@ pub fn f_tanh(x: f64) -> f64 {
         return f - df;
     }
     const S: f64 = f64::from_bits(0xc0c71547652b82fe);
-    let v0 = f_fmla(ax, S, f64::from_bits(0x4188000004000000));
+    let v0 = dd_fmla(ax, S, f64::from_bits(0x4188000004000000));
     let jt = v0.to_bits();
     let v = v0.to_bits() & 0xfffffffff8000000;
     let t = f64::from_bits(v) - f64::from_bits(0x4188000000000000);
@@ -143,7 +143,7 @@ pub fn f_tanh(x: f64) -> f64 {
                     }
                     /* We have underflow when 0 < |x| < 2^-1022 or when |x| = 2^-1022
                     and rounding towards zero. */
-                    let res = f_fmla(x, f64::from_bits(0xbc80000000000000), x);
+                    let res = dd_fmla(x, f64::from_bits(0xbc80000000000000), x);
                     return res;
                 }
                 let x3 = x * x * x;
@@ -187,7 +187,7 @@ pub fn f_tanh(x: f64) -> f64 {
 
         let t0l = f64::from_bits(EXP_REDUCE_T0[i0 as usize].0);
         let t1l = f64::from_bits(EXP_REDUCE_T1[i1 as usize].0);
-        tl = f_fmla(t0h, t1l, t1h * t0l) + f_fmla(t0h, t1h, -th);
+        tl = f_fmla(t0h, t1l, t1h * t0l) + dd_fmla(t0h, t1h, -th);
         th *= f64::from_bits(sp);
         tl *= f64::from_bits(sp);
         const L2H: f64 = f64::from_bits(0xbf162e42ff000000);
@@ -212,7 +212,7 @@ pub fn f_tanh(x: f64) -> f64 {
         ql += qq.lo;
 
         let rqh = 1.0 / qh;
-        let rql = f_fmla(ql, rqh, f_fmla(rqh, qh, -1.)) * -rqh;
+        let rql = f_fmla(ql, rqh, dd_fmla(rqh, qh, -1.)) * -rqh;
         let p = Dekker::mult(Dekker::new(pl, ph), Dekker::new(rql, rqh));
 
         let e = r.hi * f64::from_bits(0x3c10000000000000);
@@ -227,7 +227,7 @@ pub fn f_tanh(x: f64) -> f64 {
         }
     } else {
         const L2: f64 = f64::from_bits(0xbf162e42fefa39ef);
-        let dx = f_fmla(L2, t, -ax);
+        let dx = dd_fmla(L2, t, -ax);
         let dx2 = dx * dx;
 
         let pw0 = f_fmla(dx, f64::from_bits(CH[3]), f64::from_bits(CH[2]));
@@ -248,7 +248,7 @@ pub fn f_tanh(x: f64) -> f64 {
 
         let t0l = f64::from_bits(EXP_REDUCE_T0[i0 as usize].0);
         let t1l = f64::from_bits(EXP_REDUCE_T1[i1 as usize].0);
-        tl = f_fmla(t0h, t1l, t1h * t0l) + f_fmla(t0h, t1h, -th);
+        tl = f_fmla(t0h, t1l, t1h * t0l) + dd_fmla(t0h, t1h, -th);
         th *= f64::from_bits(sp);
         tl *= f64::from_bits(sp);
     }
@@ -258,7 +258,7 @@ pub fn f_tanh(x: f64) -> f64 {
     q.lo += r.lo;
     q = Dekker::from_exact_add(q.hi, q.lo);
     let rqh = 1. / q.hi;
-    let rql = f_fmla(q.lo, rqh, f_fmla(rqh, q.hi, -1.)) * -rqh;
+    let rql = f_fmla(q.lo, rqh, dd_fmla(rqh, q.hi, -1.)) * -rqh;
     let p = Dekker::mult(r, Dekker::new(rql, rqh));
     r = Dekker::from_exact_sub(0.5, p.hi);
     r.lo -= p.lo;
