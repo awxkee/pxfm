@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
+use std::hint::black_box;
 
 static Q: [(u32, u32); 3] = [
     (0x7f7fffff, 0x7f7fffff),
@@ -72,7 +73,7 @@ pub fn f_exp2m1f(x: f32) -> f32 {
             f32::from_bits(Q[2].0)
         } else {
             let zq = Q[2];
-            f32::from_bits(zq.0) + f32::from_bits(zq.1)
+            black_box(f32::from_bits(zq.0)) + black_box(f32::from_bits(zq.1))
         }
     } else if ax >= 0x43000000u32 {
         // x >= 128
@@ -118,13 +119,13 @@ pub fn f_exp2m1f(x: f32) -> f32 {
                                 }
                             } else {
                                 if ux == 0xb3d85005u32 {
-                                    return (f64::from_bits(0xbe72bdf760000000)
-                                        - f64::from_bits(0x3b28000000000000))
+                                    return (black_box(f64::from_bits(0xbe72bdf760000000))
+                                        - black_box(f64::from_bits(0x3b28000000000000)))
                                         as f32;
                                 }
                                 if ux == 0x3338428du32 {
-                                    return (f64::from_bits(0x3e5fee08a0000000)
-                                        + f64::from_bits(0x3af0000000000000))
+                                    return (black_box(f64::from_bits(0x3e5fee08a0000000))
+                                        + black_box(f64::from_bits(0x3af0000000000000)))
                                         as f32;
                                 }
                                 const C: [u64; 3] =

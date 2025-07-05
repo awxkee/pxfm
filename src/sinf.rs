@@ -88,7 +88,6 @@ fn search_from_table(x: f32, r: f64) -> f32 {
     r as f32
 }
 
-#[inline]
 fn as_sinf_big(x: f32) -> f32 {
     const B: [u64; 4] = [
         0x3f93bd3cc9be45dc,

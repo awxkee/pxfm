@@ -28,6 +28,7 @@
  */
 use crate::common::{f_fmla, f_fmlaf, pow2if};
 use crate::expf::EXP_TABLE;
+use std::hint::black_box;
 
 const TBLSIZE: usize = 64;
 
@@ -113,7 +114,8 @@ pub fn f_exp2f(x: f32) -> f32 {
                 return y as f32;
             }
             // now x >= 128
-            let r = f64::from_bits(0x47e0000000000000) * f64::from_bits(0x47e0000000000000);
+            let r = black_box(f64::from_bits(0x47e0000000000000))
+                * black_box(f64::from_bits(0x47e0000000000000));
             return r as f32;
         }
     }

@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, f_fmlaf, fmlaf, pow2if, rintfk};
+use std::hint::black_box;
 
 const L2U_F: f32 = 0.693_145_751_953_125;
 const L2L_F: f32 = 1.428_606_765_330_187_045_e-6;
@@ -179,7 +180,8 @@ pub fn f_expf(x: f32) -> f32 {
         }
         if (t >> 31) == 0 && t > 0x42b17217u32 {
             // x > 0x1.62e42ep+6
-            let r = f64::from_bits(0x47e0000000000000) * f64::from_bits(0x47e0000000000000);
+            let r = black_box(f64::from_bits(0x47e0000000000000))
+                * black_box(f64::from_bits(0x47e0000000000000));
             return r as f32;
         }
     }

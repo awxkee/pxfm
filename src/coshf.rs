@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, f_fmlaf};
+use std::hint::black_box;
 
 static TB: [u64; 32] = [
     0x3fe0000000000000,
@@ -95,7 +96,7 @@ pub fn f_coshf(x: f32) -> f32 {
             } // nan
             return f32::INFINITY; // +-inf
         }
-        let r = 2.0 * f64::from_bits(0x47efffffe0000000) as f32;
+        let r = black_box(2.0) * black_box(f64::from_bits(0x47efffffe0000000) as f32);
         return r;
     }
     if ax < 0x7c000000u32 {

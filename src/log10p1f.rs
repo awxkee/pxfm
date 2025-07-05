@@ -28,6 +28,7 @@
  */
 use crate::common::f_fmla;
 use crate::log1pf::special_logf;
+use std::hint::black_box;
 
 static TR: [u64; 65] = [
     0x3ff0000000000000,
@@ -216,13 +217,16 @@ pub fn f_log10p1f(x: f32) -> f32 {
         if ax < 0x3d32743eu32 {
             // |x| < 0x1.64e87cp-5f
             if ux == 0xa6aba8afu32 {
-                return f32::from_bits(0xa61519de) + f32::from_bits(0x19800000);
+                return black_box(f32::from_bits(0xa61519de))
+                    + black_box(f32::from_bits(0x19800000));
             }
             if ux == 0xaf39b9a7u32 {
-                return f32::from_bits(0xaea151a1) + f32::from_bits(0x22000000);
+                return black_box(f32::from_bits(0xaea151a1))
+                    + black_box(f32::from_bits(0x22000000));
             }
             if ux == 0x399a7c00u32 {
-                return f32::from_bits(0x390629e5) + f32::from_bits(0x2c800000);
+                return black_box(f32::from_bits(0x390629e5))
+                    + black_box(f32::from_bits(0x2c800000));
             }
             z /= 2.0 + z;
             let z2 = z * z;

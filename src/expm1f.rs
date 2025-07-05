@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, f_fmlaf};
+use std::hint::black_box;
 
 static TD: [u64; 32] = [
     0x3ff0000000000000,
@@ -120,7 +121,7 @@ pub fn f_expm1f(x: f32) -> f32 {
             if ax == (0xffu32 << 24) {
                 return -1.0;
             }
-            return -1.0 + f32::from_bits(0x32800000);
+            return black_box(-1.0) + black_box(f32::from_bits(0x32800000));
         }
         if ax == (0xffu32 << 24) {
             return f32::INFINITY;

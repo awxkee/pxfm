@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, f_fmlaf};
+use std::hint::black_box;
 
 static X0: [u64; 32] = [
     0x3fef81f820000000,
@@ -248,25 +249,31 @@ pub fn f_log1pf(x: f32) -> f32 {
             if tr & 0xfffffffu64 == 0 {
                 let x_bits = x.to_bits();
                 if x_bits == 0xbc923d58u32 {
-                    return f32::from_bits(0xbc938f87) - f32::from_bits(0x30000000);
+                    return black_box(f32::from_bits(0xbc938f87))
+                        - black_box(f32::from_bits(0x30000000));
                 }
                 if x_bits == 0xbd1d20afu32 {
-                    return f32::from_bits(0xbd203889) + f32::from_bits(0x30800000);
+                    return black_box(f32::from_bits(0xbd203889))
+                        + black_box(f32::from_bits(0x30800000));
                 }
                 if x_bits == 0x3efd81adu32 {
-                    return f32::from_bits(0x3ecdeee1) + f32::from_bits(0x32000000);
+                    return black_box(f32::from_bits(0x3ecdeee1))
+                        + black_box(f32::from_bits(0x32000000));
                 }
                 tr = (f64::from_bits(tr) + 64. * (rl + (lh - f64::from_bits(tr)))).to_bits();
             } else if rl + (lh - f64::from_bits(tr)) == 0.0 {
                 let x_bits = x.to_bits();
                 if x_bits == 0x3ddbfec3u32 {
-                    return f32::from_bits(0x3dd0f671) + f32::from_bits(0x31000000);
+                    return black_box(f32::from_bits(0x3dd0f671))
+                        + black_box(f32::from_bits(0x31000000));
                 }
                 if x_bits == 0xbd1d20afu32 {
-                    return f32::from_bits(0xbd203889) + f32::from_bits(0x30800000);
+                    return black_box(f32::from_bits(0xbd203889))
+                        + black_box(f32::from_bits(0x30800000));
                 }
                 if x_bits == 0x3ca1e3f1u32 {
-                    return f32::from_bits(0x3ca04fc0) + f32::from_bits(0x30000000);
+                    return black_box(f32::from_bits(0x3ca04fc0))
+                        + black_box(f32::from_bits(0x30000000));
                 }
             }
             ub = f64::from_bits(tr) as f32;

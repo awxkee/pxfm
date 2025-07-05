@@ -145,7 +145,6 @@ pub(crate) fn sincos_reduce_big(u: u32) -> (f64, i32) {
     (z, i)
 }
 
-#[inline]
 fn as_cosf_big(x: f32) -> f32 {
     let t = x.to_bits();
     let ax = t.wrapping_shl(1);

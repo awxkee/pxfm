@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
+use std::hint::black_box;
 
 static IX: [u64; 129] = [
     0x3ff0000000000000,
@@ -330,16 +331,20 @@ pub fn f_log2p1f(x: f32) -> f32 {
                     res as f32
                 } else {
                     if ux == 0x32ff7045u32 {
-                        return f32::from_bits(0x3338428d) - f32::from_bits(0x17c00000);
+                        return black_box(f32::from_bits(0x3338428d))
+                            - black_box(f32::from_bits(0x17c00000));
                     }
                     if ux == 0xb395efbbu32 {
-                        return f32::from_bits(0xb3d85005) + f32::from_bits(0x19800000);
+                        return black_box(f32::from_bits(0xb3d85005))
+                            + black_box(f32::from_bits(0x19800000));
                     }
                     if ux == 0x35a14df7u32 {
-                        return f32::from_bits(0x35e8b690) + f32::from_bits(0x1b800000);
+                        return black_box(f32::from_bits(0x35e8b690))
+                            + black_box(f32::from_bits(0x1b800000));
                     }
                     if ux == 0x3841cb81u32 {
-                        return f32::from_bits(0x388bca4f) + f32::from_bits(0x1e000000);
+                        return black_box(f32::from_bits(0x388bca4f))
+                            + black_box(f32::from_bits(0x1e000000));
                     }
                     const C: [u64; 4] = [
                         0x3ff71547652b82fe,
@@ -356,7 +361,8 @@ pub fn f_log2p1f(x: f32) -> f32 {
                 }
             } else {
                 if ux == 0xbac9363du32 {
-                    return f32::from_bits(0xbb114155) + f32::from_bits(0x21000000);
+                    return black_box(f32::from_bits(0xbb114155))
+                        + black_box(f32::from_bits(0x21000000));
                 }
                 const C: [u64; 6] = [
                     0x3ff71547652b82fe,
@@ -404,7 +410,7 @@ pub fn f_log2p1f(x: f32) -> f32 {
         if ux == 0x4ebd09e3u32 {
             let h = f32::from_bits(0x41f48013);
             let l = f32::from_bits(0x35780000);
-            return h + l;
+            return black_box(h) + black_box(l);
         }
         let tp = (z + 1.0).to_bits();
         let m = tp & 0x000fffffffffffff;

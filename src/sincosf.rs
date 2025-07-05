@@ -95,7 +95,6 @@ fn search_from_table(x: f32) -> (f32, f32) {
     (f32::NAN, f32::NAN)
 }
 
-#[inline]
 fn as_sincosf_big(x: f32) -> (f32, f32) {
     const B: [u64; 4] = [
         0x3f93bd3cc9be45dc,

@@ -37,7 +37,6 @@ pub(crate) fn tan_reduce1(z: f32) -> (f64, i64) {
     ((idh - id) + idl, id as i64)
 }
 
-#[inline]
 pub(crate) fn tan_reduce_big(u: u32) -> (f64, i64) {
     const IPI: [u64; 4] = [
         0xfe5163abdebbc562,
@@ -81,6 +80,31 @@ pub(crate) fn tan_reduce_big(u: u32) -> (f64, i64) {
     let z = (a ^ sgn as i64) as f64 * f64::from_bits(0x3bf0000000000000);
     i = (i ^ sgn).wrapping_sub(sgn);
     (z, i as i64)
+}
+
+fn tanf_check_exceptions(t: u32, r: f32) -> f32 {
+    static ST: [(u32, u32, u32); 8] = [
+        (0x3f8a1f62, 0x3feefcfb, 0xa5c48e92),
+        (0x4d56d355, 0x3e740182, 0x22a0cfa3),
+        (0x57d7b0ed, 0x3eb068e4, 0xa416b61d),
+        (0x5980445e, 0x3fe50f68, 0x257b0298),
+        (0x63fc86fe, 0x3f2cbfce, 0x25492cbc),
+        (0x6a662711, 0xc0799ac2, 0x266b92a5),
+        (0x6ad36709, 0xbf62b097, 0xa513619f),
+        (0x72b505bb, 0xbff2150f, 0xa58ee483),
+    ];
+    let ax: u32 = t & 0x000000007fffffff;
+    let sgn = t.wrapping_shr(31);
+    for i in ST.iter() {
+        if i.0 == ax {
+            return if sgn != 0 {
+                -f32::from_bits(i.1) - f32::from_bits(i.2)
+            } else {
+                f32::from_bits(i.1) + f32::from_bits(i.2)
+            };
+        }
+    }
+    r
 }
 
 /// Computes tan
@@ -140,27 +164,7 @@ pub fn f_tanf(x: f32) -> f32 {
     let tr = r1.to_bits();
     let tail = (tr.wrapping_add(7)) & 0x000000001fffffff;
     if tail <= 14 {
-        static ST: [(u32, u32, u32); 8] = [
-            (0x3f8a1f62, 0x3feefcfb, 0xa5c48e92),
-            (0x4d56d355, 0x3e740182, 0x22a0cfa3),
-            (0x57d7b0ed, 0x3eb068e4, 0xa416b61d),
-            (0x5980445e, 0x3fe50f68, 0x257b0298),
-            (0x63fc86fe, 0x3f2cbfce, 0x25492cbc),
-            (0x6a662711, 0xc0799ac2, 0x266b92a5),
-            (0x6ad36709, 0xbf62b097, 0xa513619f),
-            (0x72b505bb, 0xbff2150f, 0xa58ee483),
-        ];
-        let ax: u32 = t & 0x000000007fffffff;
-        let sgn = t.wrapping_shr(31);
-        for i in ST.iter() {
-            if i.0 == ax {
-                return if sgn != 0 {
-                    -f32::from_bits(i.1) - f32::from_bits(i.2)
-                } else {
-                    f32::from_bits(i.1) + f32::from_bits(i.2)
-                };
-            }
-        }
+        return tanf_check_exceptions(t, r1 as f32);
     }
     r1 as f32
 }
