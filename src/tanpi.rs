@@ -131,16 +131,16 @@ pub fn f_tanpi(x: f64) -> f64 {
             let m: i64 = ax as i64;
             let sgn = (ix as i64) >> 63;
             let iq = ((((m ^ sgn) - sgn) as u64).wrapping_shl(s as u32)) & 127;
-            if (iq & 31) == 0 {
+            return if (iq & 31) == 0 {
                 let jq: i64 = (iq >> 5) as i64;
                 if (jq & 1) != 0 {
-                    return if (jq & 2) != 0 {
+                    if (jq & 2) != 0 {
                         f64::NEG_INFINITY
                     } else {
                         f64::INFINITY
-                    };
+                    }
                 } else {
-                    return if (jq ^ sgn) & 2 != 0 { -0.0 } else { 0.0 };
+                    if (jq ^ sgn) & 2 != 0 { -0.0 } else { 0.0 }
                 }
             } else {
                 let nh;
@@ -154,8 +154,8 @@ pub fn f_tanpi(x: f64) -> f64 {
                     nl = f64::from_bits(rr.0);
                     nh = f64::from_bits(rr.1);
                 }
-                return nh + nl;
-            }
+                nh + nl
+            };
         }
         // now 0.000244140625 <= |x| < 70368744177664, we have 1011 <= e <= 1068
         let e: i32 = (ax >> 52) as i32;
