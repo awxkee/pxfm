@@ -497,7 +497,6 @@ pub(crate) fn log2_dyadic(d: &DyadicFloat128, x: f64) -> DyadicFloat128 {
 
     // E·log(2)
     let r = LOG2.mul_int64(fe as i64);
-    // let r = LOG2.quick_mul(&DyadicFloat128::new_from_f64(fe as f64));
 
     let mut p = log_dyadic_taylor_poly(&z);
     p = LOG2P1_LOG_INV_2[(i - 128) as usize] + p;

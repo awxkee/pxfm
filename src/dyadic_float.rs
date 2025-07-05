@@ -180,6 +180,7 @@ impl DyadicFloat128 {
 
     /// Multiply self by integer scalar `b`.
     /// Returns a new normalized DyadicFloat128.
+    #[inline]
     pub(crate) fn mul_int64(&self, b: i64) -> DyadicFloat128 {
         if b == 0 {
             return DyadicFloat128::zero();
