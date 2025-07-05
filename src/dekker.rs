@@ -77,6 +77,7 @@ impl Dekker {
         Dekker::new(r_lo, r_hi)
     }
 
+    // valid only for |a| > b
     #[inline]
     pub(crate) const fn from_exact_add(a: f64, b: f64) -> Dekker {
         let r_hi = a + b;
@@ -85,6 +86,7 @@ impl Dekker {
         Dekker::new(r_lo, r_hi)
     }
 
+    // valid only for |a| > b
     #[inline]
     pub(crate) const fn from_exact_sub(a: f64, b: f64) -> Dekker {
         let r_hi = a - b;

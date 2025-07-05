@@ -30,6 +30,7 @@ use crate::atan2f::poly_dekker_generic;
 use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp2::ldexp;
+use std::hint::black_box;
 
 static TZ: [(u64, u64); 65] = [
     (0xbc6797d4686c5393, 0xbfcc5041854df7d4),
@@ -417,12 +418,12 @@ pub fn f_expm1(x: f64) -> f64 {
             }
             if (ix >> 63) == 0 {
                 const Z: f64 = f64::from_bits(0x7fe0000000000000);
-                return Z * Z;
+                return black_box(Z) * black_box(Z);
             }
         }
         if ix >= 0xc0425e4f7b2737fau64 {
             if ix >= 0xc042b708872320e2u64 {
-                return -1.0 + f64::from_bits(0x3c80000000000000);
+                return black_box(-1.0) + black_box(f64::from_bits(0x3c80000000000000));
             }
             return (f64::from_bits(0x40425e4f7b2737fa) + x + f64::from_bits(0x3cc8486612173c69))
                 * f64::from_bits(0x3c971547652b82fe)

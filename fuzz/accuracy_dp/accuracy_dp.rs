@@ -155,6 +155,7 @@ fuzz_target!(|data: (f64, f64)| {
     let x1 = data.0;
     let mpfr_x0 = Float::with_val(100, x0);
     let mpfr_x1 = Float::with_val(100, x1);
+    test_method(x0, f_erf, &mpfr_x0.clone().erf(), "f_erf".to_string(), 0.5);
     test_method(
         x0,
         f_atanh,

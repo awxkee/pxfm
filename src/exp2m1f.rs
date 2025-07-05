@@ -135,8 +135,8 @@ pub fn f_exp2m1f(x: f32) -> f32 {
                             }
                         } else {
                             if ux == 0x388bca4fu32 {
-                                return (f64::from_bits(0x3f08397020000000)
-                                    - f64::from_bits(0x3bb8000000000000))
+                                return (black_box(f64::from_bits(0x3f08397020000000))
+                                    - black_box(f64::from_bits(0x3bb8000000000000)))
                                     as f32;
                             }
                             const C: [u64; 4] = [

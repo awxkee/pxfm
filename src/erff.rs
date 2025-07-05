@@ -383,7 +383,7 @@ pub fn f_erff(x: f32) -> f32 {
     let xsq = xd * xd;
 
     const EIGHT: u32 = 3 << 23;
-    let idx = f32::from_bits(x_abs + EIGHT) as usize;
+    let idx = f32::from_bits(x_abs.wrapping_add(EIGHT)) as usize;
 
     let c = COEFFS[idx];
 

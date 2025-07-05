@@ -30,6 +30,7 @@ use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
 use crate::exp2::ldexp;
+use std::hint::black_box;
 
 #[inline]
 pub(crate) fn poly_dd_6(x: Dekker, poly: [(u64, u64); 6], l: f64) -> Dekker {
@@ -163,7 +164,8 @@ pub fn f_exp10(x: f64) -> f64 {
         }
         if aix > 0x407439b746e36b52u64 {
             // x < -323.607
-            return f64::from_bits(0x0018000000000000) * f64::from_bits(0x3c80000000000000);
+            return black_box(f64::from_bits(0x0018000000000000))
+                * black_box(f64::from_bits(0x3c80000000000000));
         }
     }
 
