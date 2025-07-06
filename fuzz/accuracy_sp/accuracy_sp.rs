@@ -122,14 +122,12 @@ fuzz_target!(|data: (f32, f32)| {
 
     test_method(x0, f_erfcf, &mpfr_x0.clone().erfc(), "f_erfcf".to_string());
     test_method(x0, f_erff, &mpfr_x0.clone().erf(), "f_erff".to_string());
-    if x0.abs() < 6.60 {
-        let sinc_x0 = if x0 == 0. {
-            Float::with_val(70, 1.)
-        } else {
-            mpfr_x0.clone().sin().div(&mpfr_x0)
-        };
-        test_method_max_ulp(x0, f_sincf, &sinc_x0, "f_sincf".to_string(), 0.5000);
-    }
+    let sinc_x0 = if x0 == 0. {
+        Float::with_val(70, 1.)
+    } else {
+        mpfr_x0.clone().sin().div(&mpfr_x0)
+    };
+    test_method_max_ulp(x0, f_sincf, &sinc_x0, "f_sincf".to_string(), 0.5000);
     test_method_2vals_ignore_nan(
         x0,
         x1,

@@ -137,6 +137,7 @@ mod tanh;
 mod tanhf;
 mod tanpi;
 mod tanpif;
+mod triple_double;
 mod trunc;
 
 pub use acos::f_acos;

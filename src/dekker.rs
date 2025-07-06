@@ -175,6 +175,7 @@ impl Dekker {
             Self::new(q_lo, q_hi)
         }
     }
+    
     //
     // #[inline]
     // pub(crate) fn from_sqrt(x: f64) -> Self {
@@ -187,16 +188,77 @@ impl Dekker {
     //     Dekker::new(l, h)
     // }
 
-    // #[inline]
-    // pub(crate) fn div_dd_f64(a: Dekker, b: f64) -> Self {
-    //     let q1 = a.hi / b;
-    //     let r = f_fmla(-q1, b, a.hi);
-    //     let r = r + a.lo;
-    //     let q2 = r / b;
-    //
-    //     Dekker::new(q2, q1)
-    // }
-    //
+    #[inline]
+    pub(crate) fn div_dd_f64(a: Dekker, b: f64) -> Self {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let q1 = a.hi / b;
+            let r = f_fmla(-q1, b, a.hi);
+            let r = r + a.lo;
+            let q2 = r / b;
+
+            Dekker::new(q2, q1)
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let hi = a.hi / b;
+
+            let p = Dekker::from_exact_mult(hi, b);
+            let r = ((a.hi - p.hi) - p.lo) + a.lo;
+
+            let lo = r / b;
+
+            Dekker::new(lo, hi)
+        }
+    }
+
+    /// Dekker division with one refinement step
+    #[inline]
+    pub(crate) fn div_dd_f64_newton_raphson(a: Dekker, b: f64) -> Self {
+        // Initial estimate q = a / b
+        let q = Dekker::div_dd_f64(a, b);
+
+        // One Newton-Raphson refinement step:
+        // e = a - q * b
+        let qb = Dekker::quick_mult_f64(q, b);
+        let e = Dekker::sub(a, qb);
+        let e_div_b = Dekker::div_dd_f64(e, b);
+
+        Dekker::add(q, e_div_b)
+    }
+
+    /*/// Dekker division with two Newton-Raphson refinement steps
+    #[inline]
+    pub(crate) fn div_dd_f64_newton_raphson_2(a: Dekker, b: f64) -> Self {
+        // First estimate: q = a / b (one round of Dekker division)
+        let q1 = Dekker::div_dd_f64(a, b);
+
+        // First refinement: q2 = q1 + (a - q1 * b) / b
+        let qb1 = Dekker::quick_mult_f64(q1, b);
+        let e1 = Dekker::sub(a, qb1);
+        let dq1 = Dekker::div_dd_f64(e1, b);
+        let q2 = Dekker::add(q1, dq1);
+
+        // Second refinement: q3 = q2 + (a - q2 * b) / b
+        let qb2 = Dekker::quick_mult_f64(q2, b);
+        let e2 = Dekker::sub(a, qb2);
+        let dq2 = Dekker::div_dd_f64(e2, b);
+
+        Dekker::add(q2, dq2)
+    }*/
+
     // #[inline]
     // pub(crate) fn neg(self) -> Self {
     //     Self {

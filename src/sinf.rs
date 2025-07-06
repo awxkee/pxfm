@@ -29,7 +29,7 @@
 use crate::common::{f_fmla, f_fmlaf};
 use crate::cosf::{sincos_reduce_big, sincos_reduce0, sincos_reduce1};
 
-static TB: [u64; 32] = [
+pub(crate) static SINCOSF_SIN_TABLE: [u64; 32] = [
     0x0000000000000000,
     0x3fc8f8b83c69a60b,
     0x3fd87de2a6aea963,
@@ -125,8 +125,8 @@ fn as_sinf_big(x: f32) -> f32 {
 
     let bb = f_fmla(z4, q1, q0);
 
-    let s0 = f64::from_bits(TB[(ia & 31) as usize]);
-    let c0 = f64::from_bits(TB[((ia.wrapping_add(8)) & 31) as usize]);
+    let s0 = f64::from_bits(SINCOSF_SIN_TABLE[(ia & 31) as usize]);
+    let c0 = f64::from_bits(SINCOSF_SIN_TABLE[((ia.wrapping_add(8)) & 31) as usize]);
 
     let f0 = f_fmla(-bb, z * s0, aa * c0);
     let r = f_fmla(z, f0, s0);
@@ -198,8 +198,8 @@ pub fn f_sinf(x: f32) -> f32 {
 
     let bb = f_fmla(z4, q1, q0);
 
-    let s0 = f64::from_bits(TB[(ia & 31) as usize]);
-    let c0 = f64::from_bits(TB[((ia.wrapping_add(8)) & 31) as usize]);
+    let s0 = f64::from_bits(SINCOSF_SIN_TABLE[(ia & 31) as usize]);
+    let c0 = f64::from_bits(SINCOSF_SIN_TABLE[((ia.wrapping_add(8)) & 31) as usize]);
 
     let f0 = f_fmla(aa, z * c0, s0);
     let r = f_fmla(-bb, z2 * s0, f0);

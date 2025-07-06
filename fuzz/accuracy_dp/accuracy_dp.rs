@@ -5,6 +5,7 @@ use libfuzzer_sys::fuzz_target;
 use pxfm::*;
 use rug::ops::Pow;
 use rug::{Assign, Float};
+use std::ops::Div;
 
 pub fn count_ulp_f64(d: f64, c: &Float) -> f64 {
     let c2 = c.to_f64();
@@ -52,7 +53,7 @@ fn test_method(
     let ulp = count_ulp_f64(xr, mpfr_value);
     assert!(
         ulp <= max_ulp,
-        "ULP should be less than {max_ulp}, but it was {}, on {} result {}, using {method_name} and MPFR {:.19}",
+        "ULP should be less than {max_ulp}, but it was {}, on {} result {}, using {method_name} and MPFR {}",
         ulp,
         value,
         xr,
@@ -156,6 +157,12 @@ fuzz_target!(|data: (f64, f64)| {
     let x1 = data.0;
     let mpfr_x0 = Float::with_val(100, x0);
     let mpfr_x1 = Float::with_val(100, x1);
+    let sinc_x0 = if x0 == 0. {
+        Float::with_val(100, 1.)
+    } else {
+        mpfr_x0.clone().sin().div(&mpfr_x0)
+    };
+    test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5000);
     test_method(
         x0,
         f_erfc,
