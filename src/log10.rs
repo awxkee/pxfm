@@ -30,8 +30,9 @@ use crate::common::{f_fmla, min_normal_f64};
 use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log_range_reduction::log_range_reduction;
-use crate::log2::{LOG_COEFFS, f_polyeval4};
+use crate::log2::LOG_COEFFS;
 use crate::log10_dyadic::{LOG10_STEP_1, LOG10_STEP_2, LOG10_STEP_3, LOG10_STEP_4};
+use crate::polyeval::f_polyeval4;
 
 pub(crate) static LOG_R_DD: [(u64, u64); 128] = [
     (0x0000000000000000, 0x0000000000000000),

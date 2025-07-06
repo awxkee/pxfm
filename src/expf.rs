@@ -127,11 +127,8 @@ pub(crate) static EXP_TABLE: [u64; 64] = [
     0x3fffa7c1819e90d8,
 ];
 
-/// Computes exp
-///
-/// Max found ULP 0.4999993
-#[inline]
-pub fn f_expf(x: f32) -> f32 {
+#[cold]
+fn expf_accurate(z: f32, ia: f64, sv: u64) -> f32 {
     const C: [u64; 6] = [
         0x3fe62e42fefa39ef,
         0x3fcebfbdff82c58f,
@@ -140,6 +137,26 @@ pub fn f_expf(x: f32) -> f32 {
         0x3f55d886e6d54203,
         0x3f2430976b8ce6ef,
     ];
+    const ILN2H: f64 = f64::from_bits(0x3ff7154765000000);
+    const ILN2L: f64 = f64::from_bits(0x3e05c17f0bbbe880);
+    let zz0 = f_fmla(ILN2H, z as f64, ia);
+    let h = f_fmla(ILN2L, z as f64, zz0);
+    let s = f64::from_bits(sv);
+    let h2 = h * h;
+    let w = s * h;
+    let w0 = f_fmla(h, f64::from_bits(C[5]), f64::from_bits(C[4]));
+    let w1 = f_fmla(h, f64::from_bits(C[3]), f64::from_bits(C[2]));
+    let w2 = f_fmla(h, f64::from_bits(C[1]), f64::from_bits(C[0]));
+    let kq0 = f_fmla(h2, w0, w1);
+    let kq1 = f_fmla(h2, kq0, w2);
+    f_fmla(w, kq1, s) as f32
+}
+
+/// Computes exp
+///
+/// Max found ULP 0.4999993
+#[inline]
+pub fn f_expf(x: f32) -> f32 {
     const B: [u64; 4] = [
         0x3ff0000000000000,
         0x3fe62e42fef4c4e7,
@@ -170,8 +187,8 @@ pub fn f_expf(x: f32) -> f32 {
         if t > 0xc2ce8ec0u32 {
             // x < -103.279
             let zz0 = f_fmla(
-                f64::from_bits(0x4059d1d9fccf4770),
-                f64::from_bits(0x36971547652b82ed),
+                black_box(f64::from_bits(0x4059d1d9fccf4770)),
+                black_box(f64::from_bits(0x36971547652b82ed)),
                 z as f64,
             );
             let mut y = f64::from_bits(0x36a0000000000000) + zz0;
@@ -186,32 +203,19 @@ pub fn f_expf(x: f32) -> f32 {
         }
     }
     let ia = BIG - f64::from_bits(u);
-    let mut h = a + ia;
+    let h = a + ia;
     let sv = EXP_TABLE[(u & 0x3f) as usize].wrapping_add(u.wrapping_shr(6).wrapping_shl(52));
-    let mut h2 = h * h;
+    let h2 = h * h;
 
     let q0 = f_fmla(h, f64::from_bits(B[3]), f64::from_bits(B[2]));
     let q1 = f_fmla(h, f64::from_bits(B[1]), f64::from_bits(B[0]));
 
-    let mut r = f_fmla(h2, q0, q1) * f64::from_bits(sv);
-    let mut ub = r;
+    let r = f_fmla(h2, q0, q1) * f64::from_bits(sv);
+    let ub = r;
     let lb = f_fmla(-r, f64::from_bits(0x3de3edbbe4560327), r);
     // Ziv's accuracy test
     if ub != lb {
-        const ILN2H: f64 = f64::from_bits(0x3ff7154765000000);
-        const ILN2L: f64 = f64::from_bits(0x3e05c17f0bbbe880);
-        let zz0 = f_fmla(ILN2H, z as f64, ia);
-        h = f_fmla(ILN2L, z as f64, zz0);
-        let s = f64::from_bits(sv);
-        h2 = h * h;
-        let w = s * h;
-        let w0 = f_fmla(h, f64::from_bits(C[5]), f64::from_bits(C[4]));
-        let w1 = f_fmla(h, f64::from_bits(C[3]), f64::from_bits(C[2]));
-        let w2 = f_fmla(h, f64::from_bits(C[1]), f64::from_bits(C[0]));
-        let kq0 = f_fmla(h2, w0, w1);
-        let kq1 = f_fmla(h2, kq0, w2);
-        r = f_fmla(w, kq1, s);
-        ub = r;
+        return expf_accurate(z, ia, sv);
     }
     ub as f32
 }

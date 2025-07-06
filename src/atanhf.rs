@@ -28,16 +28,7 @@
  */
 use crate::asinhf::log_eval;
 use crate::common::f_fmla;
-
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn f_polyeval6(x: f64, a0: f64, a1: f64, a2: f64, a3: f64, a4: f64, a5: f64) -> f64 {
-    let t0 = f_fmla(x, a5, a4); // a3 * x + a2
-    let t2 = f_fmla(x, t0, a3); // a3 * x + a2
-    let t3 = f_fmla(x, t2, a2); // (a3 * x + a2) * x + a1
-    let t4 = f_fmla(x, t3, a1); // (a3 * x + a2) * x + a1
-    f_fmla(x, t4, a0) // ((a3 * x + a2) * x + a1) * x + a0
-}
+use crate::polyeval::f_polyeval6;
 
 /// Hyperbolic atan
 ///

@@ -28,40 +28,7 @@
  */
 use crate::bits::{get_exponent_f64, set_exponent_f64};
 use crate::common::f_fmla;
-
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn f_polyeval9(
-    x: f64,
-    a0: f64,
-    a1: f64,
-    a2: f64,
-    a3: f64,
-    a4: f64,
-    a5: f64,
-    a6: f64,
-    a7: f64,
-    a8: f64,
-) -> f64 {
-    let t0 = f_fmla(x, a8, a7); // a3 * x + a2
-    let t01 = f_fmla(x, t0, a6); // a3 * x + a2
-    let t1 = f_fmla(x, t01, a5); // a3 * x + a2
-    let t2 = f_fmla(x, t1, a4); // a3 * x + a2
-    let t3 = f_fmla(x, t2, a3); // (a3 * x + a2) * x + a1
-    let t4 = f_fmla(x, t3, a2); // (a3 * x + a2) * x + a1
-    let t5 = f_fmla(x, t4, a1); // (a3 * x + a2) * x + a1
-    f_fmla(x, t5, a0) // ((a3 * x + a2) * x + a1) * x + a0
-}
-
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn f_polyeval4(x: f64, a0: f64, a1: f64, a2: f64, a3: f64) -> f64 {
-    let t2 = f_fmla(x, a3, a2); // a3 * x + a2
-    let t3 = f_fmla(x, t2, a3); // (a3 * x + a2) * x + a1
-    let t4 = f_fmla(x, t3, a2); // (a3 * x + a2) * x + a1
-    let t5 = f_fmla(x, t4, a1); // (a3 * x + a2) * x + a1
-    f_fmla(x, t5, a0) // ((a3 * x + a2) * x + a1) * x + a0
-}
+use crate::polyeval::{f_polyeval4, f_polyeval9};
 
 // Lookup table for (1/f) where f = 1 + n*2^(-7), n = 0..127.
 static ONE_OVER_F: [u64; 128] = [

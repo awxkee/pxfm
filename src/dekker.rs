@@ -175,7 +175,7 @@ impl Dekker {
             Self::new(q_lo, q_hi)
         }
     }
-    
+
     //
     // #[inline]
     // pub(crate) fn from_sqrt(x: f64) -> Self {

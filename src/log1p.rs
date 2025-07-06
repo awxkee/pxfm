@@ -30,7 +30,7 @@ use crate::bits::{EXP_MASK, get_exponent_f64};
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
 use crate::log1p_dyadic::log1p_accurate;
-use crate::log2::f_polyeval4;
+use crate::polyeval::f_polyeval4;
 
 // R1[i] = 2^-8 * nearestint( 2^8 / (1 + i * 2^-7) )
 static R1: [u64; 129] = [

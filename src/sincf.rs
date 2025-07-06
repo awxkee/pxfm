@@ -31,6 +31,8 @@ use crate::cosf::{sincos_reduce_big, sincos_reduce0, sincos_reduce1};
 use crate::dekker::Dekker;
 use crate::sinf::SINCOSF_SIN_TABLE;
 
+#[inline(never)]
+#[cold]
 fn as_sincf_big(x: f32) -> f32 {
     const B: [u64; 4] = [
         0x3f93bd3cc9be45dc,

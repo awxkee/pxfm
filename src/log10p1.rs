@@ -38,6 +38,7 @@ const INV_LOG10_DD: Dekker = Dekker::new(
 );
 
 /* deal with |x| < 2^-900, then log10p1(x) ~ x/log(10) */
+#[cold]
 fn log10p1_accurate_tiny(x: f64) -> f64 {
     /* first scale x to avoid truncation of l in the underflow region */
     let sx = x * f64::from_bits(0x4690000000000000);

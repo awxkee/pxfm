@@ -27,7 +27,8 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, f_fmlaf};
-use crate::logf::{f_polyeval3, set_exponent_f32};
+use crate::logf::set_exponent_f32;
+use crate::polyeval::f_polyeval3;
 
 pub(crate) static LOG2_R: [u64; 128] = [
     0x0000000000000000,

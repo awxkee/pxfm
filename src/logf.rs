@@ -28,6 +28,7 @@
  */
 use crate::bits::min_normal_f32;
 use crate::common::*;
+use crate::polyeval::f_polyeval3;
 use std::hint::black_box;
 
 /// Natural logarithm
@@ -106,11 +107,6 @@ pub(crate) const EXP_MASK_F32: u32 = mask_trailing_ones_u32(8) << 23;
 pub(crate) fn set_exponent_f32(x: u32, new_exp: u32) -> u32 {
     let encoded_mask = new_exp.wrapping_shl(23) & EXP_MASK_F32;
     x ^ ((x ^ encoded_mask) & EXP_MASK_F32)
-}
-
-#[inline(always)]
-pub(crate) fn f_polyeval3(x: f64, a0: f64, a1: f64, a2: f64) -> f64 {
-    f_fmla(x, f_fmla(x, a2, a1), a0)
 }
 
 static LOG_R: [u64; 128] = [

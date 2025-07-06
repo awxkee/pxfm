@@ -35,6 +35,30 @@ use crate::sin::{
 };
 use crate::sincos_dyadic::{range_reduction_small_f128, sincos_eval_dyadic};
 
+#[cold]
+#[inline(never)]
+fn sinc_refine(argument_reduction: &mut LargeArgumentReduction, x: f64, x_e: u64, k: u64) -> f64 {
+    const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
+    let u_f128 = if x_e < EXP_BIAS + 16 {
+        range_reduction_small_f128(x)
+    } else {
+        argument_reduction.accurate()
+    };
+
+    let sin_cos = sincos_eval_dyadic(&u_f128);
+
+    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    let sin_k_f128 = get_sin_k_rational(k);
+    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
+
+    // sin(x) = sin(k * pi/128 + u)
+    //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
+    let r = (sin_k_f128 * sin_cos.v_cos) + (cos_k_f128 * sin_cos.v_sin);
+
+    let reciprocal = DyadicFloat128::accurate_reciprocal(x);
+    (r * reciprocal).fast_as_f64()
+}
+
 /// Computes sinc(x)
 ///
 /// Max ULP 0.5
@@ -113,26 +137,7 @@ pub fn f_sinc(x: f64) -> f64 {
     if r_upper == r_lower {
         return Dekker::from_exact_add(rr.hi, rr.lo).hi;
     }
-
-    const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-    let u_f128 = if x_e < EXP_BIAS + 16 {
-        range_reduction_small_f128(x)
-    } else {
-        argument_reduction.accurate()
-    };
-
-    let sin_cos = sincos_eval_dyadic(&u_f128);
-
-    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    let sin_k_f128 = get_sin_k_rational(k);
-    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
-
-    // sin(x) = sin(k * pi/128 + u)
-    //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
-    let r = (sin_k_f128 * sin_cos.v_cos) + (cos_k_f128 * sin_cos.v_sin);
-
-    let reciprocal = DyadicFloat128::accurate_reciprocal(x);
-    (r * reciprocal).fast_as_f64()
+    sinc_refine(&mut argument_reduction, x, x_e, k)
 }
 
 #[cfg(test)]

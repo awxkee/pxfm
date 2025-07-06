@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::*;
-use crate::logf::f_polyeval3;
+use crate::polyeval::f_polyeval3;
 
 static LOG10_R: [u64; 128] = [
     0x0000000000000000,

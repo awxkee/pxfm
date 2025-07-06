@@ -26,11 +26,15 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bits::biased_exponent_f64;
 use crate::common::*;
+use crate::dekker::Dekker;
 use crate::expf::expf;
 use crate::log2f::LOG2_R;
-use crate::logf::{EXP_MASK_F32, f_polyeval3, logf};
+use crate::logf::{EXP_MASK_F32, logf};
+use crate::polyeval::{f_polyeval3, f_polyeval6, f_polyeval10};
 use crate::pow::EXP2_MID1;
+use crate::powf_tables::{LOG2_R_TD, LOG2_R2_DD, POWF_R2};
 
 /// Power function for given value
 #[inline]
@@ -69,136 +73,123 @@ fn is_odd_integer(x: f32) -> bool {
     x_e + lsb == UNIT_EXPONENT
 }
 
-static LOG2_R2_DD: [(u64, u64); 128] = [
-    (0x0000000000000000, 0x0000000000000000),
-    (0xbe6177c23362928c, 0x3f872c8000000000),
-    (0xbe9179e0caa9c9ab, 0x3f97440000000000),
-    (0xbe8c6cea541f5b70, 0x3fa184c000000000),
-    (0xbe966c4d4e554434, 0x3fa773a000000000),
-    (0xbe770700a00fdd55, 0x3fad6ec000000000),
-    (0x3e853002a4e86631, 0x3fb1bb3000000000),
-    (0x3e6fcd15f101c142, 0x3fb4c56000000000),
-    (0x3e925b3eed319ced, 0x3fb7d60000000000),
-    (0xbe94195120d8486f, 0x3fb960d000000000),
-    (0x3e845b878e27d0d9, 0x3fbc7b5000000000),
-    (0x3e9770744593a4cb, 0x3fbf9c9000000000),
-    (0x3e9c673032495d24, 0x3fc097e000000000),
-    (0xbe91eaa65b49696e, 0x3fc22db000000000),
-    (0x3e9b2866f2850b22, 0x3fc3c6f800000000),
-    (0x3e68ee37cd2ea9d3, 0x3fc494f800000000),
-    (0x3e77e86f9c2154fb, 0x3fc633a800000000),
-    (0x3e58e3cfc25f0ce6, 0x3fc7046000000000),
-    (0x3e357f7a64ccd537, 0x3fc8a89800000000),
-    (0xbe9a761c09fbd2ae, 0x3fc97c2000000000),
-    (0x3e924bea9a2c66f3, 0x3fcb260000000000),
-    (0xbe660002ccfe43f5, 0x3fcbfc6800000000),
-    (0x3e969f220e97f22c, 0x3fcdac2000000000),
-    (0xbe96164f64c210e0, 0x3fce858000000000),
-    (0xbe70c1678ae89767, 0x3fd01d9c00000000),
-    (0xbe9f26a05c813d57, 0x3fd08bd000000000),
-    (0x3e74d8fc561c8d44, 0x3fd169c000000000),
-    (0xbe9362ad8f7ca2d0, 0x3fd1d98400000000),
-    (0x3e92b13cd6c4d042, 0x3fd249cc00000000),
-    (0xbe91c8f11979a5db, 0x3fd32c0000000000),
-    (0x3e8c2ab3edefe569, 0x3fd39de800000000),
-    (0x3e57c3eca28e69ca, 0x3fd4106000000000),
-    (0xbe734c4e99e1c6c6, 0x3fd4f6fc00000000),
-    (0xbe9194a871b63619, 0x3fd56b2400000000),
-    (0x3e8e3dd5c1c885ae, 0x3fd5dfdc00000000),
-    (0xbe86ccf3b1129b7c, 0x3fd6552c00000000),
-    (0xbe82f346e2bf924b, 0x3fd6cb1000000000),
-    (0xbe8fa61aaa59c1d8, 0x3fd7b8a000000000),
-    (0x3e990c11fd32a3ab, 0x3fd8304c00000000),
-    (0x3e457f7a64ccd537, 0x3fd8a89800000000),
-    (0x3e4249ba76fee235, 0x3fd9218000000000),
-    (0xbe8aad2729b21ae5, 0x3fd99b0800000000),
-    (0x3e971810a5e18180, 0x3fda8ff800000000),
-    (0xbe46172fe015e13c, 0x3fdb0b6800000000),
-    (0x3e75ec6c1bfbf89a, 0x3fdb877c00000000),
-    (0x3e7678bf6cdedf51, 0x3fdc043800000000),
-    (0x3e9c2d45fe43895e, 0x3fdc819c00000000),
-    (0xbe99ee52ed49d71d, 0x3fdcffb000000000),
-    (0x3e45786af187a96b, 0x3fdd7e6c00000000),
-    (0x3e83ab0dc56138c9, 0x3fddfdd800000000),
-    (0x3e9fe538ab34efb5, 0x3fde7df400000000),
-    (0xbe9e4fee07aa4b68, 0x3fdefec800000000),
-    (0xbe9172f32fe67287, 0x3fdf804c00000000),
-    (0xbe99a83ff9ab9cc8, 0x3fe0014400000000),
-    (0xbe968cb06cece193, 0x3fe042be00000000),
-    (0x3e98cd71ddf82e20, 0x3fe0849400000000),
-    (0x3e95e18ab2df3ae6, 0x3fe0c6ca00000000),
-    (0x3e65dee4d9d8a273, 0x3fe1096000000000),
-    (0x3e5fcd15f101c142, 0x3fe14c5600000000),
-    (0xbe82474b0f992ba1, 0x3fe18fae00000000),
-    (0x3e74b5a92a606047, 0x3fe1d36800000000),
-    (0x3e916186fcf54bbd, 0x3fe2178600000000),
-    (0x3e418efabeb7d722, 0x3fe25c0a00000000),
-    (0xbe7e5fc7d238691d, 0x3fe2a0f400000000),
-    (0x3e9f5809faf6283c, 0x3fe2e64400000000),
-    (0x3e9f5809faf6283c, 0x3fe2e64400000000),
-    (0x3e9c6e1dcd0cb449, 0x3fe32bfe00000000),
-    (0x3e976e0e8f74b4d5, 0x3fe3722200000000),
-    (0xbe7cb82c89692d99, 0x3fe3b8b200000000),
-    (0xbe963161c5432aeb, 0x3fe3ffae00000000),
-    (0x3e9458104c41b901, 0x3fe4471600000000),
-    (0x3e9458104c41b901, 0x3fe4471600000000),
-    (0xbe9cd9d0cde578d5, 0x3fe48ef000000000),
-    (0x3e5b9884591add87, 0x3fe4d73800000000),
-    (0x3e9c6042978605ff, 0x3fe51ff200000000),
-    (0xbe9fc4c96b37dcf6, 0x3fe5692200000000),
-    (0xbe72f346e2bf924b, 0x3fe5b2c400000000),
-    (0xbe72f346e2bf924b, 0x3fe5b2c400000000),
-    (0x3e9c4e4fbb68a4d1, 0x3fe5fcdc00000000),
-    (0xbe89d499bd9b3226, 0x3fe6476e00000000),
-    (0xbe8f89b355ede26f, 0x3fe6927800000000),
-    (0xbe8f89b355ede26f, 0x3fe6927800000000),
-    (0x3e753c7e319f6e92, 0x3fe6ddfc00000000),
-    (0xbe9b291f070528c7, 0x3fe729fe00000000),
-    (0x3e62967a451a7b48, 0x3fe7767c00000000),
-    (0x3e62967a451a7b48, 0x3fe7767c00000000),
-    (0x3e9244fcff690fce, 0x3fe7c37a00000000),
-    (0x3e846fd97f5dc572, 0x3fe810fa00000000),
-    (0x3e846fd97f5dc572, 0x3fe810fa00000000),
-    (0xbe9f3a7352663e50, 0x3fe85efe00000000),
-    (0x3e8b3cda690370b5, 0x3fe8ad8400000000),
-    (0x3e8b3cda690370b5, 0x3fe8ad8400000000),
-    (0x3e83226b211bf1d9, 0x3fe8fc9200000000),
-    (0x3e8d24b136c101ee, 0x3fe94c2800000000),
-    (0x3e8d24b136c101ee, 0x3fe94c2800000000),
-    (0x3e97c40c7907e82a, 0x3fe99c4800000000),
-    (0xbe9e81781d97ee91, 0x3fe9ecf600000000),
-    (0xbe9e81781d97ee91, 0x3fe9ecf600000000),
-    (0xbe96a77813f94e01, 0x3fea3e3000000000),
-    (0xbe91cfdeb43cfd00, 0x3fea8ffa00000000),
-    (0xbe91cfdeb43cfd00, 0x3fea8ffa00000000),
-    (0xbe8f983f74d3138f, 0x3feae25600000000),
-    (0xbe8e278ae1a1f51f, 0x3feb354600000000),
-    (0xbe8e278ae1a1f51f, 0x3feb354600000000),
-    (0xbe897552b7b5ea45, 0x3feb88cc00000000),
-    (0xbe897552b7b5ea45, 0x3feb88cc00000000),
-    (0xbe719b4f3c72c4f8, 0x3febdcea00000000),
-    (0x3e8f7402d26f1a12, 0x3fec31a200000000),
-    (0x3e8f7402d26f1a12, 0x3fec31a200000000),
-    (0xbe82056d5dd31d96, 0x3fec86f800000000),
-    (0xbe82056d5dd31d96, 0x3fec86f800000000),
-    (0xbe76e46335aae723, 0x3fecdcec00000000),
-    (0xbe9beb244c59f331, 0x3fed338200000000),
-    (0xbe9beb244c59f331, 0x3fed338200000000),
-    (0x3e416c071e93fd97, 0x3fed8aba00000000),
-    (0x3e416c071e93fd97, 0x3fed8aba00000000),
-    (0x3e9d8175819530c2, 0x3fede29800000000),
-    (0x3e9d8175819530c2, 0x3fede29800000000),
-    (0x3e851bd552842c1c, 0x3fee3b2000000000),
-    (0x3e851bd552842c1c, 0x3fee3b2000000000),
-    (0x3e9914e204f19d94, 0x3fee945200000000),
-    (0x3e9914e204f19d94, 0x3fee945200000000),
-    (0x3e9c55d997da24fd, 0x3feeee3200000000),
-    (0x3e9c55d997da24fd, 0x3feeee3200000000),
-    (0xbe9685c2d2298a6e, 0x3fef48c400000000),
-    (0xbe9685c2d2298a6e, 0x3fef48c400000000),
-    (0x3e97a4887bd74039, 0x3fefa40600000000),
-    (0x0000000000000000, 0x3ff0000000000000),
-];
+#[inline]
+const fn larger_exponent(a: f64, b: f64) -> bool {
+    biased_exponent_f64(a) >= biased_exponent_f64(b)
+}
+
+// Calculate 2^(y * log2(x)) in double-double precision.
+// At this point we can reuse the following values:
+//   idx_x: index for extra precision of log2 for the middle part of log2(x).
+//   dx: the reduced argument for log2(x)
+//   y6: 2^6 * y.
+//   lo6_hi: the high part of 2^6 * (y - (hi + mid))
+//   exp2_hi_mid: high part of 2^(hi + mid)
+#[cold]
+#[inline(never)]
+fn powf_dd(idx_x: i32, dx: f64, y6: f64, lo6_hi: f64, exp2_hi_mid: Dekker) -> f64 {
+    // Perform a second range reduction step:
+    //   idx2 = round(2^14 * (dx  + 2^-8)) = round ( dx * 2^14 + 2^6)
+    //   dx2 = (1 + dx) * r2 - 1
+    // Output range:
+    //   -0x1.3ffcp-15 <= dx2 <= 0x1.3e3dp-15
+    let idx2 = f_fmla(
+        dx,
+        f64::from_bits(0x40d0000000000000),
+        f64::from_bits(0x4050000000000000),
+    )
+    .round() as usize;
+    let dx2 = f_fmla(1.0 + dx, f64::from_bits(POWF_R2[idx2]), -1.0); // Exact
+
+    const COEFFS: [(u64, u64); 6] = [
+        (0x3c7777d0ffda25e0, 0x3ff71547652b82fe),
+        (0xbc6777d101cf0a84, 0xbfe71547652b82fe),
+        (0x3c7ce04b5140d867, 0x3fdec709dc3a03fd),
+        (0x3c7137b47e635be5, 0xbfd71547652b82fb),
+        (0xbc5b5a30b3bdb318, 0x3fd2776c516a92a2),
+        (0x3c62d2fbd081e657, 0xbfcec70af1929ca6),
+    ];
+    let dx_dd = Dekker::new(0.0, dx2);
+    let p = f_polyeval6(
+        dx_dd,
+        Dekker::from_bit_pair(COEFFS[0]),
+        Dekker::from_bit_pair(COEFFS[1]),
+        Dekker::from_bit_pair(COEFFS[2]),
+        Dekker::from_bit_pair(COEFFS[3]),
+        Dekker::from_bit_pair(COEFFS[4]),
+        Dekker::from_bit_pair(COEFFS[5]),
+    );
+    // log2(1 + dx2) ~ dx2 * P(dx2)
+    let log2_x_lo = Dekker::quick_mult_f64(p, dx2);
+    // Lower parts of (e_x - log2(r1)) of the first range reduction constant
+    let log2_r_td = LOG2_R_TD[idx_x as usize];
+    let log2_x_mid = Dekker::new(f64::from_bits(log2_r_td.0), f64::from_bits(log2_r_td.1));
+    // -log2(r2) + lower part of (e_x - log2(r1))
+    let log2_x_m = Dekker::add(Dekker::from_bit_pair(LOG2_R2_DD[idx2]), log2_x_mid);
+    // log2(1 + dx2) - log2(r2) + lower part of (e_x - log2(r1))
+    // Since we don't know which one has larger exponent to apply Fast2Sum
+    // algorithm, we need to check them before calling double-double addition.
+    let log2_x = if larger_exponent(log2_x_m.hi, log2_x_lo.hi) {
+        Dekker::add(log2_x_m, log2_x_lo)
+    } else {
+        Dekker::add(log2_x_lo, log2_x_m)
+    };
+    let lo6_hi_dd = Dekker::new(0.0, lo6_hi);
+    // 2^6 * y * (log2(1 + dx2) - log2(r2) + lower part of (e_x - log2(r1)))
+    let prod = Dekker::quick_mult_f64(log2_x, y6);
+    // 2^6 * (y * log2(x) - (hi + mid)) = 2^6 * lo
+    let lo6 = if larger_exponent(prod.hi, lo6_hi) {
+        Dekker::add(prod, lo6_hi_dd)
+    } else {
+        Dekker::add(lo6_hi_dd, prod)
+    };
+
+    const EXP2_COEFFS: [(u64, u64); 10] = [
+        (0x0000000000000000, 0x3ff0000000000000),
+        (0x3c1abc9e3b398024, 0x3f862e42fefa39ef),
+        (0xbba5e43a5429bddb, 0x3f0ebfbdff82c58f),
+        (0xbb2d33162491268f, 0x3e8c6b08d704a0c0),
+        (0x3a94fb32d240a14e, 0x3e03b2ab6fba4e77),
+        (0x39ee84e916be83e0, 0x3d75d87fe78a6731),
+        (0xb989a447bfddc5e6, 0x3ce430912f86bfb8),
+        (0xb8e31a55719de47f, 0x3c4ffcbfc588ded9),
+        (0xb850ba57164eb36b, 0x3bb62c034beb8339),
+        (0xb7b8483eabd9642d, 0x3b1b5251ff97bee1),
+    ];
+
+    let pp = f_polyeval10(
+        lo6,
+        Dekker::from_bit_pair(EXP2_COEFFS[0]),
+        Dekker::from_bit_pair(EXP2_COEFFS[1]),
+        Dekker::from_bit_pair(EXP2_COEFFS[2]),
+        Dekker::from_bit_pair(EXP2_COEFFS[3]),
+        Dekker::from_bit_pair(EXP2_COEFFS[4]),
+        Dekker::from_bit_pair(EXP2_COEFFS[5]),
+        Dekker::from_bit_pair(EXP2_COEFFS[6]),
+        Dekker::from_bit_pair(EXP2_COEFFS[7]),
+        Dekker::from_bit_pair(EXP2_COEFFS[8]),
+        Dekker::from_bit_pair(EXP2_COEFFS[9]),
+    );
+    let rr = Dekker::quick_mult(exp2_hi_mid, pp);
+
+    // Make sure the sum is normalized:
+    let r = Dekker::from_exact_add(rr.hi, rr.lo);
+
+    const FRACTION_MASK: u64 = (1u64 << 52) - 1;
+
+    let mut r_bits = r.hi.to_bits();
+    if ((r_bits & 0xfff_ffff) == 0) && (r.lo != 0.0) {
+        let hi_sign = r.hi.to_bits() >> 63;
+        let lo_sign = r.lo.to_bits() >> 63;
+        if hi_sign == lo_sign {
+            r_bits = r_bits.wrapping_add(1);
+        } else if (r_bits & FRACTION_MASK) > 0 {
+            r_bits = r_bits.wrapping_sub(1);
+        }
+    }
+
+    f64::from_bits(r_bits)
+}
 
 /// Power function for given value using FMA
 ///
@@ -488,14 +479,25 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
     let y6 = (y * f32::from_bits(0x42800000)) as f64; // Exact.
     let hm = (s * y6).round();
 
-    let log2_rr = LOG2_R2_DD[idx_x as usize];
+    // let log2_rr = LOG2_R2_DD[idx_x as usize];
+
+    // // lo6 = 2^6 * lo.
+    // let lo6_hi = f_fmla(y6, e_x + f64::from_bits(log2_rr.1), -hm); // Exact
+    // // Error bounds:
+    // //   | (y*log2(x) - hm * 2^-6 - lo) / y| < err(dx * p) + err(LOG2_R_DD.lo)
+    // //                                       < 2^-51 + 2^-75
+    // let lo6 = f_fmla(y6, f_fmla(dx, p, f64::from_bits(log2_rr.0)), lo6_hi);
 
     // lo6 = 2^6 * lo.
-    let lo6_hi = f_fmla(y6, e_x + f64::from_bits(log2_rr.1), -hm); // Exact
+    let lo6_hi = f_fmla(y6, e_x + f64::from_bits(LOG2_R_TD[idx_x as usize].2), -hm); // Exact
     // Error bounds:
     //   | (y*log2(x) - hm * 2^-6 - lo) / y| < err(dx * p) + err(LOG2_R_DD.lo)
     //                                       < 2^-51 + 2^-75
-    let lo6 = f_fmla(y6, f_fmla(dx, p, f64::from_bits(log2_rr.0)), lo6_hi);
+    let lo6 = f_fmla(
+        y6,
+        f_fmla(dx, p, f64::from_bits(LOG2_R_TD[idx_x as usize].1)),
+        lo6_hi,
+    );
 
     // |2^(hi + mid) - exp2_hi_mid| <= ulp(exp2_hi_mid) / 2
     // Clamp the exponent part into smaller range that fits double precision.
@@ -554,7 +556,43 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
     let pp = f_polyeval3(lo6_sqr, d0, d1, d2);
 
     let r = pp * exp2_hi_mid;
-    r as f32
+    let r_u = r.to_bits();
+
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    const ERR: u64 = 64;
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    const ERR: u64 = 128;
+
+    let r_upper = f64::from_bits(r_u + ERR) as f32;
+    let r_lower = f64::from_bits(r_u - ERR) as f32;
+    if r_upper == r_lower {
+        return r_upper;
+    }
+
+    // Scale lower part of 2^(hi + mid)
+    let exp2_hi_mid_dd = Dekker {
+        lo: if idx_y != 0 {
+            f64::from_bits((exp_hi_i as u64).wrapping_add(EXP2_MID1[idx_y as usize].0))
+        } else {
+            0.
+        },
+        hi: exp2_hi_mid,
+    };
+
+    let r_dd = powf_dd(idx_x, dx, y6, lo6_hi, exp2_hi_mid_dd);
+    r_dd as f32
 }
 
 /// Power function for given value using FMA
@@ -607,8 +645,6 @@ mod tests {
 
     #[test]
     fn dirty_powf_test() {
-        println!("{}", dirty_powf(3., 3.));
-        println!("{}", dirty_powf(27., 1. / 3.));
         assert!(
             (dirty_powf(2f32, 3f32) - 8f32).abs() < 1e-6,
             "Invalid result {}",

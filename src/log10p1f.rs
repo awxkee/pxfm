@@ -197,10 +197,10 @@ fn log10p1f_accurate(ax: u32, ux: u32, v: f64, z: f64, l: f64, e: i32) -> f32 {
         return r as f32;
     }
     if ux == 0x7956ba5eu32 {
-        return f32::from_bits(0x420b5f5d) + f32::from_bits(0x35800000);
+        return black_box(f32::from_bits(0x420b5f5d)) + black_box(f32::from_bits(0x35800000));
     }
     if ux == 0xbd86ffb9u32 {
-        return f32::from_bits(0xbcf29a9b) + f32::from_bits(0x30000000);
+        return black_box(f32::from_bits(0xbcf29a9b)) + black_box(f32::from_bits(0x30000000));
     }
     const C: [u64; 7] = [
         0x3fdbcb7b1526e50e,

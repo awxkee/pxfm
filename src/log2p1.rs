@@ -241,6 +241,7 @@ fn log2p1_accurate_small(x: f64) -> f64 {
 }
 
 /* deal with |x| < 2^-900, then log2p1(x) ~ x/log(2) */
+#[cold]
 fn log2p1_accurate_tiny(x: f64) -> f64 {
     // exceptional values
     if x.abs() == f64::from_bits(0x0002c316a14459d8) {

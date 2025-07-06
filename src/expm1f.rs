@@ -96,6 +96,35 @@ fn exp1m1f_accurate(ux: u32, z: f64, sv: u64, ia: f64) -> f32 {
     r as f32
 }
 
+#[cold]
+fn expm1f_small(z: f64) -> f32 {
+    const B: [u64; 8] = [
+        0x3fdfffffffffffc2,
+        0x3fc55555555555fe,
+        0x3fa555555559767f,
+        0x3f81111111098dc1,
+        0x3f56c16bca988aa9,
+        0x3f2a01a07658483f,
+        0x3efa05b04d2c3503,
+        0x3ec71de3a960b5e3,
+    ];
+    let z2 = z * z;
+    let z4 = z2 * z2;
+
+    let r0 = f_fmla(z, f64::from_bits(B[7]), f64::from_bits(B[6]));
+    let r1 = f_fmla(z, f64::from_bits(B[5]), f64::from_bits(B[4]));
+    let r2 = f_fmla(z, f64::from_bits(B[3]), f64::from_bits(B[2]));
+    let r3 = f_fmla(z, f64::from_bits(B[1]), f64::from_bits(B[0]));
+
+    let w0 = f_fmla(z2, r0, r1);
+    let w1 = f_fmla(z2, r2, r3);
+
+    let q0 = f_fmla(z4, w0, w1);
+
+    let r = f_fmla(z2, q0, z);
+    r as f32
+}
+
 /// Computes e^x - 1
 ///
 /// Max ULP 0.5
@@ -117,31 +146,7 @@ pub fn f_expm1f(x: f32) -> f32 {
             let res = f_fmlaf(x.abs(), f32::from_bits(0x33000000), x);
             return res;
         }
-        const B: [u64; 8] = [
-            0x3fdfffffffffffc2,
-            0x3fc55555555555fe,
-            0x3fa555555559767f,
-            0x3f81111111098dc1,
-            0x3f56c16bca988aa9,
-            0x3f2a01a07658483f,
-            0x3efa05b04d2c3503,
-            0x3ec71de3a960b5e3,
-        ];
-        let z2 = z * z;
-        let z4 = z2 * z2;
-
-        let r0 = f_fmla(z, f64::from_bits(B[7]), f64::from_bits(B[6]));
-        let r1 = f_fmla(z, f64::from_bits(B[5]), f64::from_bits(B[4]));
-        let r2 = f_fmla(z, f64::from_bits(B[3]), f64::from_bits(B[2]));
-        let r3 = f_fmla(z, f64::from_bits(B[1]), f64::from_bits(B[0]));
-
-        let w0 = f_fmla(z2, r0, r1);
-        let w1 = f_fmla(z2, r2, r3);
-
-        let q0 = f_fmla(z4, w0, w1);
-
-        let r = f_fmla(z2, q0, z);
-        return r as f32;
+        return expm1f_small(z);
     }
     if ax >= 0x8562e430u32 {
         // |x| > 88.72

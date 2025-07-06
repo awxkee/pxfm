@@ -83,6 +83,7 @@ fn test_method_outlier(
     }
 }
 
+#[track_caller]
 fn test_method_2_outputs(
     value: f64,
     method: fn(f64) -> (f64, f64),
@@ -132,6 +133,7 @@ fn test_method_allow_not_normals(
     );
 }
 
+#[track_caller]
 fn test_method_2vals_ignore_nan(
     value0: f64,
     value1: f64,

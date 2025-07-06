@@ -31,6 +31,7 @@ use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log_range_reduction::log_range_reduction;
 use crate::log2_dyadic::{LOG2_STEP_1, LOG2_STEP_2, LOG2_STEP_3, LOG2_STEP_4};
+use crate::polyeval::f_polyeval4;
 
 pub(crate) static LOG_RANGE_REDUCTION: [u64; 128] = [
     0x3ff0000000000000,
@@ -440,13 +441,6 @@ pub(crate) const LOG_COEFFS: [u64; 6] = [
     0xbfc55550ac2e537a,
     0x3fc21a02c4e624d7,
 ];
-
-#[inline(always)]
-pub(crate) fn f_polyeval4(x: f64, a0: f64, a1: f64, a2: f64, a3: f64) -> f64 {
-    let t1 = f_fmla(x, a3, a2); // a3 * x + a2
-    let t2 = f_fmla(x, t1, a1); // (a3 * x + a2) * x + a1
-    f_fmla(x, t2, a0) // ((a3 * x + a2) * x + a1) * x + a0
-}
 
 // Reuse the output of the fast pass range reduction.
 // -2^-8 <= m_x < 2^-7

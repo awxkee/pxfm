@@ -32,7 +32,7 @@ use crate::dekker::Dekker;
 use crate::exp::exp;
 use crate::log::log;
 use crate::log2::LOG_RANGE_REDUCTION;
-use crate::logf::f_polyeval3;
+use crate::polyeval::f_polyeval3;
 
 /// Power function for given value
 #[inline]

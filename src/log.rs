@@ -31,8 +31,9 @@ use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log_dyadic::{LOG_STEP_1, LOG_STEP_2, LOG_STEP_3, LOG_STEP_4};
 use crate::log_range_reduction::log_range_reduction;
-use crate::log2::{LOG_COEFFS, LOG_RANGE_REDUCTION, f_polyeval4};
+use crate::log2::{LOG_COEFFS, LOG_RANGE_REDUCTION};
 use crate::log10::LOG_R_DD;
+use crate::polyeval::f_polyeval4;
 
 /// Natural logarithm
 #[inline]

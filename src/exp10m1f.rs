@@ -28,7 +28,27 @@
  */
 use crate::common::f_fmla;
 use crate::exp10f::EXP10F_COEFFS;
-use crate::logf::f_polyeval3;
+use crate::polyeval::f_polyeval3;
+
+#[cold]
+fn exp10m1f_small(x: f32) -> f32 {
+    let dx = x as f64;
+    let dx_sq = dx * dx;
+    let c0 = dx * f64::from_bits(EXP10F_COEFFS[0]);
+    let c1 = f_fmla(
+        dx,
+        f64::from_bits(EXP10F_COEFFS[2]),
+        f64::from_bits(EXP10F_COEFFS[1]),
+    );
+    let c2 = f_fmla(
+        dx,
+        f64::from_bits(EXP10F_COEFFS[4]),
+        f64::from_bits(EXP10F_COEFFS[3]),
+    );
+    // 10^dx - 1 ~ (1 + COEFFS[0] * dx + ... + COEFFS[4] * dx^5) - 1
+    //           = COEFFS[0] * dx + ... + COEFFS[4] * dx^5
+    f_polyeval3(dx_sq, c0, c1, c2) as f32
+}
 
 /// Computes 10^x - 1
 ///
@@ -45,22 +65,8 @@ pub fn f_exp10m1f(x: f32) -> f32 {
     }
 
     if x_abs <= 0x3b9a_209bu32 {
-        let dx = x as f64;
-        let dx_sq = dx * dx;
-        let c0 = dx * f64::from_bits(EXP10F_COEFFS[0]);
-        let c1 = f_fmla(
-            dx,
-            f64::from_bits(EXP10F_COEFFS[2]),
-            f64::from_bits(EXP10F_COEFFS[1]),
-        );
-        let c2 = f_fmla(
-            dx,
-            f64::from_bits(EXP10F_COEFFS[4]),
-            f64::from_bits(EXP10F_COEFFS[3]),
-        );
-        // 10^dx - 1 ~ (1 + COEFFS[0] * dx + ... + COEFFS[4] * dx^5) - 1
-        //           = COEFFS[0] * dx + ... + COEFFS[4] * dx^5
-        return f_polyeval3(dx_sq, c0, c1, c2) as f32;
+        // |x| <= 0.004703594
+        return exp10m1f_small(x);
     }
 
     // When x <= log10(2^-25), or x is nan

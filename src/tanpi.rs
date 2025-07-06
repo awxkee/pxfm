@@ -130,6 +130,54 @@ fn tanpi_accurate(px: Dekker, x: f64) -> f64 {
     t.hi
 }
 
+#[cold]
+fn tanpi_accurate0(z: f64, iq: u64, ms: i64) -> f64 {
+    let z = z * f64::from_bits(0x3c00000000000000);
+
+    const CH: [(u64, u64); 5] = [
+        (0x3f9921fb54442d18, 0x3c31a62633145c07),
+        (0x3ed4abbce625be53, 0xbb705511c6842515),
+        (0x3e1466bc6775aae2, 0xbaa6dc0d93fb2ece),
+        (0x3d545fff9b48e95e, 0x39db226b250d2cc3),
+        (0x3c945f472e3af011, 0x39190612a0755449),
+    ];
+    const CL: [u64; 3] = [0x3bd45f32f25dab7f, 0x3b145f3030c82af4, 0x3a5464490600a978];
+    let z2 = z * z;
+    let dz2 = dd_fmla(z, z, -z2);
+
+    let tlo0 = f_fmla(z2, f64::from_bits(CL[2]), f64::from_bits(CL[1]));
+
+    let t_lo = z2 * f_fmla(z2, tlo0, f64::from_bits(CL[0]));
+    let mut t = poly_dd_5(Dekker::new(dz2, z2), CH, t_lo);
+    t = Dekker::mult_f64(t, z);
+    if iq == 32 {
+        let ith = -1.0 / t.hi;
+        t.lo = (f_fmla(ith, t.hi, 1.) + t.lo * ith) * ith;
+        t.hi = ith;
+    } else {
+        let mut n = Dekker::from_bit_pair(TANPI_REDUCE[iq as usize]);
+        static S2: [f64; 2] = [-1., 1.];
+        let sgn = S2[(ms + 1) as usize];
+        n.hi *= sgn;
+        n.lo *= sgn;
+        let mut m = Dekker::mult(t, n);
+        let z0 = Dekker::from_exact_sub(1.0, m.hi);
+        m.hi = z0.hi;
+        m.lo = z0.lo - m.lo;
+
+        let z1 = Dekker::from_exact_add(n.hi, t.hi);
+        n.hi = z1.hi;
+        n.lo += z1.lo + t.lo;
+
+        let imh = 1.0 / m.hi;
+        t.hi = n.hi * imh;
+        t.lo = dd_fmla(n.hi, imh, -t.hi)
+            + (n.lo + n.hi * (dd_fmla(-m.hi, imh, 1.) - m.lo * imh)) * imh;
+    }
+    t = Dekker::from_exact_add(t.hi, t.lo);
+    t.hi
+}
+
 /// Computes tan(PI*x)
 ///
 /// Max found ULP 5.0001
@@ -235,7 +283,7 @@ pub fn f_tanpi(x: f64) -> f64 {
             }
             z *= f64::copysign(1., x);
         }
-        let mut z2 = z * z;
+        let z2 = z * z;
         let z4 = z2 * z2;
         let z3 = z * z2;
 
@@ -290,50 +338,7 @@ pub fn f_tanpi(x: f64) -> f64 {
         if lb == ub {
             return lb;
         }
-        z *= f64::from_bits(0x3c00000000000000);
-
-        const CH: [(u64, u64); 5] = [
-            (0x3f9921fb54442d18, 0x3c31a62633145c07),
-            (0x3ed4abbce625be53, 0xbb705511c6842515),
-            (0x3e1466bc6775aae2, 0xbaa6dc0d93fb2ece),
-            (0x3d545fff9b48e95e, 0x39db226b250d2cc3),
-            (0x3c945f472e3af011, 0x39190612a0755449),
-        ];
-        const CL: [u64; 3] = [0x3bd45f32f25dab7f, 0x3b145f3030c82af4, 0x3a5464490600a978];
-        z2 = z * z;
-        let dz2 = dd_fmla(z, z, -z2);
-
-        let tlo0 = f_fmla(z2, f64::from_bits(CL[2]), f64::from_bits(CL[1]));
-
-        t.lo = z2 * f_fmla(z2, tlo0, f64::from_bits(CL[0]));
-        t = poly_dd_5(Dekker::new(dz2, z2), CH, t.lo);
-        t = Dekker::mult_f64(t, z);
-        if iq == 32 {
-            let ith = -1.0 / t.hi;
-            t.lo = (f_fmla(ith, t.hi, 1.) + t.lo * ith) * ith;
-            t.hi = ith;
-        } else {
-            let mut n = Dekker::from_bit_pair(TANPI_REDUCE[iq as usize]);
-            static S2: [f64; 2] = [-1., 1.];
-            let sgn = S2[(ms + 1) as usize];
-            n.hi *= sgn;
-            n.lo *= sgn;
-            let mut m = Dekker::mult(t, n);
-            let z0 = Dekker::from_exact_sub(1.0, m.hi);
-            m.hi = z0.hi;
-            m.lo = z0.lo - m.lo;
-
-            let z1 = Dekker::from_exact_add(n.hi, t.hi);
-            n.hi = z1.hi;
-            n.lo += z1.lo + t.lo;
-
-            let imh = 1.0 / m.hi;
-            t.hi = n.hi * imh;
-            t.lo = dd_fmla(n.hi, imh, -t.hi)
-                + (n.lo + n.hi * (dd_fmla(-m.hi, imh, 1.) - m.lo * imh)) * imh;
-        }
-        t = Dekker::from_exact_add(t.hi, t.lo);
-        res = t.hi;
+        res = tanpi_accurate0(z, iq, ms);
     } else {
         // |x| < 0.000244140625
         if ax == 0 {

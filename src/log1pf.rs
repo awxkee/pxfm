@@ -210,6 +210,36 @@ fn log1pf_accurate(x: f32, z: f64, e: i32, j: usize) -> f32 {
     f64::from_bits(tr) as f32
 }
 
+#[cold]
+fn log1pf_small(x: f32, z: f64, ax: u32) -> f32 {
+    if ax < 0x33000000u32 {
+        // |x| < 2.9802322387695312e-08
+        if ax == 0 {
+            return x;
+        }
+        let res = f_fmlaf(x, -x, x);
+        return res;
+    }
+    let z2 = z * z;
+    let z4 = z2 * z2;
+
+    let f0 = f_fmla(z, f64::from_bits(B[6]), f64::from_bits(B[5]));
+    let f1 = f_fmla(z, f64::from_bits(B[4]), f64::from_bits(B[3]));
+    let f2 = f_fmla(z, f64::from_bits(B[2]), f64::from_bits(B[1]));
+
+    let zf0 = f_fmla(z2, f64::from_bits(B[7]), f0);
+    let zf1 = f_fmla(z2, f1, f2);
+
+    let f = z2 * f_fmla(z4, zf0, zf1);
+    let mut r = (z + f).to_bits();
+    if (r & 0xfffffffu64) == 0 {
+        r = r.wrapping_add(
+            (f64::from_bits(0x40d0000000000000) * (f + (z - f64::from_bits(r)))).to_bits(),
+        );
+    }
+    f64::from_bits(r) as f32
+}
+
 /// Computes log(x+1)
 ///
 /// Max ULP 0.5
@@ -220,33 +250,8 @@ pub fn f_log1pf(x: f32) -> f32 {
     let ux: u32 = t;
     let ax = ux & 0x7fff_ffff;
     if ax < 0x3c880000u32 {
-        // |x| < 0x1.1p-6
-        if ax < 0x33000000u32 {
-            // |x| < 0x1p-25
-            if ax == 0 {
-                return x;
-            }
-            let res = f_fmlaf(x, -x, x);
-            return res;
-        }
-        let z2 = z * z;
-        let z4 = z2 * z2;
-
-        let f0 = f_fmla(z, f64::from_bits(B[6]), f64::from_bits(B[5]));
-        let f1 = f_fmla(z, f64::from_bits(B[4]), f64::from_bits(B[3]));
-        let f2 = f_fmla(z, f64::from_bits(B[2]), f64::from_bits(B[1]));
-
-        let zf0 = f_fmla(z2, f64::from_bits(B[7]), f0);
-        let zf1 = f_fmla(z2, f1, f2);
-
-        let f = z2 * f_fmla(z4, zf0, zf1);
-        let mut r = (z + f).to_bits();
-        if (r & 0xfffffffu64) == 0 {
-            r = r.wrapping_add(
-                (f64::from_bits(0x40d0000000000000) * (f + (z - f64::from_bits(r)))).to_bits(),
-            );
-        }
-        f64::from_bits(r) as f32
+        // |x| < 0.0166015625
+        log1pf_small(x, z, ax)
     } else {
         if ux >= 0xbf800000u32 || ax >= 0x7f800000u32 {
             return special_logf(x);
@@ -292,6 +297,9 @@ mod tests {
 
     #[test]
     fn log1pf_works() {
-        println!("{}", f_log1pf(54983060000000000000000000000.));
+        assert_eq!(f_log1pf(0.0), 0.0);
+        assert_eq!(f_log1pf(2.0), 1.0986123);
+        assert_eq!(f_log1pf(-0.7), -1.2039728);
+        assert_eq!(f_log1pf(-0.0000000000043243), -4.3243e-12);
     }
 }
