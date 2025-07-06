@@ -613,8 +613,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
             thus no underflow will be raised. We have underflow for
             0 < x <= 0x1.71547652b82fep-1022 for RNDZ, and for
             0 < x <= 0x1.71547652b82fdp-1022 for RNDN/RNDU. */
-            let res = dd_fmla(h, f64::from_bits(0x3950000000000000), h2);
-            res
+            dd_fmla(h, f64::from_bits(0x3950000000000000), h2)
         } else {
             const C2: f64 = f64::from_bits(0x3fcebfbdff82c58f); // log(2)^2/2
             let mut z = Dekker::from_exact_mult(LN2H, x);
