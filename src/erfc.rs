@@ -846,7 +846,7 @@ fn erfc_fast(x: f64) -> Erf {
         where err <= 0x1.78p-69 */
         let err = res.err * res.result.hi; /* convert into absolute error */
         let mut t = Dekker::from_exact_add(1.0, -res.result.hi);
-        t.lo = t.lo - res.result.lo;
+        t.lo -= res.result.lo;
         /* for x >= 0x1.e861fbb24c00ap-2, erf(x) >= 1/2, thus 1-h is exact
         by Sterbenz theorem, thus t = 0 in fast_two_sum(), and we have t = -l
         here, thus the absolute error is err */
@@ -872,7 +872,7 @@ fn erfc_fast(x: f64) -> Erf {
     /* on a i7-8700 with gcc 12.2.0, for x in [THRESHOLD1,+5.0],
     the average reciprocal throughput is about 111 cycles
     (among which 20 cycles for exp_1) */
-    return erfc_asympt_fast(x);
+    erfc_asympt_fast(x)
 }
 
 #[inline]

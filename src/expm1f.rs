@@ -64,6 +64,38 @@ static TD: [u64; 32] = [
     0x3fff50765b6e4540,
 ];
 
+#[cold]
+fn exp1m1f_accurate(ux: u32, z: f64, sv: u64, ia: f64) -> f32 {
+    if ux > 0xc18aa123u32 {
+        // x < -17.32
+        return -1.0 + f32::from_bits(0x32800000);
+    }
+    const ILN2H: f64 = f64::from_bits(0x4047154765000000);
+    const ILN2L: f64 = f64::from_bits(0x3e55c17f0bbbe880);
+    let s = f64::from_bits(sv);
+    let h = f_fmla(ILN2H, z, -ia) + ILN2L * z;
+    let h2 = h * h;
+    let w = s * h;
+    const CH: [u64; 6] = [
+        0x3f962e42fefa39ef,
+        0x3f2ebfbdff82c58f,
+        0x3ebc6b08d702e0ed,
+        0x3e43b2ab6fb92e5e,
+        0x3dc5d886e6d54203,
+        0x3d4430976b8ce6ef,
+    ];
+
+    let h0 = f_fmla(h, f64::from_bits(CH[5]), f64::from_bits(CH[4]));
+    let h1 = f_fmla(h, f64::from_bits(CH[3]), f64::from_bits(CH[2]));
+    let h2t = f_fmla(h, f64::from_bits(CH[1]), f64::from_bits(CH[0]));
+
+    let t0 = f_fmla(h2, h0, h1);
+    let t1 = f_fmla(h2, t0, h2t);
+
+    let r = f_fmla(w, t1, s - 1.);
+    r as f32
+}
+
 /// Computes e^x - 1
 ///
 /// Max ULP 0.5
@@ -131,8 +163,8 @@ pub fn f_expm1f(x: f32) -> f32 {
     }
     let a = ILN2 * z;
     let ia = a.round_ties_even();
-    let mut h = a - ia;
-    let mut h2 = h * h;
+    let h = a - ia;
+    let h2 = h * h;
     let u = (ia + BIG).to_bits();
     const C: [u64; 4] = [
         0x3ff0000000000000,
@@ -145,40 +177,13 @@ pub fn f_expm1f(x: f32) -> f32 {
     let c0 = f_fmla(h, f64::from_bits(C[1]), f64::from_bits(C[0]));
     let tdl = TD[(u & 0x1f) as usize];
     let sv: u64 = tdl.wrapping_add((u >> 5).wrapping_shl(52));
-    let mut r = f_fmla(h2, c2, c0) * f64::from_bits(sv) - 1.0;
-    let mut ub: f32 = r as f32;
+    let r = f_fmla(h2, c2, c0) * f64::from_bits(sv) - 1.0;
+    let ub: f32 = r as f32;
     let lb = (r - f64::from_bits(sv) * f64::from_bits(0x3de3b30000000000)) as f32;
 
     // Ziv's accuracy test
     if ub != lb {
-        if ux > 0xc18aa123u32 {
-            // x < -17.32
-            return -1.0 + f32::from_bits(0x32800000);
-        }
-        const ILN2H: f64 = f64::from_bits(0x4047154765000000);
-        const ILN2L: f64 = f64::from_bits(0x3e55c17f0bbbe880);
-        let s = f64::from_bits(sv);
-        h = f_fmla(ILN2H, z, -ia) + ILN2L * z;
-        h2 = h * h;
-        let w = s * h;
-        const CH: [u64; 6] = [
-            0x3f962e42fefa39ef,
-            0x3f2ebfbdff82c58f,
-            0x3ebc6b08d702e0ed,
-            0x3e43b2ab6fb92e5e,
-            0x3dc5d886e6d54203,
-            0x3d4430976b8ce6ef,
-        ];
-
-        let h0 = f_fmla(h, f64::from_bits(CH[5]), f64::from_bits(CH[4]));
-        let h1 = f_fmla(h, f64::from_bits(CH[3]), f64::from_bits(CH[2]));
-        let h2t = f_fmla(h, f64::from_bits(CH[1]), f64::from_bits(CH[0]));
-
-        let t0 = f_fmla(h2, h0, h1);
-        let t1 = f_fmla(h2, t0, h2t);
-
-        r = f_fmla(w, t1, s - 1.);
-        ub = r as f32;
+        return exp1m1f_accurate(ux, z, sv, ia);
     }
     ub
 }

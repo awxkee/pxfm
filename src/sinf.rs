@@ -70,6 +70,7 @@ fn add_sign(x: f32, rh: f32, rl: f32) -> f32 {
     f_fmlaf(sgn, rh, sgn * rl)
 }
 
+#[cold]
 fn search_from_table(x: f32, r: f64) -> f32 {
     static ST: [(u32, u32, u32); 4] = [
         (0x46199998, 0xbeb1fa5d, 0xb2000000),

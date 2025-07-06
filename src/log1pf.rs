@@ -134,6 +134,7 @@ static LIX: [u64; 32] = [
     0x3fe5ee02a9281675,
 ];
 
+#[cold]
 pub(crate) fn special_logf(x: f32) -> f32 {
     let t = x.to_bits();
     if t == 0xbf800000u32 {
@@ -150,22 +151,70 @@ pub(crate) fn special_logf(x: f32) -> f32 {
     f32::NAN // to raise FE_INVALID
 }
 
+const B: [u64; 8] = [
+    0x3ff0000000000000,
+    0xbfe0000000000000,
+    0x3fd5555555556f6b,
+    0xbfd00000000029b9,
+    0x3fc9999988d176e4,
+    0xbfc55555418889a7,
+    0x3fc24adeca50e2bc,
+    0xbfc001ba33bf57cf,
+];
+
+#[cold]
+fn log1pf_accurate(x: f32, z: f64, e: i32, j: usize) -> f32 {
+    let z2 = z * z;
+    let z4 = z2 * z2;
+
+    let f0 = f_fmla(z, f64::from_bits(B[7]), f64::from_bits(B[6]));
+    let f1 = f_fmla(z, f64::from_bits(B[5]), f64::from_bits(B[4]));
+    let f2 = f_fmla(z, f64::from_bits(B[3]), f64::from_bits(B[2]));
+    let f3 = f_fmla(z, f64::from_bits(B[1]), f64::from_bits(B[0]));
+
+    let zf0 = f_fmla(z2, f0, f1);
+    let zf1 = f_fmla(z2, f2, f3);
+    let zf2 = f_fmla(z4, zf0, zf1);
+
+    let f = z * zf2;
+    const LN2L: f64 = f64::from_bits(0x3eb7f7d1cf79abca);
+    const LN2H: f64 = f64::from_bits(0x3fe62e4000000000);
+    let lh = LN2H * e as f64;
+    let ll = LN2L * e as f64;
+    let rl = f + ll + f64::from_bits(LIX[j]);
+    let mut tr = (rl + lh).to_bits();
+    if tr & 0xfffffffu64 == 0 {
+        let x_bits = x.to_bits();
+        if x_bits == 0xbc923d58u32 {
+            return black_box(f32::from_bits(0xbc938f87)) - black_box(f32::from_bits(0x30000000));
+        }
+        if x_bits == 0xbd1d20afu32 {
+            return black_box(f32::from_bits(0xbd203889)) + black_box(f32::from_bits(0x30800000));
+        }
+        if x_bits == 0x3efd81adu32 {
+            return black_box(f32::from_bits(0x3ecdeee1)) + black_box(f32::from_bits(0x32000000));
+        }
+        tr = (f64::from_bits(tr) + 64. * (rl + (lh - f64::from_bits(tr)))).to_bits();
+    } else if rl + (lh - f64::from_bits(tr)) == 0.0 {
+        let x_bits = x.to_bits();
+        if x_bits == 0x3ddbfec3u32 {
+            return black_box(f32::from_bits(0x3dd0f671)) + black_box(f32::from_bits(0x31000000));
+        }
+        if x_bits == 0xbd1d20afu32 {
+            return black_box(f32::from_bits(0xbd203889)) + black_box(f32::from_bits(0x30800000));
+        }
+        if x_bits == 0x3ca1e3f1u32 {
+            return black_box(f32::from_bits(0x3ca04fc0)) + black_box(f32::from_bits(0x30000000));
+        }
+    }
+    f64::from_bits(tr) as f32
+}
+
 /// Computes log(x+1)
 ///
 /// Max ULP 0.5
 #[inline]
 pub fn f_log1pf(x: f32) -> f32 {
-    const B: [u64; 8] = [
-        0x3ff0000000000000,
-        0xbfe0000000000000,
-        0x3fd5555555556f6b,
-        0xbfd00000000029b9,
-        0x3fc9999988d176e4,
-        0xbfc55555418889a7,
-        0x3fc24adeca50e2bc,
-        0xbfc001ba33bf57cf,
-    ];
-
     let mut z = x as f64;
     let t = x.to_bits();
     let ux: u32 = t;
@@ -209,6 +258,7 @@ pub fn f_log1pf(x: f32) -> f32 {
         e -= 0x3ff;
         let xd = m52 | (0x3ffu64 << 52);
         z = f_fmla(f64::from_bits(xd), f64::from_bits(X0[j]), -1.);
+
         const C: [u64; 5] = [
             0xbd43902c33434e7f,
             0x3feffffffe1cbed5,
@@ -216,7 +266,9 @@ pub fn f_log1pf(x: f32) -> f32 {
             0x3fd5564e0ed3613a,
             0xbfd0012232a00d4a,
         ];
+
         const LN2: f64 = f64::from_bits(0x3fe62e42fefa39ef);
+
         let z2 = z * z;
         let r0 = f_fmla(z, f64::from_bits(C[4]), f64::from_bits(C[3]));
         let r1 = f_fmla(z, f64::from_bits(C[2]), f64::from_bits(C[1]));
@@ -225,58 +277,10 @@ pub fn f_log1pf(x: f32) -> f32 {
         let zr1 = f_fmla(LN2, e as f64, f64::from_bits(LIXB[j]));
 
         let r = f_fmla(z, zr0, zr1);
-        let mut ub = r as f32;
+        let ub = r as f32;
         let lb = (r + 2.2e-11) as f32;
         if ub != lb {
-            let z4 = z2 * z2;
-
-            let f0 = f_fmla(z, f64::from_bits(B[7]), f64::from_bits(B[6]));
-            let f1 = f_fmla(z, f64::from_bits(B[5]), f64::from_bits(B[4]));
-            let f2 = f_fmla(z, f64::from_bits(B[3]), f64::from_bits(B[2]));
-            let f3 = f_fmla(z, f64::from_bits(B[1]), f64::from_bits(B[0]));
-
-            let zf0 = f_fmla(z2, f0, f1);
-            let zf1 = f_fmla(z2, f2, f3);
-            let zf2 = f_fmla(z4, zf0, zf1);
-
-            let f = z * zf2;
-            const LN2L: f64 = f64::from_bits(0x3eb7f7d1cf79abca);
-            const LN2H: f64 = f64::from_bits(0x3fe62e4000000000);
-            let lh = LN2H * e as f64;
-            let ll = LN2L * e as f64;
-            let rl = f + ll + f64::from_bits(LIX[j]);
-            let mut tr = (rl + lh).to_bits();
-            if tr & 0xfffffffu64 == 0 {
-                let x_bits = x.to_bits();
-                if x_bits == 0xbc923d58u32 {
-                    return black_box(f32::from_bits(0xbc938f87))
-                        - black_box(f32::from_bits(0x30000000));
-                }
-                if x_bits == 0xbd1d20afu32 {
-                    return black_box(f32::from_bits(0xbd203889))
-                        + black_box(f32::from_bits(0x30800000));
-                }
-                if x_bits == 0x3efd81adu32 {
-                    return black_box(f32::from_bits(0x3ecdeee1))
-                        + black_box(f32::from_bits(0x32000000));
-                }
-                tr = (f64::from_bits(tr) + 64. * (rl + (lh - f64::from_bits(tr)))).to_bits();
-            } else if rl + (lh - f64::from_bits(tr)) == 0.0 {
-                let x_bits = x.to_bits();
-                if x_bits == 0x3ddbfec3u32 {
-                    return black_box(f32::from_bits(0x3dd0f671))
-                        + black_box(f32::from_bits(0x31000000));
-                }
-                if x_bits == 0xbd1d20afu32 {
-                    return black_box(f32::from_bits(0xbd203889))
-                        + black_box(f32::from_bits(0x30800000));
-                }
-                if x_bits == 0x3ca1e3f1u32 {
-                    return black_box(f32::from_bits(0x3ca04fc0))
-                        + black_box(f32::from_bits(0x30000000));
-                }
-            }
-            ub = f64::from_bits(tr) as f32;
+            return log1pf_accurate(x, z, e, j);
         }
         ub
     }

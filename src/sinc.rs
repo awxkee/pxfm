@@ -691,6 +691,7 @@ pub(crate) fn r_polyeval12(
     r_fmla(x, &t5, a0)
 }
 
+#[cold]
 fn eval_sinc8_dyadic(x: f64, dd: &[DyadicFloat128; 8]) -> f64 {
     let x = DyadicFloat128::new_from_f64(x);
     let x2 = x.quick_mul(&x);
@@ -701,6 +702,7 @@ fn eval_sinc8_dyadic(x: f64, dd: &[DyadicFloat128; 8]) -> f64 {
     p.fast_as_f64()
 }
 
+#[cold]
 fn eval_sinc10_dyadic(x: f64, dd: &[DyadicFloat128; 10]) -> f64 {
     let x = DyadicFloat128::new_from_f64(x);
     let x2 = x.quick_mul(&x);
@@ -711,6 +713,7 @@ fn eval_sinc10_dyadic(x: f64, dd: &[DyadicFloat128; 10]) -> f64 {
     p.fast_as_f64()
 }
 
+#[cold]
 fn eval_sinc12_dyadic(x: f64, dd: &[DyadicFloat128; 12]) -> f64 {
     let x = DyadicFloat128::new_from_f64(x);
     let x2 = x.quick_mul(&x);

@@ -190,7 +190,7 @@ fn as_cospi_zero(x: f64) -> f64 {
     y.hi + y1.hi
 }
 
-#[inline]
+#[cold]
 fn as_sinpi_zero(x: f64) -> f64 {
     let x2 = x * x;
     let dx2 = dd_fmla(x, x, -x2);

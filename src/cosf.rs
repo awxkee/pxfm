@@ -81,6 +81,7 @@ static TB: [u64; 32] = [
     0x3fef6297cff75cb0,
 ];
 
+#[cold]
 fn search_from_table(x: f32, r: f64) -> f32 {
     static ST: [(u32, u32, u32); 5] = [
         (0x4096cbe4, 0x324cde2e, 0xa5800000),

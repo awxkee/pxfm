@@ -44,7 +44,7 @@ pub(crate) fn poly12(z: f64, c: [u64; 12]) -> f64 {
     f_fmla(z4, f_fmla(z4, c8, c4), c0)
 }
 
-#[inline]
+#[cold]
 fn as_special(x: f32) -> f32 {
     const PIH: f32 = f64::from_bits(0x400921fb60000000) as f32;
     const PIL: f32 = -f64::from_bits(0x3e70000000000000) as f32;

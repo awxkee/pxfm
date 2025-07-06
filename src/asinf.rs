@@ -29,7 +29,7 @@
 use crate::acosf::poly12;
 use crate::common::{f_fmla, f_fmlaf};
 
-#[inline]
+#[cold]
 fn as_special(x: f32) -> f32 {
     let t = x.to_bits();
     let ax = t.wrapping_shl(1);
