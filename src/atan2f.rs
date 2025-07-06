@@ -82,7 +82,7 @@ static ATAN2F_TABLE: [(u64, u64); 32] = [
     (0xbe829b7e6f676385, 0xbb2a783b6de718fb),
 ];
 
-#[inline]
+#[cold]
 fn cr_atan2f_tiny(y: f32, x: f32) -> f32 {
     let dy = y as f64;
     let dx = x as f64;

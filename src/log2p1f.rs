@@ -317,7 +317,7 @@ pub fn f_log2p1f(x: f32) -> f32 {
         } // nan
         f32::INFINITY
     } else if ax < 0x3cb7aa26u32 {
-        // |x| < 0x1.6f544cp-6
+        // |x| < 1.3862943452718848
         let z2 = z * z;
         let z4 = z2 * z2;
         if ax < 0x3b9d9d34u32 {

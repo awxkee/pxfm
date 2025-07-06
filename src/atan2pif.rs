@@ -84,7 +84,7 @@ pub fn f_atan2pif(y: f32, x: f32) -> f32 {
         let i = (uy >> 31) * 2 + (ux >> 31);
         return S[i as usize];
     }
-    let gt: usize = if ay > ax { 1 } else { 0 };
+    let gt: usize = (ay > ax) as usize;
     let i: u32 = (uy >> 31) * 4 + (ux >> 31) * 2 + gt as u32;
 
     let zx = x as f64;

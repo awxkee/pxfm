@@ -591,7 +591,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
         /* we use special code when log(2)*|x| is very small, in which case
         the double-double approximation h+l has its lower part l
         "truncated" */
-        if ax <= 0x3970000000000000u64
+        return if ax <= 0x3970000000000000u64
         // |x| <= 2^-104
         {
             // special case for 0
@@ -614,7 +614,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
             0 < x <= 0x1.71547652b82fep-1022 for RNDZ, and for
             0 < x <= 0x1.71547652b82fdp-1022 for RNDN/RNDU. */
             let res = dd_fmla(h, f64::from_bits(0x3950000000000000), h2);
-            return res;
+            res
         } else {
             const C2: f64 = f64::from_bits(0x3fcebfbdff82c58f); // log(2)^2/2
             let mut z = Dekker::from_exact_mult(LN2H, x);
@@ -623,8 +623,8 @@ pub fn f_exp2m1(d: f64) -> f64 {
             /* we add C2*x^2 last, so that in case there is a cancellation in
             LN2L*x+l, it will contribute more bits */
             z.lo += C2 * x * x;
-            return z.to_f64();
-        }
+            z.to_f64()
+        };
     }
 
     /* now -54 < x < -0x1.0527dbd87e24dp-51

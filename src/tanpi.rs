@@ -103,6 +103,33 @@ pub(crate) fn poly_dd_5(x: Dekker, poly: [(u64, u64); 5], l: f64) -> Dekker {
     ch
 }
 
+#[cold]
+fn tanpi_accurate(px: Dekker, x: f64) -> f64 {
+    const CH: [(u64, u64); 3] = [
+        (0x4024abbce625be53, 0xbcc05511c68476a8),
+        (0x404466bc6775aae2, 0xbcd6dc0cbddc0e69),
+        (0x40645fff9b48e95e, 0x3cea5047910ae0ef),
+    ];
+
+    let x2 = x * x;
+    let x3 = x * x2;
+    const CL: [u64; 2] = [0x40845f472e3aed7d, 0x40a45f33be0e9598];
+
+    let dx2 = dd_fmla(x, x, -x2);
+    let dx3 = dd_fmla(x2, x, -x3) + dx2 * x;
+    let mut t = Dekker {
+        hi: 0.,
+        lo: x2 * f_fmla(x2, f64::from_bits(CL[1]), f64::from_bits(CL[0])),
+    };
+    t = poly_dd_3(Dekker::new(dx2, x2), CH, t.lo);
+    t = Dekker::mult(Dekker::new(dx3, x3), t);
+    let z0 = Dekker::from_exact_add(px.hi, t.hi);
+    t.hi = z0.hi;
+    t.lo = t.lo + px.lo + z0.lo;
+    t = Dekker::from_exact_add(t.hi, t.lo);
+    t.hi
+}
+
 /// Computes tan(PI*x)
 ///
 /// Max found ULP 5.0001
@@ -358,24 +385,7 @@ pub fn f_tanpi(x: f64) -> f64 {
                 return lb;
             }
 
-            const CH: [(u64, u64); 3] = [
-                (0x4024abbce625be53, 0xbcc05511c68476a8),
-                (0x404466bc6775aae2, 0xbcd6dc0cbddc0e69),
-                (0x40645fff9b48e95e, 0x3cea5047910ae0ef),
-            ];
-
-            const CL: [u64; 2] = [0x40845f472e3aed7d, 0x40a45f33be0e9598];
-
-            let dx2 = dd_fmla(x, x, -x2);
-            let dx3 = dd_fmla(x2, x, -x3) + dx2 * x;
-            t.lo = x2 * f_fmla(x2, f64::from_bits(CL[1]), f64::from_bits(CL[0]));
-            t = poly_dd_3(Dekker::new(dx2, x2), CH, t.lo);
-            t = Dekker::mult(Dekker::new(dx3, x3), t);
-            let z0 = Dekker::from_exact_add(px.hi, t.hi);
-            t.hi = z0.hi;
-            t.lo = t.lo + px.lo + z0.lo;
-            t = Dekker::from_exact_add(t.hi, t.lo);
-            res = t.hi;
+            res = tanpi_accurate(px, x);
         }
     }
     res

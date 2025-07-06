@@ -163,7 +163,7 @@ pub(crate) fn poly_dd_2(x: Dekker, poly: [(u64, u64); 2], l: f64) -> Dekker {
     ch
 }
 
-#[inline]
+#[cold]
 fn as_cospi_zero(x: f64) -> f64 {
     let x2 = x * x;
     let dx2 = f_fmla(x, x, -x2);

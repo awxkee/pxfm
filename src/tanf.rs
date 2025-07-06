@@ -82,6 +82,7 @@ pub(crate) fn tan_reduce_big(u: u32) -> (f64, i64) {
     (z, i as i64)
 }
 
+#[cold]
 fn tanf_check_exceptions(t: u32, r: f32) -> f32 {
     static ST: [(u32, u32, u32); 8] = [
         (0x3f8a1f62, 0x3feefcfb, 0xa5c48e92),

@@ -32,6 +32,7 @@ use crate::dekker::Dekker;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 use crate::sinh::hyperbolic_exp_accurate;
 
+#[cold]
 fn as_cosh_zero(x: f64) -> f64 {
     static CH: [(u64, u64); 4] = [
         (0xb90c7e8db669f624, 0x3fe0000000000000),

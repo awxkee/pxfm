@@ -54,6 +54,138 @@ static TB: [u64; 16] = [
     0x3ffea4afa2a490da,
 ];
 
+// |x| < 8.44e-2/log(2)
+#[cold]
+fn exp2mf_small(ax: u32, z: f64, ux: u32) -> f32 {
+    let z2: f64 = z * z;
+    let mut r: f64;
+    if ax < 0x3d67a4ccu32 {
+        // |x| < 3.92e-2/log(2)
+        if ax < 0x3caa2feeu32 {
+            // |x| < 1.44e-2/log(2)
+            if ax < 0x3bac1405u32 {
+                // |x| < 3.64e-3/log(2)
+                if ax < 0x3a358876u32 {
+                    // |x| < 4.8e-4/log(2)
+                    if ax < 0x37d32ef6u32 {
+                        // |x| < 1.745e-5/log(2)
+                        if ax < 0x331fdd82u32 {
+                            // |x| < 2.58e-8/log(2)
+                            if ax < 0x2538aa3bu32 {
+                                // |x| < 0x1.715476p-53
+                                r = f64::from_bits(0x3fe62e42fefa39ef);
+                            } else {
+                                r = f64::from_bits(0x3fe62e42fefa39f0)
+                                    + z * f64::from_bits(0x3fcebfbdff82c58f);
+                            }
+                        } else {
+                            if ux == 0xb3d85005u32 {
+                                return (black_box(f64::from_bits(0xbe72bdf760000000))
+                                    - black_box(f64::from_bits(0x3b28000000000000)))
+                                    as f32;
+                            }
+                            if ux == 0x3338428du32 {
+                                return (black_box(f64::from_bits(0x3e5fee08a0000000))
+                                    + black_box(f64::from_bits(0x3af0000000000000)))
+                                    as f32;
+                            }
+                            const C: [u64; 3] =
+                                [0x3fe62e42fefa39ef, 0x3fcebfbdff8548fd, 0x3fac6b08d704a06d];
+                            let r0 = f_fmla(z, f64::from_bits(C[2]), f64::from_bits(C[1]));
+                            r = f_fmla(z, r0, f64::from_bits(C[0]));
+                        }
+                    } else {
+                        if ux == 0x388bca4fu32 {
+                            return (black_box(f64::from_bits(0x3f08397020000000))
+                                - black_box(f64::from_bits(0x3bb8000000000000)))
+                                as f32;
+                        }
+                        const C: [u64; 4] = [
+                            0x3fe62e42fefa39ef,
+                            0x3fcebfbdff82c58f,
+                            0x3fac6b08dc82b347,
+                            0x3f83b2ab6fbad172,
+                        ];
+                        let r0 = f_fmla(z, f64::from_bits(C[3]), f64::from_bits(C[2]));
+                        let r1 = f_fmla(z, f64::from_bits(C[1]), f64::from_bits(C[0]));
+
+                        r = f_fmla(z2, r0, r1);
+                    }
+                } else {
+                    const C: [u64; 5] = [
+                        0x3fe62e42fefa39ef,
+                        0x3fcebfbdff82c068,
+                        0x3fac6b08d704a6dc,
+                        0x3f83b2ac262c3eed,
+                        0x3f55d87fe7af779a,
+                    ];
+
+                    let r0 = f_fmla(z, f64::from_bits(C[4]), f64::from_bits(C[3]));
+                    let r1 = f_fmla(z, f64::from_bits(C[1]), f64::from_bits(C[0]));
+                    let w0 = f_fmla(z, r0, f64::from_bits(C[2]));
+                    r = f_fmla(z2, w0, r1);
+                }
+            } else {
+                const C: [u64; 6] = [
+                    0x3fe62e42fefa39f0,
+                    0x3fcebfbdff82c58d,
+                    0x3fac6b08d7011d13,
+                    0x3f83b2ab6fbd267d,
+                    0x3f55d88a81cea49e,
+                    0x3f2430912ea9b963,
+                ];
+
+                let r0 = f_fmla(z, f64::from_bits(C[5]), f64::from_bits(C[4]));
+                let r1 = f_fmla(z, f64::from_bits(C[3]), f64::from_bits(C[2]));
+                let r2 = f_fmla(z, f64::from_bits(C[1]), f64::from_bits(C[0]));
+
+                r = r2 + z2 * f_fmla(z2, r0, r1);
+            }
+        } else {
+            const C: [u64; 7] = [
+                0x3fe62e42fefa39ef,
+                0x3fcebfbdff82c639,
+                0x3fac6b08d7049f1c,
+                0x3f83b2ab6f5243bd,
+                0x3f55d87fe80a9e6c,
+                0x3f2430d0b9257fa8,
+                0x3eeffcbfc4cf0952,
+            ];
+
+            let r0 = f_fmla(z, f64::from_bits(C[6]), f64::from_bits(C[5]));
+            let r1 = f_fmla(z, f64::from_bits(C[3]), f64::from_bits(C[2]));
+            let r2 = f_fmla(z, f64::from_bits(C[1]), f64::from_bits(C[0]));
+
+            let z0 = f_fmla(z, r0, f64::from_bits(C[4]));
+
+            r = f_fmla(z2, f_fmla(z2, z0, r1), r2);
+        }
+    } else {
+        const C: [u64; 8] = [
+            0x3fe62e42fefa39ef,
+            0x3fcebfbdff82c591,
+            0x3fac6b08d704cf6b,
+            0x3f83b2ab6fba00ce,
+            0x3f55d87fdfdaadb4,
+            0x3f24309137333066,
+            0x3eeffe5e90daf7dd,
+            0x3eb62c0220eed731,
+        ];
+
+        let r0 = f_fmla(z, f64::from_bits(C[7]), f64::from_bits(C[6]));
+        let r1 = f_fmla(z, f64::from_bits(C[5]), f64::from_bits(C[4]));
+        let r2 = f_fmla(z, f64::from_bits(C[3]), f64::from_bits(C[2]));
+        let r3 = f_fmla(z, f64::from_bits(C[1]), f64::from_bits(C[0]));
+
+        let w0 = f_fmla(z2, r0, r1);
+        let w1 = f_fmla(z2, r2, r3);
+
+        r = w1 + (z2 * z2) * w0;
+    }
+    r *= z;
+    r as f32
+}
+
 /// Computes 2^x-1
 ///
 /// Max found ULP 0.5
@@ -96,133 +228,7 @@ pub fn f_exp2m1f(x: f32) -> f32 {
         }
     } else if ax < 0x3df95f1fu32 {
         // |x| < 8.44e-2/log(2)
-        let z2: f64 = z * z;
-        let mut r: f64;
-        if ax < 0x3d67a4ccu32 {
-            // |x| < 3.92e-2/log(2)
-            if ax < 0x3caa2feeu32 {
-                // |x| < 1.44e-2/log(2)
-                if ax < 0x3bac1405u32 {
-                    // |x| < 3.64e-3/log(2)
-                    if ax < 0x3a358876u32 {
-                        // |x| < 4.8e-4/log(2)
-                        if ax < 0x37d32ef6u32 {
-                            // |x| < 1.745e-5/log(2)
-                            if ax < 0x331fdd82u32 {
-                                // |x| < 2.58e-8/log(2)
-                                if ax < 0x2538aa3bu32 {
-                                    // |x| < 0x1.715476p-53
-                                    r = f64::from_bits(0x3fe62e42fefa39ef);
-                                } else {
-                                    r = f64::from_bits(0x3fe62e42fefa39f0)
-                                        + z * f64::from_bits(0x3fcebfbdff82c58f);
-                                }
-                            } else {
-                                if ux == 0xb3d85005u32 {
-                                    return (black_box(f64::from_bits(0xbe72bdf760000000))
-                                        - black_box(f64::from_bits(0x3b28000000000000)))
-                                        as f32;
-                                }
-                                if ux == 0x3338428du32 {
-                                    return (black_box(f64::from_bits(0x3e5fee08a0000000))
-                                        + black_box(f64::from_bits(0x3af0000000000000)))
-                                        as f32;
-                                }
-                                const C: [u64; 3] =
-                                    [0x3fe62e42fefa39ef, 0x3fcebfbdff8548fd, 0x3fac6b08d704a06d];
-                                let r0 = f_fmla(z, f64::from_bits(C[2]), f64::from_bits(C[1]));
-                                r = f_fmla(z, r0, f64::from_bits(C[0]));
-                            }
-                        } else {
-                            if ux == 0x388bca4fu32 {
-                                return (black_box(f64::from_bits(0x3f08397020000000))
-                                    - black_box(f64::from_bits(0x3bb8000000000000)))
-                                    as f32;
-                            }
-                            const C: [u64; 4] = [
-                                0x3fe62e42fefa39ef,
-                                0x3fcebfbdff82c58f,
-                                0x3fac6b08dc82b347,
-                                0x3f83b2ab6fbad172,
-                            ];
-                            let r0 = f_fmla(z, f64::from_bits(C[3]), f64::from_bits(C[2]));
-                            let r1 = f_fmla(z, f64::from_bits(C[1]), f64::from_bits(C[0]));
-
-                            r = f_fmla(z2, r0, r1);
-                        }
-                    } else {
-                        const C: [u64; 5] = [
-                            0x3fe62e42fefa39ef,
-                            0x3fcebfbdff82c068,
-                            0x3fac6b08d704a6dc,
-                            0x3f83b2ac262c3eed,
-                            0x3f55d87fe7af779a,
-                        ];
-
-                        let r0 = f_fmla(z, f64::from_bits(C[4]), f64::from_bits(C[3]));
-                        let r1 = f_fmla(z, f64::from_bits(C[1]), f64::from_bits(C[0]));
-                        let w0 = f_fmla(z, r0, f64::from_bits(C[2]));
-                        r = f_fmla(z2, w0, r1);
-                    }
-                } else {
-                    const C: [u64; 6] = [
-                        0x3fe62e42fefa39f0,
-                        0x3fcebfbdff82c58d,
-                        0x3fac6b08d7011d13,
-                        0x3f83b2ab6fbd267d,
-                        0x3f55d88a81cea49e,
-                        0x3f2430912ea9b963,
-                    ];
-
-                    let r0 = f_fmla(z, f64::from_bits(C[5]), f64::from_bits(C[4]));
-                    let r1 = f_fmla(z, f64::from_bits(C[3]), f64::from_bits(C[2]));
-                    let r2 = f_fmla(z, f64::from_bits(C[1]), f64::from_bits(C[0]));
-
-                    r = r2 + z2 * f_fmla(z2, r0, r1);
-                }
-            } else {
-                const C: [u64; 7] = [
-                    0x3fe62e42fefa39ef,
-                    0x3fcebfbdff82c639,
-                    0x3fac6b08d7049f1c,
-                    0x3f83b2ab6f5243bd,
-                    0x3f55d87fe80a9e6c,
-                    0x3f2430d0b9257fa8,
-                    0x3eeffcbfc4cf0952,
-                ];
-
-                let r0 = f_fmla(z, f64::from_bits(C[6]), f64::from_bits(C[5]));
-                let r1 = f_fmla(z, f64::from_bits(C[3]), f64::from_bits(C[2]));
-                let r2 = f_fmla(z, f64::from_bits(C[1]), f64::from_bits(C[0]));
-
-                let z0 = f_fmla(z, r0, f64::from_bits(C[4]));
-
-                r = f_fmla(z2, f_fmla(z2, z0, r1), r2);
-            }
-        } else {
-            const C: [u64; 8] = [
-                0x3fe62e42fefa39ef,
-                0x3fcebfbdff82c591,
-                0x3fac6b08d704cf6b,
-                0x3f83b2ab6fba00ce,
-                0x3f55d87fdfdaadb4,
-                0x3f24309137333066,
-                0x3eeffe5e90daf7dd,
-                0x3eb62c0220eed731,
-            ];
-
-            let r0 = f_fmla(z, f64::from_bits(C[7]), f64::from_bits(C[6]));
-            let r1 = f_fmla(z, f64::from_bits(C[5]), f64::from_bits(C[4]));
-            let r2 = f_fmla(z, f64::from_bits(C[3]), f64::from_bits(C[2]));
-            let r3 = f_fmla(z, f64::from_bits(C[1]), f64::from_bits(C[0]));
-
-            let w0 = f_fmla(z2, r0, r1);
-            let w1 = f_fmla(z2, r2, r3);
-
-            r = w1 + (z2 * z2) * w0;
-        }
-        r *= z;
-        r as f32
+        exp2mf_small(ax, z, ux)
     } else {
         const C: [u64; 6] = [
             0x3fa62e42fefa398b,
@@ -250,5 +256,17 @@ pub fn f_exp2m1f(x: f32) -> f32 {
         c0 += h2 * f_fmla(h2, c4, c2);
         let w = s * h;
         f_fmla(w, c0, s - 1.0) as f32
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_exp2m1f() {
+        assert_eq!(f_exp2m1f(3.), 7.);
+        assert_eq!(f_exp2m1f(0.1), 0.07177346);
+        assert_eq!(f_exp2m1f(0.0543432432), 0.038386293);
     }
 }

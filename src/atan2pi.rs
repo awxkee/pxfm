@@ -71,8 +71,8 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
         [[MPI, PI_OVER_2], [MPI, PI_OVER_2]],
     ];
 
-    let x_sign = if x.is_sign_negative() { 1 } else { 0 };
-    let y_sign = if y.is_sign_negative() { 1 } else { 0 };
+    let x_sign = x.is_sign_negative() as usize;
+    let y_sign = y.is_sign_negative() as usize;
     let x_bits = x.to_bits() & 0x7fff_ffff_ffff_ffff;
     let y_bits = y.to_bits() & 0x7fff_ffff_ffff_ffff;
     let x_abs = x_bits;

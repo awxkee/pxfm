@@ -591,6 +591,7 @@ fn exp_accurate(x_dd: Dekker) -> Exp {
     Exp { e: k, result: v }
 }
 
+#[cold]
 fn erfc_asympt_accurate(x: f64) -> f64 {
     /* subnormal exceptions */
     if x == f64::from_bits(0x403a8f7bfbd15495) {

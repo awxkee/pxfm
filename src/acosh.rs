@@ -489,6 +489,7 @@ pub(crate) fn lpoly_xd_generic<const N: usize>(x: Dekker, poly: [(u64, u64); N],
     ch
 }
 
+#[cold]
 fn as_acosh_one(x: f64, sh: f64, sl: f64) -> f64 {
     static CH: [(u64, u64); 10] = [
         (0xbc55555555554af1, 0xbfb5555555555555),

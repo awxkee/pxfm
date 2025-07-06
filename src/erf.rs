@@ -29,8 +29,8 @@
 use crate::common::{dd_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::erf_poly::{ERF_POLY, ERF_POLY_C2};
-/* double-double approximation of 2/sqrt(pi) to nearest */
 
+/* double-double approximation of 2/sqrt(pi) to nearest */
 const TWO_OVER_SQRT_PI: Dekker = Dekker::new(
     f64::from_bits(0x3c71ae3a914fed80),
     f64::from_bits(0x3ff20dd750429b6d),
