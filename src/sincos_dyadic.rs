@@ -110,94 +110,82 @@ pub(crate) struct SinCosDyadic {
 pub(crate) fn sincos_eval_dyadic(u: &DyadicFloat128) -> SinCosDyadic {
     let u_sq = u.quick_mul(u);
 
-    // f = sin(x);
-    //
-    // I = [-pi/256; pi/256];
-    // P = fpminimax(f, [|1, 3, 5, 7, 9, 11, 13|], [|1, 128...|], I, relative, floating);
-    // print("Sin [-pi/256; pi/256]");
-    // print(P);
-    // for i from 1 to degree(P) by 2 do print(coeff(P, i));
+    // sin(u) ~ x - x^3/3! + x^5/5! - x^7/7! + x^9/9! - x^11/11! + x^13/13!
     const SIN_COEFFS: [DyadicFloat128; 7] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -127,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        },
+        }, // 1
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -130,
-            mantissa: 0xaaaaaaaa_aaaaa800_00000000_00000000_u128,
-        },
+            mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaaa_aaaaaaab_u128,
+        }, // -1/3!
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -134,
-            mantissa: 0x88888888_88888800_00000000_00000000_u128,
-        },
+            mantissa: 0x88888888_88888888_88888888_88888889_u128,
+        }, // 1/5!
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -140,
-            mantissa: 0xd00d00d0_0d00d000_00000000_00000000_u128,
-        },
+            mantissa: 0xd00d00d0_0d00d00d_00d00d00_d00d00d0_u128,
+        }, // -1/7!
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -146,
-            mantissa: 0xb8ef1d2a_b639a000_00000000_00000000_u128,
-        },
+            mantissa: 0xb8ef1d2a_b6399c7d_560e4472_800b8ef2_u128,
+        }, // 1/9!
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -153,
-            mantissa: 0xd7322b3f_a7275800_00000000_00000000_u128,
-        },
+            mantissa: 0xd7322b3f_aa271c7f_3a3f25c1_bee38f10_u128,
+        }, // -1/11!
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -160,
-            mantissa: 0xb09213e3_e0c59800_00000000_00000000_u128,
-        },
+            mantissa: 0xb092309d_43684be5_1c198e91_d7b4269e_u128,
+        }, // 1/13!
     ];
 
-    // f = cos(x);
-    //
-    // I = [-pi/256; pi/256];
-    // P = fpminimax(f, [|0, 2, 4, 6, 8, 10, 12|], [|1, 128...|], I, relative, floating);
-    // print("Cos [-pi/256; pi/256]");
-    // print(P);
-    // for i from 0 to degree(P) by 2 do print(coeff(P, i));
+    // cos(u) ~ 1 - x^2/2 + x^4/4! - x^6/6! + x^8/8! - x^10/10! + x^12/12!
     const COS_COEFFS: [DyadicFloat128; 7] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -127,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        },
+        }, // 1.0
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -128,
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        },
+        }, // 1/2
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -132,
-            mantissa: 0xaaaaaaaa_aaaaa800_00000000_00000000_u128,
-        },
+            mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaaa_aaaaaaab_u128,
+        }, // 1/4!
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -137,
-            mantissa: 0xb60b60b6_0b60b800_00000000_00000000_u128,
-        },
+            mantissa: 0xb60b60b6_0b60b60b_60b60b60_b60b60b6_u128,
+        }, // 1/6!
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -143,
-            mantissa: 0xd00d00d0_0d00d000_00000000_00000000_u128,
-        },
+            mantissa: 0xd00d00d0_0d00d00d_00d00d00_d00d00d0_u128,
+        }, // 1/8!
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -149,
-            mantissa: 0x93f27dbb_c22b1000_00000000_00000000_u128,
-        },
+            mantissa: 0x93f27dbb_c4fae397_780b69f5_333c725b_u128,
+        }, // 1/10!
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -156,
-            mantissa: 0x8f76ac91_ba722800_00000000_00000000_u128,
-        },
+            mantissa: 0x8f76c77f_c6c4bdaa_26d4c3d6_7f425f60_u128,
+        }, // 1/12!
     ];
 
     let sin_u = u.quick_mul(&r_polyeval7(

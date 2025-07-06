@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, f_fmlaf};
+use std::hint::black_box;
 
 #[inline]
 pub(crate) fn sincos_reduce1(z: f32) -> (f64, i32) {
@@ -224,7 +225,7 @@ pub fn f_cosf(x: f32) -> f32 {
                 if ax == 0u32 {
                     return 1.0;
                 };
-                return 1.0 - f64::from_bits(0x3e60000000000000) as f32;
+                return black_box(1.0) - black_box(f64::from_bits(0x3e60000000000000) as f32);
             }
             return f_fmlaf(-f64::from_bits(0x3fe0000000000000) as f32 * x, x, 1.0);
         }

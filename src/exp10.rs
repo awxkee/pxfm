@@ -130,7 +130,7 @@ fn as_exp10_accurate(x: f64) -> f64 {
             f = Dekker::from_exact_add(f.hi, f.lo);
             zfh = f.hi;
         }
-        zfh = ldexp(zfh, ie as u64);
+        zfh = ldexp(zfh, ie as i32);
     } else {
         ix = (1u64.wrapping_sub(ie as u64)) << 52;
         f = Dekker::mult(f, dt);
@@ -229,7 +229,7 @@ pub fn f_exp10(x: f64) -> f64 {
         if lb != ub {
             return as_exp10_accurate(x);
         }
-        fh = ldexp(fh + fl, ie as u64);
+        fh = ldexp(fh + fl, ie as i32);
     } else {
         // x <= -307.653: exp10(x) < 2^-1022
         ix = 1u64.wrapping_sub(ie as u64).wrapping_shl(52);

@@ -30,7 +30,7 @@ use crate::common::dd_fmla;
 use crate::dekker::Dekker;
 use crate::erf::{Erf, erf_accurate, erf_fast};
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
-use crate::exp2::ldexpi;
+use crate::exp2::ldexp;
 use std::hint::black_box;
 
 static ASYMPTOTIC_POLY: [[u64; 13]; 6] = [
@@ -651,14 +651,14 @@ fn erfc_asympt_accurate(x: f64) -> f64 {
     let v = Dekker::quick_mult(u_dd, exp_result.result);
     /* multiply by 2^e */
     /* multiply by 2^e */
-    let mut res = ldexpi(v.to_f64(), exp_result.e);
+    let mut res = ldexp(v.to_f64(), exp_result.e);
     if res < f64::from_bits(0x0010000000000000) {
         /* for erfc(x) in the subnormal range, we have to perform a special
         rounding */
-        let mut corr = v.hi - ldexpi(res, -exp_result.e);
+        let mut corr = v.hi - ldexp(res, -exp_result.e);
         corr += v.lo;
         /* add corr*2^e */
-        res += ldexpi(corr, exp_result.e);
+        res += ldexp(corr, exp_result.e);
     }
     res
 }

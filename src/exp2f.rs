@@ -129,13 +129,13 @@ pub fn f_exp2f(x: f32) -> f32 {
 
     if ux <= 0x79e7526eu32 {
         if t == 0x3b429d37u32 {
-            return f32::from_bits(0x3f804385) - f32::from_bits(0x33000000);
+            return black_box(f32::from_bits(0x3f804385)) - black_box(f32::from_bits(0x33000000));
         }
         if t == 0xbcf3a937u32 {
-            return f32::from_bits(0x3f7ac6b1) - f32::from_bits(0x32800000);
+            return black_box(f32::from_bits(0x3f7ac6b1)) - black_box(f32::from_bits(0x32800000));
         }
         if t == 0xb8d3d026u32 {
-            return f32::from_bits(0x3f7ffb69) + f32::from_bits(0x32800000);
+            return black_box(f32::from_bits(0x3f7ffb69)) + black_box(f32::from_bits(0x32800000));
         }
     }
 

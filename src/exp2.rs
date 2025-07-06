@@ -47,13 +47,7 @@ pub(crate) fn poly_xd_generic<const N: usize>(x: f64, poly: [(u64, u64); N]) -> 
 }
 
 #[inline]
-pub(crate) fn ldexp(d: f64, i: u64) -> f64 {
-    let b = d.to_bits();
-    f64::from_bits(b.wrapping_add(i.wrapping_shl(52)))
-}
-
-#[inline]
-pub(crate) fn ldexpi(d: f64, i: i32) -> f64 {
+pub(crate) fn ldexp(d: f64, i: i32) -> f64 {
     let mut n = i;
     let exp_max = 1023;
     let exp_min = -1022;
@@ -162,7 +156,7 @@ fn exp2_accurate(x: f64) -> f64 {
         }
         let hf = Dekker::from_exact_add(f.hi, f.lo);
 
-        ldexp(hf.hi, ie as u64)
+        ldexp(hf.hi, ie as i32)
     } else {
         ix = 1u64.wrapping_sub(ie as u64).wrapping_shl(52);
         f = Dekker::mult(f, dt);
@@ -255,7 +249,7 @@ pub fn f_exp2(x: f64) -> f64 {
                 return exp2_accurate(x);
             }
         }
-        fh = ldexp(fh, ie as u64);
+        fh = ldexp(fh, ie as i32);
     } else {
         // subnormal case
         ix = 1u64.wrapping_sub(ie as u64).wrapping_shl(52);

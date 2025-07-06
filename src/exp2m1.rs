@@ -637,7 +637,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
             return if i >= 0 {
                 ((1u64 << i) - 1) as f64
             } else {
-                -1.0 + ldexp(1.0, i as u64)
+                -1.0 + ldexp(1.0, i)
             };
         }
     }

@@ -356,7 +356,7 @@ fn as_expm1_accurate(x: f64) -> f64 {
         }
         f.lo += e;
         let dst = Dekker::from_exact_add(f.hi, f.lo);
-        ldexp(dst.hi, ie as u64)
+        ldexp(dst.hi, ie as i32)
     }
 }
 
@@ -482,7 +482,7 @@ pub fn f_expm1(x: f64) -> f64 {
         if ub != lb {
             return as_expm1_accurate(x);
         }
-        ldexp(lb, ie as u64)
+        ldexp(lb, ie as i32)
     }
 }
 

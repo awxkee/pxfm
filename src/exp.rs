@@ -275,7 +275,7 @@ fn as_exp_accurate(x: f64, t: f64, tz: Dekker, ie: i64) -> f64 {
             f = Dekker::add(tz, f);
         }
         f = Dekker::from_exact_add(f.hi, f.lo);
-        f.hi = ldexp(f.hi, ie as u64);
+        f.hi = ldexp(f.hi, ie as i32);
     }
     f.hi
 }
@@ -370,7 +370,7 @@ pub fn f_exp(x: f64) -> f64 {
         if ub != lb {
             return as_exp_accurate(x, t, tz, ie);
         }
-        f.hi = ldexp(lb, ie as u64);
+        f.hi = ldexp(lb, ie as i32);
     }
     f.hi
 }

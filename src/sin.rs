@@ -1562,6 +1562,7 @@ mod tests {
 
     #[test]
     fn cos_test() {
+        println!("{}", f_cos(4.750064341072175));
         assert_eq!(f_cos(0.0), 1.0);
         assert_eq!(f_cos(1.0), 0.5403023058681398);
         assert_eq!(f_cos(-0.5), 0.8775825618903728);

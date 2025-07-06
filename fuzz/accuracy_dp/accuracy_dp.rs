@@ -40,6 +40,7 @@ pub fn count_ulp_f64(d: f64, c: &Float) -> f64 {
     fry.to_f64().abs()
 }
 
+#[track_caller]
 fn test_method(
     value: f64,
     method: fn(f64) -> f64,
