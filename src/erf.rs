@@ -42,6 +42,7 @@ pub(crate) struct Erf {
 }
 
 /* for |z| < 1/8, assuming z >= 2^-61, thus no underflow can occur */
+#[cold]
 fn cr_erf_accurate_tiny(x: f64) -> Dekker {
     static P: [u64; 15] = [
         0x3ff20dd750429b6d,

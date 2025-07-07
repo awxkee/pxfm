@@ -446,3 +446,18 @@ pub fn f_log2p1f(x: f32) -> f32 {
         res as f32
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_log2p1f() {
+        assert_eq!(f_log2p1f(0.0), 0.0);
+        assert_eq!(f_log2p1f(1.0), 1.0);
+        assert_eq!(f_log2p1f(-0.0432432), -0.063775845);
+        assert_eq!(f_log2p1f(-0.009874634), -0.01431689);
+        assert_eq!(f_log2p1f(1.2443), 1.1662655);
+        assert!(f_log2p1f(-1.0432432).is_nan());
+    }
+}

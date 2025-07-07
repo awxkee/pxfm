@@ -199,6 +199,7 @@ mod tests {
 
     #[test]
     fn test_expm1f() {
-        assert_eq!(3.6367724, f_exp2m1f(2.213121));
+        assert_eq!(f_exp2m1f(2.213121), 3.6367724);
+        assert_eq!(f_exp2m1f(-3.213121), -0.8921664);
     }
 }

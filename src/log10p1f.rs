@@ -279,3 +279,18 @@ pub fn f_log10p1f(x: f32) -> f32 {
     }
     ub
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_log10p1f() {
+        assert_eq!(f_log10p1f(0.0), 0.0);
+        assert_eq!(f_log10p1f(1.0), 0.30103);
+        assert_eq!(f_log10p1f(-0.0432432), -0.019198442);
+        assert_eq!(f_log10p1f(-0.009874634), -0.0043098135);
+        assert_eq!(f_log10p1f(1.2443), 0.35108092);
+        assert!(f_log10p1f(-1.0432432).is_nan());
+    }
+}
