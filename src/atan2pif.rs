@@ -140,3 +140,14 @@ pub fn f_atan2pif(y: f32, x: f32) -> f32 {
     }
     f_fmla(z, r, OFF[i as usize] as f64) as f32
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_atan2pif() {
+        assert_eq!(f_atan2pif(0.32131, 0.987565), 0.10012555);
+        assert_eq!(f_atan2pif(532.32131, 12.987565), 0.49223542);
+        assert_eq!(f_atan2pif(-754.32131, 12.987565), -0.494520042);
+    }
+}

@@ -119,3 +119,16 @@ pub fn f_atanpif(x: f32) -> f32 {
     }
     r as f32
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_atanpif() {
+        assert_eq!(f_atanpif(0.0), 0.0);
+        assert_eq!(f_atanpif(1.0), 0.25);
+        assert_eq!(f_atanpif(1.5), 0.31283295);
+        assert_eq!(f_atanpif(-1.0), -0.25);
+        assert_eq!(f_atanpif(-1.5), -0.31283295);
+    }
+}

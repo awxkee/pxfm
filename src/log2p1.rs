@@ -32,7 +32,7 @@ use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log2p1_dyadic_tables::{LOG2P1_F128_POLY, LOG2P1_INVERSE_2, LOG2P1_LOG_INV_2};
 use crate::log2p1_tables::{LOG2P1_EXACT, LOG2P1_INVERSE, LOG2P1_LOG_DD_INVERSE};
-use crate::sincos_dyadic::r_fmla;
+use crate::polyeval::f_polyeval13;
 
 /* put in h+l a double-double approximation of log(z)-z for
 |z| < 0.03125, with absolute error bounded by 2^-67.14
@@ -404,56 +404,24 @@ fn log2p1_fast(x: f64, e: i32) -> (Dekker, f64) {
     (p, f64::from_bits(0x3bb2300000000000)) /* 2^-67.82 < 0x1.23p-68 */
 }
 
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn r_polyeval13(
-    x: &DyadicFloat128,
-    a0: &DyadicFloat128,
-    a1: &DyadicFloat128,
-    a2: &DyadicFloat128,
-    a3: &DyadicFloat128,
-    a4: &DyadicFloat128,
-    a5: &DyadicFloat128,
-    a6: &DyadicFloat128,
-    a7: &DyadicFloat128,
-    a8: &DyadicFloat128,
-    a9: &DyadicFloat128,
-    a10: &DyadicFloat128,
-    a11: &DyadicFloat128,
-    a12: &DyadicFloat128,
-) -> DyadicFloat128 {
-    let z00 = r_fmla(x, a12, a11);
-    let t0 = r_fmla(x, &z00, a10);
-    let k0 = r_fmla(x, &t0, a9);
-    let k1 = r_fmla(x, &k0, a8);
-    let z0 = r_fmla(x, &k1, a7);
-    let t0a = r_fmla(x, &z0, a6);
-    let t1 = r_fmla(x, &t0a, a5);
-    let t2 = r_fmla(x, &t1, a4);
-    let t3 = r_fmla(x, &t2, a3);
-    let t4 = r_fmla(x, &t3, a2);
-    let t5 = r_fmla(x, &t4, a1);
-    r_fmla(x, &t5, a0)
-}
-
-fn log_dyadic_taylor_poly(x: &DyadicFloat128) -> DyadicFloat128 {
-    r_polyeval13(
+fn log_dyadic_taylor_poly(x: DyadicFloat128) -> DyadicFloat128 {
+    f_polyeval13(
         x,
-        &LOG2P1_F128_POLY[0],
-        &LOG2P1_F128_POLY[1],
-        &LOG2P1_F128_POLY[2],
-        &LOG2P1_F128_POLY[3],
-        &LOG2P1_F128_POLY[4],
-        &LOG2P1_F128_POLY[5],
-        &LOG2P1_F128_POLY[6],
-        &LOG2P1_F128_POLY[7],
-        &LOG2P1_F128_POLY[8],
-        &LOG2P1_F128_POLY[9],
-        &LOG2P1_F128_POLY[10],
-        &LOG2P1_F128_POLY[11],
-        &LOG2P1_F128_POLY[12],
+        LOG2P1_F128_POLY[0],
+        LOG2P1_F128_POLY[1],
+        LOG2P1_F128_POLY[2],
+        LOG2P1_F128_POLY[3],
+        LOG2P1_F128_POLY[4],
+        LOG2P1_F128_POLY[5],
+        LOG2P1_F128_POLY[6],
+        LOG2P1_F128_POLY[7],
+        LOG2P1_F128_POLY[8],
+        LOG2P1_F128_POLY[9],
+        LOG2P1_F128_POLY[10],
+        LOG2P1_F128_POLY[11],
+        LOG2P1_F128_POLY[12],
     )
-    .quick_mul(x)
+    .quick_mul(&x)
 }
 
 pub(crate) fn log2_dyadic(d: &DyadicFloat128, x: f64) -> DyadicFloat128 {
@@ -499,7 +467,7 @@ pub(crate) fn log2_dyadic(d: &DyadicFloat128, x: f64) -> DyadicFloat128 {
     // E·log(2)
     let r = LOG2.mul_int64(fe as i64);
 
-    let mut p = log_dyadic_taylor_poly(&z);
+    let mut p = log_dyadic_taylor_poly(z);
     p = LOG2P1_LOG_INV_2[(i - 128) as usize] + p;
     p + r
 }

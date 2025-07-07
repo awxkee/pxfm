@@ -27,9 +27,9 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::polyeval::f_polyeval7;
 use crate::sin::ONE_TWENTY_EIGHT_OVER_PI;
 
-#[cold]
 pub(crate) fn range_reduction_small_f128(x: f64) -> DyadicFloat128 {
     const PI_OVER_128_F128: DyadicFloat128 = DyadicFloat128 {
         sign: DyadicSign::Pos,
@@ -55,50 +55,6 @@ pub(crate) fn range_reduction_small_f128(x: f64) -> DyadicFloat128 {
 #[inline(always)]
 pub(crate) fn r_fmla(a: &DyadicFloat128, b: &DyadicFloat128, c: &DyadicFloat128) -> DyadicFloat128 {
     a.quick_mul(b).quick_add(c)
-}
-
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn r_polyeval7(
-    x: &DyadicFloat128,
-    a0: &DyadicFloat128,
-    a1: &DyadicFloat128,
-    a2: &DyadicFloat128,
-    a3: &DyadicFloat128,
-    a4: &DyadicFloat128,
-    a5: &DyadicFloat128,
-    a6: &DyadicFloat128,
-) -> DyadicFloat128 {
-    let t1 = r_fmla(x, a6, a5);
-    let t2 = r_fmla(x, &t1, a4);
-    let t3 = r_fmla(x, &t2, a3);
-    let t4 = r_fmla(x, &t3, a2);
-    let t5 = r_fmla(x, &t4, a1);
-    r_fmla(x, &t5, a0)
-}
-
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn r_polyeval9(
-    x: &DyadicFloat128,
-    a0: &DyadicFloat128,
-    a1: &DyadicFloat128,
-    a2: &DyadicFloat128,
-    a3: &DyadicFloat128,
-    a4: &DyadicFloat128,
-    a5: &DyadicFloat128,
-    a6: &DyadicFloat128,
-    a7: &DyadicFloat128,
-    a8: &DyadicFloat128,
-) -> DyadicFloat128 {
-    let t0 = r_fmla(x, a8, a7);
-    let t0a = r_fmla(x, &t0, a6);
-    let t1 = r_fmla(x, &t0a, a5);
-    let t2 = r_fmla(x, &t1, a4);
-    let t3 = r_fmla(x, &t2, a3);
-    let t4 = r_fmla(x, &t3, a2);
-    let t5 = r_fmla(x, &t4, a1);
-    r_fmla(x, &t5, a0)
 }
 
 pub(crate) struct SinCosDyadic {
@@ -188,25 +144,25 @@ pub(crate) fn sincos_eval_dyadic(u: &DyadicFloat128) -> SinCosDyadic {
         }, // 1/12!
     ];
 
-    let sin_u = u.quick_mul(&r_polyeval7(
-        &u_sq,
-        &SIN_COEFFS[0],
-        &SIN_COEFFS[1],
-        &SIN_COEFFS[2],
-        &SIN_COEFFS[3],
-        &SIN_COEFFS[4],
-        &SIN_COEFFS[5],
-        &SIN_COEFFS[6],
+    let sin_u = u.quick_mul(&f_polyeval7(
+        u_sq,
+        SIN_COEFFS[0],
+        SIN_COEFFS[1],
+        SIN_COEFFS[2],
+        SIN_COEFFS[3],
+        SIN_COEFFS[4],
+        SIN_COEFFS[5],
+        SIN_COEFFS[6],
     ));
-    let cos_u = r_polyeval7(
-        &u_sq,
-        &COS_COEFFS[0],
-        &COS_COEFFS[1],
-        &COS_COEFFS[2],
-        &COS_COEFFS[3],
-        &COS_COEFFS[4],
-        &COS_COEFFS[5],
-        &COS_COEFFS[6],
+    let cos_u = f_polyeval7(
+        u_sq,
+        COS_COEFFS[0],
+        COS_COEFFS[1],
+        COS_COEFFS[2],
+        COS_COEFFS[3],
+        COS_COEFFS[4],
+        COS_COEFFS[5],
+        COS_COEFFS[6],
     );
     SinCosDyadic {
         v_sin: sin_u,

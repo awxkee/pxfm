@@ -85,3 +85,14 @@ pub fn f_acospif(x: f32) -> f32 {
         r as f32
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_acospif() {
+        assert_eq!(f_acospif(0.0), 0.5);
+        assert_eq!(f_acospif(0.5), 0.33333334);
+        assert_eq!(f_acospif(1.0), 0.0);
+    }
+}

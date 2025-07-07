@@ -83,3 +83,16 @@ pub fn f_atanhf(x: f32) -> f32 {
     let xdbl = x as f64;
     (0.5 * log_eval((xdbl + 1.0) / (xdbl - 1.0))) as f32
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_atanhf() {
+        assert_eq!(f_atanhf(0.0), 0.0);
+        assert_eq!(f_atanhf(1.0), f32::INFINITY);
+        assert!(f_atanhf(-1.5).is_nan());
+        assert_eq!(f_atanhf(0.25), 0.25541282);
+        assert_eq!(f_atanhf(0.124121), 0.12476436);
+    }
+}

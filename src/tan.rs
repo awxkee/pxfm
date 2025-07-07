@@ -30,8 +30,9 @@ use crate::bits::EXP_MASK;
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::polyeval::f_polyeval9;
 use crate::sin::{LargeArgumentReduction, get_sin_k_rational, range_reduction_small};
-use crate::sincos_dyadic::{r_polyeval9, range_reduction_small_f128};
+use crate::sincos_dyadic::range_reduction_small_f128;
 
 #[inline]
 fn tan_eval(u: Dekker) -> (Dekker, f64) {
@@ -135,17 +136,17 @@ fn tan_eval_rational(u: &DyadicFloat128) -> DyadicFloat128 {
         }, // 6404582/10854718875
     ];
 
-    u.quick_mul(&r_polyeval9(
-        &u_sq,
-        &TAN_COEFFS[0],
-        &TAN_COEFFS[1],
-        &TAN_COEFFS[2],
-        &TAN_COEFFS[3],
-        &TAN_COEFFS[4],
-        &TAN_COEFFS[5],
-        &TAN_COEFFS[6],
-        &TAN_COEFFS[7],
-        &TAN_COEFFS[8],
+    u.quick_mul(&f_polyeval9(
+        u_sq,
+        TAN_COEFFS[0],
+        TAN_COEFFS[1],
+        TAN_COEFFS[2],
+        TAN_COEFFS[3],
+        TAN_COEFFS[4],
+        TAN_COEFFS[5],
+        TAN_COEFFS[6],
+        TAN_COEFFS[7],
+        TAN_COEFFS[8],
     ))
 }
 
