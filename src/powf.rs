@@ -53,7 +53,7 @@ pub const fn powf(d: f32, n: f32) -> f32 {
 }
 
 #[inline]
-const fn is_integer(x: f32) -> bool {
+pub(crate) const fn is_integer(x: f32) -> bool {
     let x_u = x.to_bits();
     let x_e = (x_u & EXP_MASK_F32) >> 23;
     let lsb = (x_u | EXP_MASK_F32).trailing_zeros();
@@ -63,7 +63,7 @@ const fn is_integer(x: f32) -> bool {
 }
 
 #[inline]
-fn is_odd_integer(x: f32) -> bool {
+pub(crate) fn is_odd_integer(x: f32) -> bool {
     let x_u = x.to_bits();
     let x_e = (x_u & EXP_MASK_F32) >> 23;
     let lsb = (x_u | EXP_MASK_F32).trailing_zeros();
