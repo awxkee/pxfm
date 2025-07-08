@@ -465,6 +465,8 @@ pub(crate) static EXP2_MID1: [(u64, u64); 64] = [
     (0x3c874853f3a5931e, 0x3fffa7c1819e90d8),
 ];
 
+/* for 0 <= i < 64, T1_2[i] is a 128-bit nearest approximation of 2^(i/64),
+with error bounded by 2^-128 (both absolutely and relatively). */
 #[rustfmt::skip]
 pub(crate) static EXP_T1_2_DYADIC: [DyadicFloat128; 64] = [
     DyadicFloat128 {
@@ -789,6 +791,8 @@ pub(crate) static EXP_T1_2_DYADIC: [DyadicFloat128; 64] = [
     },
 ];
 
+/* for 0 <= i < 64, T2_2[i] is a 128-bit nearest approximation of 2^(i/2^12),
+with error bounded by 2^-128 (both absolutely and relatively). */
 #[rustfmt::skip]
 pub(crate) static EXP_T2_2_DYADIC: [DyadicFloat128; 64] = [
     DyadicFloat128 {

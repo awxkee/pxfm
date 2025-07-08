@@ -100,7 +100,7 @@ static TZ: [(u64, u64); 65] = [
     (0xbc789843c4964554, 0x3fd22d78f0fa061a),
 ];
 
-static T0: [(u64, u64); 64] = [
+pub(crate) static EXPM1_T0: [(u64, u64); 64] = [
     (0x0000000000000000, 0x3ff0000000000000),
     (0xbc719083535b085e, 0x3ff02c9a3e778061),
     (0x3c8d73e2a475b466, 0x3ff059b0d3158574),
@@ -167,7 +167,7 @@ static T0: [(u64, u64); 64] = [
     (0x3c874853f3a5931e, 0x3fffa7c1819e90d8),
 ];
 
-static T1: [(u64, u64); 64] = [
+pub(crate) static EXPM1_T1: [(u64, u64); 64] = [
     (0x0000000000000000, 0x3ff0000000000000),
     (0x3c9ae8e38c59c72a, 0x3ff000b175effdc7),
     (0xbc57b5d0d58ea8f4, 0x3ff00162f3904052),
@@ -323,8 +323,8 @@ fn as_expm1_accurate(x: f64) -> f64 {
         let i0 = (jt >> 6) & 0x3f;
         let i1 = jt & 0x3f;
         let ie = jt >> 12;
-        let t0 = Dekker::from_bit_pair(T0[i0 as usize]);
-        let t1 = Dekker::from_bit_pair(T1[i1 as usize]);
+        let t0 = Dekker::from_bit_pair(EXPM1_T0[i0 as usize]);
+        let t1 = Dekker::from_bit_pair(EXPM1_T1[i1 as usize]);
 
         let bt = Dekker::mult(t0, t1);
 
@@ -437,8 +437,8 @@ pub fn f_expm1(x: f64) -> f64 {
         let i0 = (jt >> 6) & 0x3f;
         let i1 = jt & 0x3f;
         let ie = jt >> 12;
-        let t0 = Dekker::from_bit_pair(T0[i0 as usize]);
-        let t1 = Dekker::from_bit_pair(T1[i1 as usize]);
+        let t0 = Dekker::from_bit_pair(EXPM1_T0[i0 as usize]);
+        let t1 = Dekker::from_bit_pair(EXPM1_T1[i1 as usize]);
 
         let bt = Dekker::mult(t0, t1);
 

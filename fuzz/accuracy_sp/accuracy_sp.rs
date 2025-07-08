@@ -3,14 +3,14 @@
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
     f_acosf, f_acoshf, f_acospif, f_asinf, f_asinhf, f_asinpif, f_atan2f, f_atan2pif, f_atanhf,
-    f_atanpif, f_cbrtf, f_compoundf, f_cosf, f_coshf, f_cospif, f_erfcf, f_erff, f_exp2f,
-    f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_log1pf, f_log2f, f_log2p1f,
-    f_log10f, f_log10p1f, f_logf, f_powf, f_sincf, f_sinf, f_sinhf, f_sinpif, f_tanf, f_tanhf,
-    f_tanpif,
+    f_atanpif, f_cbrtf, f_compoundf, f_compoundm1f, f_cosf, f_coshf, f_cospif, f_erfcf, f_erff,
+    f_exp2f, f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_log1pf, f_log2f,
+    f_log2p1f, f_log10f, f_log10p1f, f_logf, f_powf, f_sincf, f_sinf, f_sinhf, f_sinpif, f_tanf,
+    f_tanhf, f_tanpif,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::ops::{Add, Div};
+use std::ops::{Add, Div, Mul, Sub};
 
 fn count_ulp(d: f32, c: &Float) -> f32 {
     let c2 = c.to_f32();
@@ -113,8 +113,9 @@ fn test_method_2vals_ignore_nan(
     }
     assert!(
         ulp <= 0.5,
-        "ULP should be less than 0.5, but it was {}, using {method_name} on x: {value0}, y: {value1}",
-        ulp
+        "ULP should be less than 0.5, but it was {}, using {method_name} on x: {value0}, y: {value1}, MRFR {}",
+        ulp,
+        mpfr_value.to_f32()
     );
 }
 
@@ -135,21 +136,39 @@ fn test_method_2vals(
     );
 }
 
+fn compound_m1_mpfr(x: f32, y: f32) -> Float {
+    let mpfr_x0 = Float::with_val(70, x);
+    let mpfr_x1 = Float::with_val(70, y);
+    let log1p = mpfr_x0.log2_1p().mul(&mpfr_x1);
+    let exp = log1p.exp2_m1();
+    exp
+}
+
 fuzz_target!(|data: (f32, f32)| {
     let x0 = data.0;
     let x1 = data.0;
     let mpfr_x0 = Float::with_val(70, x0);
     let mpfr_x1 = Float::with_val(70, x1);
 
-    // let compound_mpfr = mpfr_x0.add(&Float::with_val(70, 1.)).pow(&mpfr_x1);
+    let compound_m1_mpfr = compound_m1_mpfr(x0, x1);
 
-    // test_method_2vals_ignore_nan(
-    //     x0,
-    //     x1,
-    //     f_compoundf,
-    //     &compound_mpfr.clone(),
-    //     "f_compoundf".to_string(),
-    // );
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_compoundm1f,
+        &compound_m1_mpfr.clone(),
+        "f_compoundm1f".to_string(),
+    );
+
+    let compound_mpfr = mpfr_x0.clone().add(&Float::with_val(70, 1.)).pow(&mpfr_x1);
+
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_compoundf,
+        &compound_mpfr.clone(),
+        "f_compoundf".to_string(),
+    );
 
     test_method(x0, f_erfcf, &mpfr_x0.clone().erfc(), "f_erfcf".to_string());
     test_method(x0, f_erff, &mpfr_x0.clone().erf(), "f_erff".to_string());

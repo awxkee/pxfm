@@ -83,4 +83,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
       - run: cargo install cargo-fuzz
-      - run: cargo fuzz run math -- -max_total_time=15 -max_len=64
+      - run: cargo fuzz run math -- -max_total_time=15 -max_len=128
+      - run: cargo fuzz run accuraccy_sp -- -max_total_time=15 -max_len=128
+      - run: cargo fuzz run accuraccy_dp -- -max_total_time=15 -max_len=128

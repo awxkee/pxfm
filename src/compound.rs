@@ -38,15 +38,16 @@ use crate::pow_exec::{exp_dyadic, pow_exp_1};
 /// max found ULP 0.5
 #[inline]
 pub fn f_compound(x: f64, y: f64) -> f64 {
-    /* Rules from IEEE 754-2019 for compound (x, n) with n integer:
-       (a) compound (x, 0) is 1 for x >= -1 or quiet NaN
-       (b) compound (-1, n) is +Inf and signals the divideByZero exception for n < 0
-       (c) compound (-1, n) is +0 for n > 0
-       (d) compound (+/-0, n) is 1
-       (e) compound (+Inf, n) is +Inf for n > 0
-       (f) compound (+Inf, n) is +0 for n < 0
-       (g) compound (x, n) is qNaN and signals the invalid exception for x < -1
-       (h) compound (qNaN, n) is qNaN for n <> 0.
+    /*
+       Rules from IEEE 754-2019 for compound (x, n) with n integer:
+           (a) compound (x, 0) is 1 for x >= -1 or quiet NaN
+           (b) compound (-1, n) is +Inf and signals the divideByZero exception for n < 0
+           (c) compound (-1, n) is +0 for n > 0
+           (d) compound (+/-0, n) is 1
+           (e) compound (+Inf, n) is +Inf for n > 0
+           (f) compound (+Inf, n) is +0 for n < 0
+           (g) compound (x, n) is qNaN and signals the invalid exception for x < -1
+           (h) compound (qNaN, n) is qNaN for n <> 0.
     */
 
     let mut y = y;
@@ -344,15 +345,15 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         l.hi = f64::NAN;
     }
 
-    let r = Dekker::quick_mult_f64(l, y);
-    if r.hi < 300. {
-        let res = pow_exp_1(r, s);
+    //TODO: make better log1p expansion, error is too high for large numbers,
+    //      so full dekker multiplication with error tracking is required
+    let r = Dekker::mult(l, Dekker::new(0., y));
+    let res = pow_exp_1(r, s);
 
-        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), -res.hi, res.lo);
-        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), res.hi, res.lo);
-        if res_min == res_max {
-            return res_max;
-        }
+    let res_min = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), -res.hi, res.lo);
+    let res_max = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), res.hi, res.lo);
+    if res_min == res_max {
+        return res_max;
     }
 
     compound_accurate(x, y, s)

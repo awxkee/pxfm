@@ -25,7 +25,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.warm_up_time(Duration::new(1, 100));
     c.sample_size(15);
 
-    c.bench_function("pxfm: f_compound", |b| {
+    /*  c.bench_function("pxfm: f_compound", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_compound(i as f64, 0.0323221324312f64 * i as f64));
@@ -1391,7 +1391,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 black_box(f_powf(i as f32, 0.323221324312f32 * i as f32));
             }
         })
-    });
+    });*/
 
     c.bench_function("pxfm: f_compoundf", |b| {
         b.iter(|| {
