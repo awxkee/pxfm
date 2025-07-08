@@ -399,5 +399,6 @@ mod tests {
         assert_eq!(f_compound(-1., -1. / 2.), f64::INFINITY);
         assert_eq!(f_compound(f64::INFINITY, -1. / 2.), 0.0);
         assert_eq!(f_compound(f64::INFINITY, 1. / 2.), f64::INFINITY);
+        assert_eq!(f_compound(46.3828125, 46.3828125), 5.248159634773675e77);
     }
 }
