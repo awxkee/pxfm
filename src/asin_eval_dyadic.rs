@@ -28,7 +28,7 @@
  */
 
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::sincos_dyadic::r_fmla;
+use crate::polyeval::f_polyeval16;
 
 // > procedure PRINTF128(a) {
 //   write("{");
@@ -1467,64 +1467,12 @@ static ASIN_COEFFS_F128: [[DyadicFloat128; 16]; 17] = [
     ],
 ];
 
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn r_polyeval16(
-    x: &DyadicFloat128,
-    a0: &DyadicFloat128,
-    a1: &DyadicFloat128,
-    a2: &DyadicFloat128,
-    a3: &DyadicFloat128,
-    a4: &DyadicFloat128,
-    a5: &DyadicFloat128,
-    a6: &DyadicFloat128,
-    a7: &DyadicFloat128,
-    a8: &DyadicFloat128,
-    a9: &DyadicFloat128,
-    a10: &DyadicFloat128,
-    a11: &DyadicFloat128,
-    a12: &DyadicFloat128,
-    a13: &DyadicFloat128,
-    a14: &DyadicFloat128,
-    a15: &DyadicFloat128,
-) -> DyadicFloat128 {
-    let t1 = r_fmla(x, a15, a14);
-    let t2 = r_fmla(x, &t1, a13);
-    let t3 = r_fmla(x, &t2, a12);
-    let t4 = r_fmla(x, &t3, a11);
-    let t5 = r_fmla(x, &t4, a10);
-    let t6 = r_fmla(x, &t5, a9);
-    let t7 = r_fmla(x, &t6, a8);
-    let t8 = r_fmla(x, &t7, a7);
-    let t9 = r_fmla(x, &t8, a6);
-    let t10 = r_fmla(x, &t9, a5);
-    let t11 = r_fmla(x, &t10, a4);
-    let t12 = r_fmla(x, &t11, a3);
-    let t13 = r_fmla(x, &t12, a2);
-    let t14 = r_fmla(x, &t13, a1);
-    r_fmla(x, &t14, a0)
-}
-
 #[cold]
-pub(crate) fn asin_eval_dyadic(u: &DyadicFloat128, idx: usize) -> DyadicFloat128 {
+pub(crate) fn asin_eval_dyadic(u: DyadicFloat128, idx: usize) -> DyadicFloat128 {
     let coeffs = ASIN_COEFFS_F128[idx];
-    r_polyeval16(
-        u,
-        &coeffs[0],
-        &coeffs[1],
-        &coeffs[2],
-        &coeffs[3],
-        &coeffs[4],
-        &coeffs[5],
-        &coeffs[6],
-        &coeffs[7],
-        &coeffs[8],
-        &coeffs[9],
-        &coeffs[10],
-        &coeffs[11],
-        &coeffs[12],
-        &coeffs[13],
-        &coeffs[14],
-        &coeffs[15],
+    f_polyeval16(
+        u, coeffs[0], coeffs[1], coeffs[2], coeffs[3], coeffs[4], coeffs[5], coeffs[6], coeffs[7],
+        coeffs[8], coeffs[9], coeffs[10], coeffs[11], coeffs[12], coeffs[13], coeffs[14],
+        coeffs[15],
     )
 }

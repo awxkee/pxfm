@@ -48,7 +48,7 @@ pub const fn roundf_ties_even(x: f32) -> f32 {
 
     if exponent == -1 {
         // Absolute value of x is greater than equal to 0.5 but less than 1.
-        return if x.is_sign_negative() { -1.0 } else { 1.0 };
+        return if x.is_sign_negative() { -0.0 } else { 0.0 };
     }
 
     if exponent <= -2 {
@@ -118,7 +118,7 @@ pub const fn round_ties_even(x: f64) -> f64 {
 
     if exponent == -1 {
         // Absolute value of x is greater than equal to 0.5 but less than 1.
-        return if x.is_sign_negative() { -1.0 } else { 1.0 };
+        return if x.is_sign_negative() { -0.0 } else { 0.0 };
     }
 
     if exponent <= -2 {
@@ -176,6 +176,8 @@ mod tests {
     #[test]
     fn test_roundf_ties_even() {
         assert_eq!(roundf_ties_even(0f32), 0.0f32.round_ties_even());
+        assert_eq!(roundf_ties_even(0.5f32), 0.5f32.round_ties_even());
+        assert_eq!(roundf_ties_even(-0.5), (-0.5f32).round_ties_even());
         assert_eq!(roundf_ties_even(1f32), 1.0f32.round_ties_even());
         assert_eq!(roundf_ties_even(1.2f32), 1.2f32.round_ties_even());
         assert_eq!(roundf_ties_even(-1.2f32), (-1.2f32).round_ties_even());
@@ -189,6 +191,8 @@ mod tests {
     #[test]
     fn test_round_ties_even() {
         assert_eq!(round_ties_even(0.), 0.0f64.round_ties_even());
+        assert_eq!(round_ties_even(0.5), 0.5f64.round_ties_even());
+        assert_eq!(round_ties_even(-0.5), (-0.5f64).round_ties_even());
         assert_eq!(round_ties_even(1.), 1.0f64.round_ties_even());
         assert_eq!(round_ties_even(1.2), 1.2f64.round_ties_even());
         assert_eq!(round_ties_even(-1.2), (-1.2f64).round_ties_even());

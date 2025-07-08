@@ -129,7 +129,7 @@ fn log10p1_accurate(x: f64) -> f64 {
         Dekker::from_exact_add(1.0, x)
     };
     let x_d = DyadicFloat128::new_from_f64(dx.hi);
-    let mut y = log2_dyadic(&x_d, dx.hi);
+    let mut y = log2_dyadic(x_d, dx.hi);
     let mut c = DyadicFloat128::from_div_f64(dx.lo, dx.hi);
     let mut bx = c * c;
     /* multiply X by -1/2 */

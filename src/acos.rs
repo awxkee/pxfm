@@ -120,7 +120,7 @@ pub fn f_acos(x: f64) -> f64 {
             ));
         }
 
-        let p_f128 = asin_eval_dyadic(&u, idx);
+        let p_f128 = asin_eval_dyadic(u, idx);
         // Flip the sign of x_f128 to perform subtraction.
         x_f128.sign = x_f128.sign.negate();
         let r = PI_OVER_TWO_F128.quick_add(&x_f128.quick_mul(&p_f128));
@@ -310,7 +310,7 @@ pub fn f_acos(x: f64) -> f64 {
     let y_f128 =
         DyadicFloat128::new_from_f64(f_fmla(idx as f64, f64::from_bits(0xbf90000000000000), u));
 
-    let p_f128 = asin_eval_dyadic(&y_f128, idx);
+    let p_f128 = asin_eval_dyadic(y_f128, idx);
     let mut r_f128 = m_v * p_f128;
 
     if x.is_sign_negative() {

@@ -155,7 +155,7 @@ pub fn f_asinpi(x: f64) -> f64 {
             ));
         }
 
-        let p_f128 = asin_eval_dyadic(&u, idx);
+        let p_f128 = asin_eval_dyadic(u, idx);
         let mut r = x_f128.quick_mul(&p_f128);
         r = r.quick_mul(&crate::acospi::INV_PI_F128);
         return r.fast_as_f64();
@@ -336,9 +336,9 @@ pub fn f_asinpi(x: f64) -> f64 {
         mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
     };
 
-    let p_f128 = asin_eval_dyadic(&y_f128, idx);
-    let r0_f128 = m_v.quick_mul(&p_f128);
-    let mut r_f128 = PI_OVER_TWO_F128.quick_add(&r0_f128);
+    let p_f128 = asin_eval_dyadic(y_f128, idx);
+    let r0_f128 = m_v * p_f128;
+    let mut r_f128 = PI_OVER_TWO_F128 + r0_f128;
 
     if x.is_sign_negative() {
         r_f128.sign = DyadicSign::Neg;

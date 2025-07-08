@@ -424,7 +424,7 @@ fn log_dyadic_taylor_poly(x: DyadicFloat128) -> DyadicFloat128 {
     .quick_mul(&x)
 }
 
-pub(crate) fn log2_dyadic(d: &DyadicFloat128, x: f64) -> DyadicFloat128 {
+pub(crate) fn log2_dyadic(d: DyadicFloat128, x: f64) -> DyadicFloat128 {
     let biased_exp = biased_exponent_f64(x);
     let e = get_exponent_f64(x);
     let base_mant = mantissa_f64(x);
@@ -444,7 +444,7 @@ pub(crate) fn log2_dyadic(d: &DyadicFloat128, x: f64) -> DyadicFloat128 {
         i >>= 1;
     }
 
-    let mut x = *d;
+    let mut x = d;
 
     x.exponent = x.exponent.wrapping_sub(fe);
     let inverse_2 = LOG2P1_INVERSE_2[(i - 128) as usize];
@@ -512,7 +512,7 @@ fn log2p1_accurate(x: f64) -> f64 {
         }
     }
     let x_d = DyadicFloat128::new_from_f64(dx.hi);
-    let mut y = log2_dyadic(&x_d, dx.hi);
+    let mut y = log2_dyadic(x_d, dx.hi);
     let mut c = DyadicFloat128::from_div_f64(dx.lo, dx.hi);
     let mut bx = c * c;
     /* multiply X by -1/2 */

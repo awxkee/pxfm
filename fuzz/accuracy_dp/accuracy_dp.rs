@@ -5,7 +5,7 @@ use libfuzzer_sys::fuzz_target;
 use pxfm::*;
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::ops::Div;
+use std::ops::{Add, Div};
 
 pub fn count_ulp_f64(d: f64, c: &Float) -> f64 {
     let c2 = c.to_f64();
@@ -149,9 +149,68 @@ fn test_method_2vals_ignore_nan(
     }
     assert!(
         ulp <= max_ulp,
-        "ULP should be less than {max_ulp}, but it was {}, using {method_name} on x: {value0}, y: {value1}",
-        ulp
+        "ULP should be less than {max_ulp}, but it was {}, using {method_name} on x: {value0}, y: {value1}, MPFR {}",
+        ulp,
+        mpfr_value.to_f64()
     );
+}
+
+#[track_caller]
+fn test_method_2vals_ignore_nan1(
+    value0: f64,
+    value1: f64,
+    method: fn(f64, f64) -> f64,
+    mpfr_value: &Float,
+    method_name: String,
+    max_ulp: f64,
+) {
+    let xr = method(value0, value1);
+    if !xr.is_normal() {
+        return;
+    }
+    let ulp = count_ulp_f64(xr, mpfr_value);
+    if !ulp.is_normal() {
+        return;
+    }
+    assert!(
+        ulp <= max_ulp,
+        "ULP should be less than {max_ulp}, but it was {}, using {method_name} on x: {value0}, y: {value1}, MPFR {}",
+        ulp,
+        mpfr_value.to_f64()
+    );
+}
+
+#[track_caller]
+fn track_ulp(
+    value0: f64,
+    value1: f64,
+    method: fn(f64, f64) -> f64,
+    mpfr_value: &Float,
+    method_name: String,
+    max_ulp: f64,
+) {
+    let xr = method(value0, value1);
+    if !xr.is_normal() {
+        return;
+    }
+    let ulp = count_ulp_f64(xr, mpfr_value);
+    if !ulp.is_normal() {
+        return;
+    }
+    if ulp > 0.5 {
+        let r_upper = f64::mul_add(xr, f64::from_bits(0x3c91200000000000), xr);
+        let r_lower = f64::mul_add(-xr, f64::from_bits(0x3c91200000000000), xr);
+        if r_upper == r_lower {
+            println!(
+                "RU / RL should not match {r_upper}, {r_lower} be less than {max_ulp}, but it was {ulp}, using {method_name} on x: {value0}, y: {value1}"
+            );
+        }
+    }
+    // assert!(
+    //     ulp <= max_ulp,
+    //     "ULP should be less than {max_ulp}, but it was {}, using {method_name} on x: {value0}, y: {value1}",
+    //     ulp
+    // );
 }
 
 fuzz_target!(|data: (f64, f64)| {
@@ -164,7 +223,7 @@ fuzz_target!(|data: (f64, f64)| {
     } else {
         mpfr_x0.clone().sin().div(&mpfr_x0)
     };
-    test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5000);
+    test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
     test_method(
         x0,
         f_erfc,
@@ -393,15 +452,22 @@ fuzz_target!(|data: (f64, f64)| {
         "f_hypot".to_string(),
         0.5,
     );
-    // Powf currently not really bets handles extra large argument, ULP 10000 for extra large argument
-    if x0.abs() < 1e12 && x1.abs() < 1e12 {
-        test_method_2vals_ignore_nan(
-            x0,
-            x1,
-            f_pow,
-            &mpfr_x0.clone().pow(&mpfr_x1),
-            "f_powf".to_string(),
-            0.6,
-        );
-    }
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_pow,
+        &mpfr_x0.clone().pow(&mpfr_x1),
+        "f_powf".to_string(),
+        0.5,
+    );
+    let compound_mpfr = mpfr_x0.add(&Float::with_val(100, 1.)).pow(&mpfr_x1);
+
+    test_method_2vals_ignore_nan1(
+        x0,
+        x1,
+        f_compound,
+        &compound_mpfr,
+        "f_compound".to_string(),
+        0.5,
+    );
 });

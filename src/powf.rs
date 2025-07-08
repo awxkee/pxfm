@@ -33,7 +33,7 @@ use crate::expf::expf;
 use crate::log2f::LOG2_R;
 use crate::logf::{EXP_MASK_F32, logf};
 use crate::polyeval::{f_polyeval3, f_polyeval6, f_polyeval10};
-use crate::pow::EXP2_MID1;
+use crate::pow_tables::EXP2_MID1;
 use crate::powf_tables::{LOG2_R_TD, LOG2_R2_DD, POWF_R2};
 
 /// Power function for given value
@@ -641,6 +641,7 @@ mod tests {
             "Invalid result {}",
             f_powf(0.5f32, 2f32)
         );
+        assert_eq!(f_powf(0.5f32, 1.5432f32), 0.34312353);
     }
 
     #[test]

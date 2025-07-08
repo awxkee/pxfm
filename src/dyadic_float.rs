@@ -504,6 +504,77 @@ impl Add<DyadicFloat128> for DyadicFloat128 {
     }
 }
 
+impl DyadicFloat128 {
+    #[inline]
+    pub(crate) fn trunc_to_i64(&self) -> i64 {
+        if self.exponent <= -128 {
+            // Absolute value of x is greater than equal to 0.5 but less than 1.
+            return 0;
+        }
+        let hi = self.mantissa >> 64;
+        let norm_exp = self.exponent + 127;
+        let r: i64 = (hi >> (63 - norm_exp)) as i64;
+
+        if self.sign == DyadicSign::Neg { -r } else { r }
+    }
+
+    // #[inline]
+    // pub(crate) fn round_to_nearest(&self) -> DyadicFloat128 {
+    //     if self.exponent == -128 {
+    //         // Absolute value of x is greater than equal to 0.5 but less than 1.
+    //         return DyadicFloat128 {
+    //             sign: self.sign,
+    //             exponent: -127,
+    //             mantissa: 0x80000000_00000000_00000000_00000000_u128,
+    //         };
+    //     }
+    //     if self.exponent <= -129 {
+    //         // Absolute value of x is greater than equal to 0.5 but less than 1.
+    //         return DyadicFloat128 {
+    //             sign: self.sign,
+    //             exponent: 0,
+    //             mantissa: 0u128,
+    //         };
+    //     }
+    //     const FRACTION_LENGTH: u32 = BITS - 1;
+    //     let trim_size =
+    //         (FRACTION_LENGTH as i64).wrapping_sub(self.exponent as i64 + (BITS - 1) as i64) as u128;
+    //     let half_bit_set =
+    //         self.mantissa & (1u128.wrapping_shl(trim_size.wrapping_sub(1) as u32)) != 0;
+    //     let trunc_u: u128 = (self.mantissa >> trim_size).wrapping_shl(trim_size as u32);
+    //     if trunc_u == self.mantissa {
+    //         return *self;
+    //     }
+    //
+    //     let truncated = DyadicFloat128::new(self.sign, self.exponent, self.mantissa);
+    //
+    //     if !half_bit_set {
+    //         // Franctional part is less than 0.5 so round value is the
+    //         // same as the trunc value.
+    //         truncated
+    //     } else if self.sign == DyadicSign::Neg {
+    //         let ones = DyadicFloat128 {
+    //             sign: DyadicSign::Pos,
+    //             exponent: -128,
+    //             mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
+    //         };
+    //         truncated - ones
+    //     } else {
+    //         let ones = DyadicFloat128 {
+    //             sign: DyadicSign::Pos,
+    //             exponent: -128,
+    //             mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
+    //         };
+    //         truncated + ones
+    //     }
+    // }
+    //
+    // #[inline]
+    // pub(crate) fn round_to_nearest_f64(&self) -> f64 {
+    //     self.round_to_nearest().fast_as_f64()
+    // }
+}
+
 impl Sub<DyadicFloat128> for DyadicFloat128 {
     type Output = DyadicFloat128;
     #[inline]
@@ -680,5 +751,55 @@ mod tests {
         let from_div = DyadicFloat128::new_from_f64(2.5);
         let m1 = from_div.mul_int64(2);
         assert_eq!(m1.fast_as_f64(), 5.0);
+    }
+
+    // #[test]
+    // fn dyadic_float_round() {
+    //     let from_div = DyadicFloat128::new_from_f64(2.5);
+    //     let m1 = from_div.round_to_nearest_f64();
+    //     assert_eq!(m1, 3.0);
+    //
+    //     let from_div = DyadicFloat128::new_from_f64(0.5);
+    //     let m1 = from_div.round_to_nearest_f64();
+    //     assert_eq!(m1, 1.0);
+    //
+    //     let from_div = DyadicFloat128::new_from_f64(-0.5);
+    //     let m1 = from_div.round_to_nearest_f64();
+    //     assert_eq!(m1, -1.0);
+    //
+    //     let from_div = DyadicFloat128::new_from_f64(-0.351);
+    //     let m1 = from_div.round_to_nearest_f64();
+    //     assert_eq!(m1, (-0.351f64).round());
+    //
+    //     let from_div = DyadicFloat128::new_from_f64(0.351);
+    //     let m1 = from_div.round_to_nearest_f64();
+    //     assert_eq!(m1, 0.351f64.round());
+    // }
+
+    #[test]
+    fn dyadic_int_trunc() {
+        let from_div = DyadicFloat128::new_from_f64(-2.5);
+        let m1 = from_div.trunc_to_i64();
+        assert_eq!(m1, -2);
+
+        let from_div = DyadicFloat128::new_from_f64(2.5);
+        let m1 = from_div.trunc_to_i64();
+        assert_eq!(m1, 2);
+
+        let from_div = DyadicFloat128::new_from_f64(0.5);
+        let m1 = from_div.trunc_to_i64();
+        assert_eq!(m1, 0);
+
+        let from_div = DyadicFloat128::new_from_f64(-0.5);
+        let m1 = from_div.trunc_to_i64();
+        assert_eq!(m1, 0);
+
+        let from_div = DyadicFloat128::new_from_f64(-0.351);
+        let m1 = from_div.trunc_to_i64();
+        assert_eq!(m1, 0);
+
+        let from_div = DyadicFloat128::new_from_f64(0.351);
+        let m1 = from_div.trunc_to_i64();
+        assert_eq!(m1, 0);
     }
 }

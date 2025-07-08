@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -26,64 +26,29 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::bits::EXP_MASK;
 use crate::common::dd_fmla;
 use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::exp::exp;
-use crate::log::{log, log_dyadic};
-use crate::pow_exec::{exp_dyadic, pow_exp_1, pow_log_1};
-use crate::{f_exp2, f_exp10};
+use crate::log1p::{log1p_f64_dd, log1p_f64_dyadic};
+use crate::pow::{is_integer, is_odd_integer};
+use crate::pow_exec::{exp_dyadic, pow_exp_1};
 
-/// Power function for given value
-#[inline]
-pub const fn pow(d: f64, n: f64) -> f64 {
-    let value = d.abs();
-
-    let r = n * log(value);
-    let c = exp(r);
-    if n == 0. {
-        return 1.;
-    }
-    if d < 0.0 {
-        let y = n as i32;
-        if y % 2 == 0 { c } else { -c }
-    } else {
-        c
-    }
-}
-
-#[inline]
-pub(crate) fn is_integer(n: f64) -> bool {
-    n == n.round_ties_even()
-}
-
-#[inline]
-pub(crate) fn is_odd_integer(x: f64) -> bool {
-    let x_u = x.to_bits();
-    let x_e = (x_u & EXP_MASK) >> 52;
-    let lsb = (x_u | EXP_MASK).trailing_zeros();
-    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-
-    const UNIT_EXPONENT: u64 = E_BIAS + 52;
-    x_e + lsb as u64 == UNIT_EXPONENT
-}
-
-#[cold]
-fn pow_exp10_fallback(x: f64) -> f64 {
-    f_exp10(x)
-}
-
-#[cold]
-fn pow_exp2_fallback(x: f64) -> f64 {
-    f_exp2(x)
-}
-
-/// Power function for given value using FMA
+/// Computes (1+x)^y
 ///
 /// max found ULP 0.5
 #[inline]
-pub fn f_pow(x: f64, y: f64) -> f64 {
+pub fn f_compound(x: f64, y: f64) -> f64 {
+    /* Rules from IEEE 754-2019 for compound (x, n) with n integer:
+       (a) compound (x, 0) is 1 for x >= -1 or quiet NaN
+       (b) compound (-1, n) is +Inf and signals the divideByZero exception for n < 0
+       (c) compound (-1, n) is +0 for n > 0
+       (d) compound (+/-0, n) is 1
+       (e) compound (+Inf, n) is +Inf for n > 0
+       (f) compound (+Inf, n) is +0 for n < 0
+       (g) compound (x, n) is qNaN and signals the invalid exception for x < -1
+       (h) compound (qNaN, n) is qNaN for n <> 0.
+    */
+
     let mut y = y;
     let x_sign = x.is_sign_negative();
     let y_sign = y.is_sign_negative();
@@ -123,22 +88,63 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
             return 1.0;
         }
 
+        // (h) compound(qNaN, n) is qNaN for n ≠ 0
+        if x.is_nan() {
+            if y != 0. {
+                return x;
+            } // propagate qNaN
+            return 1.0;
+        }
+
+        // (d) compound(±0, n) is 1
+        if x == 0.0 {
+            return 1.0;
+        }
+
+        // (e, f) compound(+Inf, n)
+        if x.is_infinite() && x > 0.0 {
+            return if y > 0. { x } else { 0.0 };
+        }
+
+        // (g) compound(x, n) is qNaN and signals invalid for x < -1
+        if x < -1.0 {
+            // Optional: raise invalid explicitly
+            return f64::NAN;
+        }
+
+        // (b, c) compound(-1, n)
+        if x == -1.0 {
+            return if y < 0. { f64::INFINITY } else { 0.0 };
+        }
+
         match y_a {
             0x3fe0_0000_0000_0000 => {
                 // TODO: speed up x^(-1/2) with rsqrt(x) when available.
-                if x == 0.0 || x_u == f64::NEG_INFINITY.to_bits() {
-                    // pow(-0, 1/2) = +0
-                    // pow(-inf, 1/2) = +inf
-                    // Make sure it works correctly for FTZ/DAZ.
-                    return if y_sign { 1.0 / (x * x) } else { x * x };
+                if x == 0.0 {
+                    return 1.0;
                 }
-                return if y_sign { 1.0 / x.sqrt() } else { x.sqrt() };
+                let z = Dekker::from_full_exact_add(x, 1.0).sqrt();
+                return if y_sign {
+                    z.recip().to_f64()
+                } else {
+                    z.to_f64()
+                };
             }
             0x3ff0_0000_0000_0000 => {
-                return if y_sign { 1.0 / x } else { x };
+                return if y_sign {
+                    Dekker::from_full_exact_add(x, 1.0).recip().to_f64()
+                } else {
+                    Dekker::from_full_exact_add(x, 1.0).to_f64()
+                };
             }
             0x4000_0000_0000_0000 => {
-                return if y_sign { 1.0 / (x * x) } else { x * x };
+                let z0 = Dekker::from_full_exact_add(x, 1.0);
+                let z = Dekker::quick_mult(z0, z0);
+                return if y_sign {
+                    z.recip().to_f64()
+                } else {
+                    f64::copysign(z.to_f64(), x)
+                };
             }
             _ => {}
         }
@@ -208,10 +214,6 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
             }
             // pow(0, positive number) = 0
             return if out_is_neg { -0.0 } else { 0.0 };
-        } else if x == 2.0 {
-            return pow_exp2_fallback(y);
-        } else if x == 10.0 {
-            return pow_exp10_fallback(y);
         }
 
         if x_a == f64::INFINITY.to_bits() {
@@ -294,8 +296,40 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
         }
     }
 
+    let ax = x.to_bits() & 0x7fff_ffff_ffff_ffff;
+    let ay = y.to_bits() & 0x7fff_ffff_ffff_ffff;
+
+    // evaluate (1+x)^y explicitly for integer y in [-16,16] range and |x|<2^64
+    if y.floor() == y && ay <= 0x4030_0000_0000_0000u64 && ax <= 0x43e0_0000_0000_0000u64 {
+        if ax <= 0x3cc0_0000_0000_0000 {
+            let mut p = Dekker::from_exact_mult(y, x);
+            p = Dekker::full_add_f64(p, 1.0);
+            return p.to_f64();
+        } // does it work for |x|<2^-29 and |y|<=16?
+        let z0 = f64::from_bits(ay) as f32;
+        let ay0 = z0.to_bits().wrapping_shl(1);
+        let ky: i32 = (((ay0 & 0x00ffffff) | 1 << 24) >> (151 - (ay0 >> 24))) as i32;
+        let s = 1.0 + x;
+        let mut p = 1.;
+        let s2 = s * s;
+        let s4 = s2 * s2;
+        let s8 = s4 * s4;
+        let s16 = s8 * s8;
+        let sn: [f64; 6] = [1., s, s2, s4, s8, s16];
+        p *= sn[(ky & 1) as usize];
+        p *= sn[(ky & 2) as usize];
+        p *= sn[(((ky >> 2) & 1) * 3) as usize];
+        p *= sn[((ky >> 1) & 4) as usize];
+        p *= sn[(((ky >> 4) & 1) * 5) as usize];
+        return if y.is_sign_negative() {
+            Dekker::new(0., p).recip().to_f64()
+        } else {
+            p
+        };
+    }
+
     // approximate log(x)
-    let (mut l, cancel) = pow_log_1(x);
+    let mut l = log1p_f64_dd(x);
 
     /* We should avoid a spurious underflow/overflow in y*log(x).
     Underflow: for x<>1, the smallest absolute value of log(x) is obtained
@@ -311,20 +345,27 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
     }
 
     let r = Dekker::quick_mult_f64(l, y);
-    let res = pow_exp_1(r, s);
-    static ERR: [u64; 2] = [0x3bf2700000000000, 0x3c55700000000000];
-    let res_min = res.hi + dd_fmla(f64::from_bits(ERR[cancel as usize]), -res.hi, res.lo);
-    let res_max = res.hi + dd_fmla(f64::from_bits(ERR[cancel as usize]), res.hi, res.lo);
-    if res_min == res_max {
-        return res_max;
+    if r.hi < 300. {
+        let res = pow_exp_1(r, s);
+
+        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), -res.hi, res.lo);
+        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), res.hi, res.lo);
+        if res_min == res_max {
+            return res_max;
+        }
     }
 
+    compound_accurate(x, y, s)
+}
+
+#[cold]
+fn compound_accurate(x: f64, y: f64, s: f64) -> f64 {
     /* the idea of returning res_max instead of res_min is due to Laurent
     Théry: it is better in case of underflow since res_max = +0 always. */
 
     let f_y = DyadicFloat128::new_from_f64(y);
 
-    let r = log_dyadic(x) * f_y;
+    let r = log1p_f64_dyadic(x) * f_y;
     let mut result = exp_dyadic(r);
 
     // 2^R.ex <= R < 2^(R.ex+1)
@@ -345,34 +386,18 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::f_compound;
 
     #[test]
-    fn powf_test() {
-        assert!(
-            (pow(2f64, 3f64) - 8f64).abs() < 1e-9,
-            "Invalid result {}",
-            pow(2f64, 3f64)
-        );
-        assert!(
-            (pow(0.5f64, 2f64) - 0.25f64).abs() < 1e-9,
-            "Invalid result {}",
-            pow(0.5f64, 2f64)
-        );
-    }
-
-    #[test]
-    fn f_pow_test() {
-        assert!(
-            (f_pow(2f64, 3f64) - 8f64).abs() < 1e-9,
-            "Invalid result {}",
-            f_pow(2f64, 3f64)
-        );
-        assert!(
-            (f_pow(0.5f64, 2f64) - 0.25f64).abs() < 1e-9,
-            "Invalid result {}",
-            f_pow(0.5f64, 2f64)
-        );
-        assert_eq!(f_pow(2.1f64, 2.7f64), 7.412967494768546);
+    fn test_compound() {
+        assert_eq!(f_compound(2., 5.), 243.);
+        assert_eq!(f_compound(126.4324324, 126.4324324), 1.4985383310514043e266);
+        assert_eq!(f_compound(0.4324324, 126.4324324), 5.40545942023447e19);
+        assert!(f_compound(-0.4324324, 126.4324324).is_nan());
+        assert_eq!(f_compound(0.0, 0.0), 1.0);
+        assert_eq!(f_compound(0.0, -1. / 2.), 1.0);
+        assert_eq!(f_compound(-1., -1. / 2.), f64::INFINITY);
+        assert_eq!(f_compound(f64::INFINITY, -1. / 2.), 0.0);
+        assert_eq!(f_compound(f64::INFINITY, 1. / 2.), f64::INFINITY);
     }
 }

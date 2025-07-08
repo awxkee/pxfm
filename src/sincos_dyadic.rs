@@ -52,11 +52,6 @@ pub(crate) fn range_reduction_small_f128(x: f64) -> DyadicFloat128 {
     y.quick_mul(&PI_OVER_128_F128)
 }
 
-#[inline(always)]
-pub(crate) fn r_fmla(a: &DyadicFloat128, b: &DyadicFloat128, c: &DyadicFloat128) -> DyadicFloat128 {
-    a.quick_mul(b).quick_add(c)
-}
-
 pub(crate) struct SinCosDyadic {
     pub(crate) v_sin: DyadicFloat128,
     pub(crate) v_cos: DyadicFloat128,

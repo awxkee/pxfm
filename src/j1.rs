@@ -15,7 +15,7 @@
 
 #![allow(clippy::excessive_precision)]
 
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::sin::f_cos;
 use crate::sincos::f_sincos;
 
@@ -60,7 +60,7 @@ fn common(ix: u32, x: f64, y1: bool, sign: bool) -> f64 {
                 ss = -ss;
             }
             let p0 = pone(x);
-            cc = f_fmla(p0, cc, -qone(x) * ss);
+            cc = dd_fmla(p0, cc, -qone(x) * ss);
         }
     }
     if sign {

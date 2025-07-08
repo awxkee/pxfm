@@ -110,7 +110,7 @@ impl Dekker {
     #[inline]
     pub(crate) fn dd_f64_mul_add(a: f64, b: f64, c: f64) -> f64 {
         let ddx2 = Dekker::from_exact_mult(a, b);
-        let zv = Dekker::add_f64(ddx2, c);
+        let zv = Dekker::full_add_f64(ddx2, c);
         zv.to_f64()
     }
 
@@ -125,6 +125,7 @@ impl Dekker {
     //     Dekker::new(r_lo, r_hi)
     // }
 
+    /// Valid only |a.hi| > |b.hi|
     #[inline]
     pub(crate) fn add(a: Dekker, b: Dekker) -> Dekker {
         let s = a.hi + b.hi;
@@ -133,12 +134,69 @@ impl Dekker {
         Dekker::new(l, s)
     }
 
+    /// Valid only |a.hi| > |b.hi|
     #[inline]
     pub(crate) fn sub(a: Dekker, b: Dekker) -> Dekker {
         let s = a.hi - b.hi;
         let d = s - a.hi;
         let l = ((-b.hi - d) + (a.hi + (d - s))) + (a.lo - b.lo);
         Dekker::new(l, s)
+    }
+
+    /// Dekker-style square root for a double-double number
+    #[inline]
+    pub(crate) fn sqrt(self) -> Dekker {
+        let a = self.hi + self.lo;
+
+        if a == 0.0 {
+            return Dekker { hi: 0.0, lo: 0.0 };
+        }
+        if a < 0.0 || a.is_nan() {
+            return Dekker {
+                hi: f64::NAN,
+                lo: 0.0,
+            };
+        }
+        if a.is_infinite() {
+            return Dekker {
+                hi: f64::INFINITY,
+                lo: 0.0,
+            };
+        }
+
+        let x = a.sqrt();
+
+        let x2 = Dekker::from_exact_mult(x, x);
+
+        // Residual = self - x²
+        let mut r = self.hi - x2.hi;
+        r += self.lo;
+        r -= x2.lo;
+
+        let dx = r / (2.0 * x);
+        let hi = x + dx;
+        let lo = (x - hi) + dx;
+
+        Dekker { hi, lo }
+    }
+
+    /// Accurate reciprocal: 1 / self
+    #[inline]
+    pub(crate) fn recip(self) -> Dekker {
+        let approx = 1.0 / self.hi;
+
+        let p = Dekker::from_exact_mult(self.hi, approx);
+        let mut err = 1.0 - p.hi;
+        err -= p.lo;
+        err = dd_fmla(-self.lo, approx, err);
+
+        let refined_hi = approx + approx * err;
+        let refined_lo = approx * err - (refined_hi - approx);
+
+        Dekker {
+            hi: refined_hi,
+            lo: refined_lo,
+        }
     }
 
     #[inline]
@@ -536,6 +594,7 @@ impl Dekker {
         }
     }
 
+    /// Valid only |a.hi| > |b|
     #[inline]
     pub(crate) fn add_f64(a: Dekker, b: f64) -> Self {
         let t = Dekker::from_exact_add(a.hi, b);
@@ -543,6 +602,14 @@ impl Dekker {
         Self { lo: l, hi: t.hi }
     }
 
+    #[inline]
+    pub(crate) fn full_add_f64(a: Dekker, b: f64) -> Self {
+        let t = Dekker::from_full_exact_add(a.hi, b);
+        let l = a.lo + t.lo;
+        Self { lo: l, hi: t.hi }
+    }
+
+    /// Valid only |b| > |a.hi|
     #[inline]
     pub(crate) fn f64_add(b: f64, a: Dekker) -> Self {
         let t = Dekker::from_exact_add(b, a.hi);
@@ -575,5 +642,13 @@ mod tests {
         let p = Dekker::mult_f64(d2, d1);
         assert_eq!(p.hi, 3.6322177100000004);
         assert_eq!(p.lo, -1.971941841373783e-16);
+    }
+
+    #[test]
+    fn recip_test() {
+        let d1 = 1.54352432142;
+        let recip = Dekker::new(0., d1).recip();
+        assert_eq!(recip.hi, d1.recip());
+        assert_ne!(recip.lo, 0.);
     }
 }
