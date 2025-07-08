@@ -1003,8 +1003,7 @@ mod tests {
 
     #[test]
     fn test_compoundf() {
-        // assert_eq!(f_compoundf(1.235, 1.432), 3.1634824);
-        // assert_eq!(f_compoundf(2., 3.0), 27.);
-        assert_eq!(f_compoundf(3., 3.0), 27.);
+        assert_eq!(f_compoundf(1.235, 1.432), 3.1634824);
+        assert_eq!(f_compoundf(2., 3.0), 27.);
     }
 }
