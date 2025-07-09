@@ -32,11 +32,10 @@ use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log1p::log1p_f64_dyadic;
 use crate::log1p_dd::log1p_f64_dd;
 use crate::pow::{is_integer, is_odd_integer};
-use crate::pow_exec::{exp_dyadic, pow_exp_1};
+use crate::pow_exec::{exp_dyadic, pow_exp_dd};
 
 /// Computes (1+x)^y
 ///
-/// max found ULP 0.5
 #[inline]
 pub fn f_compound(x: f64, y: f64) -> f64 {
     /*
@@ -134,7 +133,13 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
             }
             0x3ff0_0000_0000_0000 => {
                 return if y_sign {
-                    Dekker::from_full_exact_add(x, 1.0).recip().to_f64()
+                    const ONES: DyadicFloat128 = DyadicFloat128 {
+                        sign: DyadicSign::Pos,
+                        exponent: -127,
+                        mantissa: 0x80000000_00000000_00000000_00000000_u128,
+                    };
+                    let z = DyadicFloat128::new_from_f64(x) + ONES;
+                    z.reciprocal().fast_as_f64()
                 } else {
                     Dekker::from_full_exact_add(x, 1.0).to_f64()
                 };
@@ -168,11 +173,6 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
                     return x;
                 }
 
-                if x_a == 0x3ff0_0000_0000_0000 {
-                    // pow(+-1, +-Inf) = 1.0
-                    return 1.0;
-                }
-
                 if x == 0.0 && y_sign {
                     // pow(+-0, -Inf) = +inf and raise FE_DIVBYZERO
                     return f64::INFINITY;
@@ -198,11 +198,6 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         }
 
         // y is finite and non-zero.
-
-        if x_u == 1f64.to_bits() {
-            // pow(1, y) = 1
-            return 1.0;
-        }
 
         if x == 0.0 {
             let out_is_neg = x_sign && is_odd_integer(y);
@@ -261,8 +256,8 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         // y is finite and non-zero.
 
         if x_u == 1f64.to_bits() {
-            // pow(1, y) = 1
-            return 1.0;
+            // compound(1, y) = 1
+            return 2.0;
         }
 
         if x == 0.0 {
@@ -311,35 +306,28 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         let z0 = f64::from_bits(ay) as f32;
         let ay0 = z0.to_bits().wrapping_shl(1);
         let ky: i32 = (((ay0 & 0x00ffffff) | 1 << 24) >> (151 - (ay0 >> 24))) as i32;
-        let s = 1.0 + x;
-        let mut p = 1.;
-        let s2 = s * s;
-        let s4 = s2 * s2;
-        let s8 = s4 * s4;
-        let s16 = s8 * s8;
-        let sn: [f64; 6] = [1., s, s2, s4, s8, s16];
-        p *= sn[(ky & 1) as usize];
-        p *= sn[(ky & 2) as usize];
-        p *= sn[(((ky >> 2) & 1) * 3) as usize];
-        p *= sn[((ky >> 1) & 4) as usize];
-        p *= sn[(((ky >> 4) & 1) * 5) as usize];
+        let s = Dekker::from_full_exact_add(1.0, x);
+        let mut p = Dekker::new(0., 1.);
+        let s2 = Dekker::quick_mult(s, s);
+        let s4 = Dekker::quick_mult(s2, s2);
+        let s8 = Dekker::quick_mult(s4, s4);
+        let s16 = Dekker::quick_mult(s8, s8);
+        let sn: [Dekker; 6] = [Dekker::new(0., 1.), s, s2, s4, s8, s16];
+        p = Dekker::quick_mult(p, sn[(ky & 1) as usize]);
+        p = Dekker::quick_mult(p, sn[(ky & 2) as usize]);
+        p = Dekker::quick_mult(p, sn[(((ky >> 2) & 1) * 3) as usize]);
+        p = Dekker::quick_mult(p, sn[((ky >> 1) & 4) as usize]);
+        p = Dekker::quick_mult(p, sn[(((ky >> 4) & 1) * 5) as usize]);
         return if y.is_sign_negative() {
-            Dekker::new(0., p).recip().to_f64()
+            p.recip().to_f64()
         } else {
-            p
+            p.to_f64()
         };
     }
 
     // approximate log(x)
     let mut l = log1p_f64_dd(x);
 
-    /* We should avoid a spurious underflow/overflow in y*log(x).
-    Underflow: for x<>1, the smallest absolute value of log(x) is obtained
-    for x=1-2^-53, with |log(x)| ~ 2^-53. Thus to avoid a spurious underflow
-    we require |y| >= 2^-969.
-    Overflow: the largest absolute value of log(x) is obtained for x=2^-1074,
-    with |log(x)| < 745. Thus to avoid a spurious overflow we require
-    |y| < 2^1014. */
     let ey = ((y.to_bits() >> 52) & 0x7ff) as i32;
     if ey < 0x36 || ey >= 0x7f5 {
         l.lo = f64::NAN;
@@ -349,12 +337,14 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
     //TODO: make better log1p expansion, error is too high for large numbers,
     //      so full dekker multiplication with error tracking is required
     let r = Dekker::mult(l, Dekker::new(0., y));
-    let res = pow_exp_1(r, s);
+    if r.hi.abs() < 650. && ey < 950 {
+        let res = pow_exp_dd(r, s);
 
-    let res_min = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), -res.hi, res.lo);
-    let res_max = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), res.hi, res.lo);
-    if res_min == res_max {
-        return res_max;
+        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), -res.hi, res.lo);
+        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), res.hi, res.lo);
+        if res_min == res_max {
+            return res_max;
+        }
     }
 
     compound_accurate(x, y, s)
@@ -373,8 +363,11 @@ fn compound_accurate(x: f64, y: f64, s: f64) -> f64 {
     // 2^R.ex <= R < 2^(R.ex+1)
 
     /* case R < 2^-1075: underflow case */
-    if result.exponent + 127 < -1075 {
+    if result.exponent < -1075 {
         return 0.5 * (s * f64::from_bits(0x0000000000000001));
+    }
+    if result.exponent >= 1025 {
+        return 1.0;
     }
 
     result.sign = if s == -1.0 {
@@ -402,5 +395,35 @@ mod tests {
         assert_eq!(f_compound(f64::INFINITY, -1. / 2.), 0.0);
         assert_eq!(f_compound(f64::INFINITY, 1. / 2.), f64::INFINITY);
         assert_eq!(f_compound(46.3828125, 46.3828125), 5.248159634773675e77);
+    }
+
+    #[test]
+    fn test_compound_exotic_cases() {
+        assert_eq!(f_compound(0.9999999850987819, -1.), 0.5000000037253046);
+        assert_eq!(
+            f_compound(22427285907987670000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.,
+                       -1.),
+            0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004458854290718438
+        );
+        assert_eq!(f_compound(0.786438105629145,  607.999512419221),
+                   1616461095392737200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.);
+        assert_eq!(f_compound( 1.0000002381857613, 960.8218657970428),
+                   17228671476562465000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.);
+        assert_eq!(
+            f_compound(0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005863950349699793,
+                       -719368015587789600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
+            1.
+        );
+        assert_eq!(
+            f_compound( 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001385238935232585,
+                        -24221239511203993000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
+            1.
+        );
+        assert_eq!(f_compound(1., 1.0000000000000284), 2.);
+        assert_eq!(f_compound(1., f64::INFINITY), f64::INFINITY);
+        assert_eq!(
+            f_compound(10.000000000000007, -8.),
+            0.00000000466507380209731
+        );
     }
 }

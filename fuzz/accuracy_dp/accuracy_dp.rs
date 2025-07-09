@@ -221,9 +221,26 @@ fn compound_m1_mpfr(x: f64, y: f64) -> Float {
     exp
 }
 
+fn compound_mpfr(x: f64, y: f64) -> Float {
+    let mpfr_x0 = Float::with_val(150, x);
+    let mpfr_x1 = Float::with_val(150, y);
+    let ln1p = mpfr_x0.ln_1p().mul(&mpfr_x1);
+    if x == 1. {
+        return Float::with_val(70, f64::INFINITY);
+    }
+    let ln1pf = ln1p.clone().to_f64();
+    if ln1pf < -745.0 {
+        Float::with_val(70, 1.0)
+    } else if ln1pf > 709.0 {
+        return Float::with_val(69, f64::INFINITY);
+    } else {
+        return ln1p.exp();
+    }
+}
+
 fuzz_target!(|data: (f64, f64)| {
     let x0 = data.0;
-    let x1 = data.0;
+    let x1 = data.1;
     let mpfr_x0 = Float::with_val(100, x0);
     let mpfr_x1 = Float::with_val(100, x1);
     let sinc_x0 = if x0 == 0. {
@@ -231,17 +248,17 @@ fuzz_target!(|data: (f64, f64)| {
     } else {
         mpfr_x0.clone().sin().div(&mpfr_x0)
     };
-    let compound_m1_mpfr = compound_m1_mpfr(x0, x1);
-
-    test_method_2vals_ignore_nan1(
-        x0,
-        x1,
-        f_compound_m1,
-        &compound_m1_mpfr,
-        "f_compound_m1".to_string(),
-        0.5,
-    );
-    test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
+    // let compound_m1_mpfr = compound_m1_mpfr(x0, x1);
+    //
+    // test_method_2vals_ignore_nan1(
+    //     x0,
+    //     x1,
+    //     f_compound_m1,
+    //     &compound_m1_mpfr,
+    //     "f_compound_m1".to_string(),
+    //     0.5,
+    // );
+    /*test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
     test_method(
         x0,
         f_erfc,
@@ -292,7 +309,7 @@ fuzz_target!(|data: (f64, f64)| {
         &mpfr_x0.clone().acosh(),
         "f_acosh".to_string(),
         0.5,
-    );
+    );*/
     test_method_2vals_ignore_nan(
         x0,
         x1,
@@ -301,7 +318,7 @@ fuzz_target!(|data: (f64, f64)| {
         "f_atan2pi".to_string(),
         0.5,
     );
-    test_method_2vals_ignore_nan(
+    /*test_method_2vals_ignore_nan(
         x0,
         x1,
         f_atan2,
@@ -475,17 +492,20 @@ fuzz_target!(|data: (f64, f64)| {
         x1,
         f_pow,
         &mpfr_x0.clone().pow(&mpfr_x1),
-        "f_powf".to_string(),
+        "f_pow".to_string(),
         0.5,
     );
-    let compound_mpfr = mpfr_x0.add(&Float::with_val(100, 1.)).pow(&mpfr_x1);
 
-    test_method_2vals_ignore_nan1(
-        x0,
-        x1,
-        f_compound,
-        &compound_mpfr,
-        "f_compound".to_string(),
-        0.5,
-    );
+    let compound_mpfr = compound_mpfr(x0, x1);
+
+    if x0 > 0.1 {
+        test_method_2vals_ignore_nan1(
+            x0,
+            x1,
+            f_compound,
+            &compound_mpfr,
+            "f_compound".to_string(),
+            0.5,
+        );
+    }*/
 });

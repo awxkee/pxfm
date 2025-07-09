@@ -145,7 +145,7 @@ pub(crate) fn atan_eval(x: Dekker) -> Dekker {
 /// Max found ULP 0.5
 #[inline]
 pub fn f_atan2(y: f64, x: f64) -> f64 {
-    const IS_NEG: [f64; 2] = [1.0, -1.0];
+    static IS_NEG: [f64; 2] = [1.0, -1.0];
     const ZERO: Dekker = Dekker::new(0.0, 0.0);
     const MZERO: Dekker = Dekker::new(-0.0, -0.0);
     const PI: Dekker = Dekker::new(
@@ -175,7 +175,7 @@ pub fn f_atan2(y: f64, x: f64) -> f64 {
 
     // Adjustment for constant term:
     //   CONST_ADJ[x_sign][y_sign][recip]
-    const CONST_ADJ: [[[Dekker; 2]; 2]; 2] = [
+    static CONST_ADJ: [[[Dekker; 2]; 2]; 2] = [
         [[ZERO, MPI_OVER_2], [MZERO, MPI_OVER_2]],
         [[MPI, PI_OVER_2], [MPI, PI_OVER_2]],
     ];
@@ -222,7 +222,7 @@ pub fn f_atan2(y: f64, x: f64) -> f64 {
         //   0: zero
         //   1: finite, non-zero
         //   2: infinity
-        const EXCEPTS: [[[Dekker; 2]; 3]; 3] = [
+        static EXCEPTS: [[[Dekker; 2]; 3]; 3] = [
             [[ZERO, PI], [ZERO, PI], [ZERO, PI]],
             [[PI_OVER_2, PI_OVER_2], [ZERO, ZERO], [ZERO, PI]],
             [
@@ -257,8 +257,8 @@ pub fn f_atan2(y: f64, x: f64) -> f64 {
         min_exp = min_abs.wrapping_shr(52);
         max_exp = max_abs.wrapping_shr(52);
     }
-    let final_sign = IS_NEG[if (x_sign != y_sign) != recip { 1 } else { 0 }];
-    let const_term = CONST_ADJ[x_sign][y_sign][if recip { 1 } else { 0 }];
+    let final_sign = IS_NEG[((x_sign != y_sign) != recip) as usize];
+    let const_term = CONST_ADJ[x_sign][y_sign][recip as usize];
     let exp_diff = max_exp - min_exp;
     // We have the following bound for normalized n and d:
     //   2^(-exp_diff - 1) < n/d < 2^(-exp_diff + 1).

@@ -1008,5 +1008,7 @@ mod tests {
     fn test_compoundf() {
         assert_eq!(f_compoundf(1.235, 1.432), 3.1634824);
         assert_eq!(f_compoundf(2., 3.0), 27.);
+        assert_eq!(f_compoundf(1., f32::INFINITY), f32::INFINITY);
+        assert_eq!(f_compoundf(1., f32::NEG_INFINITY), 0.0);
     }
 }

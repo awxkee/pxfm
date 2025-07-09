@@ -457,9 +457,33 @@ impl DyadicFloat128 {
         r
     }
 
-    //
+    // Approximate reciprocal - given a nonzero `a`, make a good approximation to 1/a.
+    // The method is Newton-Raphson iteration, based on quick_mul.
+    #[inline]
+    pub(crate) fn reciprocal(&self) -> DyadicFloat128 {
+        // Computes the reciprocal using Newton-Raphson iteration:
+        // Given an approximation x ≈ 1/a, we refine via:
+        //     x' = x * (2 - a * x)
+        // This squares the error term: if ax ≈ 1 - e, then ax' ≈ 1 - e².
+
+        let guess = 1. / self.fast_as_f64();
+        let mut x = DyadicFloat128::new_from_f64(guess);
+
+        // The constant 2, which we'll need in every iteration
+        let twos = DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -126,
+            mantissa: 0x80000000_00000000_00000000_00000000_u128,
+        };
+
+        x = x * (twos - (*self * x));
+        x = x * (twos - (*self * x));
+        x
+    }
+
     // // Approximate reciprocal - given a nonzero `a`, make a good approximation to 1/a.
     // // The method is Newton-Raphson iteration, based on quick_mul.
+    // // *This is very crude guess*
     // #[inline]
     // fn approximate_reciprocal(&self) -> DyadicFloat128 {
     //     // Given an approximation x to 1/a, a better one is x' = x(2-ax).
@@ -669,6 +693,15 @@ mod tests {
         let product = ones.quick_mul(&minus_0_5);
         let cvt0 = product.fast_as_f64();
         assert_eq!(cvt0, -0.5);
+
+        let twos = DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -126,
+            mantissa: 0x80000000_00000000_00000000_00000000_u128,
+        };
+
+        let cvt = twos.fast_as_f64();
+        assert_eq!(cvt, 2.0);
     }
 
     #[test]
@@ -707,22 +740,22 @@ mod tests {
         assert_eq!(b3, z3);
     }
 
-    // #[test]
-    // fn dyadic_float_reciprocal() {
-    //     let ones = DyadicFloat128 {
-    //         sign: DyadicSign::Pos,
-    //         exponent: -127,
-    //         mantissa: 0x80000000_00000000_00000000_00000000_u128,
-    //     }
-    //     .approximate_reciprocal();
-    //
-    //     let cvt = ones.fast_as_f64();
-    //     assert_eq!(cvt, 0.8998870849609375);
-    //
-    //     let minus_0_5 = DyadicFloat128::new_from_f64(4.).approximate_reciprocal();
-    //     let cvt0 = minus_0_5.fast_as_f64();
-    //     assert_eq!(cvt0, 0.22497177124023438);
-    // }
+    #[test]
+    fn dyadic_float_reciprocal() {
+        let ones = DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -127,
+            mantissa: 0x80000000_00000000_00000000_00000000_u128,
+        }
+        .reciprocal();
+
+        let cvt = ones.fast_as_f64();
+        assert_eq!(cvt, 1.0);
+
+        let minus_0_5 = DyadicFloat128::new_from_f64(4.).reciprocal();
+        let cvt0 = minus_0_5.fast_as_f64();
+        assert_eq!(cvt0, 0.25);
+    }
 
     #[test]
     fn dyadic_float_from_div() {

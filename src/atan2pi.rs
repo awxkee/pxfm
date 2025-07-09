@@ -26,17 +26,18 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::acospi::INV_PI_DD;
-use crate::atan2::{atan_eval, ATAN_I};
+use crate::acospi::{INV_PI_DD, INV_PI_F128};
+use crate::atan2::{ATAN_I, atan_eval};
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
+use crate::dyadic_float::DyadicFloat128;
 
 /// Computes atan(x)/PI
 ///
 /// Max found ULP 0.5
 #[inline]
 pub fn f_atan2pi(y: f64, x: f64) -> f64 {
-    const IS_NEG: [f64; 2] = [1.0, -1.0];
+    static IS_NEG: [f64; 2] = [1.0, -1.0];
     const ZERO: Dekker = Dekker::new(0.0, 0.0);
     const MZERO: Dekker = Dekker::new(-0.0, -0.0);
     const PI: Dekker = Dekker::new(
@@ -66,7 +67,7 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
 
     // Adjustment for constant term:
     //   CONST_ADJ[x_sign][y_sign][recip]
-    const CONST_ADJ: [[[Dekker; 2]; 2]; 2] = [
+    static CONST_ADJ: [[[Dekker; 2]; 2]; 2] = [
         [[ZERO, MPI_OVER_2], [MZERO, MPI_OVER_2]],
         [[MPI, PI_OVER_2], [MPI, PI_OVER_2]],
     ];
@@ -113,7 +114,7 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
         //   0: zero
         //   1: finite, non-zero
         //   2: infinity
-        const EXCEPTS: [[[Dekker; 2]; 3]; 3] = [
+        static EXCEPTS: [[[Dekker; 2]; 3]; 3] = [
             [[ZERO, PI], [ZERO, PI], [ZERO, PI]],
             [[PI_OVER_2, PI_OVER_2], [ZERO, ZERO], [ZERO, PI]],
             [
@@ -149,45 +150,29 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
         min_exp = min_abs.wrapping_shr(52);
         max_exp = max_abs.wrapping_shr(52);
     }
-    let final_sign = IS_NEG[if (x_sign != y_sign) != recip { 1 } else { 0 }];
-    let const_term = CONST_ADJ[x_sign][y_sign][if recip { 1 } else { 0 }];
+    let final_sign = IS_NEG[((x_sign != y_sign) != recip) as usize];
+    let const_term = CONST_ADJ[x_sign][y_sign][recip as usize];
     let exp_diff = max_exp - min_exp;
     // We have the following bound for normalized n and d:
     //   2^(-exp_diff - 1) < n/d < 2^(-exp_diff + 1).
     if exp_diff > 54 {
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            let r = crate::common::f_fmla(
-                final_sign,
-                const_term.hi,
-                final_sign * (const_term.lo + num / den),
-            );
-            let p = Dekker::f64_mult(r, crate::acospi::INV_PI_DD);
-            return p.to_f64();
-        }
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            use crate::dyadic_float::DyadicFloat128;
-            let z = DyadicFloat128::new_from_f64(final_sign);
-            let k = DyadicFloat128::new_from_f64(const_term.hi);
-            let p = z * k + DyadicFloat128::new_from_f64(final_sign * (const_term.lo + num / den));
-            let r = z * k + p;
-            use crate::acospi::INV_PI_F128;
-            let p = r * INV_PI_F128;
-            return p.fast_as_f64();   
-        }
+        static CONST_ADJ_INV_PI: [[[Dekker; 2]; 2]; 2] = [
+            [
+                [ZERO, Dekker::new(0., -1. / 2.)],
+                [MZERO, Dekker::new(0., -1. / 2.)],
+            ],
+            [
+                [Dekker::new(0., -1.), Dekker::new(0., 1. / 2.)],
+                [Dekker::new(0., -1.), Dekker::new(0., 1. / 2.)],
+            ],
+        ];
+        let const_term = CONST_ADJ_INV_PI[x_sign][y_sign][recip as usize];
+        let scaled_div = DyadicFloat128::from_div_f64(num, den) * INV_PI_F128;
+        let sign_f128 = DyadicFloat128::new_from_f64(final_sign);
+        let p = DyadicFloat128::new_from_f64(const_term.hi * final_sign);
+        let p1 = sign_f128 * (DyadicFloat128::new_from_f64(const_term.lo) + scaled_div);
+        let r = p + p1;
+        return r.fast_as_f64();
     }
 
     let mut k = (64.0 * num / den).round();
@@ -219,7 +204,7 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
     r.hi *= final_sign;
     r.lo *= final_sign;
 
-    r.hi + r.lo
+    r.to_f64()
 }
 
 #[cfg(test)]
@@ -228,10 +213,13 @@ mod tests {
 
     #[test]
     fn test_atan2pi() {
+        assert_eq!(f_atan2pi(-3.9999999981625933, 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003577142133480227), -0.5);
         assert_eq!(f_atan2pi(0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000472842255026406,
             0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008045886150098693
-        ),
-                   0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018706499392673635);
+        ),1.8706499392673612e-162);
+        assert_eq!(f_atan2pi(0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002670088630208647,
+                             2.0000019071157054
+        ), 4.249573987697093e-307);
         assert_eq!(f_atan2pi(-5., 2.), -0.3788810584091566);
         assert_eq!(f_atan2pi(2., -5.), 0.8788810584091566);
     }

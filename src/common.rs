@@ -146,6 +146,7 @@ pub(crate) fn dyad_fmla(a: f64, b: f64, c: f64) -> f64 {
 // Executes mandatory FMA
 // if not available will be simulated through Dekker and Veltkamp
 #[inline(always)]
+#[allow(unused)]
 pub(crate) fn dd_fmlaf(a: f32, b: f32, c: f32) -> f32 {
     #[cfg(any(
         all(
