@@ -258,7 +258,7 @@ fuzz_target!(|data: (f64, f64)| {
     //     "f_compound_m1".to_string(),
     //     0.5,
     // );
-    /*test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
+    test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
     test_method(
         x0,
         f_erfc,
@@ -309,7 +309,7 @@ fuzz_target!(|data: (f64, f64)| {
         &mpfr_x0.clone().acosh(),
         "f_acosh".to_string(),
         0.5,
-    );*/
+    );
     test_method_2vals_ignore_nan(
         x0,
         x1,
@@ -318,7 +318,7 @@ fuzz_target!(|data: (f64, f64)| {
         "f_atan2pi".to_string(),
         0.5,
     );
-    /*test_method_2vals_ignore_nan(
+    test_method_2vals_ignore_nan(
         x0,
         x1,
         f_atan2,
@@ -498,6 +498,7 @@ fuzz_target!(|data: (f64, f64)| {
 
     let compound_mpfr = compound_mpfr(x0, x1);
 
+    //TODO: MPFR computes wrong values on subnormals.
     if x0 > 0.1 {
         test_method_2vals_ignore_nan1(
             x0,
@@ -507,5 +508,5 @@ fuzz_target!(|data: (f64, f64)| {
             "f_compound".to_string(),
             0.5,
         );
-    }*/
+    }
 });
