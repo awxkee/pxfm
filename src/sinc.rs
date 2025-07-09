@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::dyad_fmla;
 use crate::dekker::Dekker;
 use crate::dyadic_float::DyadicFloat128;
 use crate::sin::{
@@ -91,7 +91,7 @@ pub fn f_sinc(x: f64) -> f64 {
             }
 
             // For |x| < 2^-26, |sin(x) - x| < ulp(x)/2.
-            let p = f_fmla(x, f64::from_bits(0xbc90000000000000), x);
+            let p = dyad_fmla(x, f64::from_bits(0xbc90000000000000), x);
             let z = Dekker::from_exact_div(p, x);
             return z.to_f64();
         }
@@ -145,6 +145,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_sinc() {
+        assert_eq!(f_sinc(0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004764135737289025), 1.);
         assert_eq!(f_sinc(0.1), 0.9983341664682815);
         assert_eq!(f_sinc(0.9), 0.870363232919426);
         assert_eq!(f_sinc(-0.1), 0.9983341664682815);

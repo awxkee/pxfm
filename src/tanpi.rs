@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::atan::poly_dd_3;
-use crate::common::{dd_fmla, f_fmla};
+use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::dekker::Dekker;
 
 static TANPI_REDUCE: [(u64, u64); 32] = [
@@ -143,7 +143,7 @@ fn tanpi_accurate0(z: f64, iq: u64, ms: i64) -> f64 {
     ];
     const CL: [u64; 3] = [0x3bd45f32f25dab7f, 0x3b145f3030c82af4, 0x3a5464490600a978];
     let z2 = z * z;
-    let dz2 = dd_fmla(z, z, -z2);
+    let dz2 = dyad_fmla(z, z, -z2);
 
     let tlo0 = f_fmla(z2, f64::from_bits(CL[2]), f64::from_bits(CL[1]));
 
@@ -152,7 +152,7 @@ fn tanpi_accurate0(z: f64, iq: u64, ms: i64) -> f64 {
     t = Dekker::mult_f64(t, z);
     if iq == 32 {
         let ith = -1.0 / t.hi;
-        t.lo = (f_fmla(ith, t.hi, 1.) + t.lo * ith) * ith;
+        t.lo = (dd_fmla(ith, t.hi, 1.) + t.lo * ith) * ith;
         t.hi = ith;
     } else {
         let mut n = Dekker::from_bit_pair(TANPI_REDUCE[iq as usize]);
@@ -180,7 +180,7 @@ fn tanpi_accurate0(z: f64, iq: u64, ms: i64) -> f64 {
 
 /// Computes tan(PI*x)
 ///
-/// Max found ULP 5.0001
+/// Max found ULP 0.5
 #[inline]
 pub fn f_tanpi(x: f64) -> f64 {
     let ix = x.to_bits();
@@ -403,6 +403,7 @@ mod tests {
 
     #[test]
     fn test_tanpi() {
+        assert_eq!(f_tanpi(-0.5000000000000226), 14054316517702.594);
         assert_eq!(-2867080569611329.5, f_tanpi(0.5000000000000001));
         assert_eq!(0.06704753721009375, f_tanpi(0.02131));
     }

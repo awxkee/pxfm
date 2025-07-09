@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::acosf::poly12;
-use crate::common::{f_fmla, f_fmlaf};
+use crate::common::{dd_fmlaf, f_fmla};
 
 #[cold]
 fn as_special(x: f32) -> f32 {
@@ -56,7 +56,7 @@ pub fn f_asinf(x: f32) -> f32 {
         // |x| < 1.49029
         if ax < 115 << 24 {
             // |x| < 0.000244141
-            return f_fmlaf(x, f64::from_bits(0x3e60000000000000) as f32, x);
+            return dd_fmlaf(x, f64::from_bits(0x3e60000000000000) as f32, x);
         }
         const B: [u64; 16] = [
             0x3ff0000000000005,

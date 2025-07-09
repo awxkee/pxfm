@@ -241,7 +241,7 @@ fuzz_target!(|data: (f64, f64)| {
         "f_compound_m1".to_string(),
         0.5,
     );
-    /*test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
+    test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
     test_method(
         x0,
         f_erfc,
@@ -487,5 +487,5 @@ fuzz_target!(|data: (f64, f64)| {
         &compound_mpfr,
         "f_compound".to_string(),
         0.5,
-    );*/
+    );
 });

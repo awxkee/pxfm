@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, f_fmla};
+use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::exp2::ldexp;
 
@@ -614,11 +614,11 @@ pub fn f_exp2m1(d: f64) -> f64 {
             thus no underflow will be raised. We have underflow for
             0 < x <= 0x1.71547652b82fep-1022 for RNDZ, and for
             0 < x <= 0x1.71547652b82fdp-1022 for RNDN/RNDU. */
-            dd_fmla(h, f64::from_bits(0x3950000000000000), h2)
+            dyad_fmla(h, f64::from_bits(0x3950000000000000), h2)
         } else {
             const C2: f64 = f64::from_bits(0x3fcebfbdff82c58f); // log(2)^2/2
             let mut z = Dekker::from_exact_mult(LN2H, x);
-            z.lo = dd_fmla(LN2L, x, z.lo);
+            z.lo = dyad_fmla(LN2L, x, z.lo);
             /* h+l approximates the first term x*log(2) */
             /* we add C2*x^2 last, so that in case there is a cancellation in
             LN2L*x+l, it will contribute more bits */
@@ -657,6 +657,7 @@ mod tests {
 
     #[test]
     fn test_exp2m1() {
+        assert_eq!(f_exp2m1( 0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000017800593653177087), 0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012338431302992956);
         assert_eq!(3., f_exp2m1(2.0));
         assert_eq!(4.656854249492381, f_exp2m1(2.5));
         assert_eq!(-0.30801352040368324, f_exp2m1(-0.5311842449009418));

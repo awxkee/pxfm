@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::acospi::INV_PI_DD;
-use crate::atan2::{ATAN_I, atan_eval};
+use crate::atan2::{atan_eval, ATAN_I};
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
 
@@ -155,13 +155,39 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
     // We have the following bound for normalized n and d:
     //   2^(-exp_diff - 1) < n/d < 2^(-exp_diff + 1).
     if exp_diff > 54 {
-        let r = f_fmla(
-            final_sign,
-            const_term.hi,
-            final_sign * (const_term.lo + num / den),
-        );
-        let p = Dekker::f64_mult(r, INV_PI_DD);
-        return p.to_f64();
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let r = crate::common::f_fmla(
+                final_sign,
+                const_term.hi,
+                final_sign * (const_term.lo + num / den),
+            );
+            let p = Dekker::f64_mult(r, crate::acospi::INV_PI_DD);
+            return p.to_f64();
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            use crate::dyadic_float::DyadicFloat128;
+            let z = DyadicFloat128::new_from_f64(final_sign);
+            let k = DyadicFloat128::new_from_f64(const_term.hi);
+            let p = z * k + DyadicFloat128::new_from_f64(final_sign * (const_term.lo + num / den));
+            let r = z * k + p;
+            use crate::acospi::INV_PI_F128;
+            let p = r * INV_PI_F128;
+            return p.fast_as_f64();   
+        }
     }
 
     let mut k = (64.0 * num / den).round();
@@ -202,6 +228,10 @@ mod tests {
 
     #[test]
     fn test_atan2pi() {
+        assert_eq!(f_atan2pi(0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000472842255026406,
+            0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008045886150098693
+        ),
+                   0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018706499392673635);
         assert_eq!(f_atan2pi(-5., 2.), -0.3788810584091566);
         assert_eq!(f_atan2pi(2., -5.), 0.8788810584091566);
     }

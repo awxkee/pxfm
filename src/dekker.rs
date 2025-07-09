@@ -556,7 +556,7 @@ impl Dekker {
             Dekker { hi: r_hi, lo: r_lo }
         }
     }
-
+    
     #[inline]
     pub(crate) fn quick_mult_f64(a: Dekker, b: f64) -> Self {
         #[cfg(any(

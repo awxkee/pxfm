@@ -114,6 +114,36 @@ pub(crate) fn dd_fmla(a: f64, b: f64, c: f64) -> f64 {
 }
 
 // Executes mandatory FMA
+// if not available will be simulated through dyadic float 128
+#[inline(always)]
+pub(crate) fn dyad_fmla(a: f64, b: f64, c: f64) -> f64 {
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        f_fmla(a, b, c)
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        use crate::dyadic_float::DyadicFloat128;
+        let z = DyadicFloat128::new_from_f64(a);
+        let k = DyadicFloat128::new_from_f64(b);
+        let p = z * k + DyadicFloat128::new_from_f64(c);
+        p.fast_as_f64()
+    }
+}
+
+// Executes mandatory FMA
 // if not available will be simulated through Dekker and Veltkamp
 #[inline(always)]
 pub(crate) fn dd_fmlaf(a: f32, b: f32, c: f32) -> f32 {
@@ -135,8 +165,7 @@ pub(crate) fn dd_fmlaf(a: f32, b: f32, c: f32) -> f32 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        use crate::dekker32::Dekker32;
-        Dekker32::dd_f32_mul_add(a, b, c)
+        (a as f64 * b as f64 + c as f64) as f32
     }
 }
 

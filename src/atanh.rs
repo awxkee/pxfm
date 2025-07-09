@@ -335,7 +335,7 @@ pub fn f_atanh(x: f64) -> f64 {
     let q = Dekker::from_exact_sub(1.0, ax);
     let iqh = 1.0 / q.hi;
     let th = p.hi * iqh;
-    let tl = f_fmla(p.hi, iqh, -th) + (p.lo + p.hi * (f_fmla(-q.hi, iqh, 1.) - q.lo * iqh)) * iqh;
+    let tl = dd_fmla(p.hi, iqh, -th) + (p.lo + p.hi * (dd_fmla(-q.hi, iqh, 1.) - q.lo * iqh)) * iqh;
 
     const C: [u64; 5] = [
         0xbff0000000000000,
@@ -362,10 +362,10 @@ pub fn f_atanh(x: f64) -> f64 {
     let i2 = j & 0x1f;
     let r = (0.5 * f64::from_bits(ACOSH_ASINH_R1[i1 as usize]))
         * f64::from_bits(ACOSH_ASINH_R2[i2 as usize]);
-    let dx = f_fmla(r, f64::from_bits(t), -0.5);
+    let dx = dd_fmla(r, f64::from_bits(t), -0.5);
     let dx2 = dx * dx;
     let rx = r * f64::from_bits(t);
-    let dxl = f_fmla(r, f64::from_bits(t), -rx);
+    let dxl = dd_fmla(r, f64::from_bits(t), -rx);
 
     let fw0 = f_fmla(dx, f64::from_bits(C[3]), f64::from_bits(C[2]));
     let fw2 = f_fmla(dx, f64::from_bits(C[1]), f64::from_bits(C[0]));
@@ -403,8 +403,7 @@ mod tests {
 
     #[test]
     fn test_atanh() {
-        // ULP should be less than 0.5, but it was 0.5737075794701738, on 0.7812501178116794 result 1.0485708617434735, using f_atanh and MPFR 1.0485708617434737
-        println!("{}", f_atanh(0.5));
-        // assert_eq!(f_atanh(-0.24218760943040252), -0.24709672810738792);
+        assert_eq!(f_atanh(-0.5000824928283691), -0.5494161408216048);
+        assert_eq!(f_atanh(-0.24218760943040252), -0.24709672810738792);
     }
 }

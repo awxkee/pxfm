@@ -29,7 +29,7 @@
 use crate::acospi::INV_PI_DD;
 use crate::asin::asin_eval;
 use crate::asin_eval_dyadic::asin_eval_dyadic;
-use crate::common::f_fmla;
+use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
@@ -70,10 +70,10 @@ pub fn f_asinpi(x: f64) -> f64 {
 
                 let h = x * INV_PI_DD.hi;
                 let sx = x * f64::from_bits(0x4690000000000000); /* scale x */
-                let mut l = f_fmla(sx, INV_PI_DD.hi, -h * f64::from_bits(0x4690000000000000));
-                l = f_fmla(sx, INV_PI_DD.lo, l);
+                let mut l = dd_fmla(sx, INV_PI_DD.hi, -h * f64::from_bits(0x4690000000000000));
+                l = dd_fmla(sx, INV_PI_DD.lo, l);
                 /* scale back */
-                let res = f_fmla(l, f64::from_bits(0x3950000000000000), h);
+                let res = dyad_fmla(l, f64::from_bits(0x3950000000000000), h);
                 return res;
             }
 
@@ -84,12 +84,12 @@ pub fn f_asinpi(x: f64) -> f64 {
             const C1L: f64 = f64::from_bits(0xbc76b01ec5417057);
             const C3: f64 = f64::from_bits(0x3fab2995e7b7b606);
             let h = C1H;
-            let l = f_fmla(C3, x * x, C1L);
+            let l = dd_fmla(C3, x * x, C1L);
             /* multiply h+l by x */
             let hh = h * x;
-            let mut ll = f_fmla(h, x, -hh);
+            let mut ll = dd_fmla(h, x, -hh);
             /* hh+ll = h*x */
-            ll = f_fmla(l, x, ll);
+            ll = dd_fmla(l, x, ll);
             return hh + ll;
         }
 
@@ -355,6 +355,12 @@ mod tests {
 
     #[test]
     fn f_asinpi_test() {
+        assert_eq!(
+            f_asinpi(-0.00000000032681723993732703),
+            -0.00000000010402915844735117
+        );
+        assert_eq!(f_asinpi(0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000017801371778309684), 0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005666352624669099);
+        assert_eq!(f_asinpi(0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026752519513526076), 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008515591441480124);
         assert_eq!(f_asinpi(-0.4), -0.13098988043445461);
         assert_eq!(f_asinpi(-0.8), -0.2951672353008666);
         assert_eq!(f_asinpi(0.4332432142124432), 0.14263088583055605);

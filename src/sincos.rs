@@ -33,6 +33,7 @@ use crate::sin::{
     sincos_eval,
 };
 use crate::sincos_dyadic::{range_reduction_small_f128, sincos_eval_dyadic};
+use std::hint::black_box;
 
 /// Sine and cosine for double precision
 ///
@@ -57,8 +58,8 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
                     return (x, 1.0);
                 }
                 // For |x| < 2^-26, |sin(x) - x| < ulp(x)/2.
-                let s_sin = dd_fmla(x, f64::from_bits(0xbc90000000000000), x);
-                let s_cos = 1.0 - min_normal_f64();
+                let s_sin = dyad_fmla(x, f64::from_bits(0xbc90000000000000), x);
+                let s_cos = black_box(1.0) - min_normal_f64();
                 return (s_sin, s_cos);
             }
             k = 0;
@@ -159,6 +160,9 @@ mod tests {
 
     #[test]
     fn sincos_test() {
+        let subnormal = f_sincos(0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015708065354637772);
+        assert_eq!(subnormal.0, 1.5708065354637772e-307);
+        assert_eq!(subnormal.1, 1.0);
         let zx_0 = f_sincos(0.0);
         assert_eq!(zx_0.0, 0.0);
         assert_eq!(zx_0.1, 1.0);

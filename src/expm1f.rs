@@ -143,28 +143,8 @@ pub fn f_expm1f(x: f32) -> f32 {
             if ax == 0x0u32 {
                 return x;
             } // x = +-0
-            #[cfg(any(
-                all(
-                    any(target_arch = "x86", target_arch = "x86_64"),
-                    target_feature = "fma"
-                ),
-                all(target_arch = "aarch64", target_feature = "neon")
-            ))]
-            {
-                let res = dd_fmlaf(x.abs(), f32::from_bits(0x33000000), x);
-                return res;
-            }
-            #[cfg(not(any(
-                all(
-                    any(target_arch = "x86", target_arch = "x86_64"),
-                    target_feature = "fma"
-                ),
-                all(target_arch = "aarch64", target_feature = "neon")
-            )))]
-            {
-                let res = dd_fmla(x.abs() as f64, f64::from_bits(0x3e60000000000000), x as f64);
-                return res as f32;
-            }
+            let res = dd_fmlaf(x.abs(), f32::from_bits(0x33000000), x);
+            return res;
         }
         return expm1f_small(z);
     }
