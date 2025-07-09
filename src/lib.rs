@@ -75,6 +75,7 @@ mod cosf;
 mod cosh;
 mod coshf;
 mod dekker;
+mod dekker32;
 mod dyadic_float;
 mod erf;
 mod erf_poly;

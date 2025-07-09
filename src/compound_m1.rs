@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::dd_fmla;
+use crate::common::*;
 use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log1p::log1p_f64_dyadic;

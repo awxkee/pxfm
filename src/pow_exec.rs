@@ -31,7 +31,7 @@ use crate::dekker::Dekker;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 use crate::expm1::{EXPM1_T0, EXPM1_T1};
-use crate::polyeval::{f_polyeval16, f_polyeval7, f_polyeval8};
+use crate::polyeval::{f_polyeval7, f_polyeval8, f_polyeval16};
 use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC, POW_INVERSE, POW_LOG_INV};
 
 #[inline(always)]
@@ -279,7 +279,7 @@ fn expm1_poly_dd(z: Dekker) -> Dekker {
         (0xbc555a40ffb472d9, 0x3fa5555555555556),
         (0x3c24866314c38093, 0x3f8111111111110e),
         (0x3be34665978dddb8, 0x3f56c16c16efac90),
-        (0x3baeab43b813ef24, 0x3f2a01a1e12d253c)
+        (0x3baeab43b813ef24, 0x3f2a01a1e12d253c),
     ];
     let d = f_polyeval7(
         z,

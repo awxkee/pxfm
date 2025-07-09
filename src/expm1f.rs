@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, f_fmlaf};
+use crate::common::{dd_fmlaf, f_fmla, f_fmlaf};
 use std::hint::black_box;
 
 static TD: [u64; 32] = [
@@ -143,7 +143,7 @@ pub fn f_expm1f(x: f32) -> f32 {
             if ax == 0x0u32 {
                 return x;
             } // x = +-0
-            let res = f_fmlaf(x.abs(), f32::from_bits(0x33000000), x);
+            let res = dd_fmlaf(x.abs(), f32::from_bits(0x33000000), x);
             return res;
         }
         return expm1f_small(z);
@@ -195,11 +195,12 @@ pub fn f_expm1f(x: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::f_exp2m1f;
+    use crate::f_expm1f;
 
     #[test]
     fn test_expm1f() {
-        assert_eq!(f_exp2m1f(2.213121), 3.6367724);
-        assert_eq!(f_exp2m1f(-3.213121), -0.8921664);
+        assert_eq!(f_expm1f(2.213121), 8.144211);
+        assert_eq!(f_expm1f(-3.213121), -0.9597691);
+        assert_eq!(f_expm1f(-2.35099e-38), -2.35099e-38);
     }
 }

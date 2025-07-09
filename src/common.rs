@@ -113,6 +113,33 @@ pub(crate) fn dd_fmla(a: f64, b: f64, c: f64) -> f64 {
     }
 }
 
+// Executes mandatory FMA
+// if not available will be simulated through Dekker and Veltkamp
+#[inline(always)]
+pub(crate) fn dd_fmlaf(a: f32, b: f32, c: f32) -> f32 {
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        f_fmlaf(a, b, c)
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        use crate::dekker32::Dekker32;
+        Dekker32::dd_f32_mul_add(a, b, c)
+    }
+}
+
 #[allow(dead_code)]
 #[inline(always)]
 pub(crate) fn c_mlaf<T: Copy + Mul<T, Output = T> + Add<T, Output = T> + MulAdd<T, Output = T>>(

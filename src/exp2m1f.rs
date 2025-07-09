@@ -75,8 +75,11 @@ fn exp2mf_small(ax: u32, z: f64, ux: u32) -> f32 {
                                 // |x| < 0x1.715476p-53
                                 r = f64::from_bits(0x3fe62e42fefa39ef);
                             } else {
-                                r = f64::from_bits(0x3fe62e42fefa39f0)
-                                    + z * f64::from_bits(0x3fcebfbdff82c58f);
+                                r = f_fmla(
+                                    z,
+                                    f64::from_bits(0x3fcebfbdff82c58f),
+                                    f64::from_bits(0x3fe62e42fefa39f0),
+                                );
                             }
                         } else {
                             if ux == 0xb3d85005u32 {

@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, f_fmla};
+use crate::common::*;
 use crate::compoundf::{
     COMPOUNDF_EXP2_T, COMPOUNDF_EXP2_U, compoundf_exp2_poly2, compoundf_log2p1_accurate,
     compoundf_log2p1_fast,
