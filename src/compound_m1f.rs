@@ -295,7 +295,7 @@ fn compoundf_exp2m1_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
 #[cold]
 #[inline(never)]
 fn compoundm1f_accurate(x: f32, y: f32) -> f32 {
-    let mut v = compoundf_log2p1_accurate(x);
+    let mut v = compoundf_log2p1_accurate(x as f64);
     v = Dekker::quick_mult_f64(v, y as f64);
     compoundf_exp2m1_accurate(v, x, y)
 }
@@ -304,7 +304,7 @@ fn compoundm1f_accurate(x: f32, y: f32) -> f32 {
 ///
 /// Max ULP 0.5
 #[inline]
-pub fn f_compoundm1f(x: f32, y: f32) -> f32 {
+pub fn f_compound_m1f(x: f32, y: f32) -> f32 {
     /* Rules from IEEE 754-2019 for compound (x, n) with n integer:
        (a) compound (x, 0) is 1 for x >= -1 or quiet NaN
        (b) compound (-1, n) is +Inf and signals the divideByZero exception for n < 0
@@ -423,18 +423,18 @@ pub fn f_compoundm1f(x: f32, y: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::compoundm1f::{compoundf_exp2m1_accurate, exp2m1_fast};
+    use crate::compound_m1f::{compoundf_exp2m1_accurate, exp2m1_fast};
     use crate::dekker::Dekker;
-    use crate::f_compoundm1f;
+    use crate::f_compound_m1f;
 
     #[test]
     fn test_compoundf() {
         assert_eq!(
-            f_compoundm1f(-0.000000000000001191123, -0.000000000000001191123),
+            f_compound_m1f(-0.000000000000001191123, -0.000000000000001191123),
             0.0000000000000000000000000000014187741
         );
-        assert_eq!(f_compoundm1f(-0.000000000000001191123, 16.), 1.0);
-        assert_eq!(f_compoundm1f(0.91123, 16.), 31695.21);
+        assert_eq!(f_compound_m1f(-0.000000000000001191123, 16.), 1.0);
+        assert_eq!(f_compound_m1f(0.91123, 16.), 31695.21);
     }
 
     #[test]

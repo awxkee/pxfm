@@ -3,7 +3,7 @@
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
     f_acosf, f_acoshf, f_acospif, f_asinf, f_asinhf, f_asinpif, f_atan2f, f_atan2pif, f_atanhf,
-    f_atanpif, f_cbrtf, f_compoundf, f_compoundm1f, f_cosf, f_coshf, f_cospif, f_erfcf, f_erff,
+    f_atanpif, f_cbrtf, f_compound_m1f, f_compoundf, f_cosf, f_coshf, f_cospif, f_erfcf, f_erff,
     f_exp2f, f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_log1pf, f_log2f,
     f_log2p1f, f_log10f, f_log10p1f, f_logf, f_powf, f_sincf, f_sinf, f_sinhf, f_sinpif, f_tanf,
     f_tanhf, f_tanpif,
@@ -155,7 +155,7 @@ fuzz_target!(|data: (f32, f32)| {
     test_method_2vals_ignore_nan(
         x0,
         x1,
-        f_compoundm1f,
+        f_compound_m1f,
         &compound_m1_mpfr.clone(),
         "f_compoundm1f".to_string(),
     );

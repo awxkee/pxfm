@@ -200,6 +200,9 @@ pub(crate) static LOG2P1_COMPOUNDF_INV: [u64; 46] = [
     0x3fe6a00000000000,
 ];
 
+/* log2inv[i][0]+log2inv[i][1] is a double-double approximation of
+-log2(inv[i]), with log2inv[i][0] having absolute error < 2^-54.462,
+and log2inv[i][0]+log2inv[i][1] absolute error < 2^-109.101 */
 pub(crate) static LOG2P1_COMPOUNDF_LOG2_INV: [(u64, u64); 46] = [
     (0x3c68f3673ffdd785, 0xbfdf7a8568cb06cf),
     (0x3c1c141e66faaaad, 0xbfdd6753e032ea0f),
@@ -663,17 +666,17 @@ fn log2_poly2(z: Dekker) -> Dekker {
 put in h+l a double-double approximation of log2(1+x),
 with relative error bounded by 2^-91.123, and |l| < 2^-48.574 |h|
 (see analyze_log2p1_accurate() in compoundf.sage) */
-pub(crate) fn compoundf_log2p1_accurate(x: f32) -> Dekker {
+pub(crate) fn compoundf_log2p1_accurate(x: f64) -> Dekker {
     let mut v_dd = if 1.0 >= x {
         // then 1.0 >= |x| since x > -1
-        if x.abs() >= f32::from_bits(0x25000000) {
-            Dekker::from_exact_add(1.0, x as f64)
+        if (x as f32).abs() >= f32::from_bits(0x25000000) {
+            Dekker::from_exact_add(1.0, x)
         } else {
-            Dekker::new(x as f64, 1.0)
+            Dekker::new(x, 1.0)
         }
     } else {
         // fast_two_sum() is exact when |x| < 2^54 by Lemma 1 condition (ii) of [1]
-        Dekker::from_exact_add(x as f64, 1.0)
+        Dekker::from_exact_add(x, 1.0)
     };
 
     // now h + l = 1 + x + eps with |eps| <= 2^-105 |h| and |l| <= ulp(h)
@@ -862,7 +865,7 @@ fn compoundf_exp2_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
 #[cold]
 #[inline(never)]
 fn compoundf_accurate(x: f32, y: f32) -> f32 {
-    let mut v = compoundf_log2p1_accurate(x);
+    let mut v = compoundf_log2p1_accurate(x as f64);
     /* h + l is a double-double approximation of log(1+x),
     with relative error bounded by 2^-91.123,
     and |l| < 2^-48.574 |h| */
@@ -879,7 +882,7 @@ fn compoundf_accurate(x: f32, y: f32) -> f32 {
     compoundf_exp2_accurate(v, x, y)
 }
 
-/// Computes (1.0 + x)^y
+/// Computes compound function (1.0 + x)^y
 ///
 /// Max ULP 0.5
 #[inline]

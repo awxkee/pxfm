@@ -9,13 +9,13 @@ use criterion::{Criterion, criterion_group, criterion_main};
 use pxfm::{
     exp, f_acos, f_acosf, f_acosh, f_acoshf, f_acospi, f_acospif, f_asin, f_asinf, f_asinh,
     f_asinhf, f_asinpi, f_asinpif, f_atan, f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf,
-    f_atanh, f_atanhf, f_atanpi, f_atanpif, f_cbrt, f_cbrtf, f_compound, f_compoundf, f_cos,
-    f_cosf, f_cosh, f_coshf, f_cospi, f_cospif, f_erf, f_erfc, f_erfcf, f_erff, f_exp, f_exp2,
-    f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1, f_exp10m1f, f_expf, f_expm1,
-    f_expm1f, f_hypot, f_j1, f_log, f_log1p, f_log1pf, f_log2, f_log2f, f_log2p1, f_log2p1f,
-    f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_pow, f_powf, f_sin, f_sinc, f_sincf,
-    f_sincos, f_sincosf, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanh,
-    f_tanhf, f_tanpi, f_tanpif, powf,
+    f_atanh, f_atanhf, f_atanpi, f_atanpif, f_cbrt, f_cbrtf, f_compound, f_compound_m1,
+    f_compound_m1f, f_compoundf, f_cos, f_cosf, f_cosh, f_coshf, f_cospi, f_cospif, f_erf, f_erfc,
+    f_erfcf, f_erff, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
+    f_exp10m1f, f_expf, f_expm1, f_expm1f, f_hypot, f_j1, f_log, f_log1p, f_log1pf, f_log2,
+    f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_pow, f_powf,
+    f_sin, f_sinc, f_sincf, f_sincos, f_sincosf, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan,
+    f_tanf, f_tanh, f_tanhf, f_tanpi, f_tanpif, powf,
 };
 use std::hint::black_box;
 use std::time::Duration;
@@ -25,10 +25,18 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.warm_up_time(Duration::new(1, 100));
     c.sample_size(15);
 
-    /*  c.bench_function("pxfm: f_compound", |b| {
+    c.bench_function("pxfm: f_compound", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_compound(i as f64, 0.0323221324312f64 * i as f64));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_compound_m1", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_compound_m1(i as f64, 0.0323221324312f64 * i as f64));
             }
         })
     });
@@ -1391,12 +1399,20 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 black_box(f_powf(i as f32, 0.323221324312f32 * i as f32));
             }
         })
-    });*/
+    });
 
     c.bench_function("pxfm: f_compoundf", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_compoundf(i as f32, 0.323221324312f32 * i as f32));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_compound_m1f", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_compound_m1f(i as f32, 0.323221324312f32 * i as f32));
             }
         })
     });

@@ -34,7 +34,7 @@ use crate::log1p_dyadic::log1p_accurate;
 use crate::polyeval::f_polyeval4;
 
 // R1[i] = 2^-8 * nearestint( 2^8 / (1 + i * 2^-7) )
-static R1: [u64; 129] = [
+pub(crate) static R1: [u64; 129] = [
     0x3ff0000000000000,
     0x3fefc00000000000,
     0x3fef800000000000,
@@ -310,7 +310,7 @@ static RCM1: [u64; 129] = [
     0x0000000000000000,
 ];
 
-static LOG_R1_DD: [(u64, u64); 129] = [
+pub(crate) static LOG_R1_DD: [(u64, u64); 129] = [
     (0x0000000000000000, 0x0000000000000000),
     (0xbd10c76b999d2be8, 0x3f80101575890000),
     (0xbd23dc5b06e2f7d2, 0x3f90205658938000),
@@ -459,38 +459,6 @@ pub(crate) fn log1p_f64_dyadic(x: f64) -> DyadicFloat128 {
         }
     } else {
         // |x| < 1
-        if x_exp < EXP_BIAS - 52 - 1 {
-            // Quick return when |x| < 2^-53.
-            // Since log(1 + x) = x - x^2/2 + x^3/3 - ...,
-            // for |x| < 2^-53,
-            //   x > log(1 + x) > x - x^2 > x(1 - 2^-54) > x - ulp(x)/2
-            // Thus,
-            //   log(1 + x) = nextafter(x, -inf) for FE_DOWNWARD, or
-            //                                       FE_TOWARDZERO and x > 0,
-            //              = x                  otherwise.
-            if x == 0.0 {
-                return DyadicFloat128::new_from_f64(x + x);
-            }
-
-            let tp = 1.0f32;
-            let tn = -1.0f32;
-            let rdp = tp - f32::from_bits(0x3d594caf) != tp;
-            let rdn = tn - f32::from_bits(0x33800000) != tn;
-
-            if x > 0. && rdp {
-                return DyadicFloat128::new_from_f64(f64::from_bits(x_u - 1));
-            }
-
-            if x < 0. && rdn {
-                return DyadicFloat128::new_from_f64(f64::from_bits(x_u + 1));
-            }
-
-            return if x + x == 0.0 {
-                DyadicFloat128::new_from_f64(x + x)
-            } else {
-                DyadicFloat128::new_from_f64(x)
-            };
-        }
         x_dd = Dekker::from_exact_add(1.0, x);
     }
 
@@ -578,194 +546,6 @@ pub(crate) fn log1p_f64_dyadic(x: f64) -> DyadicFloat128 {
     v_dd.lo += v_lo.lo;
 
     log1p_accurate(x_e, idx as usize, v_dd)
-}
-
-#[inline]
-pub(crate) fn log1p_f64_dd(x: f64) -> Dekker {
-    let mut x_u = x.to_bits();
-
-    let mut x_dd = Dekker::default();
-
-    let x_exp: u16 = ((x_u >> 52) & 0x7ff) as u16;
-
-    if x_exp >= EXP_BIAS {
-        // |x| >= 1
-        if x_u >= 0x4650_0000_0000_0000u64 {
-            x_dd.hi = x;
-        } else {
-            x_dd = Dekker::from_exact_add(x, 1.0);
-        }
-    } else {
-        // |x| < 1
-        if x_exp < EXP_BIAS - 52 - 1 {
-            // Quick return when |x| < 2^-53.
-            // Since log(1 + x) = x - x^2/2 + x^3/3 - ...,
-            // for |x| < 2^-53,
-            //   x > log(1 + x) > x - x^2 > x(1 - 2^-54) > x - ulp(x)/2
-            // Thus,
-            //   log(1 + x) = nextafter(x, -inf) for FE_DOWNWARD, or
-            //                                       FE_TOWARDZERO and x > 0,
-            //              = x                  otherwise.
-            if x == 0.0 {
-                return Dekker::new(0., x + x);
-            }
-
-            let tp = 1.0f32;
-            let tn = -1.0f32;
-            let rdp = tp - f32::from_bits(0x3d594caf) != tp;
-            let rdn = tn - f32::from_bits(0x33800000) != tn;
-
-            if x > 0. && rdp {
-                return Dekker::new(0., f64::from_bits(x_u - 1));
-            }
-
-            if x < 0. && rdn {
-                return Dekker::new(0., f64::from_bits(x_u + 1));
-            }
-
-            return if x + x == 0.0 {
-                Dekker::new(0., x + x)
-            } else {
-                Dekker::new(0., x)
-            };
-        }
-        x_dd = Dekker::from_exact_add(1.0, x);
-    }
-
-    const EXP_BIAS: u16 = (1u16 << (11 - 1u16)) - 1u16;
-
-    // At this point, x_dd is the exact sum of 1 + x:
-    //   x_dd.hi + x_dd.lo = x + 1.0 exactly.
-    //   |x_dd.hi| >= 2^-54
-    //   |x_dd.lo| < ulp(x_dd.hi)
-
-    let xhi_bits = x_dd.hi.to_bits();
-    let xhi_frac = xhi_bits & ((1u64 << 52) - 1);
-    x_u = xhi_bits;
-    // Range reduction:
-    // Find k such that |x_hi - k * 2^-7| <= 2^-8.
-    let idx: i32 = ((xhi_frac.wrapping_add(1u64 << (52 - 8))) >> (52 - 7)) as i32;
-    let x_e = (get_exponent_f64(f64::from_bits(xhi_bits)) as i32).wrapping_add(idx >> 7);
-    let e_x = x_e as f64;
-
-    const LOG_2_HI: f64 = f64::from_bits(0x3fe62e42fefa3800);
-    const LOG_2_LO: f64 = f64::from_bits(0x3d2ef35793c76730);
-
-    // hi is exact
-    // ulp(hi) = ulp(LOG_2_HI) = ulp(LOG_R1_DD[idx].hi) = 2^-43
-
-    let r_dd = LOG_R1_DD[idx as usize];
-
-    let hi = f_fmla(e_x, LOG_2_HI, f64::from_bits(r_dd.1));
-    // lo errors < |e_x| * ulp(LOG_2_LO) + ulp(LOG_R1[idx].lo)
-    //           <= 2^11 * 2^(-43-53) = 2^-85
-    let lo = f_fmla(e_x, LOG_2_LO, f64::from_bits(r_dd.0));
-
-    // Scale x_dd by 2^(-xh_bits.get_exponent()).
-    let s_u: i64 = (x_u & EXP_MASK) as i64 - (EXP_BIAS as i64).wrapping_shl(52);
-    // Normalize arguments:
-    //   1 <= m_dd.hi < 2
-    //   |m_dd.lo| < 2^-52.
-    // This is exact.
-    let m_hi = 1f64.to_bits() | xhi_frac;
-
-    let m_lo = if x_dd.lo.abs() > x_dd.hi * f64::from_bits(0x3800000000000000) {
-        (x_dd.lo.to_bits() as i64).wrapping_sub(s_u)
-    } else {
-        0
-    };
-
-    let m_dd = Dekker::new(f64::from_bits(m_lo as u64), f64::from_bits(m_hi));
-
-    // Perform range reduction:
-    //   r * m - 1 = r * (m_dd.hi + m_dd.lo) - 1
-    //             = (r * m_dd.hi - 1) + r * m_dd.lo
-    //             = v_hi + (v_lo.hi + v_lo.lo)
-    // where:
-    //   v_hi = r * m_dd.hi - 1          (exact)
-    //   v_lo.hi + v_lo.lo = r * m_dd.lo (exact)
-    // Bounds on the values:
-    //   -0x1.69000000000edp-8 < r * m - 1 < 0x1.7f00000000081p-8
-    //   |v_lo.hi| <= |r| * |m_dd.lo| < 2^-52
-    //   |v_lo.lo| < ulp(v_lo.hi) <= 2^(-52 - 53) = 2^(-105)
-    let r = R1[idx as usize];
-    let v_hi;
-    let v_lo = Dekker::from_exact_mult(m_dd.lo, f64::from_bits(r));
-
-    #[cfg(any(
-        all(
-            any(target_arch = "x86", target_arch = "x86_64"),
-            target_feature = "fma"
-        ),
-        all(target_arch = "aarch64", target_feature = "neon")
-    ))]
-    {
-        v_hi = f_fmla(f64::from_bits(r), m_dd.hi, -1.0); // Exact.
-    }
-
-    #[cfg(not(any(
-        all(
-            any(target_arch = "x86", target_arch = "x86_64"),
-            target_feature = "fma"
-        ),
-        all(target_arch = "aarch64", target_feature = "neon")
-    )))]
-    {
-        let c = f64::from_bits(
-            (idx as u64)
-                .wrapping_shl(52 - 7)
-                .wrapping_add(0x3FF0_0000_0000_0000u64),
-        );
-        v_hi = f_fmla(
-            f64::from_bits(r),
-            m_dd.hi - c,
-            f64::from_bits(RCM1[idx as usize]),
-        ); // Exact
-    }
-
-    // Range reduction output:
-    //   -0x1.69000000000edp-8 < v_hi + v_lo < 0x1.7f00000000081p-8
-    //   |v_dd.lo| < ulp(v_dd.hi) <= 2^(-7 - 53) = 2^-60
-    let mut v_dd = Dekker::from_exact_add(v_hi, v_lo.hi);
-    v_dd.lo += v_lo.lo;
-
-    // Exact sum:
-    //   r1.hi + r1.lo = e_x * log(2)_hi - log(r)_hi + u
-    let r1 = Dekker::from_exact_add(hi, v_dd.hi);
-
-    // Degree-7 minimax polynomial log(1 + v) ~ v - v^2 / 2 + ...
-    // generated by Sollya with:
-    // > P = fpminimax(log(1 + x)/x, 6, [|1, 1, D...|],
-    //                 [-0x1.69000000000edp-8, 0x1.7f00000000081p-8]);
-    const P_COEFFS: [u64; 6] = [
-        0xbfe0000000000000,
-        0x3fd5555555555166,
-        0xbfcfffffffdb7746,
-        0x3fc99999a8718a60,
-        0xbfc555874ce8ce22,
-        0x3fc24335555ddbe5,
-    ];
-
-    //   C * ulp(v_sq) + err_hi
-    let v_sq = v_dd.hi * v_dd.hi;
-    let p0 = f_fmla(
-        v_dd.hi,
-        f64::from_bits(P_COEFFS[1]),
-        f64::from_bits(P_COEFFS[0]),
-    );
-    let p1 = f_fmla(
-        v_dd.hi,
-        f64::from_bits(P_COEFFS[3]),
-        f64::from_bits(P_COEFFS[2]),
-    );
-    let p2 = f_fmla(
-        v_dd.hi,
-        f64::from_bits(P_COEFFS[5]),
-        f64::from_bits(P_COEFFS[4]),
-    );
-    let p = f_polyeval4(v_sq, (v_dd.lo + r1.lo) + lo, p0, p1, p2);
-
-    Dekker::new(p, r1.hi)
 }
 
 /// Computes log(x+1)

@@ -5,7 +5,7 @@ use libfuzzer_sys::fuzz_target;
 use pxfm::*;
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::ops::{Add, Div};
+use std::ops::{Add, Div, Mul};
 
 pub fn count_ulp_f64(d: f64, c: &Float) -> f64 {
     let c2 = c.to_f64();
@@ -213,6 +213,14 @@ fn track_ulp(
     // );
 }
 
+fn compound_m1_mpfr(x: f64, y: f64) -> Float {
+    let mpfr_x0 = Float::with_val(150, x);
+    let mpfr_x1 = Float::with_val(150, y);
+    let log1p = mpfr_x0.log2_1p().mul(&mpfr_x1);
+    let exp = log1p.exp2_m1();
+    exp
+}
+
 fuzz_target!(|data: (f64, f64)| {
     let x0 = data.0;
     let x1 = data.0;
@@ -223,7 +231,17 @@ fuzz_target!(|data: (f64, f64)| {
     } else {
         mpfr_x0.clone().sin().div(&mpfr_x0)
     };
-    test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
+    let compound_m1_mpfr = compound_m1_mpfr(x0, x1);
+
+    test_method_2vals_ignore_nan1(
+        x0,
+        x1,
+        f_compound_m1,
+        &compound_m1_mpfr,
+        "f_compound_m1".to_string(),
+        0.5,
+    );
+    /*test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
     test_method(
         x0,
         f_erfc,
@@ -469,5 +487,5 @@ fuzz_target!(|data: (f64, f64)| {
         &compound_mpfr,
         "f_compound".to_string(),
         0.5,
-    );
+    );*/
 });
