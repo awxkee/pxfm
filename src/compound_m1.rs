@@ -53,7 +53,6 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
            (h) compound (qNaN, n) is qNaN for n <> 0.
     */
 
-    let y = y;
     let x_sign = x.is_sign_negative();
     let y_sign = y.is_sign_negative();
 
@@ -66,8 +65,6 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
     let x_u = x.to_bits();
     let x_a = x_abs;
     let y_a = y_abs;
-
-    let x = x;
 
     // If x or y is signaling NaN
     if x.is_nan() || y.is_nan() {
@@ -187,41 +184,39 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
         }
 
         // |y| > |1075 / log2(1 - 2^-53)|.
-        if y_a > 0x43d7_4910_d52d_3052 {
-            if y_a >= 0x7ff0_0000_0000_0000 {
-                // y is inf or nan
-                if y_mant != 0 {
-                    // y is NaN
-                    // pow(1, NaN) = 1
-                    // pow(x, NaN) = NaN
-                    return if x_u == 1f64.to_bits() { 1.0 } else { y };
-                }
-
-                // Now y is +-Inf
-                if f64::from_bits(x_abs).is_nan() {
-                    // pow(NaN, +-Inf) = NaN
-                    return x;
-                }
-
-                if x_a == 0x3ff0_0000_0000_0000 {
-                    // pow(+-1, +-Inf) = 1.0
-                    return 0.0;
-                }
-
-                if x == 0.0 && y_sign {
-                    // pow(+-0, -Inf) = +inf and raise FE_DIVBYZERO
-                    return f64::INFINITY;
-                }
-                // pow (|x| < 1, -inf) = +inf
-                // pow (|x| < 1, +inf) = 0.0
-                // pow (|x| > 1, -inf) = 0.0
-                // pow (|x| > 1, +inf) = +inf
-                return if (x_a < 1f64.to_bits()) == y_sign {
-                    f64::INFINITY
-                } else {
-                    -1.0
-                };
+        if y_a > 0x43d7_4910_d52d_3052 || y_a >= 0x7ff0_0000_0000_0000 {
+            // y is inf or nan
+            if y_mant != 0 {
+                // y is NaN
+                // pow(1, NaN) = 1
+                // pow(x, NaN) = NaN
+                return if x_u == 1f64.to_bits() { 1.0 } else { y };
             }
+
+            // Now y is +-Inf
+            if f64::from_bits(x_abs).is_nan() {
+                // pow(NaN, +-Inf) = NaN
+                return x;
+            }
+
+            if x_a == 0x3ff0_0000_0000_0000 {
+                // pow(+-1, +-Inf) = 1.0
+                return 0.0;
+            }
+
+            if x == 0.0 && y_sign {
+                // pow(+-0, -Inf) = +inf and raise FE_DIVBYZERO
+                return f64::INFINITY;
+            }
+            // pow (|x| < 1, -inf) = +inf
+            // pow (|x| < 1, +inf) = 0.0
+            // pow (|x| > 1, -inf) = 0.0
+            // pow (|x| > 1, +inf) = +inf
+            return if (x_a < 1f64.to_bits()) == y_sign {
+                f64::INFINITY
+            } else {
+                -1.0
+            };
         }
 
         // y is finite and non-zero.
