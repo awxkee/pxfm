@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::common::{dd_fmla, dyad_fmla};
 use crate::logf::EXP_MASK_F32;
 
 #[inline]
@@ -60,7 +61,7 @@ pub fn f_hypot3f(x: f32, y: f32, z: f32) -> f32 {
 /// Hypot function
 ///
 /// Max ULP 0.5
-#[inline]
+// #[inline]
 pub fn f_hypotf(x: f32, y: f32) -> f32 {
     let x_abs = x.abs();
     let y_abs = y.abs();
@@ -93,37 +94,7 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
 
     // These squares are exact.
     let a_sq = ad * ad;
-    let sum_sq: f64;
-    #[cfg(any(
-        all(
-            any(target_arch = "x86", target_arch = "x86_64"),
-            target_feature = "fma"
-        ),
-        all(target_arch = "aarch64", target_feature = "neon")
-    ))]
-    {
-        use crate::common::f_fmla;
-        sum_sq = f_fmla(bd, bd, a_sq);
-    }
-    #[cfg(not(any(
-        all(
-            any(target_arch = "x86", target_arch = "x86_64"),
-            target_feature = "fma"
-        ),
-        all(target_arch = "aarch64", target_feature = "neon")
-    )))]
-    let b_sq;
-    #[cfg(not(any(
-        all(
-            any(target_arch = "x86", target_arch = "x86_64"),
-            target_feature = "fma"
-        ),
-        all(target_arch = "aarch64", target_feature = "neon")
-    )))]
-    {
-        b_sq = bd * bd;
-        sum_sq = a_sq + b_sq;
-    }
+    let sum_sq: f64 = dyad_fmla(bd, bd, a_sq);
 
     let mut r_u: u64 = sum_sq.sqrt().to_bits();
 
@@ -134,31 +105,8 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
 
         let (sum_sq_lo, err);
 
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            use crate::common::f_fmla;
-            sum_sq_lo = f_fmla(bd, bd, a_sq - sum_sq);
-            err = sum_sq_lo - f_fmla(r_d, r_d, -sum_sq);
-        }
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            use crate::dekker::Dekker;
-            let r_sq = Dekker::from_exact_mult(r_d, r_d);
-            sum_sq_lo = b_sq - (sum_sq - a_sq);
-            err = (sum_sq - r_sq.hi) + (sum_sq_lo - r_sq.lo);
-        }
+        sum_sq_lo = dd_fmla(bd, bd, a_sq - sum_sq);
+        err = sum_sq_lo - dd_fmla(r_d, r_d, -sum_sq);
 
         if err > 0. {
             r_u |= 1;
@@ -176,8 +124,10 @@ mod tests {
 
     #[test]
     fn test_hypotf() {
-        // TODO: make 0.5 ULP on x86-64 without FMA
-        // assert_eq!(f_hypotf( 9.177e-41, 1.1754585e-38), 0.000000000000000000000000000000000000011754944);
+        assert_eq!(
+            f_hypotf(9.177e-41, 1.1754585e-38),
+            0.000000000000000000000000000000000000011754944
+        );
         let dx = (f_hypotf(1f32, 1f32) - (1f32 * 1f32 + 1f32 * 1f32).sqrt()).abs();
         assert!(dx < 1e-5);
         let dx = (f_hypotf(5f32, 5f32) - (5f32 * 5f32 + 5f32 * 5f32).sqrt()).abs();
