@@ -283,7 +283,11 @@ impl DyadicFloat128 {
             return if a.sign == b.sign {
                 // Adding very small number to large: return a
                 return if a.exponent > b.exponent { a } else { b };
-            } else if a.exponent > b.exponent { a } else { b };
+            } else if a.exponent > b.exponent {
+                a
+            } else {
+                b
+            };
         }
 
         // Align exponents

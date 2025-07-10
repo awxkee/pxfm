@@ -50,7 +50,6 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
            (h) compound (qNaN, n) is qNaN for n <> 0.
     */
 
-    let y = y;
     let x_sign = x.is_sign_negative();
     let y_sign = y.is_sign_negative();
 
@@ -63,8 +62,6 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
     let x_u = x.to_bits();
     let x_a = x_abs;
     let y_a = y_abs;
-
-    let x = x;
 
     // If x or y is signaling NaN
     if x.is_nan() || y.is_nan() {
@@ -157,7 +154,7 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         }
 
         // |y| > |1075 / log2(1 - 2^-53)|.
-        if y_a > 0x43d7_4910_d52d_3052 && y_a >= 0x7ff0_0000_0000_0000 {
+        if y_a > 0x43d7_4910_d52d_3052 || y_a >= 0x7ff0_0000_0000_0000 {
             // y is inf or nan
             if y_mant != 0 {
                 // y is NaN
