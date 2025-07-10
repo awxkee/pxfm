@@ -126,7 +126,7 @@ const fn explicit_mantissa(x: f64) -> u64 {
 
 impl DyadicFloat128 {
     #[inline]
-    const fn zero() -> Self {
+    pub(crate) const fn zero() -> Self {
         Self {
             sign: DyadicSign::Pos,
             exponent: 0,
