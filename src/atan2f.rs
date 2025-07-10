@@ -249,8 +249,8 @@ pub fn f_atan2f(y: f32, x: f32) -> f32 {
         }
         let z2 = Dekker::quick_mult(Dekker::new(zl, zh), Dekker::new(zl, zh));
         let mut p = poly_dekker_generic(z2, ATAN2F_TABLE);
-        zh *= SGN[gt as usize];
-        zl *= SGN[gt as usize];
+        zh *= SGN[gt];
+        zl *= SGN[gt];
         p = Dekker::quick_mult(Dekker::new(zl, zh), p);
         let sh = p.hi + OFF[i as usize];
         let sl = ((OFF[i as usize] - sh) + p.hi) + p.lo + OFFL[i as usize];

@@ -36,6 +36,7 @@ use crate::pow_exec::{exp_dyadic, pow_exp_dd};
 
 /// Computes (1+x)^y
 ///
+//TODO: still many bad behaviours with ULP 0.501+- for some subnormals, too slow
 #[inline]
 pub fn f_compound(x: f64, y: f64) -> f64 {
     /*

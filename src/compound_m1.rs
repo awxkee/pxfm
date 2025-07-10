@@ -39,6 +39,7 @@ use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC};
 /// Computes (1+x)^y - 1
 ///
 /// max found ULP 0.50013
+//TODO: still many bad behaviours with ULP 0.501+- for some subnormals, too slow
 #[inline]
 pub fn f_compound_m1(x: f64, y: f64) -> f64 {
     /*
