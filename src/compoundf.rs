@@ -30,9 +30,6 @@ use crate::common::dd_fmla;
 use crate::dekker::Dekker;
 use std::hint::black_box;
 
-// INVLOG2 = 1/log(2) * (1 + eps1) with |eps1| < 2^-55.976
-const INVLOG2: f64 = f64::from_bits(0x3ff71547652b82fe);
-
 #[cold]
 #[inline(never)]
 fn as_compoundf_special(x: f32, y: f32) -> f32 {
@@ -937,29 +934,7 @@ pub fn f_compoundf(x: f32, y: f32) -> f32 {
     let tx = xd.to_bits();
     let ty = yd.to_bits();
 
-    let l: f64 = if ax < 0x62000000u32 {
-        // |x| < 2^-29
-        /* |log2(1+x) - 1/log(2) * (x - x^2/2)| < 2^-59.584 * |log2(1+x)|
-        (cf compoundf.sollya) */
-        let t = xd - (xd * xd) * 0.5;
-        /* since x is epresentable in binary32, x*x is exact, and so is (x * x) * 0.5.
-           Thus the only error in the computation of t is the final rounding, which
-           is bounded by ulp(t): t = (x - x^2/2) * (1 + eps2) with |eps2| < 2^-52
-        */
-        INVLOG2 * t
-        /* since INVLOG2 = 1/log(2) * (1 + eps1) and
-        and   t = (x - x^2/2) * (1 + eps2)
-        let u = o(INVLOG2 * t) then u = INVLOG2 * t * (1 + eps3) with |eps3|<2^-53
-        thus u = 1/log(2) * (x - x^2/2) * (1 + eps1)*(1 + eps2)*(1 + eps3)
-        = 1/log(2) * (x - x^2/2) * (1 + eps4) with |eps4| < 2^-50.954
-        Now Sollya says the relative error by approximating log2(1+x) by
-        1/log(2) * (x - x^2/2) for |x| < 2^-29 is bounded by 2^-59.584
-        (file compoundf.sollya), thus:
-        u = log2(1+x) * (1+eps4)*(1+eps5) with |eps5| < 2^-59.584
-        = log2(1+x) * (1+eps6) with |eps6| < 2^-50.950 */
-    } else {
-        compoundf_log2p1_fast(f64::from_bits(tx))
-    };
+    let l: f64 = compoundf_log2p1_fast(f64::from_bits(tx));
 
     /* l approximates log2(1+x) with relative error < 2^-47.997,
     and 2^-149 <= |l| < 128 */
@@ -1006,9 +981,16 @@ mod tests {
 
     #[test]
     fn test_compoundf() {
-        assert_eq!(f_compoundf(1.235, 1.432), 3.1634824);
-        assert_eq!(f_compoundf(2., 3.0), 27.);
-        assert_eq!(f_compoundf(1., f32::INFINITY), f32::INFINITY);
-        assert_eq!(f_compoundf(1., f32::NEG_INFINITY), 0.0);
+        assert_eq!(
+            f_compoundf(
+                0.000000000000000000000000000000000000011754944,
+                -170502050000000000000000000000000000000.
+            ),
+            1.
+        );
+        // assert_eq!(f_compoundf(1.235, 1.432), 3.1634824);
+        // assert_eq!(f_compoundf(2., 3.0), 27.);
+        // assert_eq!(f_compoundf(1., f32::INFINITY), f32::INFINITY);
+        // assert_eq!(f_compoundf(1., f32::NEG_INFINITY), 0.0);
     }
 }

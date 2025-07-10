@@ -105,7 +105,7 @@ fn cr_atan2f_tiny(y: f32, x: f32) -> f32 {
             t = t.wrapping_sub(1);
         }
     }
-    t as f32
+    f64::from_bits(t) as f32
 }
 
 /// Computes Atan2 using FMA
@@ -171,16 +171,16 @@ pub fn f_atan2f(y: f32, x: f32) -> f32 {
             return (0.0 * SGN[(uy >> 31) as usize]) as f32;
         }
     }
-    let gt = if ay > ax { 1 } else { 0 };
+    let gt = (ay > ax) as usize;
     let i = (uy >> 31)
         .wrapping_mul(4)
         .wrapping_add((ux >> 31).wrapping_mul(2))
-        .wrapping_add(gt);
+        .wrapping_add(gt as u32);
 
     let zx = x as f64;
     let zy = y as f64;
-    let mut z = f_fmla(M[gt as usize], zx, M[1u32.wrapping_sub(gt) as usize] * zy)
-        / f_fmla(M[gt as usize], zy, M[1u32.wrapping_sub(gt) as usize] * zx);
+    let mut z = f_fmla(M[gt], zx, M[1usize.wrapping_sub(gt)] * zy)
+        / f_fmla(M[gt], zy, M[1usize.wrapping_sub(gt)] * zx);
     // z = x/y if |y| > |x|, and z = y/x otherwise
     let mut r;
 
@@ -230,7 +230,7 @@ pub fn f_atan2f(y: f32, x: f32) -> f32 {
     } else {
         r = 1.;
     }
-    z *= SGN[gt as usize];
+    z *= SGN[gt];
     r = f_fmla(z, r, OFF[i as usize]);
     let res = r.to_bits();
     if ((res.wrapping_add(8)) & 0xfffffff) <= 16 {
@@ -282,6 +282,13 @@ mod tests {
 
     #[test]
     fn f_atan2_test() {
+        assert_eq!(
+            f_atan2f(
+                0.000000000000000000000000000000000000017907922,
+                170141180000000000000000000000000000000.
+            ),
+            0.
+        );
         assert_eq!(f_atan2f(-3590000000., -15437000.), -1.5750962);
         assert_eq!(f_atan2f(-5., 2.), -1.19029);
     }

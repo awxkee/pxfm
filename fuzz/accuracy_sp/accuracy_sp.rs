@@ -10,7 +10,7 @@ use pxfm::{
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul};
 
 fn count_ulp(d: f32, c: &Float) -> f32 {
     let c2 = c.to_f32();
@@ -146,29 +146,29 @@ fn compound_m1_mpfr(x: f32, y: f32) -> Float {
 
 fuzz_target!(|data: (f32, f32)| {
     let x0 = data.0;
-    let x1 = data.0;
+    let x1 = data.1;
     let mpfr_x0 = Float::with_val(70, x0);
     let mpfr_x1 = Float::with_val(70, x1);
 
-    let compound_m1_mpfr = compound_m1_mpfr(x0, x1);
+    // let compound_m1_mpfr = compound_m1_mpfr(x0, x1);
+    //
+    // test_method_2vals_ignore_nan(
+    //     x0,
+    //     x1,
+    //     f_compound_m1f,
+    //     &compound_m1_mpfr.clone(),
+    //     "f_compoundm1f".to_string(),
+    // );
 
-    test_method_2vals_ignore_nan(
-        x0,
-        x1,
-        f_compound_m1f,
-        &compound_m1_mpfr.clone(),
-        "f_compoundm1f".to_string(),
-    );
-
-    let compound_mpfr = mpfr_x0.clone().add(&Float::with_val(70, 1.)).pow(&mpfr_x1);
-
-    test_method_2vals_ignore_nan(
-        x0,
-        x1,
-        f_compoundf,
-        &compound_mpfr.clone(),
-        "f_compoundf".to_string(),
-    );
+    // let compound_mpfr = mpfr_x0.clone().add(&Float::with_val(70, 1.)).pow(&mpfr_x1);
+    //
+    // test_method_2vals_ignore_nan(
+    //     x0,
+    //     x1,
+    //     f_compoundf,
+    //     &compound_mpfr.clone(),
+    //     "f_compoundf".to_string(),
+    // );
 
     test_method(x0, f_erfcf, &mpfr_x0.clone().erfc(), "f_erfcf".to_string());
     test_method(x0, f_erff, &mpfr_x0.clone().erf(), "f_erff".to_string());

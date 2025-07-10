@@ -203,9 +203,15 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
     let y_abs = y_u & 0x7fff_ffff;
     let mut x = x;
 
-    if (y_abs & 0x0007_ffff == 0) || (y_abs > 0x4f170000) {
+    if ((y_abs & 0x0007_ffff) == 0) || (y_abs > 0x4f170000) {
         // y is signaling NaN
         if x.is_nan() || y.is_nan() {
+            if y.abs() == 0. {
+                return 1.;
+            }
+            if x == 1. {
+                return 1.;
+            }
             return f32::NAN;
         }
 
@@ -343,7 +349,11 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
             if y_u >= 0x7fff_ffff {
                 return if out_is_neg { -0.0 } else { 0.0 };
             }
-            return if out_is_neg { -0.0 } else { 0.0 };
+            return if out_is_neg {
+                f32::NEG_INFINITY
+            } else {
+                f32::INFINITY
+            };
         }
 
         if x_abs > 0x7f80_0000 {
@@ -642,6 +652,12 @@ mod tests {
             f_powf(0.5f32, 2f32)
         );
         assert_eq!(f_powf(0.5f32, 1.5432f32), 0.34312353);
+        assert_eq!(
+            f_powf(f32::INFINITY, 0.00000000000000000000000000000000038518824),
+            f32::INFINITY
+        );
+        assert_eq!(f_powf(f32::NAN, 0.0), 1.);
+        assert_eq!(f_powf(1., f32::NAN), 1.);
     }
 
     #[test]

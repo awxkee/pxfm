@@ -84,7 +84,7 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
         return f32::from_bits(a_bits);
     }
 
-    if a_u - b_u >= ((23u32 + 2) << 23) {
+    if a_u.wrapping_sub(b_u) >= ((23u32 + 2) << 23) {
         return x_abs + y_abs;
     }
 
