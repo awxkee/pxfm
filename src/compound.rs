@@ -311,7 +311,6 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         };
     }
 
-    // approximate log(x)
     let mut l = log1p_f64_dd(x);
 
     let ey = ((y.to_bits() >> 52) & 0x7ff) as i32;
@@ -369,6 +368,10 @@ mod tests {
 
     #[test]
     fn test_compound() {
+        assert_eq!(
+            f_compound(131071.65137729312, 2.000001423060894),
+            17180328027.532265
+        );
         assert_eq!(f_compound(2., 5.), 243.);
         assert_eq!(f_compound(126.4324324, 126.4324324), 1.4985383310514043e266);
         assert_eq!(f_compound(0.4324324, 126.4324324), 5.40545942023447e19);

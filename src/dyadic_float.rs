@@ -30,10 +30,11 @@ use crate::bits::EXP_MASK;
 use crate::common::f_fmla;
 use std::ops::{Add, Mul, Sub};
 
+#[repr(u8)]
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub(crate) enum DyadicSign {
-    Pos,
-    Neg,
+    Pos = 0,
+    Neg = 1,
 }
 
 impl DyadicSign {
@@ -50,6 +51,15 @@ impl DyadicSign {
         match self {
             DyadicSign::Pos => 0,
             DyadicSign::Neg => 1,
+        }
+    }
+
+    #[inline]
+    pub(crate) const fn mult(self, rhs: Self) -> Self {
+        if (self as u8) ^ (rhs as u8) != 0 {
+            DyadicSign::Neg
+        } else {
+            DyadicSign::Pos
         }
     }
 }
@@ -142,16 +152,16 @@ impl DyadicFloat128 {
         new_val
     }
 
-    // #[inline]
-    // pub(crate) fn new(sign: DyadicSign, exponent: i16, mantissa: u128) -> Self {
-    //     let mut new_item = DyadicFloat128 {
-    //         sign,
-    //         exponent,
-    //         mantissa,
-    //     };
-    //     new_item.normalize();
-    //     new_item
-    // }
+    #[inline]
+    pub(crate) fn new(sign: DyadicSign, exponent: i16, mantissa: u128) -> Self {
+        let mut new_item = DyadicFloat128 {
+            sign,
+            exponent,
+            mantissa,
+        };
+        new_item.normalize();
+        new_item
+    }
 
     #[inline]
     pub(crate) fn accurate_reciprocal(a: f64) -> Self {
@@ -474,7 +484,7 @@ impl DyadicFloat128 {
     // Approximate reciprocal - given a nonzero `a`, make a good approximation to 1/a.
     // The method is Newton-Raphson iteration, based on quick_mul.
     #[inline]
-    pub(crate) fn reciprocal(&self) -> DyadicFloat128 {
+    pub(crate) fn reciprocal(self) -> DyadicFloat128 {
         // Computes the reciprocal using Newton-Raphson iteration:
         // Given an approximation x ≈ 1/a, we refine via:
         //     x' = x * (2 - a * x)
@@ -490,8 +500,8 @@ impl DyadicFloat128 {
             mantissa: 0x80000000_00000000_00000000_00000000_u128,
         };
 
-        x = x * (twos - (*self * x));
-        x = x * (twos - (*self * x));
+        x = x * (twos - (self * x));
+        x = x * (twos - (self * x));
         x
     }
 
@@ -550,7 +560,7 @@ impl DyadicFloat128 {
 
     #[inline]
     pub(crate) fn trunc_to_i64(&self) -> i64 {
-        if self.exponent <= -128 {
+        if self.exponent <= -(BITS as i16) {
             // Absolute value of x is greater than equal to 0.5 but less than 1.
             return 0;
         }
@@ -568,61 +578,61 @@ impl DyadicFloat128 {
         if self.sign == DyadicSign::Neg { -r } else { r }
     }
 
-    // #[inline]
-    // pub(crate) fn round_to_nearest(&self) -> DyadicFloat128 {
-    //     if self.exponent == -128 {
-    //         // Absolute value of x is greater than equal to 0.5 but less than 1.
-    //         return DyadicFloat128 {
-    //             sign: self.sign,
-    //             exponent: -127,
-    //             mantissa: 0x80000000_00000000_00000000_00000000_u128,
-    //         };
-    //     }
-    //     if self.exponent <= -129 {
-    //         // Absolute value of x is greater than equal to 0.5 but less than 1.
-    //         return DyadicFloat128 {
-    //             sign: self.sign,
-    //             exponent: 0,
-    //             mantissa: 0u128,
-    //         };
-    //     }
-    //     const FRACTION_LENGTH: u32 = BITS - 1;
-    //     let trim_size =
-    //         (FRACTION_LENGTH as i64).wrapping_sub(self.exponent as i64 + (BITS - 1) as i64) as u128;
-    //     let half_bit_set =
-    //         self.mantissa & (1u128.wrapping_shl(trim_size.wrapping_sub(1) as u32)) != 0;
-    //     let trunc_u: u128 = (self.mantissa >> trim_size).wrapping_shl(trim_size as u32);
-    //     if trunc_u == self.mantissa {
-    //         return *self;
-    //     }
-    //
-    //     let truncated = DyadicFloat128::new(self.sign, self.exponent, self.mantissa);
-    //
-    //     if !half_bit_set {
-    //         // Franctional part is less than 0.5 so round value is the
-    //         // same as the trunc value.
-    //         truncated
-    //     } else if self.sign == DyadicSign::Neg {
-    //         let ones = DyadicFloat128 {
-    //             sign: DyadicSign::Pos,
-    //             exponent: -128,
-    //             mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
-    //         };
-    //         truncated - ones
-    //     } else {
-    //         let ones = DyadicFloat128 {
-    //             sign: DyadicSign::Pos,
-    //             exponent: -128,
-    //             mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
-    //         };
-    //         truncated + ones
-    //     }
-    // }
-    //
-    // #[inline]
-    // pub(crate) fn round_to_nearest_f64(&self) -> f64 {
-    //     self.round_to_nearest().fast_as_f64()
-    // }
+    #[inline]
+    pub(crate) fn round_to_nearest(&self) -> DyadicFloat128 {
+        if self.exponent == -(BITS as i16) {
+            // Absolute value of x is greater than equal to 0.5 but less than 1.
+            return DyadicFloat128 {
+                sign: self.sign,
+                exponent: -(BITS as i16 - 1),
+                mantissa: 0x80000000_00000000_00000000_00000000_u128,
+            };
+        }
+        if self.exponent <= -((BITS + 1) as i16) {
+            // Absolute value of x is greater than equal to 0.5 but less than 1.
+            return DyadicFloat128 {
+                sign: self.sign,
+                exponent: 0,
+                mantissa: 0u128,
+            };
+        }
+        const FRACTION_LENGTH: u32 = BITS - 1;
+        let trim_size =
+            (FRACTION_LENGTH as i64).wrapping_sub(self.exponent as i64 + (BITS - 1) as i64) as u128;
+        let half_bit_set =
+            self.mantissa & (1u128.wrapping_shl(trim_size.wrapping_sub(1) as u32)) != 0;
+        let trunc_u: u128 = (self.mantissa >> trim_size).wrapping_shl(trim_size as u32);
+        if trunc_u == self.mantissa {
+            return *self;
+        }
+
+        let truncated = DyadicFloat128::new(self.sign, self.exponent, trunc_u);
+
+        if !half_bit_set {
+            // Franctional part is less than 0.5 so round value is the
+            // same as the trunc value.
+            truncated
+        } else if self.sign == DyadicSign::Neg {
+            let ones = DyadicFloat128 {
+                sign: DyadicSign::Pos,
+                exponent: -(BITS as i16 - 1),
+                mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
+            };
+            truncated - ones
+        } else {
+            let ones = DyadicFloat128 {
+                sign: DyadicSign::Pos,
+                exponent: -(BITS as i16 - 1),
+                mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
+            };
+            truncated + ones
+        }
+    }
+
+    #[inline]
+    pub(crate) fn round_to_nearest_f64(&self) -> f64 {
+        self.round_to_nearest().fast_as_f64()
+    }
 }
 
 impl Sub<DyadicFloat128> for DyadicFloat128 {
@@ -812,28 +822,33 @@ mod tests {
         assert_eq!(m1.fast_as_f64(), 5.0);
     }
 
-    // #[test]
-    // fn dyadic_float_round() {
-    //     let from_div = DyadicFloat128::new_from_f64(2.5);
-    //     let m1 = from_div.round_to_nearest_f64();
-    //     assert_eq!(m1, 3.0);
-    //
-    //     let from_div = DyadicFloat128::new_from_f64(0.5);
-    //     let m1 = from_div.round_to_nearest_f64();
-    //     assert_eq!(m1, 1.0);
-    //
-    //     let from_div = DyadicFloat128::new_from_f64(-0.5);
-    //     let m1 = from_div.round_to_nearest_f64();
-    //     assert_eq!(m1, -1.0);
-    //
-    //     let from_div = DyadicFloat128::new_from_f64(-0.351);
-    //     let m1 = from_div.round_to_nearest_f64();
-    //     assert_eq!(m1, (-0.351f64).round());
-    //
-    //     let from_div = DyadicFloat128::new_from_f64(0.351);
-    //     let m1 = from_div.round_to_nearest_f64();
-    //     assert_eq!(m1, 0.351f64.round());
-    // }
+    #[test]
+    fn dyadic_float_round() {
+        let from_div = DyadicFloat128::new_from_f64(2.5);
+        let m1 = from_div.round_to_nearest_f64();
+        assert_eq!(m1, 3.0);
+
+        let from_div = DyadicFloat128::new_from_f64(0.5);
+        let m1 = from_div.round_to_nearest_f64();
+        assert_eq!(m1, 1.0);
+
+        let from_div = DyadicFloat128::new_from_f64(-0.5);
+        let m1 = from_div.round_to_nearest_f64();
+        assert_eq!(m1, -1.0);
+
+        let from_div = DyadicFloat128::new_from_f64(-0.351);
+        let m1 = from_div.round_to_nearest_f64();
+        assert_eq!(m1, (-0.351f64).round());
+
+        let from_div = DyadicFloat128::new_from_f64(0.351);
+        let m1 = from_div.round_to_nearest_f64();
+        assert_eq!(m1, 0.351f64.round());
+
+        let z00 = 25.6;
+        let zvt00 = DyadicFloat128::new_from_f64(z00);
+        let b00 = zvt00.round_to_nearest_f64();
+        assert_eq!(b00, 26.);
+    }
 
     #[test]
     fn dyadic_int_trunc() {

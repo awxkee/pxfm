@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::acospi::{INV_PI_DD, INV_PI_F128};
-use crate::atan2::{ATAN_I, atan_eval};
+use crate::atan2::{ATAN_I, atan_eval, atan2_hard};
 use crate::common::f_fmla;
 use crate::dekker::Dekker;
 use crate::dyadic_float::DyadicFloat128;
@@ -84,8 +84,8 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
     let mut min_exp = min_abs.wrapping_shr(52);
     let mut max_exp = max_abs.wrapping_shr(52);
 
-    let mut num = f64::from_bits(min_abs);
-    let mut den = f64::from_bits(max_abs);
+    let num = f64::from_bits(min_abs);
+    let den = f64::from_bits(max_abs);
 
     // Check for exceptional cases, whether inputs are 0, inf, nan, or close to
     // overflow, or close to underflow.
@@ -133,16 +133,9 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
         let scale_down = max_exp > 0x7ffu64 - 128u64;
         // At least one input is denormal, multiply both numerator and denominator
         // by some large enough power of 2 to normalize denormal inputs.
-        if scale_up {
-            num *= f64::from_bits(0x43f0000000000000);
-            if !scale_down {
-                den *= f64::from_bits(0x43f0000000000000)
-            }
-        } else if scale_down {
-            den *= f64::from_bits(0x3bf0000000000000);
-            if !scale_up {
-                num *= f64::from_bits(0x3bf0000000000000);
-            }
+        if scale_up || scale_down {
+            let z = atan2_hard(y, x) * INV_PI_F128;
+            return z.fast_as_f64();
         }
 
         min_abs = num.to_bits();
