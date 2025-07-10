@@ -176,6 +176,8 @@ mod tests {
 
     #[test]
     fn test_hypotf() {
+        // TODO: make 0.5 ULP on x86-64 without FMA
+        // assert_eq!(f_hypotf( 9.177e-41, 1.1754585e-38), 0.000000000000000000000000000000000000011754944);
         let dx = (f_hypotf(1f32, 1f32) - (1f32 * 1f32 + 1f32 * 1f32).sqrt()).abs();
         assert!(dx < 1e-5);
         let dx = (f_hypotf(5f32, 5f32) - (5f32 * 5f32 + 5f32 * 5f32).sqrt()).abs();
