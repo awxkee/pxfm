@@ -5,7 +5,7 @@ use libfuzzer_sys::fuzz_target;
 use pxfm::*;
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::ops::{Add, Div, Mul};
+use std::ops::{Add, Div, Mul, Sub};
 
 pub fn count_ulp_f64(d: f64, c: &Float) -> f64 {
     let c2 = c.to_f64();
@@ -213,10 +213,28 @@ fn track_ulp(
     // );
 }
 
+#[inline]
+pub(crate) fn is_odd_integer(x: f64) -> bool {
+    let x_u = x.to_bits();
+    pub(crate) const EXP_MASK: u64 = (11 << 52) - 1;
+    let x_e = (x_u & EXP_MASK) >> 52;
+    let lsb = (x_u | EXP_MASK).trailing_zeros();
+    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
+
+    const UNIT_EXPONENT: u64 = E_BIAS + 52;
+    x_e + lsb as u64 == UNIT_EXPONENT
+}
+
 fn compound_m1_mpfr(x: f64, y: f64) -> Float {
     let mpfr_x0 = Float::with_val(150, x);
     let mpfr_x1 = Float::with_val(150, y);
     let log1p = mpfr_x0.log2_1p().mul(&mpfr_x1);
+    let ln1pf = log1p.clone().to_f64();
+    // if ln1pf < -745.0 {
+    //     return Float::with_val(70, -1.0);
+    // } else if ln1pf > 709.0 {
+    //     return Float::with_val(69, f64::INFINITY);
+    // }
     let exp = log1p.exp2_m1();
     exp
 }
@@ -248,16 +266,19 @@ fuzz_target!(|data: (f64, f64)| {
     } else {
         mpfr_x0.clone().sin().div(&mpfr_x0)
     };
-    // let compound_m1_mpfr = compound_m1_mpfr(x0, x1);
-    //
-    // test_method_2vals_ignore_nan1(
-    //     x0,
-    //     x1,
-    //     f_compound_m1,
-    //     &compound_m1_mpfr,
-    //     "f_compound_m1".to_string(),
-    //     0.5,
-    // );
+    let compound_m1_mpfr = compound_m1_mpfr(x0, x1);
+
+    //TODO: MPFR computes wrong values on subnormals.
+    if x0.abs() > 0.000000000000000001 {
+        test_method_2vals_ignore_nan1(
+            x0,
+            x1,
+            f_compound_m1,
+            &compound_m1_mpfr,
+            "f_compound_m1".to_string(),
+            0.50013,
+        );
+    }
     test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
     test_method(
         x0,
@@ -499,7 +520,7 @@ fuzz_target!(|data: (f64, f64)| {
     let compound_mpfr = compound_mpfr(x0, x1);
 
     //TODO: MPFR computes wrong values on subnormals.
-    if x0 > 0.1 {
+    if x0 > 0.000000000000000001 {
         test_method_2vals_ignore_nan1(
             x0,
             x1,

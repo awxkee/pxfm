@@ -50,7 +50,7 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
            (h) compound (qNaN, n) is qNaN for n <> 0.
     */
 
-    let mut y = y;
+    let y = y;
     let x_sign = x.is_sign_negative();
     let y_sign = y.is_sign_negative();
 
@@ -64,7 +64,7 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
     let x_a = x_abs;
     let y_a = y_abs;
 
-    let mut x = x;
+    let x = x;
 
     // If x or y is signaling NaN
     if x.is_nan() || y.is_nan() {
@@ -187,14 +187,6 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
                     0.0
                 };
             }
-            // x^y will overflow / underflow in double precision.  Set y to a
-            // large enough exponent but not too large, so that the computations
-            // won't overflow in double precision.
-            y = if y_sign {
-                f64::from_bits(0xc630000000000000)
-            } else {
-                f64::from_bits(0x4630000000000000)
-            };
         }
 
         // y is finite and non-zero.
@@ -234,7 +226,6 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         // x is finite and negative, and y is a finite integer.
         if x_sign {
             if is_integer(y) {
-                x = -x;
                 if is_odd_integer(y) {
                     // sign = -1.0;
                     static CS: [f64; 2] = [1.0, -1.0];
@@ -334,14 +325,12 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         l.hi = f64::NAN;
     }
 
-    //TODO: make better log1p expansion, error is too high for large numbers,
-    //      so full dekker multiplication with error tracking is required
     let r = Dekker::mult(l, Dekker::new(0., y));
-    if r.hi.abs() < 650. && ey < 950 {
+    if r.hi.abs() > 1e-250 && r.hi.abs() < 70. && ey.abs() < 1050 {
         let res = pow_exp_dd(r, s);
 
-        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), -res.hi, res.lo);
-        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c55700000000000), res.hi, res.lo);
+        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c9a766666666666), -res.hi, res.lo);
+        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c9a766666666666), res.hi, res.lo);
         if res_min == res_max {
             return res_max;
         }

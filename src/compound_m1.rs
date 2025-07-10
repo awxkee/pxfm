@@ -38,7 +38,7 @@ use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC};
 
 /// Computes (1+x)^y - 1
 ///
-/// max found ULP 0.5
+/// max found ULP 0.50013
 #[inline]
 pub fn f_compound_m1(x: f64, y: f64) -> f64 {
     /*
@@ -53,7 +53,7 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
            (h) compound (qNaN, n) is qNaN for n <> 0.
     */
 
-    let mut y = y;
+    let y = y;
     let x_sign = x.is_sign_negative();
     let y_sign = y.is_sign_negative();
 
@@ -67,7 +67,7 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
     let x_a = x_abs;
     let y_a = y_abs;
 
-    let mut x = x;
+    let x = x;
 
     // If x or y is signaling NaN
     if x.is_nan() || y.is_nan() {
@@ -122,31 +122,65 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
         }
 
         match y_a {
-            0x3fe0_0000_0000_0000 => {
-                if x == 0.0 {
-                    return 0.0;
-                }
-                let z = Dekker::from_full_exact_add(x, 1.0).sqrt();
-                return if y_sign {
-                    Dekker::add_f64(z.recip(), -1.).to_f64()
-                } else {
-                    Dekker::add_f64(z, -1.).to_f64()
-                };
-            }
+            // 0x3fe0_0000_0000_0000 => {
+            //     if x == 0.0 {
+            //         return 0.0;
+            //     }
+            //     let z = Dekker::from_full_exact_add(x, 1.0).sqrt();
+            //     if y_sign {
+            //         const M_ONES: DyadicFloat128 = DyadicFloat128 {
+            //             sign: DyadicSign::Neg,
+            //             exponent: -127,
+            //             mantissa: 0x80000000_00000000_00000000_00000000_u128,
+            //         };
+            //         let z = DyadicFloat128::new_from_f64(z.to_f64());
+            //         (z.reciprocal() + M_ONES).fast_as_f64()
+            //     } else {
+            //         const M_ONES: DyadicFloat128 = DyadicFloat128 {
+            //             sign: DyadicSign::Neg,
+            //             exponent: -127,
+            //             mantissa: 0x80000000_00000000_00000000_00000000_u128,
+            //         };
+            //         let z = DyadicFloat128::new_from_f64(z.to_f64());
+            //         (z + M_ONES).fast_as_f64()
+            //     };
+            // }
             0x3ff0_0000_0000_0000 => {
                 return if y_sign {
-                    Dekker::add_f64(Dekker::from_full_exact_add(x, 1.0).recip(), -1.).to_f64()
+                    let z = DyadicFloat128::new_from_f64(x);
+                    const ONES: DyadicFloat128 = DyadicFloat128 {
+                        sign: DyadicSign::Pos,
+                        exponent: -127,
+                        mantissa: 0x80000000_00000000_00000000_00000000_u128,
+                    };
+                    const M_ONES: DyadicFloat128 = DyadicFloat128 {
+                        sign: DyadicSign::Neg,
+                        exponent: -127,
+                        mantissa: 0x80000000_00000000_00000000_00000000_u128,
+                    };
+                    let p = (z + ONES).reciprocal() + M_ONES;
+                    p.fast_as_f64()
                 } else {
-                    Dekker::add_f64(Dekker::from_full_exact_add(x, 1.0), -1.).to_f64()
+                    x
                 };
             }
             0x4000_0000_0000_0000 => {
-                let z0 = Dekker::from_full_exact_add(x, 1.0);
-                let z = Dekker::quick_mult(z0, z0);
+                const ONES: DyadicFloat128 = DyadicFloat128 {
+                    sign: DyadicSign::Pos,
+                    exponent: -127,
+                    mantissa: 0x80000000_00000000_00000000_00000000_u128,
+                };
+                let z0 = DyadicFloat128::new_from_f64(x) + ONES;
+                let z = z0 * z0;
+                const M_ONES: DyadicFloat128 = DyadicFloat128 {
+                    sign: DyadicSign::Neg,
+                    exponent: -127,
+                    mantissa: 0x80000000_00000000_00000000_00000000_u128,
+                };
                 return if y_sign {
-                    Dekker::add_f64(z.recip(), -1.).to_f64()
+                    (z.reciprocal() + M_ONES).fast_as_f64()
                 } else {
-                    f64::copysign(Dekker::add_f64(z, -1.).to_f64(), x)
+                    f64::copysign((z + M_ONES).fast_as_f64(), x)
                 };
             }
             _ => {}
@@ -188,14 +222,6 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
                     -1.0
                 };
             }
-            // x^y will overflow / underflow in double precision.  Set y to a
-            // large enough exponent but not too large, so that the computations
-            // won't overflow in double precision.
-            y = if y_sign {
-                f64::from_bits(0xc630000000000000)
-            } else {
-                f64::from_bits(0x4630000000000000)
-            };
         }
 
         // y is finite and non-zero.
@@ -240,7 +266,6 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
         // x is finite and negative, and y is a finite integer.
         if x_sign {
             if is_integer(y) {
-                x = -x;
                 if is_odd_integer(y) {
                     // sign = -1.0;
                     static CS: [f64; 2] = [1.0, -1.0];
@@ -303,62 +328,54 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
     let ay = y.to_bits() & 0x7fff_ffff_ffff_ffff;
 
     // evaluate (1+x)^y explicitly for integer y in [-16,16] range and |x|<2^64
-    if y.floor() == y && ay <= 0x4030_0000_0000_0000u64 && ax <= 0x43e0_0000_0000_0000u64 {
-        if ax <= 0x3cc0_0000_0000_0000 {
-            let mut p = Dekker::from_exact_mult(y, x);
-            p = Dekker::full_add_f64(p, 1.0);
-            return p.to_f64();
-        } // does it work for |x|<2^-29 and |y|<=16?
-        let z0 = f64::from_bits(ay) as f32;
-        let ay0 = z0.to_bits().wrapping_shl(1);
-        let ky: i32 = (((ay0 & 0x00ffffff) | 1 << 24) >> (151 - (ay0 >> 24))) as i32;
-        let s = 1.0 + x;
-        let mut p = 1.;
-        let s2 = s * s;
-        let s4 = s2 * s2;
-        let s8 = s4 * s4;
-        let s16 = s8 * s8;
-        let sn: [f64; 6] = [1., s, s2, s4, s8, s16];
-        p *= sn[(ky & 1) as usize];
-        p *= sn[(ky & 2) as usize];
-        p *= sn[(((ky >> 2) & 1) * 3) as usize];
-        p *= sn[((ky >> 1) & 4) as usize];
-        p *= sn[(((ky >> 4) & 1) * 5) as usize];
+    if y.floor() == y
+        && ay <= 0x4030_0000_0000_0000u64
+        && ax <= 0x43e0_0000_0000_0000u64
+        && ax > 0x3cc0_0000_0000_0000
+    {
+        let iter_count = y.abs() as usize;
+        const ONES: DyadicFloat128 = DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -127,
+            mantissa: 0x80000000_00000000_00000000_00000000_u128,
+        };
+        const M_ONES: DyadicFloat128 = DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -127,
+            mantissa: 0x80000000_00000000_00000000_00000000_u128,
+        };
+        let s = DyadicFloat128::new_from_f64(x) + ONES;
+        let mut p = s;
+        for _ in 0..iter_count - 1 {
+            p = p * s;
+        }
         return if y.is_sign_negative() {
-            Dekker::add_f64(Dekker::new(0., p).recip(), -1.).to_f64()
+            (p.reciprocal() + M_ONES).fast_as_f64()
         } else {
-            Dekker::from_full_exact_add(p, -1.).to_f64()
+            (p + M_ONES).fast_as_f64()
         };
     }
 
     // approximate log(x)
-    let mut l = log1p_f64_dd(x);
+    let l = log1p_f64_dd(x);
 
-    /* We should avoid a spurious underflow/overflow in y*log(x).
-    Underflow: for x<>1, the smallest absolute value of log(x) is obtained
-    for x=1-2^-53, with |log(x)| ~ 2^-53. Thus to avoid a spurious underflow
-    we require |y| >= 2^-969.
-    Overflow: the largest absolute value of log(x) is obtained for x=2^-1074,
-    with |log(x)| < 745. Thus to avoid a spurious overflow we require
-    |y| < 2^1014. */
     let ey = ((y.to_bits() >> 52) & 0x7ff) as i32;
     if ey < 0x36 || ey >= 0x7f5 {
-        l.lo = f64::NAN;
-        l.hi = f64::NAN;
+        return 0.;
     }
 
-    let r = Dekker::mult(l, Dekker::new(0., y));
-    if r.hi.abs() > 1e-250 && r.hi.abs() < 550. {
+    let r = Dekker::quick_mult_f64(l, y);
+    if r.hi.abs() > 1e-250 && r.hi.abs() < 70. && ey.abs() < 1050 {
         let res = pow_expm1_1(r, s);
 
-        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c3a000000000000), -res.hi, res.lo);
-        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c3a000000000000), res.hi, res.lo);
+        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c9f066666666666), -res.hi, res.lo);
+        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c9f066666666666), res.hi, res.lo);
         if res_min == res_max {
             return res_max;
         }
     }
 
-    compound_accurate(x, y, s)
+    compound_accurate(x, y)
 }
 
 fn expm1_dyadic_poly(x: DyadicFloat128) -> DyadicFloat128 {
@@ -565,24 +582,10 @@ fn expm1_dyadic_tiny(x: DyadicFloat128) -> DyadicFloat128 {
 
 // /* put in r an approximation of exp(x), for |x| < 744.45,
 // with relative error < 2^-121.70 */
-fn expm1_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
+fn compound_expm1_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
     // x < 0.125
     if x.exponent <= -130 {
         return expm1_dyadic_tiny(x);
-    }
-    let ex = x.exponent + 127;
-    if ex >= 10
-    // underflow or overflow
-    {
-        return DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: if x.sign == DyadicSign::Neg {
-                -1076
-            } else {
-                1025
-            },
-            mantissa: x.mantissa,
-        };
     }
 
     const LOG2_INV: DyadicFloat128 = DyadicFloat128 {
@@ -598,6 +601,24 @@ fn expm1_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
     };
 
     let mut bk = x * LOG2_INV;
+
+    let unbiased = bk.biased_exponent();
+    if unbiased >= 21 {
+        return if x.sign == DyadicSign::Pos {
+            DyadicFloat128 {
+                sign: DyadicSign::Pos,
+                exponent: 1270,
+                mantissa: u128::MAX,
+            }
+        } else {
+            DyadicFloat128 {
+                sign: DyadicSign::Neg,
+                exponent: -127,
+                mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
+            }
+        };
+    }
+
     let k = bk.trunc_to_i64(); /* k = trunc(K) [rounded towards zero, exact] */
     /* The rounding error of mul_dint_int64() is bounded by 6 ulps, thus since
     |K| <= 4399162*log(2) < 3049267, the error on K is bounded by 2^-103.41.
@@ -610,6 +631,7 @@ fn expm1_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
     let bm = k >> 12;
     let i2 = (k >> 6) & 0x3f;
     let i1 = k & 0x3f;
+
     let mut r = expm1_dyadic_poly(y);
     let di20 = EXP_T1_2_DYADIC[i2 as usize];
     let di21 = EXP_T2_2_DYADIC[i1 as usize];
@@ -626,33 +648,25 @@ fn expm1_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
 
     r = di20 * r;
     r = di21 * r;
+
     r.exponent += bm as i16; /* exact */
     r = r + pz;
     r
 }
 
 #[cold]
-fn compound_accurate(x: f64, y: f64, s: f64) -> f64 {
+fn compound_accurate(x: f64, y: f64) -> f64 {
     /* the idea of returning res_max instead of res_min is due to Laurent
     Théry: it is better in case of underflow since res_max = +0 always. */
 
     let f_y = DyadicFloat128::new_from_f64(y);
 
-    let r = log1p_f64_dyadic(x) * f_y;
-    let mut result = expm1_dyadic(r);
+    let log_dyad = log1p_f64_dyadic(x);
 
+    let r = log_dyad * f_y;
+
+    let result = compound_expm1_dyadic(r);
     // 2^R.ex <= R < 2^(R.ex+1)
-
-    /* case R < 2^-1075: underflow case */
-    if result.exponent < -1075 {
-        return 0.5 * (s * f64::from_bits(0x0000000000000001)) - 1.0;
-    }
-
-    result.sign = if s == -1.0 {
-        DyadicSign::Neg
-    } else {
-        DyadicSign::Pos
-    };
 
     result.fast_as_f64()
 }
@@ -663,14 +677,87 @@ mod tests {
 
     #[test]
     fn test_compound_m1() {
+        assert_eq!(f_compound_m1(3., 2.8927001953125), 54.154259038961406);
+        assert_eq!(
+            f_compound_m1(-0.43750000000000044, 19.),
+            -0.9999821216263793
+        );
+        assert_eq!(
+            f_compound_m1(127712., -2.0000000000143525),
+            -0.9999999999386903
+        );
+        assert_eq!(
+            f_compound_m1(-0.11718749767214207, 2893226081485815000000000000000.),
+            -1.
+        );
+        assert_eq!(
+            f_compound_m1(2418441935074801400000000., 512.),
+            f64::INFINITY
+        );
+        assert_eq!(
+            f_compound_m1(32.50198364245834, 128000.00000000093),
+            f64::INFINITY
+        );
+        assert_eq!(
+            f_compound_m1(1.584716796877785, 0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004168916810703412),
+            0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003958869879428553
+        );
+        assert_eq!(
+            f_compound_m1(
+                -0.000000000000000000000000000000001997076793037533,
+                366577337071337140000000000000000f64
+            ),
+            -0.5190938261758579
+        );
+        assert_eq!(f_compound_m1(2.1075630259863374, 0.5), 00.7628281328553664);
+        assert_eq!(f_compound_m1(2.1078916412661783, 0.5), 0.7629213372315222);
+        assert_eq!(f_compound_m1(3.0000000000001115, -0.5), -0.500000000000007);
+        assert_eq!(
+            f_compound_m1(0.0004873839215895903, 3.),
+            0.0014628645098045245
+        );
+
+        assert_eq!(f_compound_m1(-0.483765364602732, 3.), -0.862424399516842);
+        assert_eq!(f_compound_m1(3.0000001192092896, -2.), -0.9375000037252902);
+        assert_eq!(f_compound_m1(29.38323424607434, -1.), -0.9670871115332561);
+
+        assert_eq!(f_compound_m1(-0.4375, 4.), -0.8998870849609375);
+        assert_eq!(
+            f_compound_m1(-0.0039033182037826464, 3.),
+            -0.011664306402886494
+        );
+        assert_eq!(
+            f_compound_m1(0.000000000000000000000000000000000000007715336350455947,
+                          -262034087537726030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
+            -1.,
+        );
+        assert_eq!(f_compound_m1(10.000000059604645, 10.), 25937426005.44638);
+        assert_eq!(f_compound_m1(10., -308.25471555814863), -1.0);
+        assert_eq!(
+            f_compound_m1(5.4172231599824623E-312, 9.4591068440831498E+164),
+            -1.0
+        );
+        assert_eq!(
+            f_compound_m1(5.8776567263633397E-39, 3.4223548116804511E-310),
+            0.0
+        );
+        assert_eq!(
+            f_compound_m1(5.8639503496997932E-148, -7.1936801558778956E+305),
+            0.0
+        );
+        assert_eq!(
+            f_compound_m1(0.9908447265624999,
+                          -19032028850336152000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
+            -1.
+        );
         assert_eq!(
             f_compound_m1(0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006952247559980936,
                           5069789834563405000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
             -1.
         );
-        /*  assert_eq!(
+        assert_eq!(
             f_compound_m1(1.000000000000341,
-           -69261261804788370000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000. ),
+                          -69261261804788370000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
             -1.
         );
         assert_eq!(
@@ -690,10 +777,6 @@ mod tests {
 
         assert_eq!(f_compound_m1(2.4324324, 1.4324324), 4.850778380908823);
         assert_eq!(f_compound_m1(2., 5.), 242.);
-        assert_eq!(
-            f_compound_m1(126.4324324, 126.4324324),
-            1.4985383310514043e266
-        );
         assert_eq!(f_compound_m1(0.4324324, 126.4324324), 5.40545942023447e19);
         assert!(f_compound_m1(-0.4324324, 126.4324324).is_nan());
         assert_eq!(f_compound_m1(0.0, 0.0), 0.0);
@@ -701,13 +784,13 @@ mod tests {
         assert_eq!(f_compound_m1(-1., -1. / 2.), f64::INFINITY);
         assert_eq!(f_compound_m1(f64::INFINITY, -1. / 2.), -1.0);
         assert_eq!(f_compound_m1(f64::INFINITY, 1. / 2.), f64::INFINITY);
-        assert_eq!(f_compound_m1(46.3828125, 46.3828125), 5.248159634773675e77);*/
+        assert_eq!(f_compound_m1(46.3828125, 46.3828125), 5.248159634773675e77);
     }
 
     #[test]
     fn test_expm1_dyadic() {
         let z = DyadicFloat128::new_from_f64(2.5);
-        assert_eq!(expm1_dyadic(z).fast_as_f64(), 11.182493960703473);
+        assert_eq!(compound_expm1_dyadic(z).fast_as_f64(), 11.182493960703473);
     }
 
     #[test]

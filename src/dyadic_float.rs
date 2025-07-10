@@ -276,6 +276,19 @@ impl DyadicFloat128 {
         let mut a = *self;
         let mut b = *rhs;
 
+        let exp_diff = a.exponent.wrapping_sub(b.exponent);
+
+        // If exponent difference is too large, b is negligible
+        if exp_diff.abs() >= BITS as i16 {
+            return if a.sign == b.sign {
+                // Adding very small number to large: return a
+                return if a.exponent > b.exponent { a } else { b };
+            } else {
+                let result = if a.exponent > b.exponent { a } else { b };
+                result
+            };
+        }
+
         // Align exponents
         if a.exponent > b.exponent {
             b.shift_right((a.exponent - b.exponent) as u32);
@@ -530,13 +543,25 @@ impl Add<DyadicFloat128> for DyadicFloat128 {
 
 impl DyadicFloat128 {
     #[inline]
+    pub(crate) fn biased_exponent(&self) -> i16 {
+        self.exponent + (BITS as i16 - 1)
+    }
+
+    #[inline]
     pub(crate) fn trunc_to_i64(&self) -> i64 {
         if self.exponent <= -128 {
             // Absolute value of x is greater than equal to 0.5 but less than 1.
             return 0;
         }
         let hi = self.mantissa >> 64;
-        let norm_exp = self.exponent + 127;
+        let norm_exp = self.biased_exponent();
+        if norm_exp > 63 {
+            return if self.sign == DyadicSign::Neg {
+                i64::MIN
+            } else {
+                i64::MAX
+            };
+        }
         let r: i64 = (hi >> (63 - norm_exp)) as i64;
 
         if self.sign == DyadicSign::Neg { -r } else { r }
