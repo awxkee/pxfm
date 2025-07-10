@@ -94,7 +94,7 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
 
     // These squares are exact.
     let a_sq = ad * ad;
-    let sum_sq: f64 = dyad_fmla(bd, bd, a_sq);
+    let sum_sq: f64 = dd_fmla(bd, bd, a_sq);
 
     let mut r_u: u64 = sum_sq.sqrt().to_bits();
 

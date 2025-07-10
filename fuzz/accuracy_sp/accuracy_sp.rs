@@ -178,7 +178,7 @@ fuzz_target!(|data: (f32, f32)| {
         mpfr_x0.clone().sin().div(&mpfr_x0)
     };
     test_method_max_ulp(x0, f_sincf, &sinc_x0, "f_sincf".to_string(), 0.5000);
-    TODO: fix subnormals for x86 without fma
+    // TODO: fix subnormals for x86 without fma
     test_method_2vals_ignore_nan(
         x0,
         x1,
