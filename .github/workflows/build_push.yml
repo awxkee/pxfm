@@ -84,5 +84,5 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - run: cargo install cargo-fuzz
       - run: cargo fuzz run math -- -max_total_time=15 -max_len=128
-      - run: cargo fuzz run accuracy_sp -- -max_total_time=15 -max_len=128
-      - run: cargo fuzz run accuracy_dp -- -max_total_time=15 -max_len=128
+      - run: cargo fuzz run accuracy_sp -- -max_total_time=25 -max_len=128
+      - run: cargo fuzz run accuracy_dp -- -max_total_time=25 -max_len=128
