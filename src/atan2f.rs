@@ -108,6 +108,7 @@ fn atan2f_tiny(y: f32, x: f32) -> f32 {
     f64::from_bits(t) as f32
 }
 
+#[allow(clippy::too_many_arguments)]
 #[cold]
 fn atan2f_refine(ay: u32, ax: u32, y: f32, x: f32, zy: f64, zx: f64, gt: usize, i: u32) -> f32 {
     const PI: f64 = f64::from_bits(0x400921fb54442d18);
