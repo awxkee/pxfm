@@ -654,18 +654,20 @@ pub fn f_log1p(x: f64) -> f64 {
     let x_e = (get_exponent_f64(f64::from_bits(xhi_bits)) as i32).wrapping_add(idx >> 7);
     let e_x = x_e as f64;
 
-    const LOG_2_HI: f64 = f64::from_bits(0x3fe62e42fefa3800);
-    const LOG_2_LO: f64 = f64::from_bits(0x3d2ef35793c76730);
+    const LOG_2: Dekker = Dekker::new(
+        f64::from_bits(0x3d2ef35793c76730),
+        f64::from_bits(0x3fe62e42fefa3800),
+    );
 
     // hi is exact
     // ulp(hi) = ulp(LOG_2_HI) = ulp(LOG_R1_DD[idx].hi) = 2^-43
 
     let r_dd = LOG_R1_DD[idx as usize];
 
-    let hi = f_fmla(e_x, LOG_2_HI, f64::from_bits(r_dd.1));
+    let hi = f_fmla(e_x, LOG_2.hi, f64::from_bits(r_dd.1));
     // lo errors < |e_x| * ulp(LOG_2_LO) + ulp(LOG_R1[idx].lo)
     //           <= 2^11 * 2^(-43-53) = 2^-85
-    let lo = f_fmla(e_x, LOG_2_LO, f64::from_bits(r_dd.0));
+    let lo = f_fmla(e_x, LOG_2.lo, f64::from_bits(r_dd.0));
 
     // Scale x_dd by 2^(-xh_bits.get_exponent()).
     let s_u: i64 = (x_u & EXP_MASK) as i64 - (EXP_BIAS as i64).wrapping_shl(52);

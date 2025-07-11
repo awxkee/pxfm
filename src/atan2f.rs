@@ -83,7 +83,7 @@ static ATAN2F_TABLE: [(u64, u64); 32] = [
 ];
 
 #[cold]
-fn cr_atan2f_tiny(y: f32, x: f32) -> f32 {
+fn atan2f_tiny(y: f32, x: f32) -> f32 {
     let dy = y as f64;
     let dx = x as f64;
     let z = dy / dx;
@@ -106,6 +106,53 @@ fn cr_atan2f_tiny(y: f32, x: f32) -> f32 {
         }
     }
     f64::from_bits(t) as f32
+}
+
+#[cold]
+fn atan2f_refine(ay: u32, ax: u32, y: f32, x: f32, zy: f64, zx: f64, gt: usize, i: u32) -> f32 {
+    const PI: f64 = f64::from_bits(0x400921fb54442d18);
+    const PI2: f64 = f64::from_bits(0x3ff921fb54442d18);
+    const PI2L: f64 = f64::from_bits(0x3c91a62633145c07);
+    static OFF: [f64; 8] = [0.0, PI2, PI, PI2, -0.0, -PI2, -PI, -PI2];
+    static OFFL: [f64; 8] = [0.0, PI2L, 2. * PI2L, PI2L, -0.0, -PI2L, -2. * PI2L, -PI2L];
+    static SGN: [f64; 2] = [1., -1.];
+    /* check tiny y/x */
+    if ay < ax && ((ax - ay) >> 23 >= 25) {
+        return atan2f_tiny(y, x);
+    }
+    let mut zh;
+    let mut zl;
+    if gt == 0 {
+        zh = zy / zx;
+        zl = f_fmla(zh, -zx, zy) / zx;
+    } else {
+        zh = zx / zy;
+        zl = f_fmla(zh, -zy, zx) / zy;
+    }
+    let z2 = Dekker::quick_mult(Dekker::new(zl, zh), Dekker::new(zl, zh));
+    let mut p = poly_dekker_generic(z2, ATAN2F_TABLE);
+    zh *= SGN[gt];
+    zl *= SGN[gt];
+    p = Dekker::quick_mult(Dekker::new(zl, zh), p);
+    let sh = p.hi + OFF[i as usize];
+    let sl = ((OFF[i as usize] - sh) + p.hi) + p.lo + OFFL[i as usize];
+    let rf = sh as f32;
+    let th = rf as f64;
+    let dh = sh - th;
+    let mut tm: f64 = dh + sl;
+    let mut tth = th.to_bits();
+    if th + th * f64::from_bits(0x3c30000000000000) == th - th * f64::from_bits(0x3c30000000000000)
+    {
+        tth &= 0x7ffu64 << 52;
+        tth = tth.wrapping_sub(24 << 52);
+        if tm.abs() > f64::from_bits(tth) {
+            tm *= 1.25;
+        } else {
+            tm *= 0.75;
+        }
+    }
+    let r = th + tm;
+    r as f32
 }
 
 /// Computes Atan2 using FMA
@@ -234,43 +281,7 @@ pub fn f_atan2f(y: f32, x: f32) -> f32 {
     r = f_fmla(z, r, OFF[i as usize]);
     let res = r.to_bits();
     if ((res.wrapping_add(8)) & 0xfffffff) <= 16 {
-        /* check tiny y/x */
-        if ay < ax && ((ax - ay) >> 23 >= 25) {
-            return cr_atan2f_tiny(y, x);
-        }
-        let mut zh;
-        let mut zl;
-        if gt == 0 {
-            zh = zy / zx;
-            zl = f_fmla(zh, -zx, zy) / zx;
-        } else {
-            zh = zx / zy;
-            zl = f_fmla(zh, -zy, zx) / zy;
-        }
-        let z2 = Dekker::quick_mult(Dekker::new(zl, zh), Dekker::new(zl, zh));
-        let mut p = poly_dekker_generic(z2, ATAN2F_TABLE);
-        zh *= SGN[gt];
-        zl *= SGN[gt];
-        p = Dekker::quick_mult(Dekker::new(zl, zh), p);
-        let sh = p.hi + OFF[i as usize];
-        let sl = ((OFF[i as usize] - sh) + p.hi) + p.lo + OFFL[i as usize];
-        let rf = sh as f32;
-        let th = rf as f64;
-        let dh = sh - th;
-        let mut tm: f64 = dh + sl;
-        let mut tth = th.to_bits();
-        if th + th * f64::from_bits(0x3c30000000000000)
-            == th - th * f64::from_bits(0x3c30000000000000)
-        {
-            tth &= 0x7ffu64 << 52;
-            tth = tth.wrapping_sub(24 << 52);
-            if tm.abs() > f64::from_bits(tth) {
-                tm *= 1.25;
-            } else {
-                tm *= 0.75;
-            }
-        }
-        r = th + tm;
+        return atan2f_refine(ay, ax, y, x, zy, zx, gt, i);
     }
 
     r as f32

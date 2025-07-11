@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
+use std::hint::black_box;
 
 #[inline]
 pub(crate) fn poly12(z: f64, c: [u64; 12]) -> f64 {
@@ -145,12 +146,12 @@ pub fn f_acosf(x: f32) -> f32 {
             0x3fa07520c026b2d6,
         ];
         if t == 0x328885a3u32 {
-            return f64::from_bits(0x3ff921fb60000000) as f32
-                + f64::from_bits(0x3e60000000000000) as f32;
+            return black_box(f64::from_bits(0x3ff921fb60000000) as f32)
+                + black_box(f64::from_bits(0x3e60000000000000) as f32);
         }
         if t == 0x39826222u32 {
-            return f64::from_bits(0x3ff920f6a0000000) as f32
-                + f64::from_bits(0x3e60000000000000) as f32;
+            return black_box(f64::from_bits(0x3ff920f6a0000000) as f32)
+                + black_box(f64::from_bits(0x3e60000000000000) as f32);
         }
         let x2 = xs * xs;
         r = f_fmla(-(xs * x2), poly12(x2, C), PI2 - xs);

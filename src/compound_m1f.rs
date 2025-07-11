@@ -276,13 +276,6 @@ fn compoundf_exp2m1_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
     q.lo += zf.lo;
     q.hi = zf.hi;
 
-    // q = if q.hi.abs() >= 1.  {
-    //     // implies h >= 1 and the fast_two_sum pre-condition holds
-    //     Dekker::add(q, Dekker::new(0., -1.0))
-    // } else {
-    //     Dekker::add(Dekker::new(0., -1.0), q)
-    // };
-
     v = q.to_f64().to_bits();
 
     f64::from_bits(v) as f32
