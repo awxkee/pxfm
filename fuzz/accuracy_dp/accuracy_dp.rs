@@ -517,8 +517,8 @@ fuzz_target!(|data: (f64, f64)| {
         0.5,
     );
 
-    // let compound_mpfr = compound_mpfr(x0, x1);
-    //
+    let compound_mpfr = compound_mpfr(x0, x1);
+
     // //TODO: MPFR computes wrong values on subnormals.
     // if x0 > 0.000000000000000001 {
     //     test_method_2vals_ignore_nan1(

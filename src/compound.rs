@@ -325,7 +325,7 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
     }
 
     let r = Dekker::quick_mult_f64(l, y);
-    if r.hi.abs() > 1e-250 && r.hi.abs() < 200. {
+    if r.hi.abs() > 1e-250 && r.hi.abs() < 100. {
         let res = pow_exp_dd(r, s);
         let res_min = res.hi + dd_fmla(f64::from_bits(0x3c99400000000000), -res.hi, res.lo);
         let res_max = res.hi + dd_fmla(f64::from_bits(0x3c99400000000000), res.hi, res.lo);
@@ -372,6 +372,10 @@ mod tests {
 
     #[test]
     fn test_compound() {
+        assert_eq!(
+            f_compound(11468322278342656., 2.9995136260713475),
+            1481455956234813000000000000000000000000000000000.
+        );
         assert_eq!(f_compound(0.9999999999999999, 3.), 7.999999999999999);
         assert_eq!(
             f_compound(1.0039215087890625, 10.000000000349134),
