@@ -353,7 +353,10 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
     }
 
     // approximate log(x)
-    let l = log1p_f64_dd(x);
+    let (l, cancel) = log1p_f64_dd(x);
+    if cancel {
+        return compound_m1_accurate(x, y);
+    }
 
     let ey = ((y.to_bits() >> 52) & 0x7ff) as i32;
     if ey < 0x36 || ey >= 0x7f5 {
@@ -371,7 +374,7 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
         }
     }
 
-    compound_accurate(x, y)
+    compound_m1_accurate(x, y)
 }
 
 fn expm1_dyadic_poly(x: DyadicFloat128) -> DyadicFloat128 {
@@ -578,6 +581,7 @@ fn expm1_dyadic_tiny(x: DyadicFloat128) -> DyadicFloat128 {
 
 // /* put in r an approximation of exp(x), for |x| < 744.45,
 // with relative error < 2^-121.70 */
+#[inline]
 fn compound_expm1_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
     // x < 0.125
     if x.exponent <= -130 {
@@ -651,7 +655,7 @@ fn compound_expm1_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
 }
 
 #[cold]
-fn compound_accurate(x: f64, y: f64) -> f64 {
+fn compound_m1_accurate(x: f64, y: f64) -> f64 {
     /* the idea of returning res_max instead of res_min is due to Laurent
     Théry: it is better in case of underflow since res_max = +0 always. */
 

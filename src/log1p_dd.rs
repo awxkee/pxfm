@@ -200,11 +200,12 @@ pub(crate) fn log1p_tiny(z: Dekker) -> Dekker {
 }
 
 #[inline]
-pub(crate) fn log1p_f64_dd(x: f64) -> Dekker {
+pub(crate) fn log1p_f64_dd(x: f64) -> (Dekker, bool) {
     let ix = x.to_bits();
     let ax = ix.wrapping_shl(1);
     let mut ln1: f64;
     let mut ln0: f64;
+    let cancel: bool;
     /* logp1 is expected to be used for x near 0, where it is more accurate than
     log(1+x), thus we expect x near 0 */
     if ax < 0x7f60000000000000u64 {
@@ -212,7 +213,7 @@ pub(crate) fn log1p_f64_dd(x: f64) -> Dekker {
         let x2 = x * x;
         if ax < 0x7e60000000000000u64 {
             // |x| < 0x1p-12
-            return log1p_tiny(Dekker::new(0., x));
+            return (log1p_tiny(Dekker::new(0., x)), false);
         } else {
             const C: [u64; 12] = [
                 0x3fd5555555555555,
@@ -243,6 +244,10 @@ pub(crate) fn log1p_f64_dd(x: f64) -> Dekker {
 
             let f = (f5 + x2 * f4) + x4 * ((f3 + x2 * f2) + x4 * (f1 + x2 * f0));
             ln0 += x3 * f;
+            let eps: f64 = f64::from_bits(0x3cb9400000000000);
+            let lb = ln1 + (ln0 - eps);
+            let ub = ln1 + (ln0 + eps);
+            cancel = lb != ub;
         }
     } else {
         // |x| >= 0.0625
@@ -271,16 +276,16 @@ pub(crate) fn log1p_f64_dd(x: f64) -> Dekker {
             dt = 0f64.to_bits();
         } else {
             if ax > 0xffe0000000000000u64 {
-                return Dekker::new(0., x + x);
+                return (Dekker::new(0., x + x), true);
             } // nan
             if ix == 0x7ff0000000000000u64 {
-                return Dekker::new(0., x);
+                return (Dekker::new(0., x), true);
             } // +inf
             if ix == 0xbff0000000000000u64 {
                 // -1
-                return Dekker::new(0., -1. / 0.0);
+                return (Dekker::new(0., -1. / 0.0), true);
             }
-            return Dekker::new(0., f64::NAN); // <-1
+            return (Dekker::new(0., f64::NAN), true); // <-1
         }
         let j: i64 = (t as i64).wrapping_sub(0x3fe6a00000000000i64);
         let j1 = (j >> (52 - 6)) & 0x3f;
@@ -315,8 +320,12 @@ pub(crate) fn log1p_f64_dd(x: f64) -> Dekker {
         let zz = Dekker::add(Dekker::new(ln0, ln1), ddx);
         ln1 = zz.hi;
         ln0 = zz.lo;
+        let eps: f64 = f64::from_bits(0x3bea000000000000);
+        let lb = ln1 + (ln0 - eps);
+        let ub = ln1 + (ln0 + eps);
+        cancel = lb != ub;
     }
-    Dekker::new(ln0, ln1)
+    (Dekker::new(ln0, ln1), cancel)
 }
 
 #[cfg(test)]
@@ -325,6 +334,6 @@ mod tests {
 
     #[test]
     fn test_log1p_f64_dd() {
-        println!("{:?}", log1p_f64_dd(1.225158611559834).to_f64());
+        println!("{:?}", log1p_f64_dd(1.225158611559834).0.to_f64());
     }
 }

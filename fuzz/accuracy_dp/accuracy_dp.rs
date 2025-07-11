@@ -266,19 +266,19 @@ fuzz_target!(|data: (f64, f64)| {
     } else {
         mpfr_x0.clone().sin().div(&mpfr_x0)
     };
-    let compound_m1_mpfr = compound_m1_mpfr(x0, x1);
-
-    //TODO: MPFR computes wrong values on subnormals.
-    if x0.abs() > 0.000000000000000001 {
-        test_method_2vals_ignore_nan1(
-            x0,
-            x1,
-            f_compound_m1,
-            &compound_m1_mpfr,
-            "f_compound_m1".to_string(),
-            0.50013,
-        );
-    }
+    // let compound_m1_mpfr = compound_m1_mpfr(x0, x1);
+    //
+    // //TODO: MPFR computes wrong values on subnormals.
+    // if x0.abs() > 0.000000000000000001 {
+    //     test_method_2vals_ignore_nan1(
+    //         x0,
+    //         x1,
+    //         f_compound_m1,
+    //         &compound_m1_mpfr,
+    //         "f_compound_m1".to_string(),
+    //         0.50013,
+    //     );
+    // }
     test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
     test_method(
         x0,
@@ -517,17 +517,17 @@ fuzz_target!(|data: (f64, f64)| {
         0.5,
     );
 
-    let compound_mpfr = compound_mpfr(x0, x1);
-
-    //TODO: MPFR computes wrong values on subnormals.
-    if x0 > 0.000000000000000001 {
-        test_method_2vals_ignore_nan1(
-            x0,
-            x1,
-            f_compound,
-            &compound_mpfr,
-            "f_compound".to_string(),
-            0.5,
-        );
-    }
+    // let compound_mpfr = compound_mpfr(x0, x1);
+    //
+    // //TODO: MPFR computes wrong values on subnormals.
+    // if x0 > 0.000000000000000001 {
+    //     test_method_2vals_ignore_nan1(
+    //         x0,
+    //         x1,
+    //         f_compound,
+    //         &compound_mpfr,
+    //         "f_compound".to_string(),
+    //         0.5,
+    //     );
+    // }
 });

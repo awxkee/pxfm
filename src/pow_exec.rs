@@ -665,6 +665,7 @@ fn exp_dyadic_poly(x: DyadicFloat128) -> DyadicFloat128 {
 
 /* put in r an approximation of exp(x), for |x| < 744.45,
 with relative error < 2^-121.70 */
+#[inline]
 pub(crate) fn exp_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
     let ex = x.exponent + 127;
     if ex >= 10

@@ -71,6 +71,9 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
 
     let mut s = 1.0;
 
+    let ax = x.to_bits() & 0x7fff_ffff_ffff_ffff;
+    let ay = y.to_bits() & 0x7fff_ffff_ffff_ffff;
+
     // The double precision number that is closest to 1 is (1 - 2^-53), which has
     //   log2(1 - 2^-53) ~ -1.715...p-53.
     // So if |y| > |1075 / log2(1 - 2^-53)|, and x is finite:
@@ -278,33 +281,33 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
             // pow (aNaN, 0) is already taken care above.
             return x;
         }
-    }
 
-    let ax = x.to_bits() & 0x7fff_ffff_ffff_ffff;
-    let ay = y.to_bits() & 0x7fff_ffff_ffff_ffff;
+        let min_abs = f64::min(f64::from_bits(ax), f64::from_bits(ay)).to_bits();
+        let max_abs = f64::max(f64::from_bits(ax), f64::from_bits(ay)).to_bits();
+        let min_exp = min_abs.wrapping_shr(52);
+        let max_exp = max_abs.wrapping_shr(52);
+
+        if max_exp > 0x7ffu64 - 128u64 || min_exp < 128u64 {
+            let scale_up = min_exp < 128u64;
+            let scale_down = max_exp > 0x7ffu64 - 128u64;
+            // At least one input is denormal, multiply both numerator and denominator
+            // then will go with hard path
+            if scale_up || scale_down {
+                return compound_accurate(x, y, s);
+            }
+        }
+    }
 
     // evaluate (1+x)^y explicitly for integer y in [-16,16] range and |x|<2^64
     if y.floor() == y && ay <= 0x4030_0000_0000_0000u64 && ax <= 0x43e0_0000_0000_0000u64 {
-        if ax <= 0x3cc0_0000_0000_0000 {
-            let mut p = Dekker::from_exact_mult(y, x);
-            p = Dekker::full_add_f64(p, 1.0);
-            return p.to_f64();
-        } // does it work for |x|<2^-29 and |y|<=16?
-        let z0 = f64::from_bits(ay) as f32;
-        let ay0 = z0.to_bits().wrapping_shl(1);
-        let ky: i32 = (((ay0 & 0x00ffffff) | 1 << 24) >> (151 - (ay0 >> 24))) as i32;
         let s = Dekker::from_full_exact_add(1.0, x);
-        let mut p = Dekker::new(0., 1.);
-        let s2 = Dekker::quick_mult(s, s);
-        let s4 = Dekker::quick_mult(s2, s2);
-        let s8 = Dekker::quick_mult(s4, s4);
-        let s16 = Dekker::quick_mult(s8, s8);
-        let sn: [Dekker; 6] = [Dekker::new(0., 1.), s, s2, s4, s8, s16];
-        p = Dekker::quick_mult(p, sn[(ky & 1) as usize]);
-        p = Dekker::quick_mult(p, sn[(ky & 2) as usize]);
-        p = Dekker::quick_mult(p, sn[(((ky >> 2) & 1) * 3) as usize]);
-        p = Dekker::quick_mult(p, sn[((ky >> 1) & 4) as usize]);
-        p = Dekker::quick_mult(p, sn[(((ky >> 4) & 1) * 5) as usize]);
+        let iter_count = y.abs() as usize;
+
+        let mut p = s;
+        for _ in 0..iter_count - 1 {
+            p = Dekker::mult(p, s);
+        }
+
         return if y.is_sign_negative() {
             p.recip().to_f64()
         } else {
@@ -312,20 +315,20 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         };
     }
 
-    let mut l = log1p_f64_dd(x);
-
+    let (l, cancel) = log1p_f64_dd(x);
+    if cancel {
+        return compound_accurate(x, y, s);
+    }
     let ey = ((y.to_bits() >> 52) & 0x7ff) as i32;
     if ey < 0x36 || ey >= 0x7f5 {
-        l.lo = f64::NAN;
-        l.hi = f64::NAN;
+        return compound_accurate(x, y, s);
     }
 
-    let r = Dekker::mult(l, Dekker::new(0., y));
-    if r.hi.abs() > 1e-250 && r.hi.abs() < 70. && ey.abs() < 1050 {
+    let r = Dekker::quick_mult_f64(l, y);
+    if r.hi.abs() > 1e-250 && r.hi.abs() < 200. {
         let res = pow_exp_dd(r, s);
-
-        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c9a766666666666), -res.hi, res.lo);
-        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c9a766666666666), res.hi, res.lo);
+        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c99400000000000), -res.hi, res.lo);
+        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c99400000000000), res.hi, res.lo);
         if res_min == res_max {
             return res_max;
         }
@@ -369,6 +372,12 @@ mod tests {
 
     #[test]
     fn test_compound() {
+        assert_eq!(f_compound(0.9999999999999999, 3.), 7.999999999999999);
+        assert_eq!(
+            f_compound(1.0039215087890625, 10.000000000349134),
+            1044.2562119607103
+        );
+        assert_eq!(f_compound(10., 18.0), 5559917313492231000.0);
         assert_eq!(
             f_compound(131071.65137729312, 2.000001423060894),
             17180328027.532265

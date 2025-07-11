@@ -341,7 +341,11 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
     if res_min == res_max {
         return res_max;
     }
+    pow_rational128(x, y, s)
+}
 
+#[cold]
+fn pow_rational128(x: f64, y: f64, s: f64) -> f64 {
     /* the idea of returning res_max instead of res_min is due to Laurent
     Théry: it is better in case of underflow since res_max = +0 always. */
 
