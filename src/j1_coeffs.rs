@@ -59,6 +59,22 @@ from scipy.optimize import brentq
 from sage.all import *
 import struct
 
+DR = RealField(52)
+DD = RealField(190)
+
+def double_to_hex(f):
+    packed = struct.pack('>d', float(f))
+    return '0x' + packed.hex()
+
+def split_double_double(x):
+    x_hi = DR(x)  # convert to f64
+    x_lo = x - DD(x_hi)
+    return (x_lo,x_hi)
+
+def print_double_double(mark, x):
+    splat = split_double_double(x)
+    print(f"{mark}({double_to_hex(splat[0])}, {double_to_hex(splat[1])}),")
+
 zeros = []
 
 # Step size to detect sign changes
@@ -99,22 +115,6 @@ for z in j1_zeros:
     print(f"({lo}, {hi}),")
 
 print("];")
-
-DR = RealField(52)
-DD = RealField(190)
-
-def double_to_hex(f):
-    packed = struct.pack('>d', float(f))
-    return '0x' + packed.hex()
-
-def split_double_double(x):
-    x_hi = DR(x)  # convert to f64
-    x_lo = x - DD(x_hi)
-    return (x_lo,x_hi)
-
-def print_double_double(mark, x):
-    splat = split_double_double(x)
-    print(f"{mark}({double_to_hex(splat[0])}, {double_to_hex(splat[1])}),")
 ```
 See notes/bessel_j1_taylor.ipynb
 **/
