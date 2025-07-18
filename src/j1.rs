@@ -30,7 +30,7 @@
 #![allow(clippy::excessive_precision)]
 
 use crate::bits::get_exponent_f64;
-use crate::common::dd_fmla;
+use crate::common::{dd_fmla, dyad_fmla};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1MaclaurinSeries};
@@ -47,6 +47,7 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 ///   in the same precision, since any nearest representable number have ULP > 0.5,
 ///   for example `J1(0.000000000000000000000000000000000000023509886)` in single precision
 ///   have 0.7 ULP for any number with extended precision that would be represented in f32
+#[inline(never)]
 pub fn f_j1(x: f64) -> f64 {
     if !x.is_normal() {
         if x.is_infinite() {
@@ -541,6 +542,16 @@ fn j1_rsqrt(x: f64) -> f64 {
     r - dr
 }
 
+#[inline]
+fn j1_rsqrt_hard(x: f64) -> f64 {
+    let r = x.sqrt() / x;
+    let rx = r * x;
+    let drx = dyad_fmla(r, x, -rx);
+    let h = dyad_fmla(r, rx, -1.0) + r * drx;
+    let dr = (r * 0.5) * h;
+    r - dr
+}
+
 /// see [j1_asympt_beta] for more info
 fn j1_asympt_beta_hard(x: f64) -> DoubleDouble {
     static C: [DyadicFloat128; 10] = [
@@ -727,7 +738,7 @@ fn j1_asympt_hard(x: f64) -> f64 {
 
     let m_cos = sin_dd_small(DoubleDouble::new(r_lo, r_hi));
     let z0 = DoubleDouble::quick_mult(beta, m_cos);
-    let r_sqrt = j1_rsqrt(x);
+    let r_sqrt = j1_rsqrt_hard(x);
     let scale = DoubleDouble::quick_mult_f64(SQRT_2_OVER_PI, r_sqrt);
     let p = DoubleDouble::quick_mult(scale, z0).to_f64();
     p * sign_scale
@@ -744,9 +755,7 @@ mod tests {
         // ULP 1.35 = let at_x = 179769311477142710000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
         // ULP 1.4 = let at_x = -171769509925996480000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
         // ULP 1.46 = let at_x = 13729594910350697000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
-        //TODO: Inputs without FMA
-        // println!("{}", f_j1(-61795701510782760000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.));
-        // println(
+        assert_eq!(f_j1(-6.1795701510782757E+307), 8.1309350415932346E-155);
         assert_eq!(
             f_j1(0.000000000000000000000000000000000000008827127),
             0.0000000000000000000000000000000000000044135635
