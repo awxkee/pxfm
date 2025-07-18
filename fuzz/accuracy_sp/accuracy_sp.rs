@@ -178,158 +178,158 @@ fuzz_target!(|data: (f32, f32)| {
         test_method_max_ulp(x0, f_j1f, &mpfr_x0.clone().j1(), "f_j1f".to_string(), 0.);
     }
 
-    // test_method(x0, f_erfcf, &mpfr_x0.clone().erfc(), "f_erfcf".to_string());
-    // test_method(x0, f_erff, &mpfr_x0.clone().erf(), "f_erff".to_string());
-    // let sinc_x0 = if x0 == 0. {
-    //     Float::with_val(70, 1.)
-    // } else {
-    //     mpfr_x0.clone().sin().div(&mpfr_x0)
-    // };
-    // test_method_max_ulp(x0, f_sincf, &sinc_x0, "f_sincf".to_string(), 0.5000);
-    // // TODO: fix subnormals for x86 without fma
-    // test_method_2vals_ignore_nan(
-    //     x0,
-    //     x1,
-    //     f_hypotf,
-    //     &mpfr_x0.clone().hypot(&mpfr_x1),
-    //     "f_hypotf".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_atanhf,
-    //     &mpfr_x0.clone().atanh(),
-    //     "f_atanhf".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_acoshf,
-    //     &mpfr_x0.clone().acosh(),
-    //     "f_acoshf".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_asinhf,
-    //     &mpfr_x0.clone().asinh(),
-    //     "f_asinhf".to_string(),
-    // );
-    // test_method_2vals_ignore_nan(
-    //     x0,
-    //     x1,
-    //     f_atan2pif,
-    //     &mpfr_x0.clone().atan2_pi(&mpfr_x1),
-    //     "f_atan2pif".to_string(),
-    // );
-    // test_method_2vals_ignore_nan(
-    //     x0,
-    //     x1,
-    //     f_atan2f,
-    //     &mpfr_x0.clone().atan2(&mpfr_x1),
-    //     "f_atan2f".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_atanpif,
-    //     &mpfr_x0.clone().atan_pi(),
-    //     "f_atanpif".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_acospif,
-    //     &mpfr_x0.clone().acos_pi(),
-    //     "f_acospif".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_asinpif,
-    //     &mpfr_x0.clone().asin_pi(),
-    //     "f_asinpif".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_log10p1f,
-    //     &mpfr_x0.clone().log10_1p(),
-    //     "f_log10p1f".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_log2p1f,
-    //     &mpfr_x0.clone().log2_1p(),
-    //     "f_log2p1f".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_log1pf,
-    //     &mpfr_x0.clone().ln_1p(),
-    //     "f_log1pf".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_exp10m1f,
-    //     &mpfr_x0.clone().exp10_m1(),
-    //     "f_exp10m1f".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_expm1f,
-    //     &mpfr_x0.clone().exp_m1(),
-    //     "f_expm1f".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_exp2m1f,
-    //     &mpfr_x0.clone().exp2_m1(),
-    //     "f_exp2m1f".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_tanpif,
-    //     &mpfr_x0.clone().tan_pi(),
-    //     "f_tanpif".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_cospif,
-    //     &mpfr_x0.clone().cos_pi(),
-    //     "f_cospif".to_string(),
-    // );
-    // test_method(
-    //     x0,
-    //     f_sinpif,
-    //     &mpfr_x0.clone().sin_pi(),
-    //     "f_sinpif".to_string(),
-    // );
-    // test_method(x0, f_cbrtf, &mpfr_x0.clone().cbrt(), "f_cbrtf".to_string());
-    // test_method(x0, f_logf, &mpfr_x0.clone().ln(), "f_logf".to_string());
-    // test_method(x0, f_log2f, &mpfr_x0.clone().log2(), "f_log2f".to_string());
-    // test_method(
-    //     x0,
-    //     f_log10f,
-    //     &mpfr_x0.clone().log10(),
-    //     "f_log10f".to_string(),
-    // );
-    // test_method(x0, f_expf, &mpfr_x0.clone().exp(), "f_expf".to_string());
-    // test_method(x0, f_exp2f, &mpfr_x0.clone().exp2(), "f_exp2f".to_string());
-    // test_method(
-    //     x0,
-    //     f_exp10f,
-    //     &mpfr_x0.clone().exp10(),
-    //     "f_exp10f".to_string(),
-    // );
-    // test_method(x0, f_sinf, &mpfr_x0.clone().sin(), "f_sinf".to_string());
-    // test_method(x0, f_cosf, &mpfr_x0.clone().cos(), "f_cosf".to_string());
-    // test_method(x0, f_coshf, &mpfr_x0.clone().cosh(), "f_coshf".to_string());
-    // test_method(x0, f_sinhf, &mpfr_x0.clone().sinh(), "f_sinhf".to_string());
-    // test_method(x0, f_tanhf, &mpfr_x0.clone().tanh(), "f_tanhf".to_string());
-    // test_method_allow_not_normals(x0, f_tanf, &mpfr_x0.clone().tan(), "f_tanf".to_string());
-    //
-    // test_method(x0, f_acosf, &mpfr_x0.clone().acos(), "f_acosf".to_string());
-    // test_method(x0, f_asinf, &mpfr_x0.clone().asin(), "f_asinf".to_string());
-    //
-    // test_method_2vals(
-    //     x0,
-    //     x1,
-    //     f_powf,
-    //     &mpfr_x0.clone().pow(&mpfr_x1),
-    //     "f_powf".to_string(),
-    // );
+    test_method(x0, f_erfcf, &mpfr_x0.clone().erfc(), "f_erfcf".to_string());
+    test_method(x0, f_erff, &mpfr_x0.clone().erf(), "f_erff".to_string());
+    let sinc_x0 = if x0 == 0. {
+        Float::with_val(70, 1.)
+    } else {
+        mpfr_x0.clone().sin().div(&mpfr_x0)
+    };
+    test_method_max_ulp(x0, f_sincf, &sinc_x0, "f_sincf".to_string(), 0.5000);
+    // TODO: fix subnormals for x86 without fma
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_hypotf,
+        &mpfr_x0.clone().hypot(&mpfr_x1),
+        "f_hypotf".to_string(),
+    );
+    test_method(
+        x0,
+        f_atanhf,
+        &mpfr_x0.clone().atanh(),
+        "f_atanhf".to_string(),
+    );
+    test_method(
+        x0,
+        f_acoshf,
+        &mpfr_x0.clone().acosh(),
+        "f_acoshf".to_string(),
+    );
+    test_method(
+        x0,
+        f_asinhf,
+        &mpfr_x0.clone().asinh(),
+        "f_asinhf".to_string(),
+    );
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_atan2pif,
+        &mpfr_x0.clone().atan2_pi(&mpfr_x1),
+        "f_atan2pif".to_string(),
+    );
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_atan2f,
+        &mpfr_x0.clone().atan2(&mpfr_x1),
+        "f_atan2f".to_string(),
+    );
+    test_method(
+        x0,
+        f_atanpif,
+        &mpfr_x0.clone().atan_pi(),
+        "f_atanpif".to_string(),
+    );
+    test_method(
+        x0,
+        f_acospif,
+        &mpfr_x0.clone().acos_pi(),
+        "f_acospif".to_string(),
+    );
+    test_method(
+        x0,
+        f_asinpif,
+        &mpfr_x0.clone().asin_pi(),
+        "f_asinpif".to_string(),
+    );
+    test_method(
+        x0,
+        f_log10p1f,
+        &mpfr_x0.clone().log10_1p(),
+        "f_log10p1f".to_string(),
+    );
+    test_method(
+        x0,
+        f_log2p1f,
+        &mpfr_x0.clone().log2_1p(),
+        "f_log2p1f".to_string(),
+    );
+    test_method(
+        x0,
+        f_log1pf,
+        &mpfr_x0.clone().ln_1p(),
+        "f_log1pf".to_string(),
+    );
+    test_method(
+        x0,
+        f_exp10m1f,
+        &mpfr_x0.clone().exp10_m1(),
+        "f_exp10m1f".to_string(),
+    );
+    test_method(
+        x0,
+        f_expm1f,
+        &mpfr_x0.clone().exp_m1(),
+        "f_expm1f".to_string(),
+    );
+    test_method(
+        x0,
+        f_exp2m1f,
+        &mpfr_x0.clone().exp2_m1(),
+        "f_exp2m1f".to_string(),
+    );
+    test_method(
+        x0,
+        f_tanpif,
+        &mpfr_x0.clone().tan_pi(),
+        "f_tanpif".to_string(),
+    );
+    test_method(
+        x0,
+        f_cospif,
+        &mpfr_x0.clone().cos_pi(),
+        "f_cospif".to_string(),
+    );
+    test_method(
+        x0,
+        f_sinpif,
+        &mpfr_x0.clone().sin_pi(),
+        "f_sinpif".to_string(),
+    );
+    test_method(x0, f_cbrtf, &mpfr_x0.clone().cbrt(), "f_cbrtf".to_string());
+    test_method(x0, f_logf, &mpfr_x0.clone().ln(), "f_logf".to_string());
+    test_method(x0, f_log2f, &mpfr_x0.clone().log2(), "f_log2f".to_string());
+    test_method(
+        x0,
+        f_log10f,
+        &mpfr_x0.clone().log10(),
+        "f_log10f".to_string(),
+    );
+    test_method(x0, f_expf, &mpfr_x0.clone().exp(), "f_expf".to_string());
+    test_method(x0, f_exp2f, &mpfr_x0.clone().exp2(), "f_exp2f".to_string());
+    test_method(
+        x0,
+        f_exp10f,
+        &mpfr_x0.clone().exp10(),
+        "f_exp10f".to_string(),
+    );
+    test_method(x0, f_sinf, &mpfr_x0.clone().sin(), "f_sinf".to_string());
+    test_method(x0, f_cosf, &mpfr_x0.clone().cos(), "f_cosf".to_string());
+    test_method(x0, f_coshf, &mpfr_x0.clone().cosh(), "f_coshf".to_string());
+    test_method(x0, f_sinhf, &mpfr_x0.clone().sinh(), "f_sinhf".to_string());
+    test_method(x0, f_tanhf, &mpfr_x0.clone().tanh(), "f_tanhf".to_string());
+    test_method_allow_not_normals(x0, f_tanf, &mpfr_x0.clone().tan(), "f_tanf".to_string());
+
+    test_method(x0, f_acosf, &mpfr_x0.clone().acos(), "f_acosf".to_string());
+    test_method(x0, f_asinf, &mpfr_x0.clone().asin(), "f_asinf".to_string());
+
+    test_method_2vals(
+        x0,
+        x1,
+        f_powf,
+        &mpfr_x0.clone().pow(&mpfr_x1),
+        "f_powf".to_string(),
+    );
 });
