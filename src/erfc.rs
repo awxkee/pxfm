@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::dd_fmla;
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::erf::{Erf, erf_accurate, erf_fast};
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 use crate::exp2::ldexp;
@@ -453,7 +453,7 @@ static ASYMPTOTIC_POLY_ACCURATE: [[u64; 30]; 10] = [
 // with |z| < 0.000130273 < 2^-12.88 and |zl| < 2^-42.6
 // (assuming x^y does not overflow or underflow)
 #[inline]
-fn q_1(z_dd: Dekker) -> Dekker {
+fn q_1(z_dd: DoubleDouble) -> DoubleDouble {
     const C: [u64; 5] = [
         0x3ff0000000000000,
         0x3ff0000000000000,
@@ -466,39 +466,39 @@ fn q_1(z_dd: Dekker) -> Dekker {
 
     q = dd_fmla(q, z, f64::from_bits(C[2]));
 
-    let mut v = Dekker::from_exact_add(f64::from_bits(C[1]), q * z);
-    v = Dekker::quick_mult(z_dd, v);
-    Dekker::f64_add(f64::from_bits(C[0]), v)
+    let mut v = DoubleDouble::from_exact_add(f64::from_bits(C[1]), q * z);
+    v = DoubleDouble::quick_mult(z_dd, v);
+    DoubleDouble::f64_add(f64::from_bits(C[0]), v)
 }
 
 #[inline]
-fn exp_1(x: Dekker) -> Dekker {
+fn exp_1(x: DoubleDouble) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe); /* |INVLOG2-2^12/log(2)| < 2^-43.4 */
     let k = (x.hi * INVLOG2).round_ties_even();
 
-    const LOG2_DD: Dekker = Dekker::new(
+    const LOG2_DD: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3bbabc9e3b39803f),
         f64::from_bits(0x3f262e42fefa39ef),
     );
-    let k_dd = Dekker::f64_mult(k, LOG2_DD);
-    let mut y_dd = Dekker::from_exact_add(x.hi - k_dd.hi, x.lo);
+    let k_dd = DoubleDouble::f64_mult(k, LOG2_DD);
+    let mut y_dd = DoubleDouble::from_exact_add(x.hi - k_dd.hi, x.lo);
     y_dd.lo -= k_dd.lo;
 
     let ki: i64 = k as i64; /* Note: k is an integer, this is just a conversion. */
     let mi = (ki >> 12).wrapping_add(0x3ff);
     let i2: i64 = (ki >> 6) & 0x3f;
     let i1: i64 = ki & 0x3f;
-    let t1 = Dekker::new(
+    let t1 = DoubleDouble::new(
         f64::from_bits(EXP_REDUCE_T0[i2 as usize].0),
         f64::from_bits(EXP_REDUCE_T0[i2 as usize].1),
     );
-    let t2 = Dekker::new(
+    let t2 = DoubleDouble::new(
         f64::from_bits(EXP_REDUCE_T1[i1 as usize].0),
         f64::from_bits(EXP_REDUCE_T1[i1 as usize].1),
     );
-    let mut v = Dekker::quick_mult(t2, t1);
+    let mut v = DoubleDouble::quick_mult(t2, t1);
     let q = q_1(y_dd);
-    v = Dekker::quick_mult(v, q);
+    v = DoubleDouble::quick_mult(v, q);
 
     let scale = f64::from_bits((mi as u64) << 52);
     v.hi *= scale;
@@ -508,10 +508,10 @@ fn exp_1(x: Dekker) -> Dekker {
 
 struct Exp {
     e: i32,
-    result: Dekker,
+    result: DoubleDouble,
 }
 
-fn exp_accurate(x_dd: Dekker) -> Exp {
+fn exp_accurate(x_dd: DoubleDouble) -> Exp {
     static E2: [u64; 28] = [
         0x3ff0000000000000,
         0xb960000000000000,
@@ -555,8 +555,8 @@ fn exp_accurate(x_dd: Dekker) -> Exp {
     (|k|-1/2)*log(2) <= |x| <= (|k|+1/2)*log(2) thus
     1-1/(2|k|) <= |x/(k*log(2))| <= 1+1/(2|k|) thus by Sterbenz theorem
     yh is exact too */
-    let mut t = Dekker::from_full_exact_add(-k as f64 * LOG2_L, x_dd.lo);
-    let mut y_dd = Dekker::from_exact_add(yh, t.hi);
+    let mut t = DoubleDouble::from_full_exact_add(-k as f64 * LOG2_L, x_dd.lo);
+    let mut y_dd = DoubleDouble::from_exact_add(yh, t.hi);
     y_dd.lo = dd_fmla(-k as f64, LOG2_TINY, y_dd.lo + t.lo);
     /* now yh+yl approximates xh + xl - k*log(2), and we approximate p(yh+yl)
     in h + l */
@@ -571,20 +571,20 @@ fn exp_accurate(x_dd: Dekker) -> Exp {
         h = dd_fmla(h, y_dd.hi, f64::from_bits(E2[a + 8])); // degree i
     }
     /* degree 15: h*(yh+yl)+E2[15 + 8] */
-    t = Dekker::from_exact_mult(h, y_dd.hi);
+    t = DoubleDouble::from_exact_mult(h, y_dd.hi);
     t.lo = dd_fmla(h, y_dd.lo, t.lo);
-    let mut v = Dekker::from_exact_add(f64::from_bits(E2[15 + 8]), t.hi);
+    let mut v = DoubleDouble::from_exact_add(f64::from_bits(E2[15 + 8]), t.hi);
     v.lo += t.lo;
     for a in (8..=14).rev() {
         /* degree i: (h+l)*(yh+yl)+E2[i+8] */
-        t = Dekker::quick_mult(v, y_dd);
-        v = Dekker::from_exact_add(f64::from_bits(E2[a + 8]), t.hi);
+        t = DoubleDouble::quick_mult(v, y_dd);
+        v = DoubleDouble::from_exact_add(f64::from_bits(E2[a + 8]), t.hi);
         v.lo += t.lo;
     }
     for a in (0..=7).rev() {
         /* degree i: (h+l)*(yh+yl)+E2[2i]+E2[2i+1] */
-        t = Dekker::quick_mult(v, y_dd);
-        v = Dekker::from_exact_add(f64::from_bits(E2[2 * a]), t.hi);
+        t = DoubleDouble::quick_mult(v, y_dd);
+        v = DoubleDouble::from_exact_add(f64::from_bits(E2[2 * a]), t.hi);
         v.lo += t.lo + f64::from_bits(E2[2 * a + 1]);
     }
 
@@ -601,8 +601,8 @@ fn erfc_asympt_accurate(x: f64) -> f64 {
             f64::from_bits(0x000667bd620fd95b),
         );
     }
-    let u_dd = Dekker::from_exact_mult(x, x);
-    let exp_result = exp_accurate(Dekker::new(-u_dd.lo, -u_dd.hi));
+    let u_dd = DoubleDouble::from_exact_mult(x, x);
+    let exp_result = exp_accurate(DoubleDouble::new(-u_dd.lo, -u_dd.hi));
 
     /* compute 1/x as double-double */
     let yh = 1.0 / x;
@@ -626,30 +626,30 @@ fn erfc_asympt_accurate(x: f64) -> f64 {
         i += 1;
     }
     let p = ASYMPTOTIC_POLY_ACCURATE[i];
-    let mut u_dd = Dekker::from_exact_mult(yh, yh);
+    let mut u_dd = DoubleDouble::from_exact_mult(yh, yh);
     u_dd.lo = dd_fmla(2.0 * yh, yl, u_dd.lo);
     /* the polynomial p has degree 29+2i, and its coefficient of largest
     degree is p[14+6+i] */
-    let mut z_dd = Dekker::new(0., f64::from_bits(p[14 + 6 + i]));
+    let mut z_dd = DoubleDouble::new(0., f64::from_bits(p[14 + 6 + i]));
     for a in (13..=27 + 2 * i).rev().step_by(2) {
         /* degree j: (zh+zl)*(uh+ul)+p[(j-1)/2+6]] */
-        let v = Dekker::quick_mult(z_dd, u_dd);
-        z_dd = Dekker::from_full_exact_add(f64::from_bits(p[(a - 1) / 2 + 6]), v.hi);
+        let v = DoubleDouble::quick_mult(z_dd, u_dd);
+        z_dd = DoubleDouble::from_full_exact_add(f64::from_bits(p[(a - 1) / 2 + 6]), v.hi);
         z_dd.lo += v.lo;
     }
     for a in (1..=11).rev().step_by(2) {
-        let v = Dekker::quick_mult(z_dd, u_dd);
-        z_dd = Dekker::from_full_exact_add(f64::from_bits(p[a - 1]), v.hi);
+        let v = DoubleDouble::quick_mult(z_dd, u_dd);
+        z_dd = DoubleDouble::from_full_exact_add(f64::from_bits(p[a - 1]), v.hi);
         z_dd.lo += v.lo + f64::from_bits(p[a]);
     }
 
     /* multiply by yh+yl */
-    u_dd = Dekker::quick_mult(z_dd, Dekker::new(yl, yh));
+    u_dd = DoubleDouble::quick_mult(z_dd, DoubleDouble::new(yl, yh));
     /* now uh+ul approximates p(1/x), i.e., erfc(x)*exp(x^2) */
     /* now multiply (uh+ul)*(eh+el), after normalizing uh+ul to reduce the
     number of exceptional cases */
-    u_dd = Dekker::from_exact_add(u_dd.hi, u_dd.lo);
-    let v = Dekker::quick_mult(u_dd, exp_result.result);
+    u_dd = DoubleDouble::from_exact_add(u_dd.hi, u_dd.lo);
+    let v = DoubleDouble::quick_mult(u_dd, exp_result.result);
     /* multiply by 2^e */
     /* multiply by 2^e */
     let mut res = ldexp(v.to_f64(), exp_result.e);
@@ -668,14 +668,14 @@ fn erfc_asympt_accurate(x: f64) -> f64 {
 fn erfc_accurate(x: f64) -> f64 {
     if x < 0. {
         let mut v_dd = erf_accurate(-x);
-        let t = Dekker::from_exact_add(1.0, v_dd.hi);
+        let t = DoubleDouble::from_exact_add(1.0, v_dd.hi);
         v_dd.hi = t.hi;
         v_dd.lo += t.lo;
         return v_dd.to_f64();
     } else if x <= f64::from_bits(0x3ffb59ffb450828c) {
         // erfc(x) >= 2^-6
         let mut v_dd = erf_accurate(x);
-        let t = Dekker::from_exact_add(1.0, -v_dd.hi);
+        let t = DoubleDouble::from_exact_add(1.0, -v_dd.hi);
         v_dd.hi = t.hi;
         v_dd.lo = t.lo - v_dd.lo;
         return v_dd.to_f64();
@@ -693,12 +693,12 @@ fn erfc_asympt_fast(x: f64) -> Erf {
     if x >= f64::from_bits(0x4039db1bb14e15ca) {
         return Erf {
             err: 1.0,
-            result: Dekker::default(),
+            result: DoubleDouble::default(),
         };
     }
 
-    let mut u = Dekker::from_exact_mult(x, x);
-    let e_dd = exp_1(Dekker::new(-u.lo, -u.hi));
+    let mut u = DoubleDouble::from_exact_mult(x, x);
+    let e_dd = exp_1(DoubleDouble::new(-u.lo, -u.hi));
 
     /* the assumptions from exp_1 are satisfied:
     * a_mul ensures |ul| <= ulp(uh), thus |ul/uh| <= 2^-52
@@ -739,7 +739,7 @@ fn erfc_asympt_fast(x: f64) -> Erf {
         i += 1;
     }
     let p = ASYMPTOTIC_POLY[i];
-    u = Dekker::from_exact_mult(yh, yh);
+    u = DoubleDouble::from_exact_mult(yh, yh);
     /* Since |yh| <= 1, we have |uh| <= 1 and |ul| <= 2^-53. */
     u.lo = dd_fmla(2.0 * yh, yl, u.lo);
     /* uh+ul approximates (yh+yl)^2, with absolute error bounded by
@@ -762,25 +762,25 @@ fn erfc_asympt_fast(x: f64) -> Erf {
     zh = dd_fmla(zh, u.hi, f64::from_bits(p[10])); // degree 19
 
     /* degree 17: zh*(uh+ul)+p[i] */
-    let mut v = Dekker::f64_mult(zh, u);
-    let mut z_dd = Dekker::from_exact_add(f64::from_bits(p[9]), v.hi);
+    let mut v = DoubleDouble::f64_mult(zh, u);
+    let mut z_dd = DoubleDouble::from_exact_add(f64::from_bits(p[9]), v.hi);
     z_dd.lo += v.lo;
 
     for a in (3..=15).rev().step_by(2) {
-        v = Dekker::quick_mult(z_dd, u);
-        z_dd = Dekker::from_exact_add(f64::from_bits(p[((a + 1) / 2) as usize]), v.hi);
+        v = DoubleDouble::quick_mult(z_dd, u);
+        z_dd = DoubleDouble::from_exact_add(f64::from_bits(p[((a + 1) / 2) as usize]), v.hi);
         z_dd.lo += v.lo;
     }
 
     /* degree 1: (zh+zl)*(uh+ul)+p[0]+p[1] */
-    v = Dekker::quick_mult(z_dd, u);
-    z_dd = Dekker::from_exact_add(f64::from_bits(p[0]), v.hi);
+    v = DoubleDouble::quick_mult(z_dd, u);
+    z_dd = DoubleDouble::from_exact_add(f64::from_bits(p[0]), v.hi);
     z_dd.lo += v.lo + f64::from_bits(p[1]);
     /* multiply by yh+yl */
-    u = Dekker::quick_mult(z_dd, Dekker::new(yl, yh));
+    u = DoubleDouble::quick_mult(z_dd, DoubleDouble::new(yl, yh));
     /* now uh+ul approximates p(1/x) */
     /* now multiply (uh+ul)*(eh+el) */
-    v = Dekker::quick_mult(u, e_dd);
+    v = DoubleDouble::quick_mult(u, e_dd);
 
     /* Write y = 1/x.  We have the following errors:
        * the maximal mathematical error is:
@@ -825,7 +825,7 @@ fn erfc_fast(x: f64) -> Erf {
         /* h+l approximates erf(-x), with relative error bounded by err,
         where err <= 0x1.78p-69 */
         let err = res.err * res.result.hi; /* convert into absolute error */
-        let mut t = Dekker::from_exact_add(1.0, res.result.hi);
+        let mut t = DoubleDouble::from_exact_add(1.0, res.result.hi);
         t.lo += res.result.lo;
         // since h <= 2, the fast_two_sum() error is bounded by 2^-105*h <= 2^-104
         /* After the fast_two_sum() call, we have |t| <= ulp(h) <= ulp(2) = 2^-51
@@ -846,7 +846,7 @@ fn erfc_fast(x: f64) -> Erf {
         /* h+l approximates erf(x), with relative error bounded by err,
         where err <= 0x1.78p-69 */
         let err = res.err * res.result.hi; /* convert into absolute error */
-        let mut t = Dekker::from_exact_add(1.0, -res.result.hi);
+        let mut t = DoubleDouble::from_exact_add(1.0, -res.result.hi);
         t.lo -= res.result.lo;
         /* for x >= 0x1.e861fbb24c00ap-2, erf(x) >= 1/2, thus 1-h is exact
         by Sterbenz theorem, thus t = 0 in fast_two_sum(), and we have t = -l

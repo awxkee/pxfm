@@ -27,68 +27,13 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, fmla, min_normal_f64};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log_dyadic::{LOG_STEP_1, LOG_STEP_2, LOG_STEP_3, LOG_STEP_4};
 use crate::log_range_reduction::log_range_reduction;
 use crate::log2::{LOG_COEFFS, LOG_RANGE_REDUCTION};
 use crate::log10::LOG_R_DD;
 use crate::polyeval::f_polyeval4;
-
-/// Natural logarithm
-#[inline]
-pub const fn log(d: f64) -> f64 {
-    const LN_POLY_2_D: f64 = 0.6666666666666762678e+0;
-    const LN_POLY_3_D: f64 = 0.3999999999936908641e+0;
-    const LN_POLY_4_D: f64 = 0.2857142874046159249e+0;
-    const LN_POLY_5_D: f64 = 0.2222219947428228041e+0;
-    const LN_POLY_6_D: f64 = 0.1818349302807168999e+0;
-    const LN_POLY_7_D: f64 = 0.1531633000781658996e+0;
-    const LN_POLY_8_D: f64 = 0.1476969208015536904e+0;
-
-    let e = d.to_bits().wrapping_shr(52).wrapping_sub(0x3ff);
-    if e >= 0x400 || e == 0x00000000fffffc01 {
-        let minf = 0xfffu64 << 52;
-        if e == 0x400 || (e == 0xc00 && d != f64::from_bits(minf)) {
-            /* +Inf or NaN */
-            return d + d;
-        }
-        if d <= 0. {
-            return if d < 0. { f64::NAN } else { f64::NEG_INFINITY };
-        }
-    }
-
-    // reduce into [sqrt(2)/2;sqrt(2)]
-    let mut ui: u64 = d.to_bits();
-    let mut hx = (ui >> 32) as u32;
-    hx = hx.wrapping_add(0x3ff00000 - 0x3fe6a09e);
-    let n = (hx >> 20) as i32 - 0x3ff;
-    hx = (hx & 0x000fffff).wrapping_add(0x3fe6a09e);
-    ui = (hx as u64) << 32 | (ui & 0xffffffff);
-    let a = f64::from_bits(ui);
-
-    let m = a - 1.;
-
-    let x = m / (a + 1.);
-    let x2 = x * x;
-    let f = x2;
-
-    const LN2_H: f64 = 0.6931471805599453;
-    const LN2_L: f64 = 2.3190468138462996e-17;
-
-    let mut u = LN_POLY_8_D;
-    u = fmla(u, f, LN_POLY_7_D);
-    u = fmla(u, f, LN_POLY_6_D);
-    u = fmla(u, f, LN_POLY_5_D);
-    u = fmla(u, f, LN_POLY_4_D);
-    u = fmla(u, f, LN_POLY_3_D);
-    u = fmla(u, f, LN_POLY_2_D);
-    u *= f;
-
-    let t = m * m * 0.5;
-    let r = fmla(x, t, fmla(x, u, LN2_L * n as f64)) - t + m;
-    fmla(LN2_H, n as f64, r)
-}
 
 /// Assumes that NaN and infinities, negatives were filtered out
 pub(crate) fn log_dyadic(x: f64) -> DyadicFloat128 {
@@ -297,7 +242,7 @@ pub fn f_log(x: f64) -> f64 {
         u = f_fmla(r, m - c, f64::from_bits(LOG_CD[index as usize])); // exact
     }
 
-    let r1 = Dekker::from_exact_add(hi, u);
+    let r1 = DoubleDouble::from_exact_add(hi, u);
 
     let u_sq = u * u;
     // Degree-7 minimax polynomial
@@ -341,6 +286,61 @@ pub fn f_log(x: f64) -> f64 {
     }
 
     log_accurate(x_e, index, u).fast_as_f64()
+}
+
+/// Natural logarithm only for const context
+#[inline]
+pub const fn log(d: f64) -> f64 {
+    const LN_POLY_2_D: f64 = 0.6666666666666762678e+0;
+    const LN_POLY_3_D: f64 = 0.3999999999936908641e+0;
+    const LN_POLY_4_D: f64 = 0.2857142874046159249e+0;
+    const LN_POLY_5_D: f64 = 0.2222219947428228041e+0;
+    const LN_POLY_6_D: f64 = 0.1818349302807168999e+0;
+    const LN_POLY_7_D: f64 = 0.1531633000781658996e+0;
+    const LN_POLY_8_D: f64 = 0.1476969208015536904e+0;
+
+    let e = d.to_bits().wrapping_shr(52).wrapping_sub(0x3ff);
+    if e >= 0x400 || e == 0x00000000fffffc01 {
+        let minf = 0xfffu64 << 52;
+        if e == 0x400 || (e == 0xc00 && d != f64::from_bits(minf)) {
+            /* +Inf or NaN */
+            return d + d;
+        }
+        if d <= 0. {
+            return if d < 0. { f64::NAN } else { f64::NEG_INFINITY };
+        }
+    }
+
+    // reduce into [sqrt(2)/2;sqrt(2)]
+    let mut ui: u64 = d.to_bits();
+    let mut hx = (ui >> 32) as u32;
+    hx = hx.wrapping_add(0x3ff00000 - 0x3fe6a09e);
+    let n = (hx >> 20) as i32 - 0x3ff;
+    hx = (hx & 0x000fffff).wrapping_add(0x3fe6a09e);
+    ui = (hx as u64) << 32 | (ui & 0xffffffff);
+    let a = f64::from_bits(ui);
+
+    let m = a - 1.;
+
+    let x = m / (a + 1.);
+    let x2 = x * x;
+    let f = x2;
+
+    const LN2_H: f64 = 0.6931471805599453;
+    const LN2_L: f64 = 2.3190468138462996e-17;
+
+    let mut u = LN_POLY_8_D;
+    u = fmla(u, f, LN_POLY_7_D);
+    u = fmla(u, f, LN_POLY_6_D);
+    u = fmla(u, f, LN_POLY_5_D);
+    u = fmla(u, f, LN_POLY_4_D);
+    u = fmla(u, f, LN_POLY_3_D);
+    u = fmla(u, f, LN_POLY_2_D);
+    u *= f;
+
+    let t = m * m * 0.5;
+    let r = fmla(x, t, fmla(x, u, LN2_L * n as f64)) - t + m;
+    fmla(LN2_H, n as f64, r)
 }
 
 #[cfg(test)]

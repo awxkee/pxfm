@@ -1,370 +1,765 @@
-/* origin: FreeBSD /usr/src/lib/msun/src/e_j0f.c */
 /*
- * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
- */
-/*
- * ====================================================
- * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
- *
- * Developed at SunPro, a Sun Microsystems, Inc. business.
- * Permission to use, copy, modify, and distribute this
- * software is freely granted, provided that this notice
- * is preserved.
- * ====================================================
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
+ * //
+ * // Redistribution and use in source and binary forms, with or without modification,
+ * // are permitted provided that the following conditions are met:
+ * //
+ * // 1.  Redistributions of source code must retain the above copyright notice, this
+ * // list of conditions and the following disclaimer.
+ * //
+ * // 2.  Redistributions in binary form must reproduce the above copyright notice,
+ * // this list of conditions and the following disclaimer in the documentation
+ * // and/or other materials provided with the distribution.
+ * //
+ * // 3.  Neither the name of the copyright holder nor the names of its
+ * // contributors may be used to endorse or promote products derived from
+ * // this software without specific prior written permission.
+ * //
+ * // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * // DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * // FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * // DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * // SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #![allow(clippy::excessive_precision)]
 
-use crate::common::{dd_fmla, f_fmla};
-use crate::sin::f_cos;
-use crate::sincos::f_sincos;
+use crate::bits::get_exponent_f64;
+use crate::common::dd_fmla;
+use crate::double_double::DoubleDouble;
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1MaclaurinSeries};
+use crate::polyeval::{f_polyeval10, f_polyeval12, f_polyeval16, f_polyeval18};
+use crate::sin::sin_dd_small;
+use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 
-const INVSQRTPI: f64 = 5.64189583547756279280e-01; /* 0x3FE20DD7, 0x50429B6D */
-
-#[inline]
-fn get_high_word(x: f64) -> u32 {
-    (x.to_bits() >> 32) as u32
-}
-
-#[inline]
-fn common(ix: u32, x: f64, y1: bool, sign: bool) -> f64 {
-    let z: f64;
-    let mut ss: f64;
-    let mut cc: f64;
-
-    /*
-     * j1(x) = sqrt(2/(pi*x))*(p1(x)*cos(x-3pi/4)-q1(x)*sin(x-3pi/4))
-     * y1(x) = sqrt(2/(pi*x))*(p1(x)*sin(x-3pi/4)+q1(x)*cos(x-3pi/4))
-     *
-     * sin(x-3pi/4) = -(sin(x) + cos(x))/sqrt(2)
-     * cos(x-3pi/4) = (sin(x) - cos(x))/sqrt(2)
-     * sin(x) +- cos(x) = -cos(2x)/(sin(x) -+ cos(x))
-     */
-
-    let (mut s, c) = f_sincos(x);
-    if y1 {
-        s = -s;
-    }
-    cc = s - c;
-    if ix < 0x7fe00000 {
-        /* avoid overflow in 2*x */
-        ss = -s - c;
-        z = f_cos(2.0 * x);
-        if s * c > 0.0 {
-            cc = z / ss;
-        } else {
-            ss = z / cc;
-        }
-        if ix < 0x48000000 {
-            if y1 {
-                ss = -ss;
-            }
-            let p0 = pone(x);
-            cc = dd_fmla(p0, cc, -qone(x) * ss);
-        }
-    }
-    if sign {
-        cc = -cc;
-    }
-    INVSQRTPI * cc / x.sqrt()
-}
-
-/* R0/S0 on [0,2] */
-const R00: f64 = -6.25000000000000000000e-02; /* 0xBFB00000, 0x00000000 */
-const R01: f64 = 1.40705666955189706048e-03; /* 0x3F570D9F, 0x98472C61 */
-const R02: f64 = -1.59955631084035597520e-05; /* 0xBEF0C5C6, 0xBA169668 */
-const R03: f64 = 4.96727999609584448412e-08; /* 0x3E6AAAFA, 0x46CA0BD9 */
-const S01: f64 = 1.91537599538363460805e-02; /* 0x3F939D0B, 0x12637E53 */
-const S02: f64 = 1.85946785588630915560e-04; /* 0x3F285F56, 0xB9CDF664 */
-const S03: f64 = 1.17718464042623683263e-06; /* 0x3EB3BFF8, 0x333F8498 */
-const S04: f64 = 5.04636257076217042715e-09; /* 0x3E35AC88, 0xC97DFF2C */
-const S05: f64 = 1.23542274426137913908e-11; /* 0x3DAB2ACF, 0xCFB97ED8 */
-
-/// Bessel 1st order in f64
+/// Bessel J 1st order in f64
+///
+/// Max found ULP 1.47.
+///
+/// Note about accuracy:
+/// - Close to zero Bessel have tiny values such that testing against MPFR must be done exactly
+///   in the same precision, since any nearest representable number have ULP > 0.5,
+///   for example `J1(0.000000000000000000000000000000000000023509886)` in single precision
+///   have 0.7 ULP for any number with extended precision that would be represented in f32
 pub fn f_j1(x: f64) -> f64 {
-    let mut z: f64;
-    let r: f64;
-    let s: f64;
-    let mut ix: u32;
-
-    ix = get_high_word(x);
-    let sign = (ix >> 31) != 0;
-    ix &= 0x7fffffff;
-
     if !x.is_normal() {
-        if x.is_nan() {
-            return f64::NAN;
+        if x.is_infinite() {
+            return 0.;
         }
-        return 0.;
+        if !x.is_subnormal() {
+            return x + x;
+        }
     }
 
-    if ix >= 0x7ff00000 {
-        return 1.0 / (x * x);
+    let ax = x.to_bits() & 0x7fff_ffff_ffff_ffff;
+    if f64::from_bits(ax) < 74.60109 {
+        if f64::from_bits(ax) < 0.25 {
+            return maclaurin_series(x);
+        }
+        return small_argument_path(x);
     }
-    if ix >= 0x40000000 {
-        /* |x| >= 2 */
-        return common(ix, x.abs(), false, sign);
+
+    let e = get_exponent_f64(x);
+
+    if e > 512 {
+        return j1_asympt_hard(x);
     }
-    if ix >= 0x38000000 {
-        /* |x| >= 2**-127 */
-        z = x * x;
-        let w0 = f_fmla(z, R03, R02);
-        let w1 = f_fmla(z, w0, R01);
-        let g0 = f_fmla(z, S05, S04);
-        let g1 = f_fmla(z, g0, S03);
-        let g2 = f_fmla(z, g1, S02);
-        let g3 = f_fmla(z, g2, S01);
-        r = z * f_fmla(z, w1, R00);
-        s = f_fmla(z, g3, 1.0);
-        z = r / s;
+
+    j1_asympt(x)
+}
+
+/*
+   Evaluates:
+   J1 = sqrt(2/(PI*x)) * beta(x) * cos(x - 3*PI/4 - alpha(x))
+   discarding 1*PI/2 using identities gives:
+   J1 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
+
+   to avoid squashing small (-PI/4 - alpha(x)) into a large x actual expansion is:
+
+   J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
+*/
+fn j1_asympt(x: f64) -> f64 {
+    static SGN: [f64; 2] = [1., -1.];
+    let sign_scale = SGN[x.is_sign_negative() as usize];
+    let x = x.abs();
+
+    const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
+        f64::from_bits(0xbc8cbc0d30ebfd15),
+        f64::from_bits(0x3fe9884533d43651),
+    );
+    const MPI_OVER_4: DoubleDouble = DoubleDouble::new(
+        f64::from_bits(0xbc81a62633145c07),
+        f64::from_bits(0xbfe921fb54442d18),
+    );
+
+    let alpha = j1_asympt_alpha(x);
+    let beta = j1_asympt_beta(x);
+
+    let AngleReduced { angle } = rem2pi_any(x);
+
+    let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
+    let r0 = DoubleDouble::dd_add(angle, x0pi34);
+
+    let m_cos = sin_dd_small(r0);
+    let z0 = DoubleDouble::quick_mult(beta, m_cos);
+    let r_sqrt = j1_rsqrt(x);
+    let scale = DoubleDouble::quick_mult_f64(SQRT_2_OVER_PI, r_sqrt);
+    let p = DoubleDouble::quick_mult(scale, z0).to_f64();
+    p * sign_scale
+}
+
+/**
+Note expansion generation below: this is negative series expressed in Sage as positive,
+so before any real evaluation `x=1/x` should be applied.
+
+Generated by SageMath:
+```python
+def binomial_like(n, m):
+    prod = QQ(1)
+    z = QQ(4)*(n**2)
+    for k in range(1,m + 1):
+        prod *= (z - (2*k - 1)**2)
+    return prod / (QQ(2)**(2*m) * (ZZ(m).factorial()))
+
+R = LaurentSeriesRing(RealField(300), 'x',default_prec=300)
+x = R.gen()
+
+def Pn_asymptotic(n, y, terms=10):
+    # now y = 1/x
+    return sum( (-1)**m * binomial_like(n, 2*m) / (QQ(2)**(2*m)) * y**(QQ(2)*m) for m in range(terms) )
+
+def Qn_asymptotic(n, y, terms=10):
+    return sum( (-1)**m * binomial_like(n, 2*m + 1) / (QQ(2)**(2*m + 1)) * y**(QQ(2)*m + 1) for m in range(terms) )
+
+P = Pn_asymptotic(1, x, 50)
+Q = Qn_asymptotic(1, x, 50)
+
+R_series = (-Q/P)
+
+# alpha is atan(R_series) so we're doing Taylor series atan expansion on R_series
+
+arctan_series_Z = sum([QQ(-1)**k * x**(QQ(2)*k+1) / RealField(700)(RealField(700)(2)*k+1) for k in range(25)])
+alpha_series = arctan_series_Z(R_series)
+
+# see the series
+print(alpha_series)
+```
+
+See notes/bessel_asympt.ipynb for generation
+**/
+#[inline]
+fn j1_asympt_alpha(x: f64) -> DoubleDouble {
+    const C: [(u64, u64); 12] = [
+        (0x0000000000000000, 0xbfd8000000000000),
+        (0x0000000000000000, 0x3fc5000000000000),
+        (0x3c6999999999999a, 0xbfd7bccccccccccd),
+        (0x3cab6db6db6db6db, 0x4002f486db6db6db),
+        (0x0000000000000000, 0xc03e9fbf40000000),
+        (0x3d21745d1745d174, 0x4084997b55945d17),
+        (0x3d789d89d89d89d9, 0xc0d4a914195269d9),
+        (0xbdb999999999999a, 0x412cd1b53816aec1),
+        (0xbdfe5a5a5a5a5a5a, 0xc18aa4095d419351),
+        (0x3e7e0ca50d79435e, 0x41ef809305f11b9d),
+        (0xbedff8b720000000, 0xc2572e6809ed618b),
+        (0xbf64e5d8ae68b7a7, 0x42c4c5b6057839f9),
+    ];
+
+    // Doing (1/x)*(1/x) instead (1/(x*x)) to avoid spurious overflow/underflow
+    let recip = DoubleDouble::from_recip(x);
+    let x2 = DoubleDouble::quick_mult(recip, recip);
+
+    let mut p = DoubleDouble::mul_add(
+        x2,
+        DoubleDouble::from_bit_pair(C[11]),
+        DoubleDouble::from_bit_pair(C[10]),
+    );
+
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[9]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[8]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[7]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[6]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[5]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[4]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[3]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
+
+    let z = DoubleDouble::div_dd_f64(p, x);
+
+    DoubleDouble::from_exact_add(z.hi, z.lo)
+}
+
+/**
+Note expansion generation below: this is negative series expressed in Sage as positive,
+so before any real evaluation `x=1/x` should be applied
+
+Generated by SageMath:
+```python
+def binomial_like(n, m):
+    prod = QQ(1)
+    z = QQ(4)*(n**2)
+    for k in range(1,m + 1):
+        prod *= (z - (2*k - 1)**2)
+    return prod / (QQ(2)**(2*m) * (ZZ(m).factorial()))
+
+R = LaurentSeriesRing(RealField(300), 'x',default_prec=300)
+x = R.gen()
+
+def Pn_asymptotic(n, y, terms=10):
+    # now y = 1/x
+    return sum( (-1)**m * binomial_like(n, 2*m) / (QQ(2)**(2*m)) * y**(QQ(2)*m) for m in range(terms) )
+
+def Qn_asymptotic(n, y, terms=10):
+    return sum( (-1)**m * binomial_like(n, 2*m + 1) / (QQ(2)**(2*m + 1)) * y**(QQ(2)*m + 1) for m in range(terms) )
+
+P = Pn_asymptotic(1, x, 50)
+Q = Qn_asymptotic(1, x, 50)
+
+def sqrt_series(s):
+    val = S.valuation()
+    lc = S[val]  # Leading coefficient
+    b = lc.sqrt() * x**(val // 2)
+
+    for _ in range(5):
+        b = (b + S / b) / 2
+        b = b
+    return b
+
+S = (P**2 + Q**2).truncate(50)
+
+b_series = sqrt_series(S).truncate(30)
+# see the beta series
+print(b_series)
+```
+
+See notes/bessel_asympt.ipynb for generation
+**/
+fn j1_asympt_beta(x: f64) -> DoubleDouble {
+    const C: [(u64, u64); 10] = [
+        (0x0000000000000000, 0x3ff0000000000000),
+        (0x0000000000000000, 0x3fc8000000000000),
+        (0x0000000000000000, 0xbfc8c00000000000),
+        (0x0000000000000000, 0x3fe9c50000000000),
+        (0x0000000000000000, 0xc01ef5b680000000),
+        (0x0000000000000000, 0x40609860dd400000),
+        (0x0000000000000000, 0xc0abae9b7a06e000),
+        (0x0000000000000000, 0x41008711d41c1428),
+        (0xbdf7a00000000000, 0xc15ab70164c8be6e),
+        (0xbe40e1f000000000, 0x41bc1055e24f297f),
+    ];
+
+    // Doing (1/x)*(1/x) instead (1/(x*x)) to avoid spurious overflow/underflow
+    let recip = DoubleDouble::from_recip(x);
+    let x2 = DoubleDouble::quick_mult(recip, recip);
+
+    let mut p = DoubleDouble::mul_add(
+        x2,
+        DoubleDouble::from_bit_pair(C[9]),
+        DoubleDouble::from_bit_pair(C[8]),
+    );
+
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[7]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[6]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[5]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[4]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[3]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
+    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
+    p
+}
+
+/**
+Generated in Sage:
+```python
+DR = RealField(52)
+
+DD = RealField(190)
+
+def double_to_hex(f):
+    packed = struct.pack('>d', float(f))
+    return '0x' + packed.hex()
+
+def split_double_double(x):
+    x_hi = DR(x)  # convert to f64
+    x_lo = x - DD(x_hi)
+    return (x_lo,x_hi)
+
+def print_double_double(mark, x):
+    splat = split_double_double(x)
+    print(f"{mark}({double_to_hex(splat[0])}, {double_to_hex(splat[1])}),")
+
+mp.prec = 106
+
+def print_expansion_at_0():
+    print(f"pub(crate) static J1_MACLAURIN_SERIES: J1MaclaurinSeries = J1MaclaurinSeries {{")
+    from mpmath import mp, j1, taylor, expm1
+    # The j1 (Bessel J_1) function from mpmath will compute with mp.dps precision
+    # The Taylor series computation will also respect mp.dps
+    poly = taylor(lambda val: j1(val), 0, 46)
+    # print(poly)
+    real_i = 0
+    print_double_double("a0: ", DD(poly[1]))
+    print_double_double("a1: ", DD(poly[3]))
+    print_double_double("a2: ", DD(poly[5]))
+    print_double_double("a3: ", DD(poly[7]))
+    print_double_double("a4: ", DD(poly[9]))
+    print("series: [")
+    for i in range(11, 46, 2):
+        print(f"{double_to_hex(poly[i])},")
+        real_i = real_i + 1
+    print("],")
+
+    print("};")
+
+    print(f"poly {poly}")
+
+print_expansion_at_0()
+```
+**/
+#[inline]
+fn maclaurin_series(x: f64) -> f64 {
+    const J1_MACLAURIN_SERIES: J1MaclaurinSeries = J1MaclaurinSeries {
+        a0: (0x0000000000000000, 0x3fe0000000000000),
+        a1: (0x0000000000000000, 0xbfb0000000000000),
+        a2: (0xbc1555555555554e, 0x3f65555555555556),
+        a3: (0xbbac71c71c71c717, 0xbf0c71c71c71c71c),
+        a4: (0x3b582d82d82d82da, 0x3ea6c16c16c16c16),
+        series: [
+            0xbe3845c8a0ce512a,
+            0x3dc27e4fb7789f5c,
+            0xbd4522a43f65486a,
+            0x3cc2c9758daf5ccf,
+            0xbc3ab81ea75fcdf5,
+            0x3baf17697cf1cf12,
+            0xbb1e2637bef9ff1b,
+            0x3a88bce58901a35d,
+            0xb9f165e7c2d153f4,
+            0x39553585cdcbfb0f,
+            0xb8b69f7da8510bcd,
+            0x38154ad09e6a6575,
+            0xb771d028acb00492,
+            0x36caaae78f4066a6,
+            0xb621f72d8389b3a4,
+            0x3575e69de22df5ce,
+            0xb4c84564b82a1185,
+            0x34188f11edf3ed4c,
+        ],
+    };
+
+    let c = J1_MACLAURIN_SERIES.series;
+
+    let p = f_polyeval18(
+        x * x,
+        f64::from_bits(c[0]),
+        f64::from_bits(c[1]),
+        f64::from_bits(c[2]),
+        f64::from_bits(c[3]),
+        f64::from_bits(c[4]),
+        f64::from_bits(c[5]),
+        f64::from_bits(c[6]),
+        f64::from_bits(c[7]),
+        f64::from_bits(c[8]),
+        f64::from_bits(c[9]),
+        f64::from_bits(c[10]),
+        f64::from_bits(c[11]),
+        f64::from_bits(c[12]),
+        f64::from_bits(c[13]),
+        f64::from_bits(c[14]),
+        f64::from_bits(c[15]),
+        f64::from_bits(c[16]),
+        f64::from_bits(c[17]),
+    );
+
+    let dx2 = DoubleDouble::from_exact_mult(x, x);
+
+    let mut p_e = DoubleDouble::mul_add(
+        dx2,
+        DoubleDouble::new(0., p),
+        DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a4),
+    );
+    p_e = DoubleDouble::mul_add(
+        dx2,
+        p_e,
+        DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a3),
+    );
+    p_e = DoubleDouble::mul_add(
+        dx2,
+        p_e,
+        DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a2),
+    );
+    p_e = DoubleDouble::mul_add(
+        dx2,
+        p_e,
+        DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a1),
+    );
+    p_e = DoubleDouble::mul_add(
+        dx2,
+        p_e,
+        DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a0),
+    );
+
+    let px = DoubleDouble::quick_mult_f64(p_e, x);
+    px.to_f64()
+}
+
+/// This method on small range searches for nearest zero or extremum.
+/// Then picks stored series expansion at the point end evaluates the poly at the point.
+#[allow(static_mut_refs)]
+#[inline]
+fn small_argument_path(x: f64) -> f64 {
+    static SIGN: [f64; 2] = [1., -1.];
+    let sign_scale = SIGN[x.is_sign_negative() as usize];
+    let x_abs = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
+
+    // let avg_step = 74.60109 / 47.0;
+    // let inv_step = 1.0 / avg_step;
+
+    const INV_STEP: f64 = 0.6300176043004198;
+
+    let fx = x_abs * INV_STEP;
+    const J1_ZEROS_COUNT: f64 = (J1_ZEROS.len() - 1) as f64;
+    let idx0 = fx.min(J1_ZEROS_COUNT) as usize;
+    let idx1 = fx.ceil().min(J1_ZEROS_COUNT) as usize;
+
+    let found_zero0 = DoubleDouble::from_bit_pair(J1_ZEROS[idx0]);
+    let found_zero1 = DoubleDouble::from_bit_pair(J1_ZEROS[idx1]);
+
+    let dist0 = (found_zero0.hi - x_abs).abs();
+    let dist1 = (found_zero1.hi - x_abs).abs();
+
+    let (found_zero, idx) = if dist0 < dist1 {
+        (found_zero0, idx0)
     } else {
-        /* avoid underflow, raise inexact if x!=0 */
-        z = x;
+        (found_zero1, idx1)
+    };
+
+    if idx == 0 {
+        return maclaurin_series(x);
     }
-    (0.5 + z) * x
+
+    let j1c = &J1_COEFFS[idx - 1];
+    let c = j1c.c;
+
+    let r = (x_abs - found_zero.hi) - found_zero.lo;
+    let r2 = r * r;
+
+    let p = f_polyeval16(
+        r,
+        f64::from_bits(c[0]),
+        f64::from_bits(c[1]),
+        f64::from_bits(c[2]),
+        f64::from_bits(c[3]),
+        f64::from_bits(c[4]),
+        f64::from_bits(c[5]),
+        f64::from_bits(c[6]),
+        f64::from_bits(c[7]),
+        f64::from_bits(c[8]),
+        f64::from_bits(c[9]),
+        f64::from_bits(c[10]),
+        f64::from_bits(c[11]),
+        f64::from_bits(c[12]),
+        f64::from_bits(c[13]),
+        f64::from_bits(c[14]),
+        f64::from_bits(c[15]),
+    );
+    let mut p_e = DoubleDouble::from_exact_mult(p, r);
+
+    let a6 = DoubleDouble::from_bit_pair(j1c.a6);
+
+    let z = DoubleDouble::from_exact_add(a6.hi, p_e.hi);
+    p_e.hi = z.hi;
+    p_e.lo += z.lo + a6.lo;
+
+    p_e = DoubleDouble::quick_mult_f64(p_e, r);
+
+    let a5 = DoubleDouble::from_bit_pair(j1c.a5);
+
+    let z = DoubleDouble::from_exact_add(a5.hi, p_e.hi);
+    p_e.hi = z.hi;
+    p_e.lo += z.lo + a5.lo;
+
+    p_e = DoubleDouble::quick_mult_f64(p_e, r);
+
+    let a4 = DoubleDouble::from_bit_pair(j1c.a4);
+
+    let z = DoubleDouble::from_exact_add(a4.hi, p_e.hi);
+    p_e.hi = z.hi;
+    p_e.lo += z.lo + a4.lo;
+
+    p_e = DoubleDouble::quick_mult_f64(p_e, r);
+
+    let a3 = DoubleDouble::from_bit_pair(j1c.a3);
+
+    let z = DoubleDouble::from_exact_add(a3.hi, p_e.hi);
+    p_e.hi = z.hi;
+    p_e.lo += z.lo + a3.lo;
+
+    p_e = DoubleDouble::quick_mult_f64(p_e, r);
+
+    let a2 = DoubleDouble::from_bit_pair(j1c.a2);
+
+    let z = DoubleDouble::from_exact_add(a2.hi, p_e.hi);
+    p_e.hi = z.hi;
+    p_e.lo += z.lo + a2.lo;
+
+    p_e = DoubleDouble::quick_mult_f64(p_e, r2);
+
+    let a1 = DoubleDouble::from_bit_pair(j1c.a1);
+
+    let pdz = DoubleDouble::quick_mult_f64(a1, r);
+
+    let q0 = if pdz.hi.abs() > p_e.hi.abs() {
+        DoubleDouble::add(pdz, p_e)
+    } else {
+        DoubleDouble::add(p_e, pdz)
+    };
+    let a0 = DoubleDouble::from_bit_pair(j1c.a0);
+
+    let z1 = if a0.hi.abs() > q0.hi.abs() {
+        DoubleDouble::add(a0, q0)
+    } else {
+        DoubleDouble::add(q0, a0)
+    };
+
+    z1.to_f64() * sign_scale
 }
 
-/* For x >= 8, the asymptotic expansions of pone is
- *      1 + 15/128 s^2 - 4725/2^15 s^4 - ...,   where s = 1/x.
- * We approximate pone by
- *      pone(x) = 1 + (R/S)
- * where  R = pr0 + pr1*s^2 + pr2*s^4 + ... + pr5*s^10
- *        S = 1 + ps0*s^2 + ... + ps4*s^10
- * and
- *      | pone(x)-1-R/S | <= 2  ** ( -60.06)
- */
-
-static PR8: [f64; 6] = [
-    /* for x in [inf, 8]=1/[0,0.125] */
-    0.00000000000000000000e+00, /* 0x00000000, 0x00000000 */
-    1.17187499999988647970e-01, /* 0x3FBDFFFF, 0xFFFFFCCE */
-    1.32394806593073575129e+01, /* 0x402A7A9D, 0x357F7FCE */
-    4.12051854307378562225e+02, /* 0x4079C0D4, 0x652EA590 */
-    3.87474538913960532227e+03, /* 0x40AE457D, 0xA3A532CC */
-    7.91447954031891731574e+03, /* 0x40BEEA7A, 0xC32782DD */
-];
-
-static PS8: [f64; 5] = [
-    1.14207370375678408436e+02, /* 0x405C8D45, 0x8E656CAC */
-    3.65093083420853463394e+03, /* 0x40AC85DC, 0x964D274F */
-    3.69562060269033463555e+04, /* 0x40E20B86, 0x97C5BB7F */
-    9.76027935934950801311e+04, /* 0x40F7D42C, 0xB28F17BB */
-    3.08042720627888811578e+04, /* 0x40DE1511, 0x697A0B2D */
-];
-
-static PR5: [f64; 6] = [
-    /* for x in [8,4.5454]=1/[0.125,0.22001] */
-    1.31990519556243522749e-11, /* 0x3DAD0667, 0xDAE1CA7D */
-    1.17187493190614097638e-01, /* 0x3FBDFFFF, 0xE2C10043 */
-    6.80275127868432871736e+00, /* 0x401B3604, 0x6E6315E3 */
-    1.08308182990189109773e+02, /* 0x405B13B9, 0x452602ED */
-    5.17636139533199752805e+02, /* 0x40802D16, 0xD052D649 */
-    5.28715201363337541807e+02, /* 0x408085B8, 0xBB7E0CB7 */
-];
-
-static PS5: [f64; 5] = [
-    5.92805987221131331921e+01, /* 0x404DA3EA, 0xA8AF633D */
-    9.91401418733614377743e+02, /* 0x408EFB36, 0x1B066701 */
-    5.35326695291487976647e+03, /* 0x40B4E944, 0x5706B6FB */
-    7.84469031749551231769e+03, /* 0x40BEA4B0, 0xB8A5BB15 */
-    1.50404688810361062679e+03, /* 0x40978030, 0x036F5E51 */
-];
-
-static PR3: [f64; 6] = [
-    3.02503916137373618024e-09, /* 0x3E29FC21, 0xA7AD9EDD */
-    1.17186865567253592491e-01, /* 0x3FBDFFF5, 0x5B21D17B */
-    3.93297750033315640650e+00, /* 0x400F76BC, 0xE85EAD8A */
-    3.51194035591636932736e+01, /* 0x40418F48, 0x9DA6D129 */
-    9.10550110750781271918e+01, /* 0x4056C385, 0x4D2C1837 */
-    4.85590685197364919645e+01, /* 0x4048478F, 0x8EA83EE5 */
-];
-
-static PS3: [f64; 5] = [
-    3.47913095001251519989e+01, /* 0x40416549, 0xA134069C */
-    3.36762458747825746741e+02, /* 0x40750C33, 0x07F1A75F */
-    1.04687139975775130551e+03, /* 0x40905B7C, 0x5037D523 */
-    8.90811346398256432622e+02, /* 0x408BD67D, 0xA32E31E9 */
-    1.03787932439639277504e+02, /* 0x4059F26D, 0x7C2EED53 */
-];
-
-static PR2: [f64; 6] = [
-    /* for x in [2.8570,2]=1/[0.3499,0.5] */
-    1.07710830106873743082e-07, /* 0x3E7CE9D4, 0xF65544F4 */
-    1.17176219462683348094e-01, /* 0x3FBDFF42, 0xBE760D83 */
-    2.36851496667608785174e+00, /* 0x4002F2B7, 0xF98FAEC0 */
-    1.22426109148261232917e+01, /* 0x40287C37, 0x7F71A964 */
-    1.76939711271687727390e+01, /* 0x4031B1A8, 0x177F8EE2 */
-    5.07352312588818499250e+00, /* 0x40144B49, 0xA574C1FE */
-];
-
-static PS2: [f64; 5] = [
-    2.14364859363821409488e+01, /* 0x40356FBD, 0x8AD5ECDC */
-    1.25290227168402751090e+02, /* 0x405F5293, 0x14F92CD5 */
-    2.32276469057162813669e+02, /* 0x406D08D8, 0xD5A2DBD9 */
-    1.17679373287147100768e+02, /* 0x405D6B7A, 0xDA1884A9 */
-    8.36463893371618283368e+00, /* 0x4020BAB1, 0xF44E5192 */
-];
-
 #[inline]
-fn pone(x: f64) -> f64 {
-    let p: &[f64; 6];
-    let q: &[f64; 5];
-    let mut ix: u32;
-
-    ix = get_high_word(x);
-    ix &= 0x7fffffff;
-    if ix >= 0x40200000 {
-        p = &PR8;
-        q = &PS8;
-    } else if ix >= 0x40122E8B {
-        p = &PR5;
-        q = &PS5;
-    } else if ix >= 0x4006DB6D {
-        p = &PR3;
-        q = &PS3;
-    } else
-    /*ix >= 0x40000000*/
-    {
-        p = &PR2;
-        q = &PS2;
-    }
-    let z = 1.0 / (x * x);
-
-    let r0 = f_fmla(z, p[5], p[4]);
-    let s0 = f_fmla(z, q[4], q[3]);
-    let r1 = f_fmla(z, r0, p[3]);
-    let s1 = f_fmla(z, s0, q[2]);
-    let r2 = f_fmla(z, r1, p[2]);
-    let s2 = f_fmla(z, s1, q[1]);
-    let r3 = f_fmla(z, r2, p[1]);
-    let s3 = f_fmla(z, s2, q[0]);
-
-    let r = f_fmla(z, r3, p[0]);
-    let s = f_fmla(z, s3, 1.0);
-    1.0 + r / s
+fn j1_rsqrt(x: f64) -> f64 {
+    let r = x.sqrt() / x;
+    let rx = r * x;
+    let drx = dd_fmla(r, x, -rx);
+    let h = dd_fmla(r, rx, -1.0) + r * drx;
+    let dr = (r * 0.5) * h;
+    r - dr
 }
 
-/* For x >= 8, the asymptotic expansions of qone is
- *      3/8 s - 105/1024 s^3 - ..., where s = 1/x.
- * We approximate pone by
- *      qone(x) = s*(0.375 + (R/S))
- * where  R = qr1*s^2 + qr2*s^4 + ... + qr5*s^10
- *        S = 1 + qs1*s^2 + ... + qs6*s^12
- * and
- *      | qone(x)/s -0.375-R/S | <= 2  ** ( -61.13)
- */
+/// see [j1_asympt_beta] for more info
+fn j1_asympt_beta_hard(x: f64) -> DoubleDouble {
+    static C: [DyadicFloat128; 10] = [
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -127,
+            mantissa: 0x80000000_00000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -130,
+            mantissa: 0xc0000000_00000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -130,
+            mantissa: 0xc6000000_00000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -128,
+            mantissa: 0xce280000_00000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -125,
+            mantissa: 0xf7adb400_00000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -120,
+            mantissa: 0x84c306ea_00000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -116,
+            mantissa: 0xdd74dbd0_37000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -110,
+            mantissa: 0x84388ea0_e0a14000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -105,
+            mantissa: 0xd5b80b26_45f372f4_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -99,
+            mantissa: 0xe082af12_794bf6f1_e1000000_00000000_u128,
+        },
+    ];
 
-static QR8: [f64; 6] = [
-    /* for x in [inf, 8]=1/[0,0.125] */
-    0.00000000000000000000e+00,  /* 0x00000000, 0x00000000 */
-    -1.02539062499992714161e-01, /* 0xBFBA3FFF, 0xFFFFFDF3 */
-    -1.62717534544589987888e+01, /* 0xC0304591, 0xA26779F7 */
-    -7.59601722513950107896e+02, /* 0xC087BCD0, 0x53E4B576 */
-    -1.18498066702429587167e+04, /* 0xC0C724E7, 0x40F87415 */
-    -4.84385124285750353010e+04, /* 0xC0E7A6D0, 0x65D09C6A */
-];
+    let recip = DyadicFloat128::accurate_reciprocal(x);
+    let x2 = recip * recip;
 
-static QS8: [f64; 6] = [
-    1.61395369700722909556e+02,  /* 0x40642CA6, 0xDE5BCDE5 */
-    7.82538599923348465381e+03,  /* 0x40BE9162, 0xD0D88419 */
-    1.33875336287249578163e+05,  /* 0x4100579A, 0xB0B75E98 */
-    7.19657723683240939863e+05,  /* 0x4125F653, 0x72869C19 */
-    6.66601232617776375264e+05,  /* 0x412457D2, 0x7719AD5C */
-    -2.94490264303834643215e+05, /* 0xC111F969, 0x0EA5AA18 */
-];
+    let p = f_polyeval10(
+        x2, C[0], C[2], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8],
+    );
 
-static QR5: [f64; 6] = [
-    /* for x in [8,4.5454]=1/[0.125,0.22001] */
-    -2.08979931141764104297e-11, /* 0xBDB6FA43, 0x1AA1A098 */
-    -1.02539050241375426231e-01, /* 0xBFBA3FFF, 0xCB597FEF */
-    -8.05644828123936029840e+00, /* 0xC0201CE6, 0xCA03AD4B */
-    -1.83669607474888380239e+02, /* 0xC066F56D, 0x6CA7B9B0 */
-    -1.37319376065508163265e+03, /* 0xC09574C6, 0x6931734F */
-    -2.61244440453215656817e+03, /* 0xC0A468E3, 0x88FDA79D */
-];
+    let hi = p.fast_as_f64();
+    let lo = (p - DyadicFloat128::new_from_f64(hi)).fast_as_f64();
 
-static QS5: [f64; 6] = [
-    8.12765501384335777857e+01,  /* 0x405451B2, 0xFF5A11B2 */
-    1.99179873460485964642e+03,  /* 0x409F1F31, 0xE77BF839 */
-    1.74684851924908907677e+04,  /* 0x40D10F1F, 0x0D64CE29 */
-    4.98514270910352279316e+04,  /* 0x40E8576D, 0xAABAD197 */
-    2.79480751638918118260e+04,  /* 0x40DB4B04, 0xCF7C364B */
-    -4.71918354795128470869e+03, /* 0xC0B26F2E, 0xFCFFA004 */
-];
+    DoubleDouble::new(lo, hi)
+}
 
-static QR3: [f64; 6] = [
-    -5.07831226461766561369e-09, /* 0xBE35CFA9, 0xD38FC84F */
-    -1.02537829820837089745e-01, /* 0xBFBA3FEB, 0x51AEED54 */
-    -4.61011581139473403113e+00, /* 0xC01270C2, 0x3302D9FF */
-    -5.78472216562783643212e+01, /* 0xC04CEC71, 0xC25D16DA */
-    -2.28244540737631695038e+02, /* 0xC06C87D3, 0x4718D55F */
-    -2.19210128478909325622e+02, /* 0xC06B66B9, 0x5F5C1BF6 */
-];
+/// See [j1_asympt_alpha] for the info
+fn j1_asympt_alpha_hard(x: f64) -> DyadicFloat128 {
+    static C: [DyadicFloat128; 12] = [
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -129,
+            mantissa: 0xc0000000_00000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -130,
+            mantissa: 0xa8000000_00000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -129,
+            mantissa: 0xbde66666_66666666_66666666_66666666_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -126,
+            mantissa: 0x97a436db_6db6db6d_b6db6db6_db6db6db_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -123,
+            mantissa: 0xf4fdfa00_00000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -118,
+            mantissa: 0xa4cbdaac_a2e8ba2e_8ba2e8ba_2e8ba2e9_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -113,
+            mantissa: 0xa548a0ca_934ec4ec_4ec4ec4e_c4ec4ec5_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -108,
+            mantissa: 0xe68da9c0_b5760666_66666666_66666666_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -102,
+            mantissa: 0xd5204aea_0c9a8879_69696969_69696969_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -96,
+            mantissa: 0xfc04982f_88dce9e0_ca50d794_35e50d79_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -89,
+            mantissa: 0xb973404f_6b0c58ff_c5b90000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -82,
+            mantissa: 0xa62db02b_c1cfc563_44ea32e9_0b21642d_u128,
+        },
+    ];
 
-static QS3: [f64; 6] = [
-    4.76651550323729509273e+01,  /* 0x4047D523, 0xCCD367E4 */
-    6.73865112676699709482e+02,  /* 0x40850EEB, 0xC031EE3E */
-    3.38015286679526343505e+03,  /* 0x40AA684E, 0x448E7C9A */
-    5.54772909720722782367e+03,  /* 0x40B5ABBA, 0xA61D54A6 */
-    1.90311919338810798763e+03,  /* 0x409DBC7A, 0x0DD4DF4B */
-    -1.35201191444307340817e+02, /* 0xC060E670, 0x290A311F */
-];
+    let recip = DyadicFloat128::accurate_reciprocal(x);
+    let x2 = recip * recip;
 
-static QR2: [f64; 6] = [
-    /* for x in [2.8570,2]=1/[0.3499,0.5] */
-    -1.78381727510958865572e-07, /* 0xBE87F126, 0x44C626D2 */
-    -1.02517042607985553460e-01, /* 0xBFBA3E8E, 0x9148B010 */
-    -2.75220568278187460720e+00, /* 0xC0060484, 0x69BB4EDA */
-    -1.96636162643703720221e+01, /* 0xC033A9E2, 0xC168907F */
-    -4.23253133372830490089e+01, /* 0xC04529A3, 0xDE104AAA */
-    -2.13719211703704061733e+01, /* 0xC0355F36, 0x39CF6E52 */
-];
+    let p = f_polyeval12(
+        x2, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11],
+    );
 
-static QS2: [f64; 6] = [
-    2.95333629060523854548e+01,  /* 0x403D888A, 0x78AE64FF */
-    2.52981549982190529136e+02,  /* 0x406F9F68, 0xDB821CBA */
-    7.57502834868645436472e+02,  /* 0x4087AC05, 0xCE49A0F7 */
-    7.39393205320467245656e+02,  /* 0x40871B25, 0x48D4C029 */
-    1.55949003336666123687e+02,  /* 0x40637E5E, 0x3C3ED8D4 */
-    -4.95949898822628210127e+00, /* 0xC013D686, 0xE71BE86B */
-];
+    p * recip
+}
 
-#[inline]
-fn qone(x: f64) -> f64 {
-    let p: &[f64; 6];
-    let q: &[f64; 6];
-    let mut ix: u32;
+/*
+   Evaluates:
+   J1 = sqrt(2/(PI*x)) * beta(x) * cos(x - 3*PI/4 - alpha(x))
+   discarding 1*PI/2 using identities gives:
+   J1 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
 
-    ix = get_high_word(x);
-    ix &= 0x7fffffff;
-    if ix >= 0x40200000 {
-        p = &QR8;
-        q = &QS8;
-    } else if ix >= 0x40122E8B {
-        p = &QR5;
-        q = &QS5;
-    } else if ix >= 0x4006DB6D {
-        p = &QR3;
-        q = &QS3;
-    } else
-    /*ix >= 0x40000000*/
-    {
-        p = &QR2;
-        q = &QS2;
+   to avoid squashing small (-PI/4 - alpha(x)) into a large x actual expansion is:
+
+   J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
+
+   This method is required for situations where x*x or 1/(x*x) will overflow
+*/
+#[cold]
+fn j1_asympt_hard(x: f64) -> f64 {
+    static SGN: [f64; 2] = [1., -1.];
+    let sign_scale = SGN[x.is_sign_negative() as usize];
+    let x = x.abs();
+
+    const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
+        f64::from_bits(0xbc8cbc0d30ebfd15),
+        f64::from_bits(0x3fe9884533d43651),
+    );
+
+    const MPI_OVER_4: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Neg,
+        exponent: -128,
+        mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
+    };
+
+    let alpha = j1_asympt_alpha_hard(x);
+    let beta = j1_asympt_beta_hard(x);
+
+    let AngleReduced { angle } = rem2pi_any(x);
+
+    let x0pi34 = MPI_OVER_4 - alpha;
+    let r0 =
+        DyadicFloat128::new_from_f64(angle.hi) + DyadicFloat128::new_from_f64(angle.lo) + x0pi34;
+
+    let r_hi = r0.fast_as_f64();
+    let r_lo = (r0 - DyadicFloat128::new_from_f64(r_hi)).fast_as_f64();
+
+    let m_cos = sin_dd_small(DoubleDouble::new(r_lo, r_hi));
+    let z0 = DoubleDouble::quick_mult(beta, m_cos);
+    let r_sqrt = j1_rsqrt(x);
+    let scale = DoubleDouble::quick_mult_f64(SQRT_2_OVER_PI, r_sqrt);
+    let p = DoubleDouble::quick_mult(scale, z0).to_f64();
+    p * sign_scale
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_j1() {
+        //TODO:
+        // ULP 1.28 = let at_x = 5704705945851979000000000000000000000000000000.;
+        // ULP 1.35 = let at_x = 179769311477142710000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
+        // ULP 1.4 = let at_x = -171769509925996480000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
+        // ULP 1.46 = let at_x = 13729594910350697000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
+        assert_eq!(
+            f_j1(0.000000000000000000000000000000000000008827127),
+            0.0000000000000000000000000000000000000044135635
+        );
+        assert_eq!(f_j1(5.4), -0.3453447907795863);
+        assert_eq!(
+            f_j1(77.743162408196766932633181568235159),
+            0.09049267898021947
+        );
+        assert_eq!(
+            f_j1(84.027189586293545175976760219782591),
+            0.0870430264022591
+        );
+        assert_eq!(f_j1(f64::NEG_INFINITY), 0.0);
+        assert_eq!(f_j1(f64::INFINITY), 0.0);
+        assert!(f_j1(f64::NAN).is_nan());
     }
-    let z = 1.0 / (x * x);
-
-    let r0 = f_fmla(z, p[5], p[4]);
-    let s0 = f_fmla(z, q[5], q[4]);
-    let r1 = f_fmla(z, r0, p[3]);
-    let s1 = f_fmla(z, s0, q[3]);
-    let r2 = f_fmla(z, r1, p[2]);
-    let s2 = f_fmla(z, s1, q[2]);
-    let r3 = f_fmla(z, r2, p[1]);
-    let s3 = f_fmla(z, s2, q[1]);
-    let s4 = f_fmla(z, s3, q[0]);
-
-    let r = f_fmla(z, r3, p[0]);
-    let s = f_fmla(z, s4, 1.0);
-    (0.375 + r / s) / x
 }

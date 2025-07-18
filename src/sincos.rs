@@ -27,12 +27,10 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::*;
-use crate::dekker::Dekker;
-use crate::sin::{
-    LargeArgumentReduction, SIN_K_PI_OVER_128, get_sin_k_rational, range_reduction_small,
-    sincos_eval,
-};
+use crate::double_double::DoubleDouble;
+use crate::sin::{SIN_K_PI_OVER_128, get_sin_k_rational, range_reduction_small, sincos_eval};
 use crate::sincos_dyadic::{range_reduction_small_f128, sincos_eval_dyadic};
+use crate::sincos_reduce::LargeArgumentReduction;
 use std::hint::black_box;
 
 /// Sine and cosine for double precision
@@ -43,7 +41,7 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
 
-    let y: Dekker;
+    let y: DoubleDouble;
     let k;
 
     let mut argument_reduction = LargeArgumentReduction::default();
@@ -63,7 +61,7 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
                 return (s_sin, s_cos);
             }
             k = 0;
-            y = Dekker::new(0.0, x);
+            y = DoubleDouble::new(0.0, x);
         } else {
             // // Small range reduction.
             (y, k) = range_reduction_small(x);
@@ -86,24 +84,24 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
     let sk = SIN_K_PI_OVER_128[(k & 255) as usize];
     let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
-    let sin_k = Dekker::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
-    let cos_k = Dekker::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
+    let sin_k = DoubleDouble::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
+    let cos_k = DoubleDouble::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
 
-    let msin_k = Dekker::new(-sin_k.lo, -sin_k.hi);
+    let msin_k = DoubleDouble::new(-sin_k.lo, -sin_k.hi);
 
     // After range reduction, k = round(x * 128 / pi) and y = x - k * (pi / 128).
     // So k is an integer and -pi / 256 <= y <= pi / 256.
     // Then sin(x) = sin((k * pi/128 + y)
     //             = sin(y) * cos(k*pi/128) + cos(y) * sin(k*pi/128)
-    let sin_k_cos_y = Dekker::quick_mult(cos_y, sin_k);
-    let cos_k_sin_y = Dekker::quick_mult(sin_y, cos_k);
+    let sin_k_cos_y = DoubleDouble::quick_mult(cos_y, sin_k);
+    let cos_k_sin_y = DoubleDouble::quick_mult(sin_y, cos_k);
     //      cos(x) = cos((k * pi/128 + y)
     //             = cos(y) * cos(k*pi/128) - sin(y) * sin(k*pi/128)
-    let cos_k_cos_y = Dekker::quick_mult(cos_y, cos_k);
-    let msin_k_sin_y = Dekker::quick_mult(sin_y, msin_k);
+    let cos_k_cos_y = DoubleDouble::quick_mult(cos_y, cos_k);
+    let msin_k_sin_y = DoubleDouble::quick_mult(sin_y, msin_k);
 
-    let mut sin_dd = Dekker::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    let mut cos_dd = Dekker::from_full_exact_add(cos_k_cos_y.hi, msin_k_sin_y.hi);
+    let mut sin_dd = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    let mut cos_dd = DoubleDouble::from_full_exact_add(cos_k_cos_y.hi, msin_k_sin_y.hi);
     sin_dd.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
     cos_dd.lo += msin_k_sin_y.lo + cos_k_cos_y.lo;
 

@@ -28,7 +28,7 @@
  */
 use crate::atan2f::poly_dekker_generic;
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::exp2::ldexp;
 use std::hint::black_box;
 
@@ -259,17 +259,20 @@ static EXPM1_DD2: [(u64, u64); 7] = [
 ];
 
 #[inline]
-pub(crate) fn opoly_dd_generic<const N: usize>(x: Dekker, poly: [(u64, u64); N]) -> Dekker {
+pub(crate) fn opoly_dd_generic<const N: usize>(
+    x: DoubleDouble,
+    poly: [(u64, u64); N],
+) -> DoubleDouble {
     let zch = poly.last().unwrap();
-    let p0 = Dekker::from_exact_add(f64::from_bits(zch.0), x.lo);
+    let p0 = DoubleDouble::from_exact_add(f64::from_bits(zch.0), x.lo);
     let ach = p0.hi;
     let acl = f64::from_bits(zch.1) + p0.lo;
-    let mut ch = Dekker::new(acl, ach);
+    let mut ch = DoubleDouble::new(acl, ach);
 
     for zch in poly.iter().rev().skip(1) {
-        ch = Dekker::quick_mult_f64(ch, x.hi);
-        let z0 = Dekker::from_bit_pair(*zch);
-        ch = Dekker::add(z0, ch);
+        ch = DoubleDouble::quick_mult_f64(ch, x.hi);
+        let z0 = DoubleDouble::from_bit_pair(*zch);
+        ch = DoubleDouble::add(z0, ch);
     }
 
     ch
@@ -294,18 +297,18 @@ fn as_expm1_accurate(x: f64) -> f64 {
         let fl3 = f_fmla(x, fl2, f64::from_bits(CL[1]));
 
         let fl = x * f_fmla(x, fl3, f64::from_bits(CL[0]));
-        let mut f = opoly_dd_generic(Dekker::new(fl, x), EXPM1_DD1);
-        f = Dekker::quick_mult_f64(f, x);
-        f = Dekker::quick_mult_f64(f, x);
-        f = Dekker::quick_mult_f64(f, x);
+        let mut f = opoly_dd_generic(DoubleDouble::new(fl, x), EXPM1_DD1);
+        f = DoubleDouble::quick_mult_f64(f, x);
+        f = DoubleDouble::quick_mult_f64(f, x);
+        f = DoubleDouble::quick_mult_f64(f, x);
         let hx = 0.5 * x;
         let x2h = x * hx;
         let x2l = dd_fmla(x, hx, -x2h);
-        f = Dekker::add(Dekker::new(x2l, x2h), f);
-        let v0 = Dekker::from_exact_add(x, f.hi);
-        let v1 = Dekker::from_exact_add(v0.lo, f.lo);
-        let v2 = Dekker::from_exact_add(v0.hi, v1.hi);
-        let mut v3 = Dekker::from_exact_add(v2.lo, v1.lo);
+        f = DoubleDouble::add(DoubleDouble::new(x2l, x2h), f);
+        let v0 = DoubleDouble::from_exact_add(x, f.hi);
+        let v1 = DoubleDouble::from_exact_add(v0.lo, f.lo);
+        let v2 = DoubleDouble::from_exact_add(v0.hi, v1.hi);
+        let mut v3 = DoubleDouble::from_exact_add(v2.lo, v1.lo);
         ix = v3.hi.to_bits();
         if (ix & 0x000fffffffffffff) == 0 {
             let v = v3.lo.to_bits();
@@ -323,10 +326,10 @@ fn as_expm1_accurate(x: f64) -> f64 {
         let i0 = (jt >> 6) & 0x3f;
         let i1 = jt & 0x3f;
         let ie = jt >> 12;
-        let t0 = Dekker::from_bit_pair(EXPM1_T0[i0 as usize]);
-        let t1 = Dekker::from_bit_pair(EXPM1_T1[i1 as usize]);
+        let t0 = DoubleDouble::from_bit_pair(EXPM1_T0[i0 as usize]);
+        let t1 = DoubleDouble::from_bit_pair(EXPM1_T1[i1 as usize]);
 
-        let bt = Dekker::mult(t0, t1);
+        let bt = DoubleDouble::mult(t0, t1);
 
         const L2H: f64 = f64::from_bits(0x3f262e42ff000000);
         const L2L: f64 = f64::from_bits(0x3d0718432a1b0e26);
@@ -337,25 +340,25 @@ fn as_expm1_accurate(x: f64) -> f64 {
         let dxll = f_fmla(L2LL, t, dd_fmla(L2L, t, -dxl));
         let dxh = dx + dxl;
         let dxl = (dx - dxh) + dxl + dxll;
-        let mut f = poly_dekker_generic(Dekker::new(dxl, dxh), EXPM1_DD2);
-        f = Dekker::mult(Dekker::new(dxl, dxh), f);
-        f = Dekker::mult(f, bt);
-        f = Dekker::add(bt, f);
+        let mut f = poly_dekker_generic(DoubleDouble::new(dxl, dxh), EXPM1_DD2);
+        f = DoubleDouble::mult(DoubleDouble::new(dxl, dxh), f);
+        f = DoubleDouble::mult(f, bt);
+        f = DoubleDouble::add(bt, f);
         let off: u64 = (2048i64 + 1023i64).wrapping_sub(ie).wrapping_shl(52) as u64;
         let e: f64;
         if ie < 53 {
-            let fhz = Dekker::from_exact_add(f64::from_bits(off), f.hi);
+            let fhz = DoubleDouble::from_exact_add(f64::from_bits(off), f.hi);
             f.hi = fhz.hi;
             e = fhz.lo;
         } else if ie < 104 {
-            let fhz = Dekker::from_exact_add(f.hi, f64::from_bits(off));
+            let fhz = DoubleDouble::from_exact_add(f.hi, f64::from_bits(off));
             f.hi = fhz.hi;
             e = fhz.lo;
         } else {
             e = 0.;
         }
         f.lo += e;
-        let dst = Dekker::from_exact_add(f.hi, f.lo);
+        let dst = DoubleDouble::from_exact_add(f.hi, f.lo);
         ldexp(dst.hi, ie as i32)
     }
 }
@@ -379,7 +382,7 @@ pub fn f_expm1(x: f64) -> f64 {
         let z = sx - fx;
         let z2 = z * z;
         let i: i64 = fx as i64;
-        let t = Dekker::from_bit_pair(TZ[i.wrapping_add(32) as usize]);
+        let t = DoubleDouble::from_bit_pair(TZ[i.wrapping_add(32) as usize]);
         const C: [u64; 6] = [
             0x3f80000000000000,
             0x3f00000000000000,
@@ -396,13 +399,13 @@ pub fn f_expm1(x: f64) -> f64 {
         let fw0 = f_fmla(z, fl0, f64::from_bits(C[3]));
 
         let fl = z2 * f_fmla(z2, fw0, fl1);
-        let mut f = Dekker::new(fl, fh);
+        let mut f = DoubleDouble::new(fl, fh);
         let e0 = f64::from_bits(0x3bea000000000000);
         let eps = z2 * e0 + f64::from_bits(0x3970000000000000);
-        let mut r = Dekker::from_exact_add(t.hi, f.hi);
+        let mut r = DoubleDouble::from_exact_add(t.hi, f.hi);
         r.lo += t.lo + f.lo;
-        f = Dekker::mult(t, f);
-        f = Dekker::add(r, f);
+        f = DoubleDouble::mult(t, f);
+        f = DoubleDouble::add(r, f);
         let ub = f.hi + (f.lo + eps);
         let lb = f.hi + (f.lo - eps);
         if ub != lb {
@@ -437,10 +440,10 @@ pub fn f_expm1(x: f64) -> f64 {
         let i0 = (jt >> 6) & 0x3f;
         let i1 = jt & 0x3f;
         let ie = jt >> 12;
-        let t0 = Dekker::from_bit_pair(EXPM1_T0[i0 as usize]);
-        let t1 = Dekker::from_bit_pair(EXPM1_T1[i1 as usize]);
+        let t0 = DoubleDouble::from_bit_pair(EXPM1_T0[i0 as usize]);
+        let t1 = DoubleDouble::from_bit_pair(EXPM1_T1[i1 as usize]);
 
-        let bt = Dekker::mult(t0, t1);
+        let bt = DoubleDouble::mult(t0, t1);
 
         const L2H: f64 = f64::from_bits(0x3f262e42ff000000);
         const L2L: f64 = f64::from_bits(0x3d0718432a1b0e26);
@@ -466,11 +469,11 @@ pub fn f_expm1(x: f64) -> f64 {
         let off: u64 = ((2048i64 + 1023i64).wrapping_sub(ie) as u64).wrapping_shl(52);
         let e: f64;
         if ie < 53 {
-            let flz = Dekker::from_exact_add(f64::from_bits(off), fh);
+            let flz = DoubleDouble::from_exact_add(f64::from_bits(off), fh);
             e = flz.lo;
             fh = flz.hi;
         } else if ie < 75 {
-            let flz = Dekker::from_exact_add(fh, f64::from_bits(off));
+            let flz = DoubleDouble::from_exact_add(fh, f64::from_bits(off));
             e = flz.lo;
             fh = flz.hi;
         } else {

@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::dd_fmla;
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use std::hint::black_box;
 
 #[cold]
@@ -608,7 +608,7 @@ static LOG2P1_LOG2_POLY: [u64; 18] = [
     0x3fbc6e4b91fd10e5,
 ];
 
-fn log2_poly2(z: Dekker) -> Dekker {
+fn log2_poly2(z: DoubleDouble) -> DoubleDouble {
     /* since we can't expect a relative accuracy better than 2^-93.777,
     the lower part of the double-double approximation only needs to
     have about 94-53 = 41 accurate bits. Since |p7*z^7/p1| < 2^-44,
@@ -619,42 +619,42 @@ fn log2_poly2(z: Dekker) -> Dekker {
         h = dd_fmla(z.hi, z.hi, f64::from_bits(LOG2P1_LOG2_POLY[4 + i]));
     }
 
-    let mut v = Dekker::quick_mult_f64(z, h);
-    let t = Dekker::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[10]));
+    let mut v = DoubleDouble::quick_mult_f64(z, h);
+    let t = DoubleDouble::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[10]));
     v.hi = t.hi;
     v.lo += t.lo;
 
-    v = Dekker::quick_mult(v, z);
+    v = DoubleDouble::quick_mult(v, z);
 
-    let t = Dekker::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[8]));
+    let t = DoubleDouble::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[8]));
     v.hi = t.hi;
     v.lo += t.lo + f64::from_bits(LOG2P1_LOG2_POLY[9]);
 
-    v = Dekker::quick_mult(v, z);
+    v = DoubleDouble::quick_mult(v, z);
 
-    let t = Dekker::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[6]));
+    let t = DoubleDouble::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[6]));
     v.hi = t.hi;
     v.lo += t.lo + f64::from_bits(LOG2P1_LOG2_POLY[7]);
 
-    v = Dekker::quick_mult(v, z);
+    v = DoubleDouble::quick_mult(v, z);
 
-    let t = Dekker::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[4]));
+    let t = DoubleDouble::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[4]));
     v.hi = t.hi;
     v.lo += t.lo + f64::from_bits(LOG2P1_LOG2_POLY[5]);
 
-    v = Dekker::quick_mult(v, z);
+    v = DoubleDouble::quick_mult(v, z);
 
-    let t = Dekker::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[2]));
+    let t = DoubleDouble::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[2]));
     v.hi = t.hi;
     v.lo += t.lo + f64::from_bits(LOG2P1_LOG2_POLY[3]);
 
-    v = Dekker::quick_mult(v, z);
+    v = DoubleDouble::quick_mult(v, z);
 
-    let t = Dekker::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[0]));
+    let t = DoubleDouble::from_exact_add(v.hi, f64::from_bits(LOG2P1_LOG2_POLY[0]));
     v.hi = t.hi;
     v.lo += t.lo + f64::from_bits(LOG2P1_LOG2_POLY[1]);
 
-    v = Dekker::quick_mult(v, z);
+    v = DoubleDouble::quick_mult(v, z);
 
     v
 }
@@ -663,17 +663,17 @@ fn log2_poly2(z: Dekker) -> Dekker {
 put in h+l a double-double approximation of log2(1+x),
 with relative error bounded by 2^-91.123, and |l| < 2^-48.574 |h|
 (see analyze_log2p1_accurate() in compoundf.sage) */
-pub(crate) fn compoundf_log2p1_accurate(x: f64) -> Dekker {
+pub(crate) fn compoundf_log2p1_accurate(x: f64) -> DoubleDouble {
     let mut v_dd = if 1.0 >= x {
         // then 1.0 >= |x| since x > -1
         if (x as f32).abs() >= f32::from_bits(0x25000000) {
-            Dekker::from_exact_add(1.0, x)
+            DoubleDouble::from_exact_add(1.0, x)
         } else {
-            Dekker::new(x, 1.0)
+            DoubleDouble::new(x, 1.0)
         }
     } else {
         // fast_two_sum() is exact when |x| < 2^54 by Lemma 1 condition (ii) of [1]
-        Dekker::from_exact_add(x, 1.0)
+        DoubleDouble::from_exact_add(x, 1.0)
     };
 
     // now h + l = 1 + x + eps with |eps| <= 2^-105 |h| and |l| <= ulp(h)
@@ -692,11 +692,11 @@ pub(crate) fn compoundf_log2p1_accurate(x: f64) -> Dekker {
     v = (2.0 + v_dd.hi).to_bits(); // add 2 so that v.f is always in the binade [2, 4)
     let i: i32 = (v >> 45) as i32 - 0x2002d; // h is near 1/2+(i+13)/64
     let r = f64::from_bits(LOG2P1_COMPOUNDF_INV[i as usize]);
-    let mut z_dd = Dekker::new(r * v_dd.lo, dd_fmla(r, v_dd.hi, -1.0)); // exact, -1/64 <= zh <= 1/64
+    let mut z_dd = DoubleDouble::new(r * v_dd.lo, dd_fmla(r, v_dd.hi, -1.0)); // exact, -1/64 <= zh <= 1/64
     // since |r| <= 0x1.68p+0 and |l| <= 2^-52, |zl| <= 2^-51.508
     // zh + zl = r*(h+l)-1
     // log2(h+l) = -log2(r) + log2(r*(h+l)) = -log2(r) + log2(1+zh+zl)
-    z_dd = Dekker::from_exact_add(z_dd.hi, z_dd.lo);
+    z_dd = DoubleDouble::from_exact_add(z_dd.hi, z_dd.lo);
     // now |zh| <= 1/64 + 2^-51.508 and |zl| < 2^-58
     /* the relative error of fast_two_sum() is bounded by 2^-105,
     this amplified the relative error on p2() as follows:
@@ -713,14 +713,14 @@ pub(crate) fn compoundf_log2p1_accurate(x: f64) -> Dekker {
     fast_two_sum is fulfilled: either |e| >= 1, or e=0 and fast_two_sum
     is exact */
     let log2_inv = LOG2P1_COMPOUNDF_LOG2_INV[i as usize];
-    v_dd = Dekker::from_exact_add(e as f64, f64::from_bits(log2_inv.1));
+    v_dd = DoubleDouble::from_exact_add(e as f64, f64::from_bits(log2_inv.1));
     v_dd.lo += f64::from_bits(log2_inv.0);
-    let mut p = Dekker::from_exact_add(v_dd.hi, log_p.hi);
+    let mut p = DoubleDouble::from_exact_add(v_dd.hi, log_p.hi);
     p.lo += v_dd.lo + log_p.lo;
     p
 }
 
-pub(crate) fn compoundf_exp2_poly2(z: Dekker) -> Dekker {
+pub(crate) fn compoundf_exp2_poly2(z: DoubleDouble) -> DoubleDouble {
     /* Q2 is a degree-8 polynomial generated by Sollya (cf q2.sollya)
     with absolute error < 2^-85.218 */
 
@@ -744,26 +744,26 @@ pub(crate) fn compoundf_exp2_poly2(z: Dekker) -> Dekker {
     c5 = dd_fmla(c7, h2, c5);
     // since ulp(c5*h^5) <= 2^-86, we still compute c5*z as double
     let z_vqh = c5 * z.hi;
-    let mut q = Dekker::from_exact_add(f64::from_bits(Q2[7]), z_vqh);
+    let mut q = DoubleDouble::from_exact_add(f64::from_bits(Q2[7]), z_vqh);
     // multiply by z
-    q = Dekker::quick_mult(q, z);
+    q = DoubleDouble::quick_mult(q, z);
     // add coefficient of degree 3
-    let t = Dekker::from_exact_add(f64::from_bits(Q2[5]), q.hi);
+    let t = DoubleDouble::from_exact_add(f64::from_bits(Q2[5]), q.hi);
     q.hi = t.hi;
     q.lo += t.lo + f64::from_bits(Q2[6]);
     // multiply by z and add coefficient of degree 2
-    q = Dekker::quick_mult(q, z);
-    let t = Dekker::from_exact_add(f64::from_bits(Q2[3]), q.hi);
+    q = DoubleDouble::quick_mult(q, z);
+    let t = DoubleDouble::from_exact_add(f64::from_bits(Q2[3]), q.hi);
     q.hi = t.hi;
     q.lo += t.lo + f64::from_bits(Q2[4]);
     // multiply by h+l and add coefficient of degree 1
-    q = Dekker::quick_mult(q, z);
-    let t = Dekker::from_exact_add(f64::from_bits(Q2[1]), q.hi);
+    q = DoubleDouble::quick_mult(q, z);
+    let t = DoubleDouble::from_exact_add(f64::from_bits(Q2[1]), q.hi);
     q.hi = t.hi;
     q.lo += t.lo + f64::from_bits(Q2[2]);
     // multiply by h+l and add coefficient of degree 0
-    q = Dekker::quick_mult(q, z);
-    let t = Dekker::from_exact_add(f64::from_bits(Q2[0]), q.hi);
+    q = DoubleDouble::quick_mult(q, z);
+    let t = DoubleDouble::from_exact_add(f64::from_bits(Q2[0]), q.hi);
     q.hi = t.hi;
     q.lo += t.lo;
     q
@@ -774,7 +774,7 @@ where t is an approximation of y*log2(1+x).
 We assume |h+l| < 150, |l/h| < 2^-48.445 |h|,
 and the relative error between h+l and y*log2(1+x) is < 2^-91.120.
 x and y are the original inputs of compound. */
-fn compoundf_exp2_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
+fn compoundf_exp2_accurate(x_dd: DoubleDouble, x: f32, y: f32) -> f32 {
     if y == 1.0 {
         let res = 1.0 + x;
         return res;
@@ -792,7 +792,7 @@ fn compoundf_exp2_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
 
     let r = x_dd.hi - k; // |r| <= 1/2, exact
     // since r is an integer multiple of ulp(h), fast_two_sum() below is exact
-    let mut v_dd = Dekker::from_exact_add(r, x_dd.lo);
+    let mut v_dd = DoubleDouble::from_exact_add(r, x_dd.lo);
     let mut v = (3.015625 + v_dd.hi).to_bits(); // 2.5 <= v <= 3.5015625
     // we add 2^-6 so that i is rounded to nearest
     let i: i32 = ((v >> 46) as i32).wrapping_sub(0x10010); // 0 <= i <= 32
@@ -801,14 +801,14 @@ fn compoundf_exp2_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
 
     // now |h| <= 2^-6
     // 2^(h+l) = 2^k * exp2_U[i] * 2^(h+l)
-    v_dd = Dekker::from_exact_add(v_dd.hi, v_dd.lo);
+    v_dd = DoubleDouble::from_exact_add(v_dd.hi, v_dd.lo);
     let q = compoundf_exp2_poly2(v_dd);
 
     /* we have 0.989 < qh < 1.011, |ql| < 2^-51.959, and
     |qh + ql - 2^(h+l)| < 2^-85.210 */
-    let exp2u = Dekker::from_bit_pair(COMPOUNDF_EXP2_U[i as usize]);
-    let mut q = Dekker::quick_mult(exp2u, q);
-    q = Dekker::from_exact_add(q.hi, q.lo);
+    let exp2u = DoubleDouble::from_bit_pair(COMPOUNDF_EXP2_U[i as usize]);
+    let mut q = DoubleDouble::quick_mult(exp2u, q);
+    q = DoubleDouble::from_exact_add(q.hi, q.lo);
     /* Total error:
     * at input we have a relative error between h+l and y*log2(1+x) bounded
       by 2^-91.120: h + l = y*log2(1+x) * (1 + eps1) with |eps1| < 2^-91.120.
@@ -866,7 +866,7 @@ fn compoundf_accurate(x: f32, y: f32) -> f32 {
     /* h + l is a double-double approximation of log(1+x),
     with relative error bounded by 2^-91.123,
     and |l| < 2^-48.574 |h| */
-    v = Dekker::quick_mult_f64(v, y as f64);
+    v = DoubleDouble::quick_mult_f64(v, y as f64);
     /* h + l is a double-double approximation of y*log(1+x).
     Since 2^-149 <= |h_in+l_in| < 128 and 2^-149 <= |y| < 2^128, we have
     2^-298 <= |h+l| < 2^135, thus no underflow/overflow in double is possible.

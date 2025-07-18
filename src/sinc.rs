@@ -27,13 +27,11 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::dyad_fmla;
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::DyadicFloat128;
-use crate::sin::{
-    LargeArgumentReduction, SIN_K_PI_OVER_128, get_sin_k_rational, range_reduction_small,
-    sincos_eval,
-};
+use crate::sin::{SIN_K_PI_OVER_128, get_sin_k_rational, range_reduction_small, sincos_eval};
 use crate::sincos_dyadic::{range_reduction_small_f128, sincos_eval_dyadic};
+use crate::sincos_reduce::LargeArgumentReduction;
 
 #[cold]
 #[inline(never)]
@@ -76,7 +74,7 @@ pub fn f_sinc(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
 
-    let y: Dekker;
+    let y: DoubleDouble;
     let k;
 
     let mut argument_reduction = LargeArgumentReduction::default();
@@ -92,7 +90,7 @@ pub fn f_sinc(x: f64) -> f64 {
 
             // For |x| < 2^-26, |sin(x) - x| < ulp(x)/2.
             let p = dyad_fmla(x, f64::from_bits(0xbc90000000000000), x);
-            let z = Dekker::from_exact_div(p, x);
+            let z = DoubleDouble::from_exact_div(p, x);
             return z.to_f64();
         }
 
@@ -116,16 +114,16 @@ pub fn f_sinc(x: f64) -> f64 {
     let sk = SIN_K_PI_OVER_128[(k & 255) as usize];
     let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
 
-    let sin_k = Dekker::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
-    let cos_k = Dekker::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
+    let sin_k = DoubleDouble::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
+    let cos_k = DoubleDouble::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
 
-    let sin_k_cos_y = Dekker::quick_mult(r_sincos.v_cos, sin_k);
-    let cos_k_sin_y = Dekker::quick_mult(r_sincos.v_sin, cos_k);
+    let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, sin_k);
+    let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, cos_k);
 
-    let mut rr = Dekker::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
 
-    rr = Dekker::div_dd_f64_newton_raphson(rr, x);
+    rr = DoubleDouble::div_dd_f64_newton_raphson(rr, x);
 
     let rlp = rr.lo + r_sincos.err;
     let rlm = rr.lo - r_sincos.err;
@@ -135,7 +133,7 @@ pub fn f_sinc(x: f64) -> f64 {
 
     // Ziv's accuracy test
     if r_upper == r_lower {
-        return Dekker::from_exact_add(rr.hi, rr.lo).hi;
+        return DoubleDouble::from_exact_add(rr.hi, rr.lo).hi;
     }
     sinc_refine(&mut argument_reduction, x, x_e, k)
 }

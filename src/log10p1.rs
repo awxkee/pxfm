@@ -27,12 +27,12 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::*;
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log2p1::{log_fast, log_p_1a, log2_dyadic};
 use crate::log10p1_tables::{LOG10P1_EXACT_INT_S_TABLE, LOG10P1_EXACT_INT_TABLE};
 
-const INV_LOG10_DD: Dekker = Dekker::new(
+const INV_LOG10_DD: DoubleDouble = DoubleDouble::new(
     f64::from_bits(0x3c695355baaafad3),
     f64::from_bits(0x3fdbcb7b1526e50e),
 );
@@ -42,7 +42,7 @@ const INV_LOG10_DD: Dekker = Dekker::new(
 fn log10p1_accurate_tiny(x: f64) -> f64 {
     /* first scale x to avoid truncation of l in the underflow region */
     let sx = x * f64::from_bits(0x4690000000000000);
-    let mut px = Dekker::f64_mult(sx, INV_LOG10_DD);
+    let mut px = DoubleDouble::f64_mult(sx, INV_LOG10_DD);
 
     let res = px.to_f64() * f64::from_bits(0x3950000000000000); // expected result
     px.lo += dd_fmla(-res, f64::from_bits(0x4690000000000000), px.hi);
@@ -96,19 +96,19 @@ fn log10p1_accurate_small(x: f64) -> f64 {
     }
 
     // degree 9
-    let px = Dekker::from_exact_mult(x, h);
-    let hl = Dekker::from_exact_add(f64::from_bits(P_ACC[9 + 7]), px.hi);
+    let px = DoubleDouble::from_exact_mult(x, h);
+    let hl = DoubleDouble::from_exact_add(f64::from_bits(P_ACC[9 + 7]), px.hi);
     h = hl.hi;
     let mut l = px.lo + hl.lo;
 
     for i in (1..=8).rev() {
-        let mut p = Dekker::f64_mult(x, Dekker::new(l, h));
+        let mut p = DoubleDouble::f64_mult(x, DoubleDouble::new(l, h));
         l = p.lo;
-        p = Dekker::from_exact_add(f64::from_bits(P_ACC[(2 * i - 2) as usize]), p.hi);
+        p = DoubleDouble::from_exact_add(f64::from_bits(P_ACC[(2 * i - 2) as usize]), p.hi);
         h = p.hi;
         l += p.lo + f64::from_bits(P_ACC[(2 * i - 1) as usize]);
     }
-    let pz = Dekker::f64_mult(x, Dekker::new(l, h));
+    let pz = DoubleDouble::f64_mult(x, DoubleDouble::new(l, h));
     pz.to_f64()
 }
 
@@ -124,9 +124,9 @@ fn log10p1_accurate(x: f64) -> f64 {
         };
     }
     let dx = if x > 1.0 {
-        Dekker::from_exact_add(x, 1.0)
+        DoubleDouble::from_exact_add(x, 1.0)
     } else {
-        Dekker::from_exact_add(1.0, x)
+        DoubleDouble::from_exact_add(1.0, x)
     };
     let x_d = DyadicFloat128::new_from_f64(dx.hi);
     let mut y = log2_dyadic(x_d, dx.hi);
@@ -160,7 +160,7 @@ fn log10p1_accurate(x: f64) -> f64 {
 }
 
 #[inline]
-fn log10p1_fast(x: f64, e: i32) -> (Dekker, f64) {
+fn log10p1_fast(x: f64, e: i32) -> (DoubleDouble, f64) {
     if e < -5
     /* e <= -6 thus |x| < 2^-5 */
     {
@@ -175,11 +175,11 @@ fn log10p1_fast(x: f64, e: i32) -> (Dekker, f64) {
             } else {
                 log10p1_accurate_small(x)
             };
-            return (Dekker::new(0.0, result), 0.0);
+            return (DoubleDouble::new(0.0, result), 0.0);
         }
         let mut p = log_p_1a(x);
         let p_lo = p.lo;
-        p = Dekker::from_exact_add(x, p.hi);
+        p = DoubleDouble::from_exact_add(x, p.hi);
         p.lo += p_lo;
 
         /* from analyze_x_plus_p1a(rel=true,Xmax=2^-5.) in the accompanying file
@@ -188,7 +188,7 @@ fn log10p1_fast(x: f64, e: i32) -> (Dekker, f64) {
         positive, since we add/subtract it in the rounding test.
         We also get that the ratio |l/h| is bounded by 2^-50.96. */
         /* now we multiply h+l by 1/log(2) */
-        p = Dekker::quick_mult(p, INV_LOG10_DD);
+        p = DoubleDouble::quick_mult(p, INV_LOG10_DD);
         /* the d_mul() call decomposes into:
          a_mul (h_out, l1, h, INVLOG10H)
          l2 = __builtin_fma (h, INVLOG10L, l1)
@@ -223,13 +223,13 @@ fn log10p1_fast(x: f64, e: i32) -> (Dekker, f64) {
     /* (xh,xl) <- 1+x */
     let zx = if x > 1.0 {
         if x < f64::from_bits(0x7fefffffffffffff) {
-            Dekker::from_exact_add(x, 1.0)
+            DoubleDouble::from_exact_add(x, 1.0)
         } else {
             // avoid spurious overflow for RNDU
-            Dekker::new(1.0, x)
+            DoubleDouble::new(1.0, x)
         }
     } else {
-        Dekker::from_exact_add(1.0, x)
+        DoubleDouble::from_exact_add(1.0, x)
     };
 
     let mut v_u = zx.hi.to_bits();
@@ -255,7 +255,7 @@ fn log10p1_fast(x: f64, e: i32) -> (Dekker, f64) {
     0x1.b6p-69 + 2^-104 + 2^-71 < 2^-68.02. */
 
     /* now multiply h+l by 1/log(2) */
-    p = Dekker::quick_mult(p, INV_LOG10_DD);
+    p = DoubleDouble::quick_mult(p, INV_LOG10_DD);
     /* the d_mul() call decomposes into:
        a_mul (h_out, l1, h, INVLOG10H)
        l2 = __builtin_fma (h, INVLOG10L, l1)

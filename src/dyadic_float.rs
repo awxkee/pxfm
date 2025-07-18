@@ -81,7 +81,7 @@ pub(crate) const fn f64_from_parts(sign: DyadicSign, exp: u64, mantissa: u64) ->
 }
 
 #[inline]
-fn mulhi_u128(a: u128, b: u128) -> u128 {
+pub(crate) fn mulhi_u128(a: u128, b: u128) -> u128 {
     let a_lo = a as u64 as u128;
     let a_hi = (a >> 64) as u64 as u128;
     let b_lo = b as u64 as u128;
@@ -165,7 +165,6 @@ impl DyadicFloat128 {
 
     #[inline]
     pub(crate) fn accurate_reciprocal(a: f64) -> Self {
-        // we convert 4/a and divide by 4 to avoid a spurious underflow
         let mut r = DyadicFloat128::new_from_f64(4.0 / a); /* accurate to about 53 bits */
         r.exponent -= 2;
         /* we use Newton's iteration: r -> r + r*(1-a*r) */

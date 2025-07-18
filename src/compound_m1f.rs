@@ -31,7 +31,7 @@ use crate::compoundf::{
     COMPOUNDF_EXP2_T, COMPOUNDF_EXP2_U, compoundf_exp2_poly2, compoundf_log2p1_accurate,
     compoundf_log2p1_fast,
 };
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::exp2m1::exp2m1_accurate_tiny;
 use std::hint::black_box;
 
@@ -191,9 +191,9 @@ fn exp2m1_fast(t: f64) -> f64 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        let p0 = Dekker::from_full_exact_add(s, -1.);
-        let z = Dekker::from_exact_mult(f64::from_bits(v), s);
-        v = Dekker::add(z, p0).to_f64().to_bits();
+        let p0 = DoubleDouble::from_full_exact_add(s, -1.);
+        let z = DoubleDouble::from_exact_mult(f64::from_bits(v), s);
+        v = DoubleDouble::add(z, p0).to_f64().to_bits();
     }
 
     // in case of potential underflow, we defer to the accurate path
@@ -209,7 +209,7 @@ fn exp2m1_fast(t: f64) -> f64 {
 
     f64::from_bits(v)
 }
-fn compoundf_exp2m1_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
+fn compoundf_exp2m1_accurate(x_dd: DoubleDouble, x: f32, y: f32) -> f32 {
     if y == 1.0 {
         let res = x;
         return res;
@@ -241,7 +241,7 @@ fn compoundf_exp2m1_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
 
     let r = x_dd.hi - k; // |r| <= 1/2, exact
     // since r is an integer multiple of ulp(h), fast_two_sum() below is exact
-    let mut v_dd = Dekker::from_exact_add(r, x_dd.lo);
+    let mut v_dd = DoubleDouble::from_exact_add(r, x_dd.lo);
     let mut v = (3.015625 + v_dd.hi).to_bits(); // 2.5 <= v <= 3.5015625
     // we add 2^-6 so that i is rounded to nearest
     let i: i32 = ((v >> 46) as i32).wrapping_sub(0x10010); // 0 <= i <= 32
@@ -250,15 +250,15 @@ fn compoundf_exp2m1_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
 
     // now |h| <= 2^-6
     // 2^(h+l) = 2^k * exp2_U[i] * 2^(h+l)
-    v_dd = Dekker::from_exact_add(v_dd.hi, v_dd.lo);
+    v_dd = DoubleDouble::from_exact_add(v_dd.hi, v_dd.lo);
     let q = compoundf_exp2_poly2(v_dd);
 
     /* we have 0.989 < qh < 1.011, |ql| < 2^-51.959, and
     |qh + ql - 2^(h+l)| < 2^-85.210 */
-    let exp2u = Dekker::from_bit_pair(COMPOUNDF_EXP2_U[i as usize]);
-    let mut q = Dekker::quick_mult(exp2u, q);
+    let exp2u = DoubleDouble::from_bit_pair(COMPOUNDF_EXP2_U[i as usize]);
+    let mut q = DoubleDouble::quick_mult(exp2u, q);
 
-    q = Dekker::from_exact_add(q.hi, q.lo);
+    q = DoubleDouble::from_exact_add(q.hi, q.lo);
 
     let mut du = (k as i64).wrapping_add(0x3ff).wrapping_shl(52) as u64;
     du = f64::from_bits(du).to_bits();
@@ -267,11 +267,11 @@ fn compoundf_exp2m1_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
     q.hi *= scale;
     q.lo *= scale;
 
-    let zf: Dekker = if x >= 0. {
+    let zf: DoubleDouble = if x >= 0. {
         // implies h >= 1 and the fast_two_sum pre-condition holds
-        Dekker::from_exact_add(q.hi, -1.0)
+        DoubleDouble::from_exact_add(q.hi, -1.0)
     } else {
-        Dekker::from_exact_add(-1.0, q.hi)
+        DoubleDouble::from_exact_add(-1.0, q.hi)
     };
     q.lo += zf.lo;
     q.hi = zf.hi;
@@ -289,7 +289,7 @@ fn compoundf_exp2m1_accurate(x_dd: Dekker, x: f32, y: f32) -> f32 {
 #[inline(never)]
 fn compoundm1f_accurate(x: f32, y: f32) -> f32 {
     let mut v = compoundf_log2p1_accurate(x as f64);
-    v = Dekker::quick_mult_f64(v, y as f64);
+    v = DoubleDouble::quick_mult_f64(v, y as f64);
     compoundf_exp2m1_accurate(v, x, y)
 }
 
@@ -342,7 +342,7 @@ pub fn f_compound_m1f(x: f32, y: f32) -> f32 {
         p *= sn[((ky >> 1) & 4) as usize];
         p *= sn[(((ky >> 4) & 1) * 5) as usize];
         let z = if (ny >> 31) != 0 { 1. / p } else { p };
-        let k = Dekker::from_full_exact_add(z, -1.).to_f64();
+        let k = DoubleDouble::from_full_exact_add(z, -1.).to_f64();
         return k as f32;
     }
 
@@ -417,7 +417,7 @@ pub fn f_compound_m1f(x: f32, y: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use crate::compound_m1f::{compoundf_exp2m1_accurate, exp2m1_fast};
-    use crate::dekker::Dekker;
+    use crate::double_double::DoubleDouble;
     use crate::f_compound_m1f;
 
     #[test]
@@ -438,7 +438,7 @@ mod tests {
     #[test]
     fn test_compoundf_expm1_accurate() {
         assert_eq!(
-            compoundf_exp2m1_accurate(Dekker::new(0., 2.74), 12., 53.),
+            compoundf_exp2m1_accurate(DoubleDouble::new(0., 2.74), 12., 53.),
             5.680703,
         );
     }

@@ -31,7 +31,7 @@ use crate::acosh::{
     ACOSH_ASINH_REFINE_T4, ACOSH_SINH_REFINE_T1, ACOSH_SINH_REFINE_T3, lpoly_xd_generic,
 };
 use crate::common::{dd_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 
 static ATANH_L1: [(u64, u64); 33] = [
     (0x0000000000000000, 0x0000000000000000),
@@ -140,12 +140,12 @@ fn as_atanh_zero(x: f64) -> f64 {
 
     let y2 = x2 * f_fmla(x2, yw2, f64::from_bits(CL[0]));
 
-    let mut y1 = lpoly_xd_generic(Dekker::new(x2l, x2), CH, y2);
-    y1 = Dekker::mult_f64(y1, x);
-    y1 = Dekker::mult(y1, Dekker::new(x2l, x2));
+    let mut y1 = lpoly_xd_generic(DoubleDouble::new(x2l, x2), CH, y2);
+    y1 = DoubleDouble::mult_f64(y1, x);
+    y1 = DoubleDouble::mult(y1, DoubleDouble::new(x2l, x2));
 
-    let y0 = Dekker::from_exact_add(x, y1.hi);
-    let mut p = Dekker::from_exact_add(y0.lo, y1.lo);
+    let y0 = DoubleDouble::from_exact_add(x, y1.hi);
+    let mut p = DoubleDouble::from_exact_add(y0.lo, y1.lo);
 
     let mut t = p.hi.to_bits();
     if (t & 0x000fffffffffffff) == 0 {
@@ -161,7 +161,7 @@ fn as_atanh_zero(x: f64) -> f64 {
 }
 
 #[cold]
-fn atanh_refine(x: f64, a: f64, z: Dekker) -> f64 {
+fn atanh_refine(x: f64, a: f64, z: DoubleDouble) -> f64 {
     let mut t = z.hi.to_bits();
     let ex: i32 = (t >> 52) as i32;
     let e = ex.wrapping_sub(0x3ff);
@@ -209,13 +209,13 @@ fn atanh_refine(x: f64, a: f64, z: Dekker) -> f64 {
     let dl = f_fmla(th, f64::from_bits(t), -dh);
     let sh = tl * f64::from_bits(t);
     let sl = f_fmla(tl, f64::from_bits(t), -sh);
-    let mut dx = Dekker::from_exact_add(dh - 1., dl);
+    let mut dx = DoubleDouble::from_exact_add(dh - 1., dl);
 
     t = z.lo.to_bits();
     t = t.wrapping_sub(((e as i64) << 52) as u64);
     dx.lo += th * f64::from_bits(t);
 
-    dx = Dekker::add(dx, Dekker::new(sl, sh));
+    dx = DoubleDouble::add(dx, DoubleDouble::new(sl, sh));
     const CL: [u64; 3] = [0xbfc0000000000000, 0x3fb9999999a0754f, 0xbfb55555555c3157];
 
     let slw0 = f_fmla(dx.hi, f64::from_bits(CL[2]), f64::from_bits(CL[1]));
@@ -229,11 +229,11 @@ fn atanh_refine(x: f64, a: f64, z: Dekker) -> f64 {
     ];
 
     let mut s = lpoly_xd_generic(dx, CH, sl);
-    s = Dekker::mult(dx, s);
-    s = Dekker::add(s, Dekker::new(el2, el1));
-    s = Dekker::add(s, Dekker::new(dl2, dl1));
-    let mut v02 = Dekker::from_exact_add(dl0, s.hi);
-    let mut v12 = Dekker::from_exact_add(v02.lo, s.lo);
+    s = DoubleDouble::mult(dx, s);
+    s = DoubleDouble::add(s, DoubleDouble::new(el2, el1));
+    s = DoubleDouble::add(s, DoubleDouble::new(dl2, dl1));
+    let mut v02 = DoubleDouble::from_exact_add(dl0, s.hi);
+    let mut v12 = DoubleDouble::from_exact_add(v02.lo, s.lo);
     t = v12.hi.to_bits();
     if (t & 0x000fffffffffffff) == 0 {
         let w = v12.lo.to_bits();
@@ -313,9 +313,9 @@ pub fn f_atanh(x: f64) -> f64 {
 
         let p = f_fmla(x8, pw5, pw6);
         let t = f64::from_bits(0x3c75555555555555) + x2 * p;
-        let mut p = Dekker::from_exact_add(f64::from_bits(0x3fd5555555555555), t);
-        p = Dekker::mult(p, Dekker::new(dx3, x3));
-        let z0 = Dekker::from_exact_add(x, p.hi);
+        let mut p = DoubleDouble::from_exact_add(f64::from_bits(0x3fd5555555555555), t);
+        p = DoubleDouble::mult(p, DoubleDouble::new(dx3, x3));
+        let z0 = DoubleDouble::from_exact_add(x, p.hi);
         p.lo += z0.lo;
         p.hi = z0.hi;
         let eps = x * f_fmla(
@@ -331,8 +331,8 @@ pub fn f_atanh(x: f64) -> f64 {
         return as_atanh_zero(x);
     }
 
-    let p = Dekker::from_exact_add(1.0, ax);
-    let q = Dekker::from_exact_sub(1.0, ax);
+    let p = DoubleDouble::from_exact_add(1.0, ax);
+    let q = DoubleDouble::from_exact_sub(1.0, ax);
     let iqh = 1.0 / q.hi;
     let th = p.hi * iqh;
     let tl = dd_fmla(p.hi, iqh, -th) + (p.lo + p.hi * (dd_fmla(-q.hi, iqh, 1.) - q.lo * iqh)) * iqh;
@@ -377,7 +377,7 @@ pub fn f_atanh(x: f64) -> f64 {
     let l1i1 = ATANH_L1[i1 as usize];
     let l1i2 = ATANH_L2[i2 as usize];
     let lh = f_fmla(L2H, ed, f64::from_bits(l1i1.1) + f64::from_bits(l1i2.1));
-    let mut zl = Dekker::from_exact_add(lh, rx - 0.5);
+    let mut zl = DoubleDouble::from_exact_add(lh, rx - 0.5);
 
     zl.lo += f_fmla(L2L, ed, f64::from_bits(l1i1.0) + f64::from_bits(l1i2.0)) + dxl + 0.5 * tl / th;
     zl.lo += f;
@@ -389,7 +389,7 @@ pub fn f_atanh(x: f64) -> f64 {
     if lb == ub {
         return lb;
     }
-    let t = Dekker::from_exact_add(th, tl);
+    let t = DoubleDouble::from_exact_add(th, tl);
     atanh_refine(
         x,
         f64::from_bits(0x40071547652b82fe) * (zl.hi + zl.lo).abs(),

@@ -28,7 +28,7 @@
  */
 use crate::atan2f::poly_dekker_generic;
 use crate::common::{dd_fmla, f_fmla, fmla, pow2i, rintk};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::exp2::ldexp;
 
 /// Computes exponent for given value
@@ -216,7 +216,7 @@ pub(crate) fn to_denormal(x: f64) -> f64 {
 }
 
 #[cold]
-fn as_exp_accurate(x: f64, t: f64, tz: Dekker, ie: i64) -> f64 {
+fn as_exp_accurate(x: f64, t: f64, tz: DoubleDouble, ie: i64) -> f64 {
     const COEFFS: [(u64, u64); 7] = [
         (0x3ff0000000000000, 0x0000000000000000),
         (0x3fe0000000000000, 0x39c712f72ecec2cf),
@@ -233,7 +233,7 @@ fn as_exp_accurate(x: f64, t: f64, tz: Dekker, ie: i64) -> f64 {
 
     /* Use Cody-Waite argument reduction: since |x| < 745, we have |t| < 2^23,
     thus since l2h is exactly representable on 29 bits, l2h*t is exact. */
-    const L2: Dekker = Dekker::new(
+    const L2: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3d0718432a1b0e26),
         f64::from_bits(0x3f262e42ff000000),
     );
@@ -243,22 +243,22 @@ fn as_exp_accurate(x: f64, t: f64, tz: Dekker, ie: i64) -> f64 {
     let dxll = f_fmla(L2LL, t, dd_fmla(L2.lo, t, -dxl));
     let dxh = dx + dxl;
     dxl = (dx - dxh) + dxl + dxll;
-    let dx = Dekker::new(dxl, dxh);
+    let dx = DoubleDouble::new(dxl, dxh);
     let mut f = poly_dekker_generic(dx, COEFFS);
-    f = Dekker::quick_mult(dx, f);
+    f = DoubleDouble::quick_mult(dx, f);
     if ix > 0xc086232bdd7abcd2u64 {
         // x < -708.396
         ix = 1i64.wrapping_sub(ie).wrapping_shl(52) as u64;
-        f = Dekker::quick_mult(f, tz);
-        f = Dekker::add(tz, f);
+        f = DoubleDouble::quick_mult(f, tz);
+        f = DoubleDouble::add(tz, f);
 
-        let new_f = Dekker::from_exact_add(f64::from_bits(ix), f.hi);
+        let new_f = DoubleDouble::from_exact_add(f64::from_bits(ix), f.hi);
         f.lo += new_f.lo;
         f.hi = to_denormal(f.hi + f.lo);
     } else {
         if tz.hi == 1.0 {
-            let fhe = Dekker::from_exact_add(tz.hi, f.hi);
-            let fhl = Dekker::from_exact_add(fhe.lo, f.lo);
+            let fhe = DoubleDouble::from_exact_add(tz.hi, f.hi);
+            let fhl = DoubleDouble::from_exact_add(fhe.lo, f.lo);
             f.hi = fhe.hi;
             f.lo = fhl.hi;
             ix = f.lo.to_bits();
@@ -271,10 +271,10 @@ fn as_exp_accurate(x: f64, t: f64, tz: Dekker, ie: i64) -> f64 {
                 f.lo = f64::from_bits(ix);
             }
         } else {
-            f = Dekker::quick_mult(f, tz);
-            f = Dekker::add(tz, f);
+            f = DoubleDouble::quick_mult(f, tz);
+            f = DoubleDouble::add(tz, f);
         }
-        f = Dekker::from_exact_add(f.hi, f.lo);
+        f = DoubleDouble::from_exact_add(f.hi, f.lo);
         f.hi = ldexp(f.hi, ie as i32);
     }
     f.hi
@@ -321,16 +321,16 @@ pub fn f_exp(x: f64) -> f64 {
     let i0: i64 = (jt >> 6) & 0x3f;
     let i1 = jt & 0x3f;
     let ie: i64 = jt >> 12;
-    let t0 = Dekker::new(
+    let t0 = DoubleDouble::new(
         f64::from_bits(EXP_REDUCE_T0[i0 as usize].0),
         f64::from_bits(EXP_REDUCE_T0[i0 as usize].1),
     );
-    let t1 = Dekker::new(
+    let t1 = DoubleDouble::new(
         f64::from_bits(EXP_REDUCE_T1[i1 as usize].0),
         f64::from_bits(EXP_REDUCE_T1[i1 as usize].1),
     );
-    let tz = Dekker::quick_mult(t0, t1);
-    const L2: Dekker = Dekker::new(
+    let tz = DoubleDouble::quick_mult(t0, t1);
+    const L2: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3d0718432a1b0e26),
         f64::from_bits(0x3f262e42ff000000),
     );
@@ -350,12 +350,12 @@ pub fn f_exp(x: f64) -> f64 {
     let pw1 = f_fmla(dx, f64::from_bits(CH[1]), f64::from_bits(CH[0]));
 
     let p = f_fmla(dx2, pw0, pw1);
-    let mut f = Dekker::new(f_fmla(tz.hi * dx, p, tz.lo), tz.hi);
+    let mut f = DoubleDouble::new(f_fmla(tz.hi * dx, p, tz.lo), tz.hi);
     const EPS: f64 = f64::from_bits(0x3c0833beace2b6fe);
     if ix > 0xc086232bdd7abcd2u64 {
         // subnormal case: x < -708.396
         ix = 1u64.wrapping_sub(ie as u64).wrapping_shl(52);
-        let sums = Dekker::from_exact_add(f64::from_bits(ix), f.hi);
+        let sums = DoubleDouble::from_exact_add(f64::from_bits(ix), f.hi);
         f.hi = sums.hi;
         f.lo += sums.lo;
         let ub = f.hi + (f.lo + EPS);

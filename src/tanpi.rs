@@ -28,7 +28,7 @@
  */
 use crate::atan::poly_dd_3;
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 
 static TANPI_REDUCE: [(u64, u64); 32] = [
     (0x0000000000000000, 0x0000000000000000),
@@ -66,35 +66,35 @@ static TANPI_REDUCE: [(u64, u64); 32] = [
 ];
 
 #[inline]
-pub(crate) fn poly_dd_5(x: Dekker, poly: [(u64, u64); 5], l: f64) -> Dekker {
+pub(crate) fn poly_dd_5(x: DoubleDouble, poly: [(u64, u64); 5], l: f64) -> DoubleDouble {
     let zch = poly[4];
     let ach = f64::from_bits(zch.0) + l;
     let acl = (f64::from_bits(zch.0) - ach) + l + f64::from_bits(zch.1);
-    let mut ch = Dekker::new(acl, ach);
+    let mut ch = DoubleDouble::new(acl, ach);
 
     let zch = poly[3];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
     ch.lo += tl + f64::from_bits(zch.1);
 
     let zch = poly[2];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
     ch.lo += tl + f64::from_bits(zch.1);
 
     let zch = poly[1];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
     ch.lo += tl + f64::from_bits(zch.1);
 
     let zch = poly[0];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
@@ -104,7 +104,7 @@ pub(crate) fn poly_dd_5(x: Dekker, poly: [(u64, u64); 5], l: f64) -> Dekker {
 }
 
 #[cold]
-fn tanpi_accurate(px: Dekker, x: f64) -> f64 {
+fn tanpi_accurate(px: DoubleDouble, x: f64) -> f64 {
     const CH: [(u64, u64); 3] = [
         (0x4024abbce625be53, 0xbcc05511c68476a8),
         (0x404466bc6775aae2, 0xbcd6dc0cbddc0e69),
@@ -117,16 +117,16 @@ fn tanpi_accurate(px: Dekker, x: f64) -> f64 {
 
     let dx2 = dd_fmla(x, x, -x2);
     let dx3 = dd_fmla(x2, x, -x3) + dx2 * x;
-    let mut t = Dekker {
+    let mut t = DoubleDouble {
         hi: 0.,
         lo: x2 * f_fmla(x2, f64::from_bits(CL[1]), f64::from_bits(CL[0])),
     };
-    t = poly_dd_3(Dekker::new(dx2, x2), CH, t.lo);
-    t = Dekker::mult(Dekker::new(dx3, x3), t);
-    let z0 = Dekker::from_exact_add(px.hi, t.hi);
+    t = poly_dd_3(DoubleDouble::new(dx2, x2), CH, t.lo);
+    t = DoubleDouble::mult(DoubleDouble::new(dx3, x3), t);
+    let z0 = DoubleDouble::from_exact_add(px.hi, t.hi);
     t.hi = z0.hi;
     t.lo = t.lo + px.lo + z0.lo;
-    t = Dekker::from_exact_add(t.hi, t.lo);
+    t = DoubleDouble::from_exact_add(t.hi, t.lo);
     t.hi
 }
 
@@ -148,24 +148,24 @@ fn tanpi_accurate0(z: f64, iq: u64, ms: i64) -> f64 {
     let tlo0 = f_fmla(z2, f64::from_bits(CL[2]), f64::from_bits(CL[1]));
 
     let t_lo = z2 * f_fmla(z2, tlo0, f64::from_bits(CL[0]));
-    let mut t = poly_dd_5(Dekker::new(dz2, z2), CH, t_lo);
-    t = Dekker::mult_f64(t, z);
+    let mut t = poly_dd_5(DoubleDouble::new(dz2, z2), CH, t_lo);
+    t = DoubleDouble::mult_f64(t, z);
     if iq == 32 {
         let ith = -1.0 / t.hi;
         t.lo = (dd_fmla(ith, t.hi, 1.) + t.lo * ith) * ith;
         t.hi = ith;
     } else {
-        let mut n = Dekker::from_bit_pair(TANPI_REDUCE[iq as usize]);
+        let mut n = DoubleDouble::from_bit_pair(TANPI_REDUCE[iq as usize]);
         static S2: [f64; 2] = [-1., 1.];
         let sgn = S2[(ms + 1) as usize];
         n.hi *= sgn;
         n.lo *= sgn;
-        let mut m = Dekker::mult(t, n);
-        let z0 = Dekker::from_exact_sub(1.0, m.hi);
+        let mut m = DoubleDouble::mult(t, n);
+        let z0 = DoubleDouble::from_exact_sub(1.0, m.hi);
         m.hi = z0.hi;
         m.lo = z0.lo - m.lo;
 
-        let z1 = Dekker::from_exact_add(n.hi, t.hi);
+        let z1 = DoubleDouble::from_exact_add(n.hi, t.hi);
         n.hi = z1.hi;
         n.lo += z1.lo + t.lo;
 
@@ -174,7 +174,7 @@ fn tanpi_accurate0(z: f64, iq: u64, ms: i64) -> f64 {
         t.lo = dd_fmla(n.hi, imh, -t.hi)
             + (n.lo + n.hi * (dd_fmla(-m.hi, imh, 1.) - m.lo * imh)) * imh;
     }
-    t = Dekker::from_exact_add(t.hi, t.lo);
+    t = DoubleDouble::from_exact_add(t.hi, t.lo);
     t.hi
 }
 
@@ -185,7 +185,7 @@ fn tanpi_accurate0(z: f64, iq: u64, ms: i64) -> f64 {
 pub fn f_tanpi(x: f64) -> f64 {
     let ix = x.to_bits();
     let ax: u64 = ix & 0x7fff_ffff_ffff_ffff;
-    let mut t: Dekker;
+    let mut t: DoubleDouble;
     let res: f64;
     if ax >= (0x3f3u64 << 52) {
         // |x| >= 0x1p-12
@@ -301,29 +301,29 @@ pub fn f_tanpi(x: f64) -> f64 {
         let mut eps = z3 * f64::from_bits(0x2ff0000000000000)
             + f64::copysign(f64::from_bits(0x3970000000000000), z);
 
-        const P: Dekker = Dekker::new(
+        const P: DoubleDouble = DoubleDouble::new(
             f64::from_bits(0x3841a62633145c07),
             f64::from_bits(0x3ba921fb54442d18),
         );
 
-        t = Dekker::mult_f64(P, z);
-        t = Dekker::add_f64(t, f);
+        t = DoubleDouble::mult_f64(P, z);
+        t = DoubleDouble::add_f64(t, f);
 
         if iq == 32 {
             let ith = -1.0 / t.hi;
             t.lo = (dd_fmla(ith, t.hi, 1.) + t.lo * ith) * ith;
             t.hi = ith;
         } else {
-            let mut n = Dekker::from_bit_pair(TANPI_REDUCE[iq as usize]);
+            let mut n = DoubleDouble::from_bit_pair(TANPI_REDUCE[iq as usize]);
             static S2: [f64; 2] = [-1., 1.];
             n.hi *= S2[(ms + 1) as usize];
             n.lo *= S2[(ms + 1) as usize];
-            let mut m = Dekker::mult(t, n);
-            let z0 = Dekker::from_exact_sub(1.0, m.hi);
+            let mut m = DoubleDouble::mult(t, n);
+            let z0 = DoubleDouble::from_exact_sub(1.0, m.hi);
             m.hi = z0.hi;
             m.lo = z0.lo - m.lo;
 
-            let z1 = Dekker::from_exact_add(n.hi, t.hi);
+            let z1 = DoubleDouble::from_exact_add(n.hi, t.hi);
             n.hi = z1.hi;
             n.lo += z1.lo + t.lo;
 
@@ -344,7 +344,7 @@ pub fn f_tanpi(x: f64) -> f64 {
         if ax == 0 {
             return x;
         }
-        const P2: Dekker = Dekker::new(
+        const P2: DoubleDouble = DoubleDouble::new(
             f64::from_bits(0x3ca1a62633145c07),
             f64::from_bits(0x400921fb54442d18),
         );
@@ -356,7 +356,7 @@ pub fn f_tanpi(x: f64) -> f64 {
                 let sc = (2045i64 - e as i64).wrapping_shl(52) as u64;
                 let isc = 1i64.wrapping_add(e as i64).wrapping_shl(52) as u64;
                 let z = x * f64::from_bits(sc);
-                t = Dekker::mult_f64(P2, z);
+                t = DoubleDouble::mult_f64(P2, z);
                 res = t.hi * f64::from_bits(isc);
                 if res.abs() < f64::from_bits(0x0010000000000000) {
                     // we force underflow since the code below might be exact
@@ -369,7 +369,7 @@ pub fn f_tanpi(x: f64) -> f64 {
                 }
             } else {
                 // 0x1p-969 <= |x| < 0x1p-53
-                t = Dekker::mult_f64(P2, x);
+                t = DoubleDouble::mult_f64(P2, x);
                 res = t.hi;
             }
         } else {
@@ -380,8 +380,8 @@ pub fn f_tanpi(x: f64) -> f64 {
             let f0 = f_fmla(x2, f64::from_bits(C2[2]), f64::from_bits(C2[1]));
 
             let f = x3 * f_fmla(x2, f0, f64::from_bits(C2[0]));
-            let px = Dekker::mult_f64(P2, x);
-            t = Dekker::add_f64(px, f);
+            let px = DoubleDouble::mult_f64(P2, x);
+            t = DoubleDouble::add_f64(px, f);
             let eps =
                 x * (x2 * f64::from_bits(0x3d01000000000000) + f64::from_bits(0x39a0000000000000));
             let lb = t.hi + (t.lo - eps);

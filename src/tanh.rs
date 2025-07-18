@@ -28,7 +28,7 @@
  */
 use crate::acosh::lpoly_xd_generic;
 use crate::common::{dd_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 use crate::sinh::hyperbolic_exp_accurate;
 
@@ -65,11 +65,11 @@ fn as_tanh_zero(x: f64) -> f64 {
 
     let y2 = x2 * yw4;
 
-    let mut y1 = lpoly_xd_generic(Dekker::new(x2l, x2), CH, y2);
-    y1 = Dekker::mult_f64(y1, x);
-    y1 = Dekker::mult(y1, Dekker::new(x2l, x2)); // y2 = y1.l
-    let y0 = Dekker::from_exact_add(x, y1.hi); // y0 = y0.hi
-    let mut p = Dekker::from_exact_add(y0.lo, y1.lo);
+    let mut y1 = lpoly_xd_generic(DoubleDouble::new(x2l, x2), CH, y2);
+    y1 = DoubleDouble::mult_f64(y1, x);
+    y1 = DoubleDouble::mult(y1, DoubleDouble::new(x2l, x2)); // y2 = y1.l
+    let y0 = DoubleDouble::from_exact_add(x, y1.hi); // y0 = y0.hi
+    let mut p = DoubleDouble::from_exact_add(y0.lo, y1.lo);
     let mut t = p.hi.to_bits();
     if (t & 0x000fffffffffffff) == 0 {
         let w = p.lo.to_bits();
@@ -176,7 +176,7 @@ pub fn f_tanh(x: f64) -> f64 {
             let mut p0 = f_fmla(x4, p0w0, p0w1);
             p0 += x8 * p1;
             p0 *= x3;
-            let r = Dekker::from_exact_add(x, p0);
+            let r = DoubleDouble::from_exact_add(x, p0);
             let e = x3 * f64::from_bits(0x3cba000000000000);
             let lb = r.hi + (r.lo - e);
             let ub = r.hi + (r.lo + e);
@@ -202,22 +202,22 @@ pub fn f_tanh(x: f64) -> f64 {
         let p = dx * f_fmla(dx2, pw0, pw1);
         let mut rh = th;
         let mut rl = tl + rh * p;
-        let mut r = Dekker::from_exact_add(rh, rl);
+        let mut r = DoubleDouble::from_exact_add(rh, rl);
 
         let ph = r.hi;
         let pl = r.lo;
         let mut qh = r.hi;
         let mut ql = r.lo;
-        let qq = Dekker::from_exact_add(1.0, qh);
+        let qq = DoubleDouble::from_exact_add(1.0, qh);
         qh = qq.hi;
         ql += qq.lo;
 
         let rqh = 1.0 / qh;
         let rql = f_fmla(ql, rqh, dd_fmla(rqh, qh, -1.)) * -rqh;
-        let p = Dekker::mult(Dekker::new(pl, ph), Dekker::new(rql, rqh));
+        let p = DoubleDouble::mult(DoubleDouble::new(pl, ph), DoubleDouble::new(rql, rqh));
 
         let e = r.hi * f64::from_bits(0x3c10000000000000);
-        r = Dekker::from_exact_sub(0.5, p.hi);
+        r = DoubleDouble::from_exact_sub(0.5, p.hi);
         r.lo -= p.lo;
         rh = r.hi * f64::copysign(2., x);
         rl = r.lo * f64::copysign(2., x);
@@ -254,16 +254,16 @@ pub fn f_tanh(x: f64) -> f64 {
         tl *= f64::from_bits(sp);
     }
 
-    let mut r = hyperbolic_exp_accurate(-2. * ax, t, Dekker::new(tl, th));
-    let mut q = Dekker::from_exact_add(1.0, r.hi);
+    let mut r = hyperbolic_exp_accurate(-2. * ax, t, DoubleDouble::new(tl, th));
+    let mut q = DoubleDouble::from_exact_add(1.0, r.hi);
     q.lo += r.lo;
-    q = Dekker::from_exact_add(q.hi, q.lo);
+    q = DoubleDouble::from_exact_add(q.hi, q.lo);
     let rqh = 1. / q.hi;
     let rql = f_fmla(q.lo, rqh, dd_fmla(rqh, q.hi, -1.)) * -rqh;
-    let p = Dekker::mult(r, Dekker::new(rql, rqh));
-    r = Dekker::from_exact_sub(0.5, p.hi);
+    let p = DoubleDouble::mult(r, DoubleDouble::new(rql, rqh));
+    r = DoubleDouble::from_exact_sub(0.5, p.hi);
     r.lo -= p.lo;
-    r = Dekker::from_exact_add(r.hi, r.lo);
+    r = DoubleDouble::from_exact_add(r.hi, r.lo);
     f_fmla(f64::copysign(2., x), r.hi, f64::copysign(2., x) * r.lo)
 }
 

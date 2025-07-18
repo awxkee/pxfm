@@ -28,7 +28,7 @@
  */
 use crate::bits::biased_exponent_f64;
 use crate::common::*;
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::expf::expf;
 use crate::log2f::LOG2_R;
 use crate::logf::{EXP_MASK_F32, logf};
@@ -87,7 +87,7 @@ const fn larger_exponent(a: f64, b: f64) -> bool {
 //   exp2_hi_mid: high part of 2^(hi + mid)
 #[cold]
 #[inline(never)]
-fn powf_dd(idx_x: i32, dx: f64, y6: f64, lo6_hi: f64, exp2_hi_mid: Dekker) -> f64 {
+fn powf_dd(idx_x: i32, dx: f64, y6: f64, lo6_hi: f64, exp2_hi_mid: DoubleDouble) -> f64 {
     // Perform a second range reduction step:
     //   idx2 = round(2^14 * (dx  + 2^-8)) = round ( dx * 2^14 + 2^6)
     //   dx2 = (1 + dx) * r2 - 1
@@ -109,39 +109,39 @@ fn powf_dd(idx_x: i32, dx: f64, y6: f64, lo6_hi: f64, exp2_hi_mid: Dekker) -> f6
         (0xbc5b5a30b3bdb318, 0x3fd2776c516a92a2),
         (0x3c62d2fbd081e657, 0xbfcec70af1929ca6),
     ];
-    let dx_dd = Dekker::new(0.0, dx2);
+    let dx_dd = DoubleDouble::new(0.0, dx2);
     let p = f_polyeval6(
         dx_dd,
-        Dekker::from_bit_pair(COEFFS[0]),
-        Dekker::from_bit_pair(COEFFS[1]),
-        Dekker::from_bit_pair(COEFFS[2]),
-        Dekker::from_bit_pair(COEFFS[3]),
-        Dekker::from_bit_pair(COEFFS[4]),
-        Dekker::from_bit_pair(COEFFS[5]),
+        DoubleDouble::from_bit_pair(COEFFS[0]),
+        DoubleDouble::from_bit_pair(COEFFS[1]),
+        DoubleDouble::from_bit_pair(COEFFS[2]),
+        DoubleDouble::from_bit_pair(COEFFS[3]),
+        DoubleDouble::from_bit_pair(COEFFS[4]),
+        DoubleDouble::from_bit_pair(COEFFS[5]),
     );
     // log2(1 + dx2) ~ dx2 * P(dx2)
-    let log2_x_lo = Dekker::quick_mult_f64(p, dx2);
+    let log2_x_lo = DoubleDouble::quick_mult_f64(p, dx2);
     // Lower parts of (e_x - log2(r1)) of the first range reduction constant
     let log2_r_td = LOG2_R_TD[idx_x as usize];
-    let log2_x_mid = Dekker::new(f64::from_bits(log2_r_td.0), f64::from_bits(log2_r_td.1));
+    let log2_x_mid = DoubleDouble::new(f64::from_bits(log2_r_td.0), f64::from_bits(log2_r_td.1));
     // -log2(r2) + lower part of (e_x - log2(r1))
-    let log2_x_m = Dekker::add(Dekker::from_bit_pair(LOG2_R2_DD[idx2]), log2_x_mid);
+    let log2_x_m = DoubleDouble::add(DoubleDouble::from_bit_pair(LOG2_R2_DD[idx2]), log2_x_mid);
     // log2(1 + dx2) - log2(r2) + lower part of (e_x - log2(r1))
     // Since we don't know which one has larger exponent to apply Fast2Sum
     // algorithm, we need to check them before calling double-double addition.
     let log2_x = if larger_exponent(log2_x_m.hi, log2_x_lo.hi) {
-        Dekker::add(log2_x_m, log2_x_lo)
+        DoubleDouble::add(log2_x_m, log2_x_lo)
     } else {
-        Dekker::add(log2_x_lo, log2_x_m)
+        DoubleDouble::add(log2_x_lo, log2_x_m)
     };
-    let lo6_hi_dd = Dekker::new(0.0, lo6_hi);
+    let lo6_hi_dd = DoubleDouble::new(0.0, lo6_hi);
     // 2^6 * y * (log2(1 + dx2) - log2(r2) + lower part of (e_x - log2(r1)))
-    let prod = Dekker::quick_mult_f64(log2_x, y6);
+    let prod = DoubleDouble::quick_mult_f64(log2_x, y6);
     // 2^6 * (y * log2(x) - (hi + mid)) = 2^6 * lo
     let lo6 = if larger_exponent(prod.hi, lo6_hi) {
-        Dekker::add(prod, lo6_hi_dd)
+        DoubleDouble::add(prod, lo6_hi_dd)
     } else {
-        Dekker::add(lo6_hi_dd, prod)
+        DoubleDouble::add(lo6_hi_dd, prod)
     };
 
     const EXP2_COEFFS: [(u64, u64); 10] = [
@@ -159,21 +159,21 @@ fn powf_dd(idx_x: i32, dx: f64, y6: f64, lo6_hi: f64, exp2_hi_mid: Dekker) -> f6
 
     let pp = f_polyeval10(
         lo6,
-        Dekker::from_bit_pair(EXP2_COEFFS[0]),
-        Dekker::from_bit_pair(EXP2_COEFFS[1]),
-        Dekker::from_bit_pair(EXP2_COEFFS[2]),
-        Dekker::from_bit_pair(EXP2_COEFFS[3]),
-        Dekker::from_bit_pair(EXP2_COEFFS[4]),
-        Dekker::from_bit_pair(EXP2_COEFFS[5]),
-        Dekker::from_bit_pair(EXP2_COEFFS[6]),
-        Dekker::from_bit_pair(EXP2_COEFFS[7]),
-        Dekker::from_bit_pair(EXP2_COEFFS[8]),
-        Dekker::from_bit_pair(EXP2_COEFFS[9]),
+        DoubleDouble::from_bit_pair(EXP2_COEFFS[0]),
+        DoubleDouble::from_bit_pair(EXP2_COEFFS[1]),
+        DoubleDouble::from_bit_pair(EXP2_COEFFS[2]),
+        DoubleDouble::from_bit_pair(EXP2_COEFFS[3]),
+        DoubleDouble::from_bit_pair(EXP2_COEFFS[4]),
+        DoubleDouble::from_bit_pair(EXP2_COEFFS[5]),
+        DoubleDouble::from_bit_pair(EXP2_COEFFS[6]),
+        DoubleDouble::from_bit_pair(EXP2_COEFFS[7]),
+        DoubleDouble::from_bit_pair(EXP2_COEFFS[8]),
+        DoubleDouble::from_bit_pair(EXP2_COEFFS[9]),
     );
-    let rr = Dekker::quick_mult(exp2_hi_mid, pp);
+    let rr = DoubleDouble::quick_mult(exp2_hi_mid, pp);
 
     // Make sure the sum is normalized:
-    let r = Dekker::from_exact_add(rr.hi, rr.lo);
+    let r = DoubleDouble::from_exact_add(rr.hi, rr.lo);
 
     const FRACTION_MASK: u64 = (1u64 << 52) - 1;
 
@@ -592,7 +592,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
     }
 
     // Scale lower part of 2^(hi + mid)
-    let exp2_hi_mid_dd = Dekker {
+    let exp2_hi_mid_dd = DoubleDouble {
         lo: if idx_y != 0 {
             f64::from_bits((exp_hi_i as u64).wrapping_add(EXP2_MID1[idx_y as usize].0))
         } else {

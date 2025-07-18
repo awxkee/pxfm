@@ -28,7 +28,7 @@
  */
 use crate::common::{f_fmla, f_fmlaf};
 use crate::cosf::{sincos_reduce_big, sincos_reduce0, sincos_reduce1};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::sinf::SINCOSF_SIN_TABLE;
 
 #[inline(never)]
@@ -74,7 +74,7 @@ fn as_sincf_big(x: f32) -> f32 {
 
     let f0 = f_fmla(-bb, z * s0, aa * c0);
     let r = f_fmla(z, f0, s0);
-    let dd = Dekker::from_exact_div(r, x as f64);
+    let dd = DoubleDouble::from_exact_div(r, x as f64);
     dd.to_f64() as f32
 }
 
@@ -108,12 +108,12 @@ pub fn f_sincf(x: f32) -> f32 {
                     return x;
                 }
                 let sin_x = f_fmlaf(-x, x.abs(), x) as f64;
-                let dd = Dekker::from_exact_div(sin_x, x as f64);
+                let dd = DoubleDouble::from_exact_div(sin_x, x as f64);
                 return dd.to_f64() as f32;
             }
             let x = x as f64;
             let sin_x = (-f64::from_bits(0x3fc5555560000000) * x) * (x * x) + x;
-            let dd = Dekker::from_exact_div(sin_x, x);
+            let dd = DoubleDouble::from_exact_div(sin_x, x);
             return dd.to_f64() as f32;
         }
         return as_sincf_big(x);
@@ -155,7 +155,7 @@ pub fn f_sincf(x: f32) -> f32 {
 
     let f0 = f_fmla(aa, z * c0, s0);
     let r = f_fmla(-bb, z2 * s0, f0);
-    let dd = Dekker::from_exact_div(r, x as f64);
+    let dd = DoubleDouble::from_exact_div(r, x as f64);
     dd.to_f64() as f32
 }
 

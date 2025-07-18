@@ -30,7 +30,7 @@ use crate::acospi::INV_PI_DD;
 use crate::asin::asin_eval;
 use crate::asin_eval_dyadic::asin_eval_dyadic;
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
 #[inline]
@@ -93,17 +93,17 @@ pub fn f_asinpi(x: f64) -> f64 {
             return hh + ll;
         }
 
-        let x_sq = Dekker::from_exact_mult(x, x);
+        let x_sq = DoubleDouble::from_exact_mult(x, x);
         let err = x_abs * f64::from_bits(0x3cc0000000000000);
         // Polynomial approximation:
         //   p ~ asin(x)/x
 
         let (p, err) = asin_eval(x_sq, err);
         // asin(x) ~ x * (ASIN_COEFFS[idx][0] + p)
-        let mut r0 = Dekker::from_exact_mult(x, p.hi);
+        let mut r0 = DoubleDouble::from_exact_mult(x, p.hi);
         let mut r_lo = f_fmla(x, p.lo, r0.lo);
 
-        r0 = Dekker::mult(Dekker::new(r_lo, r0.hi), INV_PI_DD);
+        r0 = DoubleDouble::mult(DoubleDouble::new(r_lo, r0.hi), INV_PI_DD);
         r_lo = r0.lo;
 
         let r_upper = r0.hi + (r_lo + err);
@@ -161,7 +161,7 @@ pub fn f_asinpi(x: f64) -> f64 {
         return r.fast_as_f64();
     }
 
-    const PI_OVER_TWO: Dekker = Dekker::new(
+    const PI_OVER_TWO: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3c91a62633145c07),
         f64::from_bits(0x3ff921fb54442d18),
     );
@@ -214,7 +214,7 @@ pub fn f_asinpi(x: f64) -> f64 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        let v_hi_sq = Dekker::from_exact_mult(v_hi, v_hi);
+        let v_hi_sq = DoubleDouble::from_exact_mult(v_hi, v_hi);
         h = (u - v_hi_sq.hi) - v_hi_sq.lo;
     }
     // Scale v_lo and v_hi by 2 from the formula:
@@ -227,16 +227,16 @@ pub fn f_asinpi(x: f64) -> f64 {
     //   p ~ asin(sqrt(u))/sqrt(u)
     let err = vh * f64::from_bits(0x3cc0000000000000);
 
-    let (p, err) = asin_eval(Dekker::new(0.0, u), err);
+    let (p, err) = asin_eval(DoubleDouble::new(0.0, u), err);
 
     // Perform computations in double-double arithmetic:
     //   asin(x) = pi/2 - (v_hi + v_lo) * (ASIN_COEFFS[idx][0] + p)
-    let r0 = Dekker::quick_mult(Dekker::new(vl, vh), p);
-    let mut r = Dekker::from_exact_add(PI_OVER_TWO.hi, -r0.hi);
+    let r0 = DoubleDouble::quick_mult(DoubleDouble::new(vl, vh), p);
+    let mut r = DoubleDouble::from_exact_add(PI_OVER_TWO.hi, -r0.hi);
 
     let mut r_lo = PI_OVER_TWO.lo - r0.lo + r.lo;
 
-    let p = Dekker::mult(Dekker::new(r_lo, r.hi), INV_PI_DD);
+    let p = DoubleDouble::mult(DoubleDouble::new(r_lo, r.hi), INV_PI_DD);
     r_lo = p.lo;
     r.hi = p.hi;
 
@@ -313,7 +313,7 @@ pub fn f_asinpi(x: f64) -> f64 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        let vh_vl = Dekker::from_exact_mult(v_hi, vl);
+        let vh_vl = DoubleDouble::from_exact_mult(v_hi, vl);
         vl_lo = ((h - vh_vl.hi) - vh_vl.lo) / v_hi;
     }
 

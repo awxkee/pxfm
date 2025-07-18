@@ -108,8 +108,8 @@ pub(crate) fn dd_fmla(a: f64, b: f64, c: f64) -> f64 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        use crate::dekker::Dekker;
-        Dekker::dd_f64_mul_add(a, b, c)
+        use crate::double_double::DoubleDouble;
+        DoubleDouble::dd_f64_mul_add(a, b, c)
     }
 }
 

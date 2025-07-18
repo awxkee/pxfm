@@ -28,14 +28,15 @@
  */
 use crate::bits::EXP_MASK;
 use crate::common::{dyad_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::polyeval::f_polyeval9;
-use crate::sin::{LargeArgumentReduction, get_sin_k_rational, range_reduction_small};
+use crate::sin::{get_sin_k_rational, range_reduction_small};
 use crate::sincos_dyadic::range_reduction_small_f128;
+use crate::sincos_reduce::LargeArgumentReduction;
 
 #[inline]
-fn tan_eval(u: Dekker) -> (Dekker, f64) {
+fn tan_eval(u: DoubleDouble) -> (DoubleDouble, f64) {
     // Evaluate tan(y) = tan(x - k * (pi/128))
     // We use the degree-9 Taylor approximation:
     //   tan(y) ~ P(y) = y + y^3/3 + 2*y^5/15 + 17*y^7/315 + 62*y^9/2835
@@ -77,7 +78,7 @@ fn tan_eval(u: Dekker) -> (Dekker, f64) {
         f64::from_bits(0x3cc0000000000000),
         f64::from_bits(0x3990000000000000),
     );
-    (Dekker::from_exact_add(u.hi, tan_lo), err)
+    (DoubleDouble::from_exact_add(u.hi, tan_lo), err)
 }
 
 #[cold]
@@ -176,7 +177,7 @@ pub fn f_tan(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
 
-    let y: Dekker;
+    let y: DoubleDouble;
     let k;
 
     let mut argument_reduction = LargeArgumentReduction::default();
@@ -195,7 +196,7 @@ pub fn f_tan(x: f64) -> f64 {
             }
             // No range reduction needed.
             k = 0;
-            y = Dekker::new(0., x);
+            y = DoubleDouble::new(0., x);
         } else {
             // Small range reduction.
             (y, k) = range_reduction_small(x);
@@ -220,20 +221,20 @@ pub fn f_tan(x: f64) -> f64 {
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
     let sk = crate::sin::SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
     let ck = crate::sin::SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
-    let msin_k = Dekker::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
-    let cos_k = Dekker::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
+    let msin_k = DoubleDouble::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
+    let cos_k = DoubleDouble::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
 
-    let cos_k_tan_y = Dekker::quick_mult(tan_y, cos_k);
-    let msin_k_tan_y = Dekker::quick_mult(tan_y, msin_k);
+    let cos_k_tan_y = DoubleDouble::quick_mult(tan_y, cos_k);
+    let msin_k_tan_y = DoubleDouble::quick_mult(tan_y, msin_k);
 
     // num_dd = sin(k*pi/128) + tan(y) * cos(k*pi/128)
-    let mut num_dd = Dekker::from_full_exact_add(cos_k_tan_y.hi, -msin_k.hi);
+    let mut num_dd = DoubleDouble::from_full_exact_add(cos_k_tan_y.hi, -msin_k.hi);
     // den_dd = cos(k*pi/128) - tan(y) * sin(k*pi/128)
-    let mut den_dd = Dekker::from_full_exact_add(msin_k_tan_y.hi, cos_k.hi);
+    let mut den_dd = DoubleDouble::from_full_exact_add(msin_k_tan_y.hi, cos_k.hi);
     num_dd.lo += cos_k_tan_y.lo - msin_k.lo;
     den_dd.lo += msin_k_tan_y.lo + cos_k.lo;
 
-    let tan_x = Dekker::div(num_dd, den_dd);
+    let tan_x = DoubleDouble::div(num_dd, den_dd);
 
     // Simple error bound: |1 / den_dd| < 2^(1 + floor(-log2(den_dd)))).
     let den_inv = ((E_BIAS + 1) << (52 + 1)) - (den_dd.hi.to_bits() & EXP_MASK);

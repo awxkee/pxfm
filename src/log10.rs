@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, min_normal_f64};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log_range_reduction::log_range_reduction;
 use crate::log2::LOG_COEFFS;
@@ -337,18 +337,18 @@ pub fn f_log10(x: f64) -> f64 {
 
     // Exact sum:
     //   r1.hi + r1.lo = e_x * log(2)_hi - log(r)_hi + u
-    let mut r1 = Dekker::from_exact_add(hi, u);
+    let mut r1 = DoubleDouble::from_exact_add(hi, u);
     r1.lo += p;
 
     // Quick double-double multiplication:
     //   r2.hi + r2.lo ~ r1 * log10(e),
     // with error bounded by:
     //   4*ulp( ulp(r2.hi) )
-    const LOG10_E: Dekker = Dekker::new(
+    const LOG10_E: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3c695355baaafad3),
         f64::from_bits(0x3fdbcb7b1526e50e),
     );
-    let r2 = Dekker::quick_mult(r1, LOG10_E);
+    let r2 = DoubleDouble::quick_mult(r1, LOG10_E);
 
     const HI_ERR: f64 = f64::from_bits(0x3aa0000000000000);
 

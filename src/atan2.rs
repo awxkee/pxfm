@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::polyeval::f_polyeval4;
 
@@ -455,7 +455,7 @@ pub(crate) static ATAN_RATIONAL_128: [DyadicFloat128; 65] = [
 // Since p.lo is ~ x^3/3, the relative error from rounding is bounded by:
 //   |(atan(x) - P(x))/atan(x)| < ulp(x^2) <= 2^(-14-52) = 2^-66.
 #[inline]
-pub(crate) fn atan_eval(x: Dekker) -> Dekker {
+pub(crate) fn atan_eval(x: DoubleDouble) -> DoubleDouble {
     let p_hi = x.hi;
     let x_hi_sq = x.hi * x.hi;
     // c0 ~ x_hi^2 * 1/5 - 1/3
@@ -481,7 +481,7 @@ pub(crate) fn atan_eval(x: Dekker) -> Dekker {
     // p.lo ~ -x_hi^3/3 + x_hi^5/5 - x_hi^7/7 + x_hi^9/9 +
     //        + x_lo * (1 - x_hi^2 + x_hi^4)
     let p_lo = f_fmla(x_hi_3, d0, d1);
-    Dekker::new(p_lo, p_hi)
+    DoubleDouble::new(p_lo, p_hi)
 }
 
 #[inline]
@@ -656,36 +656,36 @@ pub(crate) fn atan2_hard(y: f64, x: f64) -> DyadicFloat128 {
 #[inline]
 pub fn f_atan2(y: f64, x: f64) -> f64 {
     static IS_NEG: [f64; 2] = [1.0, -1.0];
-    const ZERO: Dekker = Dekker::new(0.0, 0.0);
-    const MZERO: Dekker = Dekker::new(-0.0, -0.0);
-    const PI: Dekker = Dekker::new(
+    const ZERO: DoubleDouble = DoubleDouble::new(0.0, 0.0);
+    const MZERO: DoubleDouble = DoubleDouble::new(-0.0, -0.0);
+    const PI: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3ca1a62633145c07),
         f64::from_bits(0x400921fb54442d18),
     );
-    const MPI: Dekker = Dekker::new(
+    const MPI: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0xbca1a62633145c07),
         f64::from_bits(0xc00921fb54442d18),
     );
-    const PI_OVER_2: Dekker = Dekker::new(
+    const PI_OVER_2: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3c91a62633145c07),
         f64::from_bits(0x3ff921fb54442d18),
     );
-    const MPI_OVER_2: Dekker = Dekker::new(
+    const MPI_OVER_2: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0xbc91a62633145c07),
         f64::from_bits(0xbff921fb54442d18),
     );
-    const PI_OVER_4: Dekker = Dekker::new(
+    const PI_OVER_4: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3c81a62633145c07),
         f64::from_bits(0x3fe921fb54442d18),
     );
-    const THREE_PI_OVER_4: Dekker = Dekker::new(
+    const THREE_PI_OVER_4: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3c9a79394c9e8a0a),
         f64::from_bits(0x4002d97c7f3321d2),
     );
 
     // Adjustment for constant term:
     //   CONST_ADJ[x_sign][y_sign][recip]
-    static CONST_ADJ: [[[Dekker; 2]; 2]; 2] = [
+    static CONST_ADJ: [[[DoubleDouble; 2]; 2]; 2] = [
         [[ZERO, MPI_OVER_2], [MZERO, MPI_OVER_2]],
         [[MPI, PI_OVER_2], [MPI, PI_OVER_2]],
     ];
@@ -732,7 +732,7 @@ pub fn f_atan2(y: f64, x: f64) -> f64 {
         //   0: zero
         //   1: finite, non-zero
         //   2: infinity
-        static EXCEPTS: [[[Dekker; 2]; 3]; 3] = [
+        static EXCEPTS: [[[DoubleDouble; 2]; 3]; 3] = [
             [[ZERO, PI], [ZERO, PI], [ZERO, PI]],
             [[PI_OVER_2, PI_OVER_2], [ZERO, ZERO], [ZERO, PI]],
             [
@@ -780,23 +780,23 @@ pub fn f_atan2(y: f64, x: f64) -> f64 {
     // Range reduction:
     // atan(n/d) - atan(k/64) = atan((n/d - k/64) / (1 + (n/d) * (k/64)))
     //                        = atan((n - d * k/64)) / (d + n * k/64))
-    let num_k = Dekker::from_exact_mult(num, k);
-    let den_k = Dekker::from_exact_mult(den, k);
+    let num_k = DoubleDouble::from_exact_mult(num, k);
+    let den_k = DoubleDouble::from_exact_mult(den, k);
 
     // num_dd = n - d * k
-    let num_dd = Dekker::from_exact_add(num - den_k.hi, -den_k.lo);
+    let num_dd = DoubleDouble::from_exact_add(num - den_k.hi, -den_k.lo);
     // den_dd = d + n * k
-    let mut den_dd = Dekker::from_exact_add(den, num_k.hi);
+    let mut den_dd = DoubleDouble::from_exact_add(den, num_k.hi);
     den_dd.lo += num_k.lo;
 
     // q = (n - d * k) / (d + n * k)
-    let q = Dekker::div(num_dd, den_dd);
+    let q = DoubleDouble::div(num_dd, den_dd);
     // p ~ atan(q)
     let p = atan_eval(q);
 
     let vl = ATAN_I[idx as usize];
-    let vlo = Dekker::new(f64::from_bits(vl.0), f64::from_bits(vl.1));
-    let mut r = Dekker::add(const_term, Dekker::add(vlo, p));
+    let vlo = DoubleDouble::new(f64::from_bits(vl.0), f64::from_bits(vl.1));
+    let mut r = DoubleDouble::add(const_term, DoubleDouble::add(vlo, p));
     r.hi *= final_sign;
     r.lo *= final_sign;
 

@@ -27,48 +27,48 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{dd_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
 use crate::exp2::ldexp;
 use std::hint::black_box;
 
 #[inline]
-pub(crate) fn poly_dd_6(x: Dekker, poly: [(u64, u64); 6], l: f64) -> Dekker {
+pub(crate) fn poly_dd_6(x: DoubleDouble, poly: [(u64, u64); 6], l: f64) -> DoubleDouble {
     let zch = poly[5];
     let ach = f64::from_bits(zch.0) + l;
     let acl = (f64::from_bits(zch.0) - ach) + l + f64::from_bits(zch.1);
-    let mut ch = Dekker::new(acl, ach);
+    let mut ch = DoubleDouble::new(acl, ach);
 
     let zch = poly[4];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
     ch.lo += tl + f64::from_bits(zch.1);
 
     let zch = poly[3];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
     ch.lo += tl + f64::from_bits(zch.1);
 
     let zch = poly[2];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
     ch.lo += tl + f64::from_bits(zch.1);
 
     let zch = poly[1];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
     ch.lo += tl + f64::from_bits(zch.1);
 
     let zch = poly[0];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
@@ -93,9 +93,9 @@ fn as_exp10_accurate(x: f64) -> f64 {
     let i1 = jt & 0x3f;
     let i0 = (jt >> 6) & 0x3f;
     let ie = jt >> 12;
-    let t0 = Dekker::from_bit_pair(EXP_REDUCE_T0[i0 as usize]);
-    let t1 = Dekker::from_bit_pair(EXP_REDUCE_T1[i1 as usize]);
-    let dt = Dekker::mult(t0, t1);
+    let t0 = DoubleDouble::from_bit_pair(EXP_REDUCE_T0[i0 as usize]);
+    let t1 = DoubleDouble::from_bit_pair(EXP_REDUCE_T1[i1 as usize]);
+    let dt = DoubleDouble::mult(t0, t1);
 
     const L0: f64 = f64::from_bits(0x3f13441350800000);
     const L1: f64 = f64::from_bits(0xbd1f79fef311f12b);
@@ -106,17 +106,17 @@ fn as_exp10_accurate(x: f64) -> f64 {
     let dxll = f_fmla(L2, t, dd_fmla(L1, t, -dxl));
     let dxh = dx + dxl;
     dxl = ((dx - dxh) + dxl) + dxll;
-    let mut f = poly_dd_6(Dekker::new(dxl, dxh), EXP10_POLY_DD, 0.);
-    f = Dekker::mult(Dekker::new(dxl, dxh), f);
+    let mut f = poly_dd_6(DoubleDouble::new(dxl, dxh), EXP10_POLY_DD, 0.);
+    f = DoubleDouble::mult(DoubleDouble::new(dxl, dxh), f);
 
     let mut zfh: f64;
 
     if ix < 0xc0733a7146f72a42u64 {
         if (jt & 0xfff) == 0 {
-            f = Dekker::from_exact_add(f.hi, f.lo);
-            let zt = Dekker::from_exact_add(dt.hi, f.hi);
+            f = DoubleDouble::from_exact_add(f.hi, f.lo);
+            let zt = DoubleDouble::from_exact_add(dt.hi, f.hi);
             f.hi = zt.lo;
-            f = Dekker::from_exact_add(f.hi, f.lo);
+            f = DoubleDouble::from_exact_add(f.hi, f.lo);
             ix = f.hi.to_bits();
             if (ix.wrapping_shl(12)) == 0 {
                 let l = f.lo.to_bits();
@@ -125,18 +125,18 @@ fn as_exp10_accurate(x: f64) -> f64 {
             }
             zfh = zt.hi + f64::from_bits(ix);
         } else {
-            f = Dekker::mult(f, dt);
-            f = Dekker::add(dt, f);
-            f = Dekker::from_exact_add(f.hi, f.lo);
+            f = DoubleDouble::mult(f, dt);
+            f = DoubleDouble::add(dt, f);
+            f = DoubleDouble::from_exact_add(f.hi, f.lo);
             zfh = f.hi;
         }
         zfh = ldexp(zfh, ie as i32);
     } else {
         ix = (1u64.wrapping_sub(ie as u64)) << 52;
-        f = Dekker::mult(f, dt);
-        f = Dekker::add(dt, f);
+        f = DoubleDouble::mult(f, dt);
+        f = DoubleDouble::add(dt, f);
 
-        let zt = Dekker::from_exact_add(f64::from_bits(ix), f.hi);
+        let zt = DoubleDouble::from_exact_add(f64::from_bits(ix), f.hi);
         f.hi = zt.hi;
         f.lo += zt.lo;
 
@@ -196,9 +196,9 @@ pub fn f_exp10(x: f64) -> f64 {
     let ie = jt >> 12;
     let t00 = EXP_REDUCE_T0[i0 as usize];
     let t01 = EXP_REDUCE_T1[i1 as usize];
-    let t0 = Dekker::new(f64::from_bits(t00.0), f64::from_bits(t00.1));
-    let t1 = Dekker::new(f64::from_bits(t01.0), f64::from_bits(t01.1));
-    let mut tz = Dekker::quick_mult(t0, t1);
+    let t0 = DoubleDouble::new(f64::from_bits(t00.0), f64::from_bits(t00.1));
+    let t1 = DoubleDouble::new(f64::from_bits(t01.0), f64::from_bits(t01.1));
+    let mut tz = DoubleDouble::quick_mult(t0, t1);
     const L0: f64 = f64::from_bits(0x3f13441350800000);
     const L1: f64 = f64::from_bits(0x3d1f79fef311f12b);
     let dx = f_fmla(-L1, t, f_fmla(-L0, t, x));
@@ -233,7 +233,7 @@ pub fn f_exp10(x: f64) -> f64 {
     } else {
         // x <= -307.653: exp10(x) < 2^-1022
         ix = 1u64.wrapping_sub(ie as u64).wrapping_shl(52);
-        tz = Dekker::from_exact_add(f64::from_bits(ix), fh);
+        tz = DoubleDouble::from_exact_add(f64::from_bits(ix), fh);
         fl += tz.lo;
 
         let ub = fh + (fl + EPS);

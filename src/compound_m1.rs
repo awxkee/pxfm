@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::*;
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log1p::log1p_f64_dyadic;
 use crate::log1p_dd::log1p_f64_dd;
@@ -363,7 +363,7 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
         return 0.;
     }
 
-    let r = Dekker::quick_mult_f64(l, y);
+    let r = DoubleDouble::quick_mult_f64(l, y);
     if r.hi.abs() > 1e-250 && r.hi.abs() < 70. && ey.abs() < 1050 {
         let res = pow_expm1_1(r, s);
 

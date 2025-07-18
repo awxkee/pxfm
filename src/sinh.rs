@@ -28,11 +28,11 @@
  */
 use crate::acosh::lpoly_xd_generic;
 use crate::common::{dd_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 
 #[cold]
-pub(crate) fn hyperbolic_exp_accurate(x: f64, t: f64, zt: Dekker) -> Dekker {
+pub(crate) fn hyperbolic_exp_accurate(x: f64, t: f64, zt: DoubleDouble) -> DoubleDouble {
     static CH: [(u64, u64); 3] = [
         (0x3a16c16bd194535d, 0x3ff0000000000000),
         (0xba28259d904fd34f, 0x3fe0000000000000),
@@ -54,16 +54,16 @@ pub(crate) fn hyperbolic_exp_accurate(x: f64, t: f64, zt: Dekker) -> Dekker {
     );
 
     let fl = dxh * f_fmla(dxh, fl0, f64::from_bits(0x3fa5555555555555));
-    let mut f = lpoly_xd_generic(Dekker::new(dxl, dxh), CH, fl);
-    f = Dekker::mult(Dekker::new(dxl, dxh), f);
-    f = Dekker::mult(zt, f);
+    let mut f = lpoly_xd_generic(DoubleDouble::new(dxl, dxh), CH, fl);
+    f = DoubleDouble::mult(DoubleDouble::new(dxl, dxh), f);
+    f = DoubleDouble::mult(zt, f);
     let zh = zt.hi + f.hi;
     let zl = (zt.hi - zh) + f.hi;
     let uh = zh + zt.lo;
     let ul = ((zh - uh) + zt.lo) + zl;
     let vh = uh + f.lo;
     let vl = ((uh - vh) + f.lo) + ul;
-    Dekker::new(vl, vh)
+    DoubleDouble::new(vl, vh)
 }
 
 #[cold]
@@ -85,11 +85,11 @@ fn as_sinh_zero(x: f64) -> f64 {
     );
 
     let y2 = x2 * f_fmla(x2, yw0, f64::from_bits(0x3de6124613aef206));
-    let mut y1 = lpoly_xd_generic(Dekker::new(x2l, x2), CH, y2);
-    y1 = Dekker::mult_f64(y1, x);
-    y1 = Dekker::mult(y1, Dekker::new(x2l, x2)); // y2 = y1.l
-    let y0 = Dekker::from_exact_add(x, y1.hi); // y0 = y0.hi
-    let mut p = Dekker::from_exact_add(y0.lo, y1.lo);
+    let mut y1 = lpoly_xd_generic(DoubleDouble::new(x2l, x2), CH, y2);
+    y1 = DoubleDouble::mult_f64(y1, x);
+    y1 = DoubleDouble::mult(y1, DoubleDouble::new(x2l, x2)); // y2 = y1.l
+    let y0 = DoubleDouble::from_exact_add(x, y1.hi); // y0 = y0.hi
+    let mut p = DoubleDouble::from_exact_add(y0.lo, y1.lo);
     let mut t = p.hi.to_bits();
     if (t & 0x000fffffffffffff) == 0 {
         let w = p.lo.to_bits();
@@ -220,8 +220,8 @@ pub fn f_sinh(x: f64) -> f64 {
             if lb == ub {
                 return (lb * f64::from_bits(sp)) * 2.;
             }
-            let mut tt = hyperbolic_exp_accurate(ax, t, Dekker::new(tl, th));
-            tt = Dekker::from_exact_add(tt.hi, tt.lo);
+            let mut tt = hyperbolic_exp_accurate(ax, t, DoubleDouble::new(tl, th));
+            tt = DoubleDouble::from_exact_add(tt.hi, tt.lo);
             th = tt.hi;
             tl = tt.lo;
             th *= f64::copysign(1., x);
@@ -256,7 +256,7 @@ pub fn f_sinh(x: f64) -> f64 {
             return lb;
         }
 
-        let tt = hyperbolic_exp_accurate(ax, t, Dekker::new(tl, th));
+        let tt = hyperbolic_exp_accurate(ax, t, DoubleDouble::new(tl, th));
         th = tt.hi;
         tl = tt.lo;
         if aix > 0x403f666666666666u64 {
@@ -269,7 +269,7 @@ pub fn f_sinh(x: f64) -> f64 {
             let mut ql = f_fmla(q0h, q1l, q1h * q0l) + dd_fmla(q0h, q1h, -qh);
             qh *= f64::from_bits(sm);
             ql *= f64::from_bits(sm);
-            let qq = hyperbolic_exp_accurate(-ax, -t, Dekker::new(ql, qh));
+            let qq = hyperbolic_exp_accurate(-ax, -t, DoubleDouble::new(ql, qh));
             rh = th - qq.hi;
             rl = (((th - rh) - qq.hi) - qq.lo) + tl;
         }
@@ -306,12 +306,12 @@ pub fn f_sinh(x: f64) -> f64 {
         if lb == ub {
             return lb;
         }
-        let tt = hyperbolic_exp_accurate(ax, t, Dekker::new(tl, th));
-        let qq = hyperbolic_exp_accurate(-ax, -t, Dekker::new(ql, qh));
+        let tt = hyperbolic_exp_accurate(ax, t, DoubleDouble::new(tl, th));
+        let qq = hyperbolic_exp_accurate(-ax, -t, DoubleDouble::new(ql, qh));
         rh = tt.hi - qq.hi;
         rl = ((tt.hi - rh) - qq.hi) - qq.lo + tt.lo;
     }
-    let r = Dekker::from_exact_add(rh, rl);
+    let r = DoubleDouble::from_exact_add(rh, rl);
     rh = r.hi;
     rl = r.lo;
     rh *= f64::copysign(1., x);

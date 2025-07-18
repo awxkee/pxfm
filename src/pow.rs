@@ -28,7 +28,7 @@
  */
 use crate::bits::{EXP_MASK, get_exponent_f64};
 use crate::common::dd_fmla;
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exp::exp;
 use crate::log::{log, log_dyadic};
@@ -154,7 +154,7 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
                 }
                 // not enough precision to make 0.5 ULP for huge subnormals
                 if x_e.abs() < 70 {
-                    let x_sqr = Dekker::from_exact_mult(x, x);
+                    let x_sqr = DoubleDouble::from_exact_mult(x, x);
                     return if y_sign {
                         let recip = x_sqr.recip();
                         recip.to_f64()
@@ -333,7 +333,7 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
         l.hi = f64::NAN;
     }
 
-    let r = Dekker::quick_mult_f64(l, y);
+    let r = DoubleDouble::quick_mult_f64(l, y);
     let res = pow_exp_1(r, s);
     static ERR: [u64; 2] = [0x3bf2700000000000, 0x3c55700000000000];
     let res_min = res.hi + dd_fmla(f64::from_bits(ERR[cancel as usize]), -res.hi, res.lo);

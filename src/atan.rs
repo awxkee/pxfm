@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 
 pub(crate) static ATAN_CIRCLE: [[u16; 3]; 31] = [
     [419, 81, 0],
@@ -196,21 +196,21 @@ pub(crate) static ATAN_REDUCE: [(u64, u64); 129] = [
 ];
 
 #[inline]
-pub(crate) fn poly_dd_3(x: Dekker, poly: [(u64, u64); 3], l: f64) -> Dekker {
+pub(crate) fn poly_dd_3(x: DoubleDouble, poly: [(u64, u64); 3], l: f64) -> DoubleDouble {
     let zch = poly[2];
     let ach = f64::from_bits(zch.0) + l;
     let acl = (f64::from_bits(zch.0) - ach) + l + f64::from_bits(zch.1);
-    let mut ch = Dekker::new(acl, ach);
+    let mut ch = DoubleDouble::new(acl, ach);
 
     let zch = poly[1];
-    ch = Dekker::quick_mult(ch, x);
+    ch = DoubleDouble::quick_mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
     ch.lo += tl + f64::from_bits(zch.1);
 
     let zch = poly[0];
-    ch = Dekker::quick_mult(ch, x);
+    ch = DoubleDouble::quick_mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
@@ -234,9 +234,9 @@ fn atan_refine(x: f64, a: f64) -> f64 {
     ];
     let phi = f_fmla(a.abs(), f64::from_bits(0x40545f306dc9c883), 256.5).to_bits();
     let i = ((phi >> (52 - 8)) & 0xff) as i64;
-    let h: Dekker = if i == 128 {
+    let h: DoubleDouble = if i == 128 {
         let hz = -1.0 / x;
-        Dekker::new(dd_fmla(hz, x, 1.) * hz, -1.0 / x)
+        DoubleDouble::new(dd_fmla(hz, x, 1.) * hz, -1.0 / x)
     } else {
         let ta = f64::copysign(f64::from_bits(ATAN_REDUCE[i as usize].0), x);
         let zta = x * ta;
@@ -249,10 +249,10 @@ fn atan_refine(x: f64, a: f64) -> f64 {
         let rl = f_fmla(-ev, r, dd_fmla(r, -v, 1.0)) * r;
         let hz = r * zmta;
         let hl = f_fmla(rl, zmta, dd_fmla(r, zmta, -hz));
-        Dekker::new(hl, hz)
+        DoubleDouble::new(hl, hz)
     };
-    let h2 = Dekker::mult(h, h);
-    let h3 = Dekker::mult(h, h2);
+    let h2 = DoubleDouble::mult(h, h);
+    let h3 = DoubleDouble::mult(h, h2);
     let h4 = h2.hi * h2.hi;
 
     let zw0 = f_fmla(h2.hi, f64::from_bits(CL[3]), f64::from_bits(CL[2]));
@@ -260,7 +260,7 @@ fn atan_refine(x: f64, a: f64) -> f64 {
     let zfl = f_fmla(h2.hi, zw1, h4 * zw0);
 
     let mut f = poly_dd_3(h2, CH, zfl);
-    f = Dekker::mult(h3, f);
+    f = DoubleDouble::mult(h3, f);
     let (ah, mut az);
     if i == 0 {
         ah = h.hi;
@@ -272,16 +272,16 @@ fn atan_refine(x: f64, a: f64) -> f64 {
         }
         let id = f64::copysign(i as f64, x);
         ah = f64::from_bits(0x3f8921fb54442d00) * id;
-        az = Dekker::new(
+        az = DoubleDouble::new(
             f64::from_bits(0xb97fc8f8cbb5bf80) * id,
             f64::from_bits(0x3c88469898cc5180) * id,
         );
-        az = Dekker::add(az, Dekker::new(0., df));
-        az = Dekker::add(az, h);
-        az = Dekker::add(az, f);
+        az = DoubleDouble::add(az, DoubleDouble::new(0., df));
+        az = DoubleDouble::add(az, h);
+        az = DoubleDouble::add(az, f);
     }
-    let v0 = Dekker::from_exact_add(ah, az.hi);
-    let v1 = Dekker::from_exact_add(v0.lo, az.lo);
+    let v0 = DoubleDouble::from_exact_add(ah, az.hi);
+    let v1 = DoubleDouble::from_exact_add(v0.lo, az.lo);
 
     v1.hi + v0.hi
 }

@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, min_normal_f64};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log_range_reduction::log_range_reduction;
 use crate::log2_dyadic::{LOG2_STEP_1, LOG2_STEP_2, LOG2_STEP_3, LOG2_STEP_4};
@@ -571,7 +571,7 @@ pub fn f_log2(x: f64) -> f64 {
     // Exact sum:
     let log_vals = LOG_R1[index as usize];
 
-    r1 = Dekker::from_exact_add(f64::from_bits(log_vals.1), u);
+    r1 = DoubleDouble::from_exact_add(f64::from_bits(log_vals.1), u);
 
     // Error of u_sq = ulp(u^2);
     let u_sq = u * u;
@@ -600,12 +600,12 @@ pub fn f_log2(x: f64) -> f64 {
     // with error bounded by:
     //   4*ulp( ulp(r2.hi) )
 
-    const LOG2_E: Dekker = Dekker::new(
+    const LOG2_E: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3c7777d0ffda0d24),
         f64::from_bits(0x3ff71547652b82fe),
     );
-    let r2 = Dekker::quick_mult(r1, LOG2_E);
-    let mut r3 = Dekker::from_exact_add(e_x, r2.hi);
+    let r2 = DoubleDouble::quick_mult(r1, LOG2_E);
+    let mut r3 = DoubleDouble::from_exact_add(e_x, r2.hi);
     r3.lo += r2.lo;
 
     // Overall, if we choose sufficiently large constant C, the total error is

@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::dd_fmla;
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::log1p::log1p_f64_dyadic;
 use crate::log1p_dd::log1p_f64_dd;
@@ -125,7 +125,7 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
                 if x == 0.0 {
                     return 1.0;
                 }
-                let z = Dekker::from_full_exact_add(x, 1.0).sqrt();
+                let z = DoubleDouble::from_full_exact_add(x, 1.0).sqrt();
                 return if y_sign {
                     z.recip().to_f64()
                 } else {
@@ -142,12 +142,12 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
                     let z = DyadicFloat128::new_from_f64(x) + ONES;
                     z.reciprocal().fast_as_f64()
                 } else {
-                    Dekker::from_full_exact_add(x, 1.0).to_f64()
+                    DoubleDouble::from_full_exact_add(x, 1.0).to_f64()
                 };
             }
             0x4000_0000_0000_0000 => {
-                let z0 = Dekker::from_full_exact_add(x, 1.0);
-                let z = Dekker::quick_mult(z0, z0);
+                let z0 = DoubleDouble::from_full_exact_add(x, 1.0);
+                let z = DoubleDouble::quick_mult(z0, z0);
                 return if y_sign {
                     z.recip().to_f64()
                 } else {
@@ -300,12 +300,12 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
 
     // evaluate (1+x)^y explicitly for integer y in [-16,16] range and |x|<2^64
     if y.floor() == y && ay <= 0x4030_0000_0000_0000u64 && ax <= 0x43e0_0000_0000_0000u64 {
-        let s = Dekker::from_full_exact_add(1.0, x);
+        let s = DoubleDouble::from_full_exact_add(1.0, x);
         let iter_count = y.abs() as usize;
 
         let mut p = s;
         for _ in 0..iter_count - 1 {
-            p = Dekker::mult(p, s);
+            p = DoubleDouble::mult(p, s);
         }
 
         return if y.is_sign_negative() {
@@ -324,7 +324,7 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         return compound_accurate(x, y, s);
     }
 
-    let r = Dekker::quick_mult_f64(l, y);
+    let r = DoubleDouble::quick_mult_f64(l, y);
     if r.hi.abs() > 1e-250 && r.hi.abs() < 100. {
         let res = pow_exp_dd(r, s);
         let res_min = res.hi + dd_fmla(f64::from_bits(0x3c99400000000000), -res.hi, res.lo);

@@ -28,34 +28,34 @@
  */
 use crate::atan::poly_dd_3;
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::sincospi_tables::{
     SINCOS_PI_CM2, SINCOS_PI_SM2, SINCOS_PI_SN2, SINPI_CM1, SINPI_SM1, SINPI_SN1,
 };
 
 #[inline]
-pub(crate) fn poly_dd_4(x: Dekker, poly: [(u64, u64); 4], l: f64) -> Dekker {
+pub(crate) fn poly_dd_4(x: DoubleDouble, poly: [(u64, u64); 4], l: f64) -> DoubleDouble {
     let zch = poly[3];
     let ach = f64::from_bits(zch.0) + l;
     let acl = (f64::from_bits(zch.0) - ach) + l + f64::from_bits(zch.1);
-    let mut ch = Dekker::new(acl, ach);
+    let mut ch = DoubleDouble::new(acl, ach);
 
     let zch = poly[2];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
     ch.lo += tl + f64::from_bits(zch.1);
 
     let zch = poly[1];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
     ch.lo += tl + f64::from_bits(zch.1);
 
     let zch = poly[0];
-    ch = Dekker::mult(ch, x);
+    ch = DoubleDouble::mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
@@ -65,7 +65,7 @@ pub(crate) fn poly_dd_4(x: Dekker, poly: [(u64, u64); 4], l: f64) -> Dekker {
 }
 
 #[inline]
-fn sincosn(s: i32) -> (Dekker, Dekker) {
+fn sincosn(s: i32) -> (DoubleDouble, DoubleDouble) {
     let mut j: i32 = s & 0x3ff;
     let it: i32 = -((s >> 10) & 1);
     j = (!it & j).wrapping_sub(it << 10).wrapping_sub(it & j);
@@ -75,10 +75,10 @@ fn sincosn(s: i32) -> (Dekker, Dekker) {
     let ss = (s >> 11) & 1;
     let sc = ((s.wrapping_add(1024)) >> 11) & 1;
 
-    let dsb = Dekker::from_bit_pair(SINPI_SN1[is as usize]);
-    let dcb = Dekker::from_bit_pair(SINPI_SN1[ic as usize]);
-    let dsl = Dekker::from_bit_pair(SINPI_SM1[jm as usize]);
-    let dcl = Dekker::from_bit_pair(SINPI_CM1[jm as usize]);
+    let dsb = DoubleDouble::from_bit_pair(SINPI_SN1[is as usize]);
+    let dcb = DoubleDouble::from_bit_pair(SINPI_SN1[ic as usize]);
+    let dsl = DoubleDouble::from_bit_pair(SINPI_SM1[jm as usize]);
+    let dcl = DoubleDouble::from_bit_pair(SINPI_CM1[jm as usize]);
 
     let sb = dsb.to_f64();
     let cb = dcb.to_f64();
@@ -107,13 +107,13 @@ fn sincosn(s: i32) -> (Dekker, Dekker) {
 
     sh = f64::copysign(1.0, sign_s) * tsh;
     sl = f64::copysign(1.0, sign_s) * tsl;
-    let t_sin = Dekker::new(sl, sh);
-    let t_cos = Dekker::new(cl, ch);
+    let t_sin = DoubleDouble::new(sl, sh);
+    let t_cos = DoubleDouble::new(cl, ch);
     (t_sin, t_cos)
 }
 
 #[inline]
-fn sincosn2(s: i32) -> (Dekker, Dekker) {
+fn sincosn2(s: i32) -> (DoubleDouble, DoubleDouble) {
     let mut j: i32 = s & 0x3ff;
     let it: i32 = -((s >> 10) & 1);
     j = (!it & j).wrapping_sub(it << 10).wrapping_sub(it & j);
@@ -123,20 +123,20 @@ fn sincosn2(s: i32) -> (Dekker, Dekker) {
     let ass = (s >> 11) & 1;
     let asc = ((s.wrapping_add(1024)) >> 11) & 1;
 
-    let sb = Dekker::from_bit_pair(SINCOS_PI_SN2[is as usize]);
-    let cb = Dekker::from_bit_pair(SINCOS_PI_SN2[ic as usize]);
-    let sl = Dekker::from_bit_pair(SINCOS_PI_SM2[jm as usize]);
-    let cl = Dekker::from_bit_pair(SINCOS_PI_CM2[jm as usize]);
+    let sb = DoubleDouble::from_bit_pair(SINCOS_PI_SN2[is as usize]);
+    let cb = DoubleDouble::from_bit_pair(SINCOS_PI_SN2[ic as usize]);
+    let sl = DoubleDouble::from_bit_pair(SINCOS_PI_SM2[jm as usize]);
+    let cl = DoubleDouble::from_bit_pair(SINCOS_PI_CM2[jm as usize]);
 
-    let cc = Dekker::quick_mult(cl, cb);
-    let ss = Dekker::quick_mult(sl, sb);
-    let cs = Dekker::quick_mult(cl, sb);
-    let sc = Dekker::quick_mult(sl, cb);
+    let cc = DoubleDouble::quick_mult(cl, cb);
+    let ss = DoubleDouble::quick_mult(sl, sb);
+    let cs = DoubleDouble::quick_mult(cl, sb);
+    let sc = DoubleDouble::quick_mult(sl, cb);
 
-    let tc = Dekker::add(ss, cc);
-    let ts = Dekker::add(Dekker::new(-sc.lo, -sc.hi), cs);
-    let mut tc2 = Dekker::add(cb, Dekker::new(-tc.lo, -tc.hi));
-    let mut ts2 = Dekker::add(sb, Dekker::new(-ts.lo, -ts.hi));
+    let tc = DoubleDouble::add(ss, cc);
+    let ts = DoubleDouble::add(DoubleDouble::new(-sc.lo, -sc.hi), cs);
+    let mut tc2 = DoubleDouble::add(cb, DoubleDouble::new(-tc.lo, -tc.hi));
+    let mut ts2 = DoubleDouble::add(sb, DoubleDouble::new(-ts.lo, -ts.hi));
 
     let sgb_c = if asc == 1 { -0.0 } else { 0.0 };
     tc2.hi *= f64::copysign(1.0, sgb_c);
@@ -148,14 +148,14 @@ fn sincosn2(s: i32) -> (Dekker, Dekker) {
 }
 
 #[inline]
-pub(crate) fn poly_dd_2(x: Dekker, poly: [(u64, u64); 2], l: f64) -> Dekker {
+pub(crate) fn poly_dd_2(x: DoubleDouble, poly: [(u64, u64); 2], l: f64) -> DoubleDouble {
     let zch = poly[1];
     let ach = f64::from_bits(zch.0) + l;
     let acl = (f64::from_bits(zch.0) - ach) + l + f64::from_bits(zch.1);
-    let mut ch = Dekker::new(acl, ach);
+    let mut ch = DoubleDouble::new(acl, ach);
 
     let zch = poly[0];
-    ch = Dekker::quick_mult(ch, x);
+    ch = DoubleDouble::quick_mult(ch, x);
     let th = ch.hi + f64::from_bits(zch.0);
     let tl = (f64::from_bits(zch.0) - th) + ch.hi;
     ch.hi = th;
@@ -173,10 +173,10 @@ fn as_cospi_zero(x: f64) -> f64 {
     ];
     const CL: [u64; 2] = [0xbff55d3c7e3cbff9, 0x3fce1f50604fa0ff];
     let fl = x2 * f_fmla(x2, f64::from_bits(CL[1]), f64::from_bits(CL[0]));
-    let mut f = poly_dd_2(Dekker::new(dx2, x2), CH, fl);
-    f = Dekker::mult(Dekker::new(dx2, x2), f);
-    let y = Dekker::from_exact_add(1., f.hi);
-    let mut y1 = Dekker::from_exact_add(y.lo, fl);
+    let mut f = poly_dd_2(DoubleDouble::new(dx2, x2), CH, fl);
+    f = DoubleDouble::mult(DoubleDouble::new(dx2, x2), f);
+    let y = DoubleDouble::from_exact_add(1., f.hi);
+    let mut y1 = DoubleDouble::from_exact_add(y.lo, fl);
     let mut t = y1.hi.to_bits();
     if (t & 0x000fffffffffffff) == 0 {
         let w = y1.lo.to_bits();
@@ -207,8 +207,8 @@ fn as_sinpi_zero(x: f64) -> f64 {
     let fl0 = f_fmla(x2, f64::from_bits(CL[2]), f64::from_bits(CL[1]));
 
     let fl = x2 * f_fmla(x2, fl0, f64::from_bits(CL[0]));
-    let mut f = poly_dd_4(Dekker::new(dx2, x2), CH, fl);
-    f = Dekker::mult(Dekker::new(dx3, x3), f);
+    let mut f = poly_dd_4(DoubleDouble::new(dx2, x2), CH, fl);
+    f = DoubleDouble::mult(DoubleDouble::new(dx3, x3), f);
     const PI0: f64 = f64::from_bits(0x4009200000000000);
     const PI1: f64 = f64::from_bits(0x3f4fb54442d1846a);
     const PI2: f64 = f64::from_bits(0xbbed9cceba3f91f2);
@@ -219,10 +219,10 @@ fn as_sinpi_zero(x: f64) -> f64 {
     let y0l = dd_fmla(PI0, x, -y0);
     let y1 = PI1 * x;
     let y2 = f_fmla(PI2, x, dd_fmla(PI1, x, -y1));
-    let mut y = Dekker::add(Dekker::new(y2, y1), Dekker::new(0., y0l));
-    y = Dekker::add(y, f);
-    let k0 = Dekker::from_full_exact_add(y.hi, y0);
-    let mut k1 = Dekker::from_full_exact_add(k0.lo, y.lo);
+    let mut y = DoubleDouble::add(DoubleDouble::new(y2, y1), DoubleDouble::new(0., y0l));
+    y = DoubleDouble::add(y, f);
+    let k0 = DoubleDouble::from_full_exact_add(y.hi, y0);
+    let mut k1 = DoubleDouble::from_full_exact_add(k0.lo, y.lo);
 
     let mut t = k1.hi.to_bits();
     if (t & 0x000fffffffffffff) == 0 {
@@ -252,24 +252,24 @@ fn as_sinpi_refine(iq: i32, z: f64) -> f64 {
         (0x3d103c1f081b5ac4, 0xb9b32b33fda9113c),
     ];
     let mut sl = poly_dd_3(
-        Dekker::new(dx2, x2),
+        DoubleDouble::new(dx2, x2),
         SH,
         f64::from_bits(0xbb632d2cc920dcb4) * x2,
     );
-    sl = Dekker::mult_f64(sl, x * f64::from_bits(0x3f30000000000000));
+    sl = DoubleDouble::mult_f64(sl, x * f64::from_bits(0x3f30000000000000));
     let cll0 = x2
         * f_fmla(
             f64::from_bits(0x39ce1f50604fa0ff),
             x2,
             f64::from_bits(0xbb755d3c7e3cbff9),
         );
-    let mut cl = poly_dd_2(Dekker::new(dx2, x2), CH, cll0);
-    cl = Dekker::mult(cl, Dekker::new(dx2, x2));
+    let mut cl = poly_dd_2(DoubleDouble::new(dx2, x2), CH, cll0);
+    cl = DoubleDouble::mult(cl, DoubleDouble::new(dx2, x2));
     let (sb, cb) = sincosn2(iq);
-    let cs = Dekker::mult(cl, sb);
-    let sc = Dekker::mult(sl, cb);
-    let mut ts = Dekker::add(sc, cs);
-    ts = Dekker::add(sb, ts);
+    let cs = DoubleDouble::mult(cl, sb);
+    let sc = DoubleDouble::mult(sl, cb);
+    let mut ts = DoubleDouble::add(sc, cs);
+    ts = DoubleDouble::add(sb, ts);
     ts.to_f64()
 }
 
@@ -312,7 +312,7 @@ pub fn f_sinpi(x: f64) -> f64 {
 
     if ax <= 0x3fa2000000000000u64 {
         // |x| <= 0.03515625
-        let p = Dekker::new(
+        let p = DoubleDouble::new(
             f64::from_bits(0x3ca1a62633145c07),
             f64::from_bits(0x400921fb54442d18),
         );

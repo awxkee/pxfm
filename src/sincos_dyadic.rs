@@ -28,7 +28,7 @@
  */
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::polyeval::f_polyeval7;
-use crate::sin::ONE_TWENTY_EIGHT_OVER_PI;
+use crate::sincos_reduce_tables::ONE_TWENTY_EIGHT_OVER_PI;
 
 pub(crate) fn range_reduction_small_f128(x: f64) -> DyadicFloat128 {
     const PI_OVER_128_F128: DyadicFloat128 = DyadicFloat128 {

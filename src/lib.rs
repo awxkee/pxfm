@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#![forbid(unsafe_code)]
+// #![forbid(unsafe_code)]
 #![deny(unreachable_pub)]
 #![allow(
     clippy::excessive_precision,
@@ -74,8 +74,9 @@ mod compoundf;
 mod cosf;
 mod cosh;
 mod coshf;
-mod dekker;
+mod double_double;
 mod dyadic_float;
+mod dyadic_float256;
 mod erf;
 mod erf_poly;
 mod erfc;
@@ -97,6 +98,9 @@ mod floor;
 mod hypot;
 mod hypotf;
 mod j1;
+mod j1_coeffs;
+mod j1f;
+mod j1f_coeffs;
 mod log;
 mod log10;
 mod log10_dyadic;
@@ -132,6 +136,8 @@ mod sinc;
 mod sincf;
 mod sincos;
 mod sincos_dyadic;
+mod sincos_reduce;
+mod sincos_reduce_tables;
 mod sincosf;
 mod sincospi;
 mod sincospi_tables;
@@ -148,6 +154,7 @@ mod tanpi;
 mod tanpif;
 mod triple_double;
 mod trunc;
+mod u256;
 
 pub use acos::f_acos;
 pub use acosf::f_acosf;
@@ -202,6 +209,7 @@ pub use floor::{floor, floorf};
 pub use hypot::f_hypot;
 pub use hypotf::{f_hypot3f, f_hypotf};
 pub use j1::f_j1;
+pub use j1f::f_j1f;
 pub use log::{f_log, log};
 pub use log1p::f_log1p;
 pub use log1pf::f_log1pf;

@@ -28,9 +28,9 @@
  */
 use crate::atan::{ATAN_CIRCLE, ATAN_REDUCE, poly_dd_3};
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 
-const ONE_OVER_PI_DD: Dekker = Dekker::new(
+const ONE_OVER_PI_DD: DoubleDouble = DoubleDouble::new(
     f64::from_bits(0xbc76b01ec5417056),
     f64::from_bits(0x3fd45f306dc9c883),
 );
@@ -108,14 +108,14 @@ fn atanpi_asympt(x: f64) -> f64 {
     let yh = 1.0 / x;
     // Newton's iteration for the inverse is y = y + y*(1-x*y)
     let yl = yh * dd_fmla(yh, -x, 1.0);
-    let mut m = Dekker::mult(Dekker::new(yl, yh), ONE_OVER_PI_DD);
+    let mut m = DoubleDouble::mult(DoubleDouble::new(yl, yh), ONE_OVER_PI_DD);
     // m + l ~ 1/pi * 1/x
     m.hi = -m.hi;
     m.lo = dd_fmla(ONE_OVER_3PI * yh, yh * yh, -m.lo);
     // m + l ~ - 1/pi * 1/x + 1/(3pi) * 1/x^3
-    let vh = Dekker::from_exact_add(h, m.hi);
+    let vh = DoubleDouble::from_exact_add(h, m.hi);
     m.hi = vh.hi;
-    m = Dekker::from_exact_add(vh.lo, m.lo);
+    m = DoubleDouble::from_exact_add(vh.lo, m.lo);
     if m.hi.abs() == f64::from_bits(0x3c80000000000000) {
         // this is 1/2 ulp(atan(x))
         m.hi = if m.hi * m.lo > 0. {
@@ -174,16 +174,16 @@ fn as_atan_refine2(x: f64, a: f64) -> f64 {
         h = r * zmta;
         hl = f_fmla(rl, zmta, dd_fmla(r, zmta, -h));
     }
-    let d2 = Dekker::mult(Dekker::new(hl, h), Dekker::new(hl, h));
+    let d2 = DoubleDouble::mult(DoubleDouble::new(hl, h), DoubleDouble::new(hl, h));
     let h4 = d2.hi * d2.hi;
-    let h3 = Dekker::mult(Dekker::new(hl, h), d2);
+    let h3 = DoubleDouble::mult(DoubleDouble::new(hl, h), d2);
 
     let fl0 = f_fmla(d2.hi, f64::from_bits(CL[1]), f64::from_bits(CL[0]));
     let fl1 = f_fmla(d2.hi, f64::from_bits(CL[3]), f64::from_bits(CL[2]));
 
     let fl = d2.hi * f_fmla(h4, fl1, fl0);
     let mut f = poly_dd_3(d2, CH, fl);
-    f = Dekker::mult(h3, f);
+    f = DoubleDouble::mult(h3, f);
     let (ah, mut al, mut at);
     if i == 0 {
         ah = h;
@@ -198,17 +198,17 @@ fn as_atan_refine2(x: f64, a: f64) -> f64 {
         ah = f64::from_bits(0x3f8921fb54442d00) * id;
         al = f64::from_bits(0x3c88469898cc5180) * id;
         at = f64::from_bits(0xb97fc8f8cbb5bf80) * id;
-        let v0 = Dekker::add(Dekker::new(at, al), Dekker::new(0., df));
-        let v1 = Dekker::add(v0, Dekker::new(hl, h));
-        let v2 = Dekker::add(v1, f);
+        let v0 = DoubleDouble::add(DoubleDouble::new(at, al), DoubleDouble::new(0., df));
+        let v1 = DoubleDouble::add(v0, DoubleDouble::new(hl, h));
+        let v2 = DoubleDouble::add(v1, f);
         al = v2.hi;
         at = v2.lo;
     }
 
-    let v2 = Dekker::from_exact_add(ah, al);
-    let v1 = Dekker::from_exact_add(v2.lo, at);
+    let v2 = DoubleDouble::from_exact_add(ah, al);
+    let v1 = DoubleDouble::from_exact_add(v2.lo, at);
 
-    let z0 = Dekker::quick_mult(Dekker::new(v1.hi, v2.hi), ONE_OVER_PI_DD);
+    let z0 = DoubleDouble::quick_mult(DoubleDouble::new(v1.hi, v2.hi), ONE_OVER_PI_DD);
     // atanpi_end
     z0.to_f64()
 }
@@ -257,7 +257,7 @@ pub fn f_atanpi(x: f64) -> f64 {
         we have |f| < 2^-16*|x|, thus the error is bounded by
         0x1.6fp-52*2^-16*|x| < 0x1.6fp-68. */
         // multiply x + f by 1/pi
-        let hy = Dekker::quick_mult(Dekker::new(f, x), ONE_OVER_PI_DD);
+        let hy = DoubleDouble::quick_mult(DoubleDouble::new(f, x), ONE_OVER_PI_DD);
         /* The rounding error in muldd and the approximation error between
         1/pi and ONE_OVER_PIH + ONE_OVER_PIL are covered by the difference
         between 0x4.8p-52*pi and 0x1.6fp-52, which is > 2^-61.8. */
@@ -272,7 +272,7 @@ pub fn f_atanpi(x: f64) -> f64 {
     }
     // now |x| >= 0x1.b21c475e6362ap-8
     let h;
-    let mut a: Dekker;
+    let mut a: DoubleDouble;
     if at > 0x4062ded8e34a9035u64 {
         // |x| > 0x1.2ded8e34a9035p+7, atanpi|x| > 0.49789
         if at >= 0x43445f306dc9c883u64 {
@@ -288,7 +288,7 @@ pub fn f_atanpi(x: f64) -> f64 {
             return f64::copysign(0.5, x) - f64::copysign(f64::from_bits(0x3c70000000000000), x);
         }
         h = -1.0 / x;
-        a = Dekker::new(
+        a = DoubleDouble::new(
             f64::copysign(f64::from_bits(0x3c91a62633145c07), x),
             f64::copysign(f64::from_bits(0x3ff921fb54442d18), x),
         );
@@ -310,7 +310,7 @@ pub fn f_atanpi(x: f64) -> f64 {
         let ta = f64::copysign(1.0, x) * f64::from_bits(va.0);
         let id = f64::copysign(1.0, x) * i as f64;
         h = (x - ta) / (1. + x * ta);
-        a = Dekker::new(
+        a = DoubleDouble::new(
             f64::copysign(1.0, x) * f64::from_bits(va.1) + f64::from_bits(0x3c88469898cc5170) * id,
             f64::from_bits(0x3f8921fb54442d00) * id,
         );
@@ -330,8 +330,8 @@ pub fn f_atanpi(x: f64) -> f64 {
     below. */
     let e0 = h * f64::from_bits(0x3ccf800000000000); // original value in atan.c
     let ub0 = (a.lo + e0) + a.hi; // original value in atan.c
-    a = Dekker::from_exact_add(a.hi, a.lo);
-    a = Dekker::quick_mult(a, ONE_OVER_PI_DD);
+    a = DoubleDouble::from_exact_add(a.hi, a.lo);
+    a = DoubleDouble::quick_mult(a, ONE_OVER_PI_DD);
     /* The rounding error in muldd() and the approximation error between 1/pi
     and ONE_OVER_PIH+ONE_OVER_PIL are absorbed when rounding up 0x3.fp-52*pi
     to 0x1.41p-52. */

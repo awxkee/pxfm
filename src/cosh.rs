@@ -28,7 +28,7 @@
  */
 use crate::acosh::lpoly_xd_generic;
 use crate::common::{dd_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 use crate::sinh::hyperbolic_exp_accurate;
 
@@ -54,10 +54,10 @@ fn as_cosh_zero(x: f64) -> f64 {
 
     let y2 = x2 * f_fmla(x2, yw1, f64::from_bits(CL[0]));
 
-    let mut y1 = lpoly_xd_generic(Dekker::new(x2l, x2), CH, y2);
-    y1 = Dekker::mult(y1, Dekker::new(x2l, x2)); // y2 = y1.l
-    let y0 = Dekker::from_exact_add(1.0, y1.hi); // y0 = y0.hi
-    let mut p = Dekker::from_exact_add(y0.lo, y1.lo);
+    let mut y1 = lpoly_xd_generic(DoubleDouble::new(x2l, x2), CH, y2);
+    y1 = DoubleDouble::mult(y1, DoubleDouble::new(x2l, x2)); // y2 = y1.l
+    let y0 = DoubleDouble::from_exact_add(1.0, y1.hi); // y0 = y0.hi
+    let mut p = DoubleDouble::from_exact_add(y0.lo, y1.lo);
     let mut t = p.hi.to_bits();
     if (t & 0x000fffffffffffff) == 0 {
         let w = p.lo.to_bits();
@@ -186,8 +186,8 @@ pub fn f_cosh(x: f64) -> f64 {
                 return (lb * f64::from_bits(sp)) * 2.;
             }
 
-            let mut tt = hyperbolic_exp_accurate(ax, t, Dekker::new(tl, th));
-            tt = Dekker::from_exact_add(tt.hi, tt.lo);
+            let mut tt = hyperbolic_exp_accurate(ax, t, DoubleDouble::new(tl, th));
+            tt = DoubleDouble::from_exact_add(tt.hi, tt.lo);
             th = tt.hi;
             tl = tt.lo;
             th += tl;
@@ -216,7 +216,7 @@ pub fn f_cosh(x: f64) -> f64 {
         if lb == ub {
             return lb;
         }
-        let tt = hyperbolic_exp_accurate(ax, t, Dekker::new(tl, th));
+        let tt = hyperbolic_exp_accurate(ax, t, DoubleDouble::new(tl, th));
         th = tt.hi;
         tl = tt.lo;
         if aix > 0x403f666666666666u64 {
@@ -229,7 +229,7 @@ pub fn f_cosh(x: f64) -> f64 {
             let mut ql = f_fmla(q0h, q1l, q1h * q0l) + dd_fmla(q0h, q1h, -qh);
             qh *= f64::from_bits(sm);
             ql *= f64::from_bits(sm);
-            let qq = hyperbolic_exp_accurate(-ax, -t, Dekker::new(ql, qh));
+            let qq = hyperbolic_exp_accurate(-ax, -t, DoubleDouble::new(ql, qh));
             qh = qq.hi;
             ql = qq.lo;
             rh = th + qh;
@@ -266,12 +266,12 @@ pub fn f_cosh(x: f64) -> f64 {
         if lb == ub {
             return lb;
         }
-        let tt = hyperbolic_exp_accurate(ax, t, Dekker::new(tl, th));
-        let qq = hyperbolic_exp_accurate(-ax, -t, Dekker::new(ql, qh));
+        let tt = hyperbolic_exp_accurate(ax, t, DoubleDouble::new(tl, th));
+        let qq = hyperbolic_exp_accurate(-ax, -t, DoubleDouble::new(ql, qh));
         rh = tt.hi + qq.hi;
         rl = ((tt.hi - rh) + qq.hi) + qq.lo + tt.lo;
     }
-    let r = Dekker::from_exact_add(rh, rl);
+    let r = DoubleDouble::from_exact_add(rh, rl);
     rh = r.hi;
     rl = r.lo;
     rh += rl;

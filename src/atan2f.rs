@@ -27,17 +27,20 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 
 #[inline]
-pub(crate) fn poly_dekker_generic<const N: usize>(x: Dekker, poly: [(u64, u64); N]) -> Dekker {
+pub(crate) fn poly_dekker_generic<const N: usize>(
+    x: DoubleDouble,
+    poly: [(u64, u64); N],
+) -> DoubleDouble {
     let zch = poly.last().unwrap();
     let ach = f64::from_bits(zch.0);
     let acl = f64::from_bits(zch.1);
-    let mut ch = Dekker::new(acl, ach);
+    let mut ch = DoubleDouble::new(acl, ach);
 
     for zch in poly.iter().rev().skip(1) {
-        ch = Dekker::quick_mult(ch, x);
+        ch = DoubleDouble::quick_mult(ch, x);
         let th = ch.hi + f64::from_bits(zch.0);
         let tl = (f64::from_bits(zch.0) - th) + ch.hi;
         ch.hi = th;
@@ -130,11 +133,11 @@ fn atan2f_refine(ay: u32, ax: u32, y: f32, x: f32, zy: f64, zx: f64, gt: usize, 
         zh = zx / zy;
         zl = f_fmla(zh, -zy, zx) / zy;
     }
-    let z2 = Dekker::quick_mult(Dekker::new(zl, zh), Dekker::new(zl, zh));
+    let z2 = DoubleDouble::quick_mult(DoubleDouble::new(zl, zh), DoubleDouble::new(zl, zh));
     let mut p = poly_dekker_generic(z2, ATAN2F_TABLE);
     zh *= SGN[gt];
     zl *= SGN[gt];
-    p = Dekker::quick_mult(Dekker::new(zl, zh), p);
+    p = DoubleDouble::quick_mult(DoubleDouble::new(zl, zh), p);
     let sh = p.hi + OFF[i as usize];
     let sl = ((OFF[i as usize] - sh) + p.hi) + p.lo + OFFL[i as usize];
     let rf = sh as f32;

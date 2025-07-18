@@ -27,14 +27,14 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use crate::exp2::ldexp;
 
 const LN2H: f64 = f64::from_bits(0x3fe62e42fefa39ef);
 const LN2L: f64 = f64::from_bits(0x3c7abc9e3b39803f);
 
 struct Exp2m1 {
-    exp: Dekker,
+    exp: DoubleDouble,
     err: f64,
 }
 
@@ -182,7 +182,7 @@ pub(crate) static EXP_M1_2_TABLE2: [(u64, u64); 64] = [
 // with |z| < 0.000130273 < 2^-12.88 and |zl| < 2^-42.6
 // (assuming x^y does not overflow or underflow)
 #[inline]
-fn q_1(dz: Dekker) -> Dekker {
+fn q_1(dz: DoubleDouble) -> DoubleDouble {
     const Q_1: [u64; 5] = [
         0x3ff0000000000000,
         0x3ff0000000000000,
@@ -194,23 +194,23 @@ fn q_1(dz: Dekker) -> Dekker {
     let mut q = f_fmla(f64::from_bits(Q_1[4]), dz.hi, f64::from_bits(Q_1[3]));
     q = f_fmla(q, z, f64::from_bits(Q_1[2]));
 
-    let mut p0 = Dekker::from_exact_add(f64::from_bits(Q_1[1]), q * z);
-    p0 = Dekker::quick_mult(dz, p0);
-    p0 = Dekker::f64_add(f64::from_bits(Q_1[0]), p0);
+    let mut p0 = DoubleDouble::from_exact_add(f64::from_bits(Q_1[1]), q * z);
+    p0 = DoubleDouble::quick_mult(dz, p0);
+    p0 = DoubleDouble::f64_add(f64::from_bits(Q_1[0]), p0);
     p0
 }
 
 #[inline]
-fn exp1(x: Dekker) -> Dekker {
+fn exp1(x: DoubleDouble) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe); /* |INVLOG2-2^12/log(2)| < 2^-43.4 */
     let k = (x.hi * INVLOG2).round_ties_even();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
-    let mut zk = Dekker::from_exact_mult(LOG2H, k);
+    let mut zk = DoubleDouble::from_exact_mult(LOG2H, k);
     zk.lo = f_fmla(k, LOG2L, zk.lo);
 
-    let mut yz = Dekker::from_exact_add(x.hi - zk.hi, x.lo);
+    let mut yz = DoubleDouble::from_exact_add(x.hi - zk.hi, x.lo);
     yz.lo -= zk.lo;
 
     let ik: i64 = k as i64; /* Note: k is an integer, this is just a conversion. */
@@ -218,13 +218,13 @@ fn exp1(x: Dekker) -> Dekker {
     let i2: i64 = (ik >> 6) & 0x3f;
     let i1: i64 = ik & 0x3f;
 
-    let t1 = Dekker::from_bit_pair(EXP_M1_2_TABLE1[i2 as usize]);
-    let t2 = Dekker::from_bit_pair(EXP_M1_2_TABLE2[i1 as usize]);
+    let t1 = DoubleDouble::from_bit_pair(EXP_M1_2_TABLE1[i2 as usize]);
+    let t2 = DoubleDouble::from_bit_pair(EXP_M1_2_TABLE2[i1 as usize]);
 
-    let p0 = Dekker::quick_mult(t2, t1);
+    let p0 = DoubleDouble::quick_mult(t2, t1);
 
     let mut q = q_1(yz);
-    q = Dekker::quick_mult(p0, q);
+    q = DoubleDouble::quick_mult(p0, q);
 
     /* Scale by 2^k. Warning: for x near 1024, we can have k=2^22, thus
     M = 2047, which encodes Inf */
@@ -246,7 +246,7 @@ fn exp2m1_fast(x: f64, tiny: bool) -> Exp2m1 {
     }
     /* now -54 < x < -0.125 or 0.125 < x < 1024: we approximate exp(x*log(2))
     and subtract 1 */
-    let mut v = Dekker::from_exact_mult(LN2H, x);
+    let mut v = DoubleDouble::from_exact_mult(LN2H, x);
     v.lo = f_fmla(x, LN2L, v.lo);
     /*
     The a_mul() call is exact, and the error of the fma() is bounded by
@@ -261,11 +261,11 @@ fn exp2m1_fast(x: f64, tiny: bool) -> Exp2m1 {
 
     let mut p = exp1(v);
 
-    let zf: Dekker = if x >= 0. {
+    let zf: DoubleDouble = if x >= 0. {
         // implies h >= 1 and the fast_two_sum pre-condition holds
-        Dekker::from_exact_add(p.hi, -1.0)
+        DoubleDouble::from_exact_add(p.hi, -1.0)
     } else {
-        Dekker::from_exact_add(-1.0, p.hi)
+        DoubleDouble::from_exact_add(-1.0, p.hi)
     };
     p.lo += zf.lo;
     p.hi = zf.hi;
@@ -285,7 +285,7 @@ fn exp2m1_fast(x: f64, tiny: bool) -> Exp2m1 {
 // with |z| < 0.000130273 < 2^-12.88 and |zl| < 2^-42.6
 // (assuming x^y does not overflow or underflow)
 #[inline]
-fn q_2(dz: Dekker) -> Dekker {
+fn q_2(dz: DoubleDouble) -> DoubleDouble {
     /* Let q[0]..q[7] be the coefficients of degree 0..7 of Q_2.
     The ulp of q[7]*z^7 is at most 2^-155, thus we can compute q[7]*z^7
     in double precision only.
@@ -318,27 +318,27 @@ fn q_2(dz: Dekker) -> Dekker {
 
     // multiply q by z and add Q_2[3] + Q_2[4]
 
-    let mut p = Dekker::from_exact_mult(q, z);
-    let r0 = Dekker::from_exact_add(f64::from_bits(Q_2[3]), p.hi);
+    let mut p = DoubleDouble::from_exact_mult(q, z);
+    let r0 = DoubleDouble::from_exact_add(f64::from_bits(Q_2[3]), p.hi);
     p.hi = r0.hi;
     p.lo += r0.lo + f64::from_bits(Q_2[4]);
 
     // multiply hi+lo by zh+zl and add Q_2[2]
 
-    p = Dekker::quick_mult(p, dz);
-    let r1 = Dekker::from_exact_add(f64::from_bits(Q_2[2]), p.hi);
+    p = DoubleDouble::quick_mult(p, dz);
+    let r1 = DoubleDouble::from_exact_add(f64::from_bits(Q_2[2]), p.hi);
     p.hi = r1.hi;
     p.lo += r1.lo;
 
     // multiply hi+lo by zh+zl and add Q_2[1]
-    p = Dekker::quick_mult(p, dz);
-    let r1 = Dekker::from_exact_add(f64::from_bits(Q_2[1]), p.hi);
+    p = DoubleDouble::quick_mult(p, dz);
+    let r1 = DoubleDouble::from_exact_add(f64::from_bits(Q_2[1]), p.hi);
     p.hi = r1.hi;
     p.lo += r1.lo;
 
     // multiply hi+lo by zh+zl and add Q_2[0]
-    p = Dekker::quick_mult(p, dz);
-    let r1 = Dekker::from_exact_add(f64::from_bits(Q_2[0]), p.hi);
+    p = DoubleDouble::quick_mult(p, dz);
+    let r1 = DoubleDouble::from_exact_add(f64::from_bits(Q_2[0]), p.hi);
     p.hi = r1.hi;
     p.lo += r1.lo;
     p
@@ -346,7 +346,7 @@ fn q_2(dz: Dekker) -> Dekker {
 
 // returns a double-double approximation hi+lo of exp(x*log(2)) for |x| < 745
 #[inline]
-fn exp_2(x: f64) -> Dekker {
+fn exp_2(x: f64) -> DoubleDouble {
     let k = (x * f64::from_bits(0x40b0000000000000)).round_ties_even();
     // since |x| <= 745 we have k <= 3051520
 
@@ -354,20 +354,20 @@ fn exp_2(x: f64) -> Dekker {
 
     /* now x = k + yh, thus 2^x = 2^k * 2^yh, and we multiply yh by log(2)
     to use the accurate path of exp() */
-    let ky = Dekker::f64_mult(yhh, Dekker::new(LN2L, LN2H));
+    let ky = DoubleDouble::f64_mult(yhh, DoubleDouble::new(LN2L, LN2H));
 
     let ik = k as i64;
     let im = (ik >> 12).wrapping_add(0x3ff);
     let i2 = (ik >> 6) & 0x3f;
     let i1 = ik & 0x3f;
 
-    let t1 = Dekker::from_bit_pair(EXP_M1_2_TABLE1[i2 as usize]);
-    let t2 = Dekker::from_bit_pair(EXP_M1_2_TABLE2[i1 as usize]);
+    let t1 = DoubleDouble::from_bit_pair(EXP_M1_2_TABLE1[i2 as usize]);
+    let t2 = DoubleDouble::from_bit_pair(EXP_M1_2_TABLE2[i1 as usize]);
 
-    let p = Dekker::quick_mult(t2, t1);
+    let p = DoubleDouble::quick_mult(t2, t1);
 
     let mut q = q_2(ky);
-    q = Dekker::quick_mult(p, q);
+    q = DoubleDouble::quick_mult(p, q);
     let mut ud: u64 = (im as u64).wrapping_shl(52);
 
     if im == 0x7ff {
@@ -412,53 +412,53 @@ pub(crate) fn exp2m1_accurate_tiny(x: f64) -> f64 {
     let c11 = dd_fmla(f64::from_bits(Q[18]), x, f64::from_bits(Q[17])); // degree 11
     c13 = dd_fmla(f64::from_bits(Q[21]), x2, c13); // degree 13
     // add Q[16]*x+c11*x2+c13*x4 to Q[15] (degree 9)
-    let mut p = Dekker::from_exact_add(
+    let mut p = DoubleDouble::from_exact_add(
         f64::from_bits(Q[15]),
         f_fmla(f64::from_bits(Q[16]), x, f_fmla(c11, x2, c13 * x4)),
     );
     // multiply h+l by x and add Q[14] (degree 8)
-    p = Dekker::f64_mult(x, p);
-    let p0 = Dekker::from_exact_add(f64::from_bits(Q[14]), p.hi);
+    p = DoubleDouble::f64_mult(x, p);
+    let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[14]), p.hi);
     p.lo += p0.lo;
     p.hi = p0.hi;
 
     // multiply h+l by x and add Q[12]+Q[13] (degree 7)
-    p = Dekker::f64_mult(x, p);
-    let p0 = Dekker::from_exact_add(f64::from_bits(Q[12]), p.hi);
+    p = DoubleDouble::f64_mult(x, p);
+    let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[12]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[13]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[10]+Q[11] (degree 6)
-    p = Dekker::f64_mult(x, p);
-    let p0 = Dekker::from_exact_add(f64::from_bits(Q[10]), p.hi);
+    p = DoubleDouble::f64_mult(x, p);
+    let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[10]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[11]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[8]+Q[9] (degree 5)
-    p = Dekker::f64_mult(x, p);
-    let p0 = Dekker::from_exact_add(f64::from_bits(Q[8]), p.hi);
+    p = DoubleDouble::f64_mult(x, p);
+    let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[8]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[9]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[6]+Q[7] (degree 4)
-    p = Dekker::f64_mult(x, p);
-    let p0 = Dekker::from_exact_add(f64::from_bits(Q[6]), p.hi);
+    p = DoubleDouble::f64_mult(x, p);
+    let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[6]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[7]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[4]+Q[5] (degree 3)
-    p = Dekker::f64_mult(x, p);
-    let p0 = Dekker::from_exact_add(f64::from_bits(Q[4]), p.hi);
+    p = DoubleDouble::f64_mult(x, p);
+    let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[4]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[5]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[2]+Q[3] (degree 2)
-    p = Dekker::f64_mult(x, p);
-    let p0 = Dekker::from_exact_add(f64::from_bits(Q[2]), p.hi);
+    p = DoubleDouble::f64_mult(x, p);
+    let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[2]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[3]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[0]+Q[1] (degree 2)
-    p = Dekker::f64_mult(x, p);
-    let p0 = Dekker::from_exact_add(f64::from_bits(Q[0]), p.hi);
+    p = DoubleDouble::f64_mult(x, p);
+    let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[0]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[1]);
     p.hi = p0.hi;
     // multiply h+l by x
-    p = Dekker::f64_mult(x, p);
+    p = DoubleDouble::f64_mult(x, p);
     p.to_f64()
 }
 
@@ -475,11 +475,11 @@ fn exp2m1_accurate(x: f64) -> f64 {
 
     let mut p = exp_2(x);
 
-    let zf: Dekker = if x >= 0. {
+    let zf: DoubleDouble = if x >= 0. {
         // implies h >= 1 and the fast_two_sum pre-condition holds
-        Dekker::from_exact_add(p.hi, -1.0)
+        DoubleDouble::from_exact_add(p.hi, -1.0)
     } else {
-        Dekker::from_exact_add(-1.0, p.hi)
+        DoubleDouble::from_exact_add(-1.0, p.hi)
     };
     p.lo += zf.lo;
     p.hi = zf.hi;
@@ -524,23 +524,23 @@ fn exp2m1_fast_tiny(x: f64) -> Exp2m1 {
     c4 = dd_fmla(c6, x2, c4); // degree 4
     c4 = dd_fmla(c8, x4, c4); // degree 4
 
-    let mut p = Dekker::from_exact_mult(c4, x);
-    let p0 = Dekker::from_exact_add(f64::from_bits(P[4]), p.hi);
+    let mut p = DoubleDouble::from_exact_mult(c4, x);
+    let p0 = DoubleDouble::from_exact_add(f64::from_bits(P[4]), p.hi);
     p.lo += p0.lo;
     p.hi = p0.hi;
 
-    p = Dekker::f64_mult(x, p);
+    p = DoubleDouble::f64_mult(x, p);
 
-    let p1 = Dekker::from_exact_add(f64::from_bits(P[2]), p.hi);
+    let p1 = DoubleDouble::from_exact_add(f64::from_bits(P[2]), p.hi);
     p.lo += p1.lo + f64::from_bits(P[3]);
     p.hi = p1.hi;
 
-    p = Dekker::f64_mult(x, p);
-    let p2 = Dekker::from_exact_add(f64::from_bits(P[0]), p.hi);
+    p = DoubleDouble::f64_mult(x, p);
+    let p2 = DoubleDouble::from_exact_add(f64::from_bits(P[0]), p.hi);
     p.lo += p2.lo + f64::from_bits(P[1]);
     p.hi = p2.hi;
 
-    p = Dekker::f64_mult(x, p);
+    p = DoubleDouble::f64_mult(x, p);
 
     Exp2m1 {
         exp: p,
@@ -601,7 +601,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
             }
             // scale x by 2^106
             x *= f64::from_bits(0x4690000000000000);
-            let mut z = Dekker::from_exact_mult(LN2H, x);
+            let mut z = DoubleDouble::from_exact_mult(LN2H, x);
             z.lo = dd_fmla(LN2L, x, z.lo);
             let mut h2 = z.to_f64(); // round to 53-bit precision
             // scale back, hoping to avoid double rounding
@@ -617,7 +617,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
             dyad_fmla(h, f64::from_bits(0x3950000000000000), h2)
         } else {
             const C2: f64 = f64::from_bits(0x3fcebfbdff82c58f); // log(2)^2/2
-            let mut z = Dekker::from_exact_mult(LN2H, x);
+            let mut z = DoubleDouble::from_exact_mult(LN2H, x);
             z.lo = dyad_fmla(LN2L, x, z.lo);
             /* h+l approximates the first term x*log(2) */
             /* we add C2*x^2 last, so that in case there is a cancellation in

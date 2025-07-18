@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
-use crate::dekker::Dekker;
+use crate::double_double::DoubleDouble;
 use std::hint::black_box;
 
 // case hypot(x,y) >= 2^1024
@@ -260,7 +260,7 @@ pub fn f_hypot(x: f64, y: f64) -> f64 {
     let rsqrt = th * ir2;
     let dz = dr2 - dd_fmla(th, th, -r2);
     let mut tl = rsqrt * dz;
-    let p = Dekker::from_exact_add(th, tl);
+    let p = DoubleDouble::from_exact_add(th, tl);
     th = p.hi;
     tl = p.lo;
     let mut thd = th.to_bits();
