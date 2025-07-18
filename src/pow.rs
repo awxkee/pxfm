@@ -35,24 +35,6 @@ use crate::log::{log, log_dyadic};
 use crate::pow_exec::{exp_dyadic, pow_exp_1, pow_log_1};
 use crate::{f_exp2, f_exp10};
 
-/// Power function for given value
-#[inline]
-pub const fn pow(d: f64, n: f64) -> f64 {
-    let value = d.abs();
-
-    let r = n * log(value);
-    let c = exp(r);
-    if n == 0. {
-        return 1.;
-    }
-    if d < 0.0 {
-        let y = n as i32;
-        if y % 2 == 0 { c } else { -c }
-    } else {
-        c
-    }
-}
-
 #[inline]
 pub(crate) fn is_integer(n: f64) -> bool {
     n == n.round_ties_even()
@@ -368,6 +350,24 @@ fn pow_rational128(x: f64, y: f64, s: f64) -> f64 {
     };
 
     result.fast_as_f64()
+}
+
+/// Power function for given value for const context's only
+#[inline]
+pub const fn pow(d: f64, n: f64) -> f64 {
+    let value = d.abs();
+
+    let r = n * log(value);
+    let c = exp(r);
+    if n == 0. {
+        return 1.;
+    }
+    if d < 0.0 {
+        let y = n as i32;
+        if y % 2 == 0 { c } else { -c }
+    } else {
+        c
+    }
 }
 
 #[cfg(test)]
