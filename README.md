@@ -1,4 +1,4 @@
-# libm
+# Math routines
 
 Mostly fast and accurate math.
 
