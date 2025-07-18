@@ -316,7 +316,6 @@ fn maclaurin_series(x: f32) -> f32 {
 
 /// This method on small range searches for nearest zero or extremum.
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
-#[allow(static_mut_refs)]
 #[inline]
 fn small_argument_path(x: f32) -> f32 {
     static SIGN: [f64; 2] = [1., -1.];
