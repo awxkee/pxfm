@@ -30,7 +30,8 @@ use crate::common::{dyad_fmla, f_fmla, min_normal_f64};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::sincos_dyadic::{
-    SIN_K_PI_OVER_128_F128, range_reduction_small_f128, sincos_eval_dyadic,
+    SIN_K_PI_OVER_128_F128, range_reduction_small_f128, range_reduction_small_f128_f128,
+    sincos_eval_dyadic,
 };
 use crate::sincos_reduce::LargeArgumentReduction;
 
@@ -513,6 +514,19 @@ pub(crate) fn sin_dd_small(z: DoubleDouble) -> DoubleDouble {
     let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
     rr
+}
+
+pub(crate) fn sin_f128_small(z: DyadicFloat128) -> DyadicFloat128 {
+    let (u_f128, k) = range_reduction_small_f128_f128(z);
+
+    let sin_cos = sincos_eval_dyadic(&u_f128);
+    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    let sin_k_f128 = get_sin_k_rational(k);
+    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
+
+    // sin(x) = sin(k * pi/128 + u)
+    //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
+    (sin_k_f128 * sin_cos.v_cos) + (cos_k_f128 * sin_cos.v_sin)
 }
 
 pub(crate) fn sin_small(z: f64) -> f64 {

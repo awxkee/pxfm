@@ -52,6 +52,29 @@ pub(crate) fn range_reduction_small_f128(x: f64) -> DyadicFloat128 {
     y.quick_mul(&PI_OVER_128_F128)
 }
 
+pub(crate) fn range_reduction_small_f128_f128(x: DyadicFloat128) -> (DyadicFloat128, u64) {
+    const PI_OVER_128_F128: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -133,
+        mantissa: 0xc90f_daa2_2168_c234_c4c6_628b_80dc_1cd1_u128,
+    };
+    const ONE_TWENTY_EIGHT_OVER_PI_D: f64 = f64::from_bits(0x40445f306dc9c883);
+    let prod_hi = x.fast_as_f64() * ONE_TWENTY_EIGHT_OVER_PI_D;
+    let kd = prod_hi.round();
+
+    let mk_f128 = DyadicFloat128::new_from_f64(-kd);
+    let over_pi3 = ONE_TWENTY_EIGHT_OVER_PI[3];
+    let p_hi = x.quick_mul(&DyadicFloat128::new_from_f64(f64::from_bits(over_pi3.0)));
+    let p_mid = x.quick_mul(&DyadicFloat128::new_from_f64(f64::from_bits(over_pi3.1)));
+    let p_lo = x.quick_mul(&DyadicFloat128::new_from_f64(f64::from_bits(over_pi3.2)));
+    let p_lo_lo = x.quick_mul(&DyadicFloat128::new_from_f64(f64::from_bits(over_pi3.3)));
+    let s_hi = p_hi.quick_add(&mk_f128);
+    let s_lo = p_mid.quick_add(&p_lo);
+    let s_lo_lo = p_lo_lo.quick_add(&p_lo_lo);
+    let y = s_hi.quick_add(&s_lo).quick_add(&s_lo_lo);
+    (y.quick_mul(&PI_OVER_128_F128), (kd as i64) as u64)
+}
+
 pub(crate) struct SinCosDyadic {
     pub(crate) v_sin: DyadicFloat128,
     pub(crate) v_cos: DyadicFloat128,

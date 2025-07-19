@@ -61,6 +61,23 @@ fn test_method(
     );
 }
 
+#[track_caller]
+fn test_method_ulp(
+    value: f64,
+    method: fn(f64) -> f64,
+    mpfr_value: &Float,
+    method_name: String,
+    max_ulp: f64,
+) -> Option<f64> {
+    let xr = method(value);
+    let ulp = count_ulp_f64(xr, mpfr_value);
+    if ulp > max_ulp {
+        return Some(ulp);
+    } else {
+        return None;
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 struct Outlier {
     ulp: f64,
@@ -256,6 +273,8 @@ fn compound_mpfr(x: f64, y: f64) -> Float {
     }
 }
 
+static mut MAX_ULP: f64 = 0.;
+
 fuzz_target!(|data: (f64, f64)| {
     let x0 = data.0;
     let x1 = data.1;
@@ -279,7 +298,7 @@ fuzz_target!(|data: (f64, f64)| {
     //         0.50013,
     //     );
     // }
-    test_method(x0, f_j1, &mpfr_x0.clone().j1(), "f_j1".to_string(), 1.47);
+    test_method(x0, f_j1, &mpfr_x0.clone().j1(), "f_j1".to_string(), 1.27);
     test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
     test_method(
         x0,

@@ -199,8 +199,8 @@ mod tests {
 
     #[test]
     fn test_expm1f() {
-        // assert_eq!(f_expm1f(2.213121), 8.144211);
-        // assert_eq!(f_expm1f(-3.213121), -0.9597691);
+        assert_eq!(f_expm1f(2.213121), 8.144211);
+        assert_eq!(f_expm1f(-3.213121), -0.9597691);
         assert_eq!(f_expm1f(-2.35099e-38), -2.35099e-38);
         assert_eq!(
             f_expm1f(0.00000000000000000000000000000000000004355616),

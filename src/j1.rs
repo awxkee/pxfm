@@ -30,24 +30,22 @@
 #![allow(clippy::excessive_precision)]
 
 use crate::bits::get_exponent_f64;
-use crate::common::{dd_fmla, dyad_fmla};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1MaclaurinSeries};
-use crate::polyeval::{f_polyeval10, f_polyeval12, f_polyeval16, f_polyeval18};
-use crate::sin::sin_dd_small;
-use crate::sincos_reduce::{AngleReduced, rem2pi_any};
+use crate::polyeval::{f_polyeval10, f_polyeval12, f_polyeval18};
+use crate::sin::{sin_dd_small, sin_f128_small};
+use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel J 1st order in f64
 ///
-/// Max found ULP 1.47.
+/// Max found ULP 1.26.
 ///
 /// Note about accuracy:
 /// - Close to zero Bessel have tiny values such that testing against MPFR must be done exactly
 ///   in the same precision, since any nearest representable number have ULP > 0.5,
 ///   for example `J1(0.000000000000000000000000000000000000023509886)` in single precision
 ///   have 0.7 ULP for any number with extended precision that would be represented in f32
-#[inline(never)]
 pub fn f_j1(x: f64) -> f64 {
     if !x.is_normal() {
         if x.is_infinite() {
@@ -109,8 +107,8 @@ fn j1_asympt(x: f64) -> f64 {
 
     let m_cos = sin_dd_small(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_cos);
-    let r_sqrt = j1_rsqrt(x);
-    let scale = DoubleDouble::quick_mult_f64(SQRT_2_OVER_PI, r_sqrt);
+    let r_sqrt = j1_rsqrt_dd(x);
+    let scale = DoubleDouble::quick_mult(SQRT_2_OVER_PI, r_sqrt);
     let p = DoubleDouble::quick_mult(scale, z0).to_f64();
     p * sign_scale
 }
@@ -451,7 +449,7 @@ fn small_argument_path(x: f64) -> f64 {
     let r = (x_abs - found_zero.hi) - found_zero.lo;
     let r2 = r * r;
 
-    let p = f_polyeval16(
+    let p = f_polyeval18(
         r,
         f64::from_bits(c[0]),
         f64::from_bits(c[1]),
@@ -469,6 +467,8 @@ fn small_argument_path(x: f64) -> f64 {
         f64::from_bits(c[13]),
         f64::from_bits(c[14]),
         f64::from_bits(c[15]),
+        f64::from_bits(c[16]),
+        f64::from_bits(c[17]),
     );
     let mut p_e = DoubleDouble::from_exact_mult(p, r);
 
@@ -533,27 +533,39 @@ fn small_argument_path(x: f64) -> f64 {
 }
 
 #[inline]
-fn j1_rsqrt(x: f64) -> f64 {
-    let r = x.sqrt() / x;
-    let rx = r * x;
-    let drx = dd_fmla(r, x, -rx);
-    let h = dd_fmla(r, rx, -1.0) + r * drx;
-    let dr = (r * 0.5) * h;
-    r - dr
+fn j1_rsqrt_dd(x: f64) -> DoubleDouble {
+    let r = DoubleDouble::div_dd_f64(DoubleDouble::from_sqrt(x), x);
+    let rx = DoubleDouble::quick_mult_f64(r, x);
+    let drx = DoubleDouble::mul_add(r, DoubleDouble::new(0., x), -rx);
+    let h = DoubleDouble::mul_add(
+        r,
+        drx,
+        DoubleDouble::mul_add(r, rx, DoubleDouble::new(0., -1.0)),
+    );
+    let dr = DoubleDouble::quick_mult(DoubleDouble::quick_mult_f64(r, 0.5), h);
+    DoubleDouble::sub(r, dr)
 }
 
 #[inline]
-fn j1_rsqrt_hard(x: f64) -> f64 {
-    let r = x.sqrt() / x;
-    let rx = r * x;
-    let drx = dyad_fmla(r, x, -rx);
-    let h = dyad_fmla(r, rx, -1.0) + r * drx;
-    let dr = (r * 0.5) * h;
+fn j1_rsqrt_hard_hard(x: f64, recip: DyadicFloat128) -> DyadicFloat128 {
+    let r = DyadicFloat128::new_from_f64(x.sqrt()) * recip;
+    let fx = DyadicFloat128::new_from_f64(x);
+    let rx = r * fx;
+    let drx = r * fx - rx;
+    const M_ONE: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Neg,
+        exponent: -127,
+        mantissa: 0x80000000_00000000_00000000_00000000_u128,
+    };
+    let h = r * rx + M_ONE + r * drx;
+    let mut ddr = r;
+    ddr.exponent -= 1; // ddr * 0.5
+    let dr = ddr * h;
     r - dr
 }
 
 /// see [j1_asympt_beta] for more info
-fn j1_asympt_beta_hard(x: f64) -> DoubleDouble {
+fn j1_asympt_beta_hard(recip: DyadicFloat128) -> DyadicFloat128 {
     static C: [DyadicFloat128; 10] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
@@ -607,21 +619,15 @@ fn j1_asympt_beta_hard(x: f64) -> DoubleDouble {
         },
     ];
 
-    let recip = DyadicFloat128::accurate_reciprocal(x);
     let x2 = recip * recip;
 
-    let p = f_polyeval10(
+    f_polyeval10(
         x2, C[0], C[2], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8],
-    );
-
-    let hi = p.fast_as_f64();
-    let lo = (p - DyadicFloat128::new_from_f64(hi)).fast_as_f64();
-
-    DoubleDouble::new(lo, hi)
+    )
 }
 
 /// See [j1_asympt_alpha] for the info
-fn j1_asympt_alpha_hard(x: f64) -> DyadicFloat128 {
+fn j1_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFloat128 {
     static C: [DyadicFloat128; 12] = [
         DyadicFloat128 {
             sign: DyadicSign::Neg,
@@ -685,14 +691,13 @@ fn j1_asympt_alpha_hard(x: f64) -> DyadicFloat128 {
         },
     ];
 
-    let recip = DyadicFloat128::accurate_reciprocal(x);
-    let x2 = recip * recip;
+    let x2 = reciprocal * reciprocal;
 
     let p = f_polyeval12(
         x2, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11],
     );
 
-    p * recip
+    p * reciprocal
 }
 
 /*
@@ -713,10 +718,11 @@ fn j1_asympt_hard(x: f64) -> f64 {
     let sign_scale = SGN[x.is_sign_negative() as usize];
     let x = x.abs();
 
-    const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
-        f64::from_bits(0xbc8cbc0d30ebfd15),
-        f64::from_bits(0x3fe9884533d43651),
-    );
+    const SQRT_2_OVER_PI: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -128,
+        mantissa: 0xcc42299e_a1b28468_7e59e280_5d5c7180_u128,
+    };
 
     const MPI_OVER_4: DyadicFloat128 = DyadicFloat128 {
         sign: DyadicSign::Neg,
@@ -724,24 +730,24 @@ fn j1_asympt_hard(x: f64) -> f64 {
         mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
     };
 
-    let alpha = j1_asympt_alpha_hard(x);
-    let beta = j1_asympt_beta_hard(x);
+    let x_dyadic = DyadicFloat128::new_from_f64(x);
+    let recip = DyadicFloat128::accurate_reciprocal(x);
 
-    let AngleReduced { angle } = rem2pi_any(x);
+    let alpha = j1_asympt_alpha_hard(recip);
+    let beta = j1_asympt_beta_hard(recip);
+
+    let angle = rem2pi_f128(x_dyadic);
 
     let x0pi34 = MPI_OVER_4 - alpha;
-    let r0 =
-        DyadicFloat128::new_from_f64(angle.hi) + DyadicFloat128::new_from_f64(angle.lo) + x0pi34;
+    let r0 = angle + x0pi34;
 
-    let r_hi = r0.fast_as_f64();
-    let r_lo = (r0 - DyadicFloat128::new_from_f64(r_hi)).fast_as_f64();
+    let m_sin = sin_f128_small(r0);
 
-    let m_cos = sin_dd_small(DoubleDouble::new(r_lo, r_hi));
-    let z0 = DoubleDouble::quick_mult(beta, m_cos);
-    let r_sqrt = j1_rsqrt_hard(x);
-    let scale = DoubleDouble::quick_mult_f64(SQRT_2_OVER_PI, r_sqrt);
-    let p = DoubleDouble::quick_mult(scale, z0).to_f64();
-    p * sign_scale
+    let z0 = beta * m_sin;
+    let r_sqrt = j1_rsqrt_hard_hard(x, recip);
+    let scale = SQRT_2_OVER_PI * r_sqrt;
+    let p = scale * z0;
+    p.fast_as_f64() * sign_scale
 }
 
 #[cfg(test)]
@@ -751,11 +757,20 @@ mod tests {
     #[test]
     fn test_j1() {
         //TODO:
-        // ULP 1.28 = let at_x = 5704705945851979000000000000000000000000000000.;
-        // ULP 1.35 = let at_x = 179769311477142710000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
-        // ULP 1.4 = let at_x = -171769509925996480000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
-        // ULP 1.46 = let at_x = 13729594910350697000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000;
-        assert_eq!(f_j1(-6.1795701510782757E+307), 8.1309350415932346E-155);
+        // new max ulp 0.5702378669247423, at 0.9998245146198314
+        // new max ulp 0.6445759908308375, at 248216547255994470000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+        // new max ulp 0.6637589294181936, at 7124076477593855
+        // new max ulp 0.6845408170690206, at -728.0048828124709
+        // new max ulp 0.7808663109935239, at 4004975692351827000000000000000000000000000000000000000000000000000000000000000000000000000000000
+        // new max ulp 0.8088185020814223, at 304.25471555990265
+        // new max ulp 0.8456664090361414, at -44601490397061250000000000000000000000000000
+        // new max ulp 0.8959488333506656, at 14228531925481492000000000000000000000000000000000000000000000000000000000000000000
+        // new max ulp 0.9810665916619712, at -159.9979319572503
+        // new max ulp 1.1165946603705592, at 507840.2490234375
+        // new max ulp 1.1998728225709883, at 23629310242542055000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+        // new max ulp 1.250611066042211, at -153.46874191985077
+        // new max ulp 1.2609517961093033, at 584108420153125800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+        assert_eq!(f_j1(-6.1795701510782757E+307), 8.130935041593236e-155);
         assert_eq!(
             f_j1(0.000000000000000000000000000000000000008827127),
             0.0000000000000000000000000000000000000044135635

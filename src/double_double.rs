@@ -313,47 +313,45 @@ impl DoubleDouble {
         }
     }
 
-    // #[inline]
-    // pub(crate) fn from_sqrt(x: f64) -> Self {
-    //     #[cfg(any(
-    //         all(
-    //             any(target_arch = "x86", target_arch = "x86_64"),
-    //             target_feature = "fma"
-    //         ),
-    //         all(target_arch = "aarch64", target_feature = "neon")
-    //     ))]
-    //     {
-    //         let h = x.sqrt();
-    //         /* h = sqrt(x) * (1 + e1) with |e1| < 2^-52
-    //            thus h^2 = x * (1 + e2) with |e2| < 2^-50.999 */
-    //         let e = -f_fmla (h, h, -x); // exact
-    //         /* e = x - h^2 */
-    //         let l = e / (h + h);
-    //         Dekker::new(l, h)
-    //     }
-    //     #[cfg(not(any(
-    //         all(
-    //             any(target_arch = "x86", target_arch = "x86_64"),
-    //             target_feature = "fma"
-    //         ),
-    //         all(target_arch = "aarch64", target_feature = "neon")
-    //     )))]
-    //     {
-    //         let h = x.sqrt();
-    //
-    //         // Compute h^2 as Dekker multiplication
-    //         let h_sqr = Dekker::from_exact_mult(h, h); // h^2 = hi + lo
-    //
-    //         // Compute error: e = x - h^2
-    //         let t = h_sqr.hi - x;
-    //         let e = -t - h_sqr.lo;
-    //
-    //         // Compute low term of square root
-    //         let l = e / (2.0 * h);
-    //
-    //         Dekker::new(l, h)
-    //     }
-    // }
+    #[inline]
+    pub(crate) fn from_sqrt(x: f64) -> Self {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let h = x.sqrt();
+            /* h = sqrt(x) * (1 + e1) with |e1| < 2^-52
+            thus h^2 = x * (1 + e2) with |e2| < 2^-50.999 */
+            let e = -f_fmla(h, h, -x); // exact
+
+            /* e = x - h^2 */
+            let l = e / (h + h);
+            DoubleDouble::new(l, h)
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let h = x.sqrt();
+
+            let h_sqr = DoubleDouble::from_exact_mult(h, h);
+
+            let t = h_sqr.hi - x;
+            let e = -t - h_sqr.lo;
+
+            let l = e / (h + h);
+
+            DoubleDouble::new(l, h)
+        }
+    }
 
     #[inline]
     pub(crate) fn div_dd_f64(a: DoubleDouble, b: f64) -> Self {
