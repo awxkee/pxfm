@@ -26,7 +26,6 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::dd_fmla;
 use crate::logf::EXP_MASK_F32;
 
 #[inline]
@@ -93,8 +92,38 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
     let bd = f32::from_bits(b_bits) as f64;
 
     // These squares are exact.
-    let a_sq = ad * ad;
-    let sum_sq: f64 = dd_fmla(bd, bd, a_sq);
+    let a_sq: f64 = ad * ad;
+    let sum_sq: f64;
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    let b_sq: f64;
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        use crate::common::f_fmla;
+        sum_sq = f_fmla(bd, bd, a_sq);
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        b_sq = bd * bd;
+        sum_sq = a_sq + b_sq;
+    }
 
     let mut r_u: u64 = sum_sq.sqrt().to_bits();
 
@@ -105,8 +134,31 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
 
         let (sum_sq_lo, err);
 
-        sum_sq_lo = dd_fmla(bd, bd, a_sq - sum_sq);
-        err = sum_sq_lo - dd_fmla(r_d, r_d, -sum_sq);
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            use crate::common::f_fmla;
+            sum_sq_lo = f_fmla(bd, bd, a_sq - sum_sq);
+            err = sum_sq_lo - f_fmla(r_d, r_d, -sum_sq);
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            use crate::double_double::DoubleDouble;
+            let r_sq = DoubleDouble::from_exact_mult(r_d, r_d);
+            sum_sq_lo = b_sq - (sum_sq - a_sq);
+            err = (sum_sq - r_sq.hi) + (sum_sq_lo - r_sq.lo);
+        }
 
         if err > 0. {
             r_u |= 1;
@@ -124,8 +176,13 @@ mod tests {
 
     #[test]
     fn test_hypotf() {
-        //TODO: x86 without FMA
-        // assert_eq!(f_hypotf( 0.000000000000000000000000000000000000000091771, 0.000000000000000000000000000000000000011754585), 0.000000000000000000000000000000000000011754944);
+        assert_eq!(
+            f_hypotf(
+                0.000000000000000000000000000000000000000091771,
+                0.000000000000000000000000000000000000011754585
+            ),
+            0.000000000000000000000000000000000000011754944
+        );
         assert_eq!(
             f_hypotf(9.177e-41, 1.1754585e-38),
             0.000000000000000000000000000000000000011754944
