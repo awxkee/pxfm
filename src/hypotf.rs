@@ -60,7 +60,7 @@ pub fn f_hypot3f(x: f32, y: f32, z: f32) -> f32 {
 /// Hypot function
 ///
 /// Max ULP 0.5
-// #[inline]
+#[inline]
 pub fn f_hypotf(x: f32, y: f32) -> f32 {
     let x_abs = x.abs();
     let y_abs = y.abs();
