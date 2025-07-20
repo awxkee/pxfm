@@ -32,6 +32,38 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::DyadicFloat128;
 
+/// If one of arguments is too huge or too small, extended precision is required for
+/// case with big exponent difference
+#[cold]
+fn atan2pi_big_exp_difference_hard(
+    num: f64,
+    den: f64,
+    x_sign: usize,
+    y_sign: usize,
+    recip: bool,
+    final_sign: f64,
+) -> f64 {
+    const ZERO: DoubleDouble = DoubleDouble::new(0.0, 0.0);
+    const MZERO: DoubleDouble = DoubleDouble::new(-0.0, -0.0);
+    static CONST_ADJ_INV_PI: [[[DoubleDouble; 2]; 2]; 2] = [
+        [
+            [ZERO, DoubleDouble::new(0., -1. / 2.)],
+            [MZERO, DoubleDouble::new(0., -1. / 2.)],
+        ],
+        [
+            [DoubleDouble::new(0., -1.), DoubleDouble::new(0., 1. / 2.)],
+            [DoubleDouble::new(0., -1.), DoubleDouble::new(0., 1. / 2.)],
+        ],
+    ];
+    let const_term = CONST_ADJ_INV_PI[x_sign][y_sign][recip as usize];
+    let scaled_div = DyadicFloat128::from_div_f64(num, den) * INV_PI_F128;
+    let sign_f128 = DyadicFloat128::new_from_f64(final_sign);
+    let p = DyadicFloat128::new_from_f64(const_term.hi * final_sign);
+    let p1 = sign_f128 * (DyadicFloat128::new_from_f64(const_term.lo) + scaled_div);
+    let r = p + p1;
+    r.fast_as_f64()
+}
+
 /// Computes atan(x)/PI
 ///
 /// Max found ULP 0.5
@@ -149,23 +181,16 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
     // We have the following bound for normalized n and d:
     //   2^(-exp_diff - 1) < n/d < 2^(-exp_diff + 1).
     if exp_diff > 54 {
-        static CONST_ADJ_INV_PI: [[[DoubleDouble; 2]; 2]; 2] = [
-            [
-                [ZERO, DoubleDouble::new(0., -1. / 2.)],
-                [MZERO, DoubleDouble::new(0., -1. / 2.)],
-            ],
-            [
-                [DoubleDouble::new(0., -1.), DoubleDouble::new(0., 1. / 2.)],
-                [DoubleDouble::new(0., -1.), DoubleDouble::new(0., 1. / 2.)],
-            ],
-        ];
-        let const_term = CONST_ADJ_INV_PI[x_sign][y_sign][recip as usize];
-        let scaled_div = DyadicFloat128::from_div_f64(num, den) * INV_PI_F128;
-        let sign_f128 = DyadicFloat128::new_from_f64(final_sign);
-        let p = DyadicFloat128::new_from_f64(const_term.hi * final_sign);
-        let p1 = sign_f128 * (DyadicFloat128::new_from_f64(const_term.lo) + scaled_div);
-        let r = p + p1;
-        return r.fast_as_f64();
+        if max_exp >= 1075 || min_exp < 970 {
+            return atan2pi_big_exp_difference_hard(num, den, x_sign, y_sign, recip, final_sign);
+        }
+        let z = DoubleDouble::from_exact_mult(final_sign, const_term.hi);
+        let mut divided = DoubleDouble::from_exact_div(num, den);
+        divided = DoubleDouble::f64_add(const_term.lo, divided);
+        divided = DoubleDouble::quick_mult_f64(divided, final_sign);
+        let r = DoubleDouble::add(z, divided);
+        let p = DoubleDouble::quick_mult(INV_PI_DD, r);
+        return p.to_f64();
     }
 
     let mut k = (64.0 * num / den).round();
@@ -206,6 +231,10 @@ mod tests {
 
     #[test]
     fn test_atan2pi() {
+        assert_eq!(
+            f_atan2pi(-0.000000000000010659658919444194, 2088960.4374061823),
+            -0.0000000000000000000016242886924270424
+        );
         assert_eq!(f_atan2pi(-3.9999999981625933, 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003577142133480227), -0.5);
         assert_eq!(f_atan2pi(0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000472842255026406,
             0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008045886150098693

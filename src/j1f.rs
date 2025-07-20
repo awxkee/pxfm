@@ -225,6 +225,7 @@ print(b_series)
 
 See notes/bessel_asympt.ipynb for generation
 **/
+#[inline]
 fn j1f_asympt_beta(x: f64) -> f64 {
     const C: [u64; 10] = [
         0x3ff0000000000000,
