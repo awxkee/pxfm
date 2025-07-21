@@ -464,52 +464,51 @@ pub(crate) fn f_polyeval16<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     T::polyeval_mla(x8, s1, s0)
 }
 
-// #[inline(always)]
-// #[allow(clippy::too_many_arguments)]
-// pub(crate) fn f_polyeval15<T: PolyevalMla + Copy + Mul<T, Output = T>>(
-//     x: T,
-//     a0: T,
-//     a1: T,
-//     a2: T,
-//     a3: T,
-//     a4: T,
-//     a5: T,
-//     a6: T,
-//     a7: T,
-//     a8: T,
-//     a9: T,
-//     a10: T,
-//     a11: T,
-//     a12: T,
-//     a13: T,
-//     a14: T,
-// ) -> T {
-//     let x2 = x * x;
-//     let x4 = x2 * x2;
-//     let x8 = x4 * x4;
-//
-//     let e0 = T::polyeval_mla(x, a1, a0);
-//     let e1 = T::polyeval_mla(x, a3, a2);
-//     let e2 = T::polyeval_mla(x, a5, a4);
-//     let e3 = T::polyeval_mla(x, a7, a6);
-//     let e4 = T::polyeval_mla(x, a9, a8);
-//     let e5 = T::polyeval_mla(x, a11, a10);
-//     let e6 = T::polyeval_mla(x, a13, a12);
-//
-//     // Level 2
-//     let f0 = T::polyeval_mla(x2, e1, e0);
-//     let f1 = T::polyeval_mla(x2, e3, e2);
-//     let f2 = T::polyeval_mla(x2, e5, e4);
-//     let f3 = T::polyeval_mla(x2, a14, e6);
-//
-//     // Level 3
-//     let g0 = T::polyeval_mla(x4, f1, f0);
-//     let g1 = T::polyeval_mla(x4, f3, f2);
-//
-//     // Final
-//     let result = T::polyeval_mla(x8, g1, g0);
-//     result
-// }
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn f_polyeval15<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+    x: T,
+    a0: T,
+    a1: T,
+    a2: T,
+    a3: T,
+    a4: T,
+    a5: T,
+    a6: T,
+    a7: T,
+    a8: T,
+    a9: T,
+    a10: T,
+    a11: T,
+    a12: T,
+    a13: T,
+    a14: T,
+) -> T {
+    let x2 = x * x;
+    let x4 = x2 * x2;
+    let x8 = x4 * x4;
+
+    let e0 = T::polyeval_mla(x, a1, a0);
+    let e1 = T::polyeval_mla(x, a3, a2);
+    let e2 = T::polyeval_mla(x, a5, a4);
+    let e3 = T::polyeval_mla(x, a7, a6);
+    let e4 = T::polyeval_mla(x, a9, a8);
+    let e5 = T::polyeval_mla(x, a11, a10);
+    let e6 = T::polyeval_mla(x, a13, a12);
+
+    // Level 2
+    let f0 = T::polyeval_mla(x2, e1, e0);
+    let f1 = T::polyeval_mla(x2, e3, e2);
+    let f2 = T::polyeval_mla(x2, e5, e4);
+    let f3 = T::polyeval_mla(x2, a14, e6);
+
+    // Level 3
+    let g0 = T::polyeval_mla(x4, f1, f0);
+    let g1 = T::polyeval_mla(x4, f3, f2);
+
+    // Final
+    T::polyeval_mla(x8, g1, g0)
+}
 
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]

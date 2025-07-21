@@ -557,7 +557,7 @@ impl DoubleDouble {
         )))]
         {
             let z = DoubleDouble::quick_mult(a, b);
-            DoubleDouble::dd_add(z, c)
+            DoubleDouble::add(z, c)
         }
     }
 

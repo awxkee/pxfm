@@ -27,9 +27,10 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::double_double::DoubleDouble;
+use crate::j1::j1_small_argument_path;
 use crate::j1_coeffs::J1_ZEROS;
 use crate::j1f_coeffs::J1F_COEFFS;
-use crate::polyeval::{f_polyeval10, f_polyeval12, f_polyeval13};
+use crate::polyeval::{f_polyeval10, f_polyeval12, f_polyeval13, f_polyeval15};
 use crate::sin::sin_small;
 use crate::sincos_reduce::rem2pif_any;
 
@@ -60,6 +61,21 @@ pub fn f_j1f(x: f32) -> f32 {
             return maclaurin_series(x);
         }
         return small_argument_path(x);
+    }
+
+    // Exceptional cases:
+    if ax == 0x6ef9be45 {
+        return if x.is_sign_negative() {
+            f32::from_bits(0x187d8a8f)
+        } else {
+            -f32::from_bits(0x187d8a8f)
+        };
+    } else if ax == 0x7f0e5a38 {
+        return if x.is_sign_negative() {
+            -f32::from_bits(0x131f680b)
+        } else {
+            f32::from_bits(0x131f680b)
+        };
     }
 
     j1f_asympt(x)
@@ -102,6 +118,7 @@ fn j1f_asympt(x: f32) -> f32 {
 
     let z0 = beta * m_sin;
     let scale = SQRT_2_OVER_PI * j1f_rsqrt(dx);
+
     (scale * z0 * sign_scale) as f32
 }
 
@@ -353,7 +370,7 @@ fn small_argument_path(x: f32) -> f32 {
 
     let r = (x_abs - found_zero.hi) - found_zero.lo;
 
-    let p = f_polyeval13(
+    let p = f_polyeval15(
         r,
         f64::from_bits(c[0]),
         f64::from_bits(c[1]),
@@ -368,14 +385,34 @@ fn small_argument_path(x: f32) -> f32 {
         f64::from_bits(c[10]),
         f64::from_bits(c[11]),
         f64::from_bits(c[12]),
+        f64::from_bits(c[13]),
+        f64::from_bits(c[14]),
     );
 
-    (p * sign_scale) as f32
+    const LOWER_ERR: u32 = 4;
+
+    // Mask sticky bits in double precision before rounding to single precision.
+    const MASK: u32 = (1u32 << (52 - 23 - 1)) - 1;
+    const UPPER_ERR: u32 = MASK - LOWER_ERR;
+
+    let r_bits = (r.to_bits() as u32) & MASK;
+    if r_bits > LOWER_ERR && r_bits < UPPER_ERR {
+        return (p * sign_scale) as f32;
+    }
+    // called ~40 times in total
+    j1_small_argument_path_hard(x)
+}
+
+#[cold]
+#[inline(never)]
+fn j1_small_argument_path_hard(x: f32) -> f32 {
+    j1_small_argument_path(x as f64) as f32
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::f_j1f;
+
+    use super::*;
 
     #[test]
     fn test_f_j1f() {

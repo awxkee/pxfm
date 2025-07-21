@@ -59,9 +59,9 @@ pub fn f_j1(x: f64) -> f64 {
     let ax = x.to_bits() & 0x7fff_ffff_ffff_ffff;
     if f64::from_bits(ax) < 74.60109 {
         if f64::from_bits(ax) < 0.25 {
-            return maclaurin_series(x);
+            return j1_maclaurin_series(x);
         }
-        return small_argument_path(x);
+        return j1_small_argument_path(x);
     }
 
     let e = get_exponent_f64(x);
@@ -83,7 +83,7 @@ pub fn f_j1(x: f64) -> f64 {
 
    J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
 */
-fn j1_asympt(x: f64) -> f64 {
+pub(crate) fn j1_asympt(x: f64) -> f64 {
     static SGN: [f64; 2] = [1., -1.];
     let sign_scale = SGN[x.is_sign_negative() as usize];
     let x = x.abs();
@@ -324,7 +324,7 @@ print_expansion_at_0()
 ```
 **/
 #[inline]
-fn maclaurin_series(x: f64) -> f64 {
+pub(crate) fn j1_maclaurin_series(x: f64) -> f64 {
     const J1_MACLAURIN_SERIES: J1MaclaurinSeries = J1MaclaurinSeries {
         a0: (0x0000000000000000, 0x3fe0000000000000),
         a1: (0x0000000000000000, 0xbfb0000000000000),
@@ -412,7 +412,7 @@ fn maclaurin_series(x: f64) -> f64 {
 /// This method on small range searches for nearest zero or extremum.
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
 #[inline]
-fn small_argument_path(x: f64) -> f64 {
+pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
     static SIGN: [f64; 2] = [1., -1.];
     let sign_scale = SIGN[x.is_sign_negative() as usize];
     let x_abs = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
@@ -440,7 +440,7 @@ fn small_argument_path(x: f64) -> f64 {
     };
 
     if idx == 0 {
-        return maclaurin_series(x);
+        return j1_maclaurin_series(x);
     }
 
     let j1c = &J1_COEFFS[idx - 1];
@@ -516,18 +516,11 @@ fn small_argument_path(x: f64) -> f64 {
 
     let pdz = DoubleDouble::quick_mult_f64(a1, r);
 
-    let q0 = if pdz.hi.abs() > p_e.hi.abs() {
-        DoubleDouble::add(pdz, p_e)
-    } else {
-        DoubleDouble::add(p_e, pdz)
-    };
+    let q0 = DoubleDouble::add(pdz, p_e);
+
     let a0 = DoubleDouble::from_bit_pair(j1c.a0);
 
-    let z1 = if a0.hi.abs() > q0.hi.abs() {
-        DoubleDouble::add(a0, q0)
-    } else {
-        DoubleDouble::add(q0, a0)
-    };
+    let z1 = DoubleDouble::add(a0, q0);
 
     z1.to_f64() * sign_scale
 }

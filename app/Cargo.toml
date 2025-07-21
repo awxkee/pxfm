@@ -5,6 +5,8 @@ edition = "2024"
 
 [dependencies]
 pxfm = {path = "../", features = []}
+rayon = "1.10.0"
+rug = "1.27.0"
 
 [dev-dependencies]
 criterion = { version = "0.6", features = ["html_reports"] }
