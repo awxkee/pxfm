@@ -531,97 +531,23 @@ impl DoubleDouble {
 
     /// Computes `a * b + c`
     /// `b` is an `f64`, `a` and `c` are `DoubleDouble`.
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
     #[inline]
     pub(crate) fn mul_f64_add(a: DoubleDouble, b: f64, c: DoubleDouble) -> Self {
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            let hp = f_fmla(a.hi, b, c.hi);
-            let r1 = hp - c.hi;
-            let r = f_fmla(a.hi, b, -r1);
-            let t = f_fmla(a.lo, b, c.lo);
-            let s = t + r;
-            let l = s;
-            Self { hi: hp, lo: l }
-        }
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            let product = DoubleDouble::quick_mult_f64(a, b);
-            DoubleDouble::add(product, c)
-        }
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_f64(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
+        DoubleDouble::new(r + q, p)
     }
 
-    // /// Computes `a * b + c` where `a` and `b` are `f64`, `c` is `DoubleDouble`
-    // #[inline]
-    // pub(crate) fn mul_f64s_add(a: f64, b: f64, c: DoubleDouble) -> Self {
-    //     #[cfg(any(
-    //         all(
-    //             any(target_arch = "x86", target_arch = "x86_64"),
-    //             target_feature = "fma"
-    //         ),
-    //         all(target_arch = "aarch64", target_feature = "neon")
-    //     ))]
-    //     {
-    //         let hp = f_fmla(a, b, c.hi);
-    //         let r1 = hp - c.hi;
-    //         let r = f_fmla(a, b, -r1);
-    //         let s = c.lo + r;
-    //         Self { lo: s, hi: hp }
-    //     }
-    //     #[cfg(not(any(
-    //         all(
-    //             any(target_arch = "x86", target_arch = "x86_64"),
-    //             target_feature = "fma"
-    //         ),
-    //         all(target_arch = "aarch64", target_feature = "neon")
-    //     )))]
-    //     {
-    //         let product = DoubleDouble::from_exact_mult(a, b);
-    //         DoubleDouble::add(product, c);
-    //     }
-    // }
-
     /// `a*b+c`
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
     #[inline]
     pub(crate) fn mul_add(a: DoubleDouble, b: DoubleDouble, c: DoubleDouble) -> Self {
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            let hp = f_fmla(a.hi, b.hi, c.hi);
-            let r1 = hp - c.hi;
-            let r = f_fmla(a.hi, b.hi, -r1);
-            let t = f_fmla(a.lo, b.hi, c.lo);
-            let s = t + r;
-            let l = f_fmla(a.hi, b.lo, s);
-            Self { lo: l, hi: hp }
-        }
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            let z = DoubleDouble::quick_mult(a, b);
-            DoubleDouble::add(z, c)
-        }
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
+        DoubleDouble::new(r + q, p)
     }
 
     #[inline]

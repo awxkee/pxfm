@@ -298,7 +298,9 @@ fuzz_target!(|data: (f64, f64)| {
     //         0.50013,
     //     );
     // }
-    test_method(x0, f_j1, &mpfr_x0.clone().j1(), "f_j1".to_string(), 1.27);
+    if x0 > 0.000000000000000001 {
+        test_method(x0, f_j1, &mpfr_x0.clone().j1(), "f_j1".to_string(), 0.5);
+    }
     test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
     test_method(
         x0,

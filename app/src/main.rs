@@ -123,10 +123,10 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    // let start_bits = 0.9f64.to_bits();
-    // let end_bits = 1.5f64.to_bits();
+    let start_bits = 100.0f64.to_bits();
+    let end_bits = 150.97f64.to_bits();
 
-    // Exhaustive: 0..=u32::MAX
+    // Exhaustive: 0..=u64::MAX
     (0..=u64::MAX).into_par_iter().for_each(|bits| {
         let x = f64::from_bits(bits);
 

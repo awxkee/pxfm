@@ -552,7 +552,7 @@ pub(crate) fn sin_small(z: f64) -> f64 {
     let sin_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, sin_k);
     let cos_k_sin_y = DoubleDouble::quick_mult(sin_cos.v_sin, cos_k);
 
-    let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
     rr.to_f64()
 }
@@ -677,7 +677,7 @@ pub fn f_sin(x: f64) -> f64 {
     let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, sin_k);
     let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, cos_k);
 
-    let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
 
     let rlp = rr.lo + r_sincos.err;
