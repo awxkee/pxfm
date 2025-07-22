@@ -522,6 +522,10 @@ fuzz_target!(|data: (f64, f64)| {
         "f_atan".to_string(),
         0.5,
     );
+    #[cfg(any(
+        all(target_arch = "x86_64", target_feature = "fma"),
+        target_arch = "aarch64"
+    ))]
     test_method_2vals_ignore_nan(
         x0,
         x1,
