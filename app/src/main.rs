@@ -100,7 +100,7 @@ fn test_f32_against_mpfr_multithreaded() {
 
     let mut exceptions = Arc::new(Mutex::new(Vec::<f64>::new()));
 
-    // // // Exhaustive: 0..=u32::MAX
+    // // // // Exhaustive: 0..=u32::MAX
     // (0u32..=u32::MAX).into_par_iter().for_each(|bits| {
     //     let x = f32::from_bits(bits);
     //

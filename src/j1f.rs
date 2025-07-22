@@ -28,7 +28,7 @@
  */
 use crate::double_double::DoubleDouble;
 use crate::j1::j1_small_argument_path;
-use crate::j1_coeffs::J1_ZEROS;
+use crate::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
 use crate::j1f_coeffs::J1F_COEFFS;
 use crate::polyeval::{f_polyeval10, f_polyeval12, f_polyeval13, f_polyeval15};
 use crate::sin::sin_small;
@@ -356,14 +356,18 @@ fn small_argument_path(x: f32) -> f32 {
     let dist0 = (found_zero0.hi - x_abs).abs();
     let dist1 = (found_zero1.hi - x_abs).abs();
 
-    let (found_zero, idx) = if dist0 < dist1 {
-        (found_zero0, idx0)
+    let (found_zero, idx, dist) = if dist0 < dist1 {
+        (found_zero0, idx0, dist0)
     } else {
-        (found_zero1, idx1)
+        (found_zero1, idx1, dist1)
     };
 
     if idx == 0 {
         return maclaurin_series(x);
+    }
+
+    if dist == 0. {
+        return (f64::from_bits(J1_ZEROS_VALUE[idx]) * sign_scale) as f32;
     }
 
     let c = &J1F_COEFFS[idx - 1];

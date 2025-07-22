@@ -188,13 +188,17 @@ fuzz_target!(|data: (f32, f32)| {
     test_method_max_ulp(x0, f_sincf, &sinc_x0, "f_sincf".to_string(), 0.5000);
     // TODO: fix subnormals for x86 without fma
     // TODO: Fix ULP should be less than 0.5, but it was 0.71068525, using f_hypotf on x: 0.000000000000000000000000000000000000000091771, y: 0.000000000000000000000000000000000000011754585, MRFR 0.000000000000000000000000000000000000011754944
-    // test_method_2vals_ignore_nan(
-    //     x0,
-    //     x1,
-    //     f_hypotf,
-    //     &mpfr_x0.clone().hypot(&mpfr_x1),
-    //     "f_hypotf".to_string(),
-    // );
+    #[cfg(any(
+        all(target_arch = "x86_64", target_feature = "fma"),
+        target_arch = "aarch64"
+    ))]
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_hypotf,
+        &mpfr_x0.clone().hypot(&mpfr_x1),
+        "f_hypotf".to_string(),
+    );
     test_method(
         x0,
         f_atanhf,

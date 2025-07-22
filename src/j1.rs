@@ -32,7 +32,7 @@
 use crate::bits::get_exponent_f64;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1MaclaurinSeries};
+use crate::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1_ZEROS_VALUE, J1MaclaurinSeries};
 use crate::polyeval::{f_polyeval8, f_polyeval10, f_polyeval12, f_polyeval18};
 use crate::sin::{sin_dd_small, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
@@ -434,10 +434,10 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
     let dist0 = (found_zero0.hi - x_abs).abs();
     let dist1 = (found_zero1.hi - x_abs).abs();
 
-    let (found_zero, idx) = if dist0 < dist1 {
-        (found_zero0, idx0)
+    let (found_zero, idx, dist) = if dist0 < dist1 {
+        (found_zero0, idx0, dist0)
     } else {
-        (found_zero1, idx1)
+        (found_zero1, idx1, dist1)
     };
 
     if idx == 0 {
@@ -448,6 +448,10 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
     let c = j1c.c;
 
     let r = DoubleDouble::full_add_f64(DoubleDouble::new(-found_zero.lo, -found_zero.hi), x_abs);
+
+    if dist == 0. {
+        return f64::from_bits(J1_ZEROS_VALUE[idx]) * sign_scale;
+    }
 
     let p = f_polyeval8(
         r.to_f64(),
