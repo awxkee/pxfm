@@ -33,13 +33,13 @@ use crate::bits::get_exponent_f64;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1MaclaurinSeries};
-use crate::polyeval::{f_polyeval10, f_polyeval12, f_polyeval18};
+use crate::polyeval::{f_polyeval8, f_polyeval10, f_polyeval12, f_polyeval18};
 use crate::sin::{sin_dd_small, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel J 1st order in f64
 ///
-/// Max found ULP 1.26.
+/// Max found ULP 1.32.
 ///
 /// Note about accuracy:
 /// - Close to zero Bessel have tiny values such that testing against MPFR must be done exactly
@@ -102,8 +102,8 @@ pub(crate) fn j1_asympt(x: f64) -> f64 {
 
     let AngleReduced { angle } = rem2pi_any(x);
 
-    let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
-    let r0 = DoubleDouble::dd_add(angle, x0pi34);
+    let x0pi34 = DoubleDouble::sub(MPI_OVER_4, alpha);
+    let r0 = DoubleDouble::add(angle, x0pi34);
 
     let m_cos = sin_dd_small(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_cos);
@@ -446,11 +446,10 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
     let j1c = &J1_COEFFS[idx - 1];
     let c = j1c.c;
 
-    let r = (x_abs - found_zero.hi) - found_zero.lo;
-    let r2 = r * r;
+    let r = DoubleDouble::full_add_f64(DoubleDouble::new(-found_zero.lo, -found_zero.hi), x_abs);
 
-    let p = f_polyeval18(
-        r,
+    let p = f_polyeval8(
+        r.to_f64(),
         f64::from_bits(c[0]),
         f64::from_bits(c[1]),
         f64::from_bits(c[2]),
@@ -459,77 +458,34 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
         f64::from_bits(c[5]),
         f64::from_bits(c[6]),
         f64::from_bits(c[7]),
-        f64::from_bits(c[8]),
-        f64::from_bits(c[9]),
-        f64::from_bits(c[10]),
-        f64::from_bits(c[11]),
-        f64::from_bits(c[12]),
-        f64::from_bits(c[13]),
-        f64::from_bits(c[14]),
-        f64::from_bits(c[15]),
-        f64::from_bits(c[16]),
-        f64::from_bits(c[17]),
     );
-    let mut p_e = DoubleDouble::from_exact_mult(p, r);
 
-    let a6 = DoubleDouble::from_bit_pair(j1c.a6);
+    let mut p_e = DoubleDouble::mul_f64_add(r, p, DoubleDouble::from_bit_pair(j1c.a15));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a14));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a13));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a12));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a11));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a10));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a9));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a8));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a7));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a6));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a5));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a4));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a3));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a2));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a1));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a0));
 
-    let z = DoubleDouble::from_exact_add(a6.hi, p_e.hi);
-    p_e.hi = z.hi;
-    p_e.lo += z.lo + a6.lo;
-
-    p_e = DoubleDouble::quick_mult_f64(p_e, r);
-
-    let a5 = DoubleDouble::from_bit_pair(j1c.a5);
-
-    let z = DoubleDouble::from_exact_add(a5.hi, p_e.hi);
-    p_e.hi = z.hi;
-    p_e.lo += z.lo + a5.lo;
-
-    p_e = DoubleDouble::quick_mult_f64(p_e, r);
-
-    let a4 = DoubleDouble::from_bit_pair(j1c.a4);
-
-    let z = DoubleDouble::from_exact_add(a4.hi, p_e.hi);
-    p_e.hi = z.hi;
-    p_e.lo += z.lo + a4.lo;
-
-    p_e = DoubleDouble::quick_mult_f64(p_e, r);
-
-    let a3 = DoubleDouble::from_bit_pair(j1c.a3);
-
-    let z = DoubleDouble::from_exact_add(a3.hi, p_e.hi);
-    p_e.hi = z.hi;
-    p_e.lo += z.lo + a3.lo;
-
-    p_e = DoubleDouble::quick_mult_f64(p_e, r);
-
-    let a2 = DoubleDouble::from_bit_pair(j1c.a2);
-
-    let z = DoubleDouble::from_exact_add(a2.hi, p_e.hi);
-    p_e.hi = z.hi;
-    p_e.lo += z.lo + a2.lo;
-
-    p_e = DoubleDouble::quick_mult_f64(p_e, r2);
-
-    let a1 = DoubleDouble::from_bit_pair(j1c.a1);
-
-    let pdz = DoubleDouble::quick_mult_f64(a1, r);
-
-    let q0 = DoubleDouble::add(pdz, p_e);
-
-    let a0 = DoubleDouble::from_bit_pair(j1c.a0);
-
-    let z1 = DoubleDouble::add(a0, q0);
-
-    z1.to_f64() * sign_scale
+    let sums = DoubleDouble::from_full_exact_add(p_e.hi, p_e.lo);
+    sums.to_f64() * sign_scale
 }
 
 #[inline]
 fn j1_rsqrt_dd(x: f64) -> DoubleDouble {
     let r = DoubleDouble::div_dd_f64(DoubleDouble::from_sqrt(x), x);
     let rx = DoubleDouble::quick_mult_f64(r, x);
-    let drx = DoubleDouble::mul_add(r, DoubleDouble::new(0., x), -rx);
+    let drx = DoubleDouble::mul_f64_add(r, x, -rx);
     let h = DoubleDouble::mul_add(
         r,
         drx,
@@ -762,7 +718,8 @@ mod tests {
         // new max ulp 1.1165946603705592, at 507840.2490234375
         // new max ulp 1.1998728225709883, at 23629310242542055000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
         // new max ulp 1.250611066042211, at -153.46874191985077
-        // new max ulp 1.2609517961093033, at 584108420153125800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+        // Mismatch: x = 6.805647413516886e38, expected = 1.3282305706917615e-20, got = 1.3282305706917614e-20, ULP diff = 1.277740478515625
+        // Mismatch: x = 6.805647413561479e38, expected = -1.6519560649308674e-21, got = -1.6519560649308672e-21, ULP diff = 1.3020095825195313
         assert_eq!(f_j1(-6.1795701510782757E+307), 8.130935041593236e-155);
         assert_eq!(
             f_j1(0.000000000000000000000000000000000000008827127),

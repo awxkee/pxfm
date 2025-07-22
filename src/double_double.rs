@@ -127,16 +127,16 @@ impl DoubleDouble {
         zv.to_f64()
     }
 
-    #[inline]
-    pub(crate) const fn from_full_exact_sub(a: f64, b: f64) -> Self {
-        let r_hi = a - b;
-        let t1 = r_hi - a;
-        let t2 = r_hi - t1;
-        let t3 = -b - t1;
-        let t4 = a - t2;
-        let r_lo = t3 + t4;
-        DoubleDouble::new(r_lo, r_hi)
-    }
+    // #[inline]
+    // pub(crate) const fn from_full_exact_sub(a: f64, b: f64) -> Self {
+    //     let r_hi = a - b;
+    //     let t1 = r_hi - a;
+    //     let t2 = r_hi - t1;
+    //     let t3 = -b - t1;
+    //     let t4 = a - t2;
+    //     let r_lo = t3 + t4;
+    //     DoubleDouble::new(r_lo, r_hi)
+    // }
 
     #[inline]
     pub(crate) fn add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
@@ -146,24 +146,24 @@ impl DoubleDouble {
         DoubleDouble::new(l, s)
     }
 
-    #[inline]
-    pub(crate) fn dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-        let DoubleDouble { hi: s, lo: e1 } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
-        let DoubleDouble { hi: t, lo: e2 } = DoubleDouble::from_full_exact_add(a.lo, b.lo);
-        let DoubleDouble { hi: s, lo: e3 } = DoubleDouble::from_full_exact_add(s, t);
-        let lo = e1 + e2 + e3;
-        let DoubleDouble { hi, lo } = DoubleDouble::from_exact_add(s, lo);
-        DoubleDouble { hi, lo }
-    }
-
-    #[inline]
-    pub(crate) fn dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-        let DoubleDouble { hi: s, lo: e1 } = DoubleDouble::from_full_exact_sub(a.hi, b.hi);
-        let DoubleDouble { hi: t, lo: e2 } = DoubleDouble::from_full_exact_sub(a.lo, b.lo);
-        let DoubleDouble { hi: sum, lo: e3 } = DoubleDouble::from_full_exact_add(s, t);
-        let lo = e1 + e2 + e3;
-        DoubleDouble::from_exact_add(sum, lo)
-    }
+    // #[inline]
+    // pub(crate) fn dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+    //     let DoubleDouble { hi: s, lo: e1 } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
+    //     let DoubleDouble { hi: t, lo: e2 } = DoubleDouble::from_full_exact_add(a.lo, b.lo);
+    //     let DoubleDouble { hi: s, lo: e3 } = DoubleDouble::from_full_exact_add(s, t);
+    //     let lo = e1 + e2 + e3;
+    //     let DoubleDouble { hi, lo } = DoubleDouble::from_exact_add(s, lo);
+    //     DoubleDouble { hi, lo }
+    // }
+    //
+    // #[inline]
+    // pub(crate) fn dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+    //     let DoubleDouble { hi: s, lo: e1 } = DoubleDouble::from_full_exact_sub(a.hi, b.hi);
+    //     let DoubleDouble { hi: t, lo: e2 } = DoubleDouble::from_full_exact_sub(a.lo, b.lo);
+    //     let DoubleDouble { hi: sum, lo: e3 } = DoubleDouble::from_full_exact_add(s, t);
+    //     let lo = e1 + e2 + e3;
+    //     DoubleDouble::from_exact_add(sum, lo)
+    // }
 
     #[inline]
     pub(crate) fn sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
@@ -527,6 +527,69 @@ impl DoubleDouble {
     // #[inline]
     // pub(crate) fn to_triple(self) -> TripleDouble {
     //     TripleDouble::new(0., self.lo, self.hi)
+    // }
+
+    /// Computes `a * b + c`
+    /// `b` is an `f64`, `a` and `c` are `DoubleDouble`.
+    #[inline]
+    pub(crate) fn mul_f64_add(a: DoubleDouble, b: f64, c: DoubleDouble) -> Self {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let hp = f_fmla(a.hi, b, c.hi);
+            let r1 = hp - c.hi;
+            let r = f_fmla(a.hi, b, -r1);
+            let t = f_fmla(a.lo, b, c.lo);
+            let s = t + r;
+            let l = s;
+            Self { hi: hp, lo: l }
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let product = DoubleDouble::quick_mult_f64(a, b);
+            DoubleDouble::add(product, c)
+        }
+    }
+
+    // /// Computes `a * b + c` where `a` and `b` are `f64`, `c` is `DoubleDouble`
+    // #[inline]
+    // pub(crate) fn mul_f64s_add(a: f64, b: f64, c: DoubleDouble) -> Self {
+    //     #[cfg(any(
+    //         all(
+    //             any(target_arch = "x86", target_arch = "x86_64"),
+    //             target_feature = "fma"
+    //         ),
+    //         all(target_arch = "aarch64", target_feature = "neon")
+    //     ))]
+    //     {
+    //         let hp = f_fmla(a, b, c.hi);
+    //         let r1 = hp - c.hi;
+    //         let r = f_fmla(a, b, -r1);
+    //         let s = c.lo + r;
+    //         Self { lo: s, hi: hp }
+    //     }
+    //     #[cfg(not(any(
+    //         all(
+    //             any(target_arch = "x86", target_arch = "x86_64"),
+    //             target_feature = "fma"
+    //         ),
+    //         all(target_arch = "aarch64", target_feature = "neon")
+    //     )))]
+    //     {
+    //         let product = DoubleDouble::from_exact_mult(a, b);
+    //         DoubleDouble::add(product, c);
+    //     }
     // }
 
     /// `a*b+c`
