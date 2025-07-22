@@ -32,7 +32,7 @@ use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 use crate::exp2::ldexp;
 use crate::expm1::{EXPM1_T0, EXPM1_T1};
-use crate::polyeval::{f_polyeval7, f_polyeval8, f_polyeval16};
+use crate::polyeval::{f_polyeval8, f_polyeval16};
 use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC, POW_INVERSE, POW_LOG_INV};
 
 #[inline(always)]
@@ -190,16 +190,14 @@ fn exp_poly_dd(z: DoubleDouble) -> DoubleDouble {
         (0x3c3648eca89bc6ac, 0x3f8111111144fbee),
         (0xbbd53d924ae90c8c, 0x3f56c16c16ffeecc),
     ];
-    f_polyeval7(
-        z,
-        DoubleDouble::from_bit_pair(Q_1[0]),
-        DoubleDouble::from_bit_pair(Q_1[1]),
-        DoubleDouble::from_bit_pair(Q_1[2]),
-        DoubleDouble::from_bit_pair(Q_1[3]),
-        DoubleDouble::from_bit_pair(Q_1[4]),
-        DoubleDouble::from_bit_pair(Q_1[5]),
-        DoubleDouble::from_bit_pair(Q_1[6]),
-    )
+    let mut p = DoubleDouble::mult(z, DoubleDouble::from_bit_pair(Q_1[6]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[5]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[4]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[3]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[2]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[1]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[0]));
+    p
 }
 
 #[inline]
@@ -424,17 +422,14 @@ fn expm1_poly_dd(z: DoubleDouble) -> DoubleDouble {
         (0x3be34665978dddb8, 0x3f56c16c16efac90),
         (0x3baeab43b813ef24, 0x3f2a01a1e12d253c),
     ];
-    let d = f_polyeval7(
-        z,
-        DoubleDouble::from_bit_pair(Q_1[0]),
-        DoubleDouble::from_bit_pair(Q_1[1]),
-        DoubleDouble::from_bit_pair(Q_1[2]),
-        DoubleDouble::from_bit_pair(Q_1[3]),
-        DoubleDouble::from_bit_pair(Q_1[4]),
-        DoubleDouble::from_bit_pair(Q_1[5]),
-        DoubleDouble::from_bit_pair(Q_1[6]),
-    );
-    DoubleDouble::quick_mult(d, z)
+    let mut p = DoubleDouble::mult(z, DoubleDouble::from_bit_pair(Q_1[6]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[5]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[4]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[3]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[2]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[1]));
+    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[0]));
+    DoubleDouble::quick_mult(p, z)
 }
 
 /// |z.hi| < 0.125

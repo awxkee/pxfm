@@ -81,6 +81,7 @@ pub(crate) static LOG10P1_EXACT_INT_TABLE: [u64; 50] = [
     0x0000000000000000,
     0x430c6bf52633fff8,
 ];
+
 // LOG10P1_EXACT_INT_S_TABLE[e] is the integer n such that LOG10P1_EXACT_INT_TABLE[e] = 10^n-1 when LOG10P1_EXACT_INT_TABLE[e] is not zero
 pub(crate) static LOG10P1_EXACT_INT_S_TABLE: [u32; 50] = [
     0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 0, 4, 0, 0, 5, 0, 0, 6, 0, 0, 0, 7, 0, 0, 8, 0, 0, 9, 0, 0,

@@ -196,8 +196,8 @@ pub fn f_exp10(x: f64) -> f64 {
     let ie = jt >> 12;
     let t00 = EXP_REDUCE_T0[i0 as usize];
     let t01 = EXP_REDUCE_T1[i1 as usize];
-    let t0 = DoubleDouble::new(f64::from_bits(t00.0), f64::from_bits(t00.1));
-    let t1 = DoubleDouble::new(f64::from_bits(t01.0), f64::from_bits(t01.1));
+    let t0 = DoubleDouble::from_bit_pair(t00);
+    let t1 = DoubleDouble::from_bit_pair(t01);
     let mut tz = DoubleDouble::quick_mult(t0, t1);
     const L0: f64 = f64::from_bits(0x3f13441350800000);
     const L1: f64 = f64::from_bits(0x3d1f79fef311f12b);

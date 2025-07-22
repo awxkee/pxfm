@@ -52,7 +52,7 @@ impl PolyevalMla for f32 {
 impl PolyevalMla for DoubleDouble {
     #[inline(always)]
     fn polyeval_mla(a: Self, b: Self, c: Self) -> Self {
-        DoubleDouble::add(c, DoubleDouble::mult(a, b))
+        DoubleDouble::mul_add(a, b, c)
     }
 }
 
