@@ -1,4 +1,4 @@
-use pxfm::{f_cbrtf, f_j1, f_j1f};
+use pxfm::{f_cbrtf, f_j0, f_j0f, f_j1, f_j1f};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -123,7 +123,7 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = 100.0f64.to_bits();
+    let start_bits = 100.3f64.to_bits();
     let end_bits = 150.97f64.to_bits();
 
     // Exhaustive: 0..=u64::MAX
@@ -134,8 +134,8 @@ fn test_f32_against_mpfr_multithreaded() {
             return; // skip NaNs and infinities
         }
 
-        let expected = Float::with_val(70, x).j1();
-        let actual = f_j1(x);
+        let expected = Float::with_val(70, x).j0();
+        let actual = f_j0(x);
 
         let diff = count_ulp_f64(actual, &expected);
 

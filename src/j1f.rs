@@ -30,7 +30,7 @@ use crate::double_double::DoubleDouble;
 use crate::j1::j1_small_argument_path;
 use crate::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
 use crate::j1f_coeffs::J1F_COEFFS;
-use crate::polyeval::{f_polyeval10, f_polyeval12, f_polyeval13, f_polyeval15};
+use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval15};
 use crate::sin::sin_small;
 use crate::sincos_reduce::rem2pif_any;
 
@@ -277,16 +277,13 @@ fn j1f_asympt_beta(x: f64) -> f64 {
 Generated in Sage Math:
 ```python
 def print_expansion_at_0_f():
-    print(f"pub(crate) const J1_MACLAURIN_SERIES: [u64; 13] = [")
+    print(f"pub(crate) const J1_MACLAURIN_SERIES: [u64; 9] = [")
     from mpmath import mp, j1, taylor, expm1
-    mp.prec = 53
-    poly = taylor(lambda val: j1(val), 0, 46)
-    # print(poly)
-    real_i = 0
+    mp.prec = 60
+    poly = taylor(lambda val: j1(val), 0, 18)
     z = 0
-    for i in range(1, 46, 2):
+    for i in range(1, 18, 2):
         print(f"{double_to_hex(poly[i])},")
-        real_i = real_i + 1
     print("];")
 
     print(f"poly {poly}")
@@ -296,7 +293,7 @@ print_expansion_at_0_f()
 **/
 #[inline]
 fn maclaurin_series(x: f32) -> f32 {
-    pub(crate) const C: [u64; 13] = [
+    pub(crate) const C: [u64; 9] = [
         0x3fe0000000000000,
         0xbfb0000000000000,
         0x3f65555555555555,
@@ -306,14 +303,10 @@ fn maclaurin_series(x: f32) -> f32 {
         0x3dc27e4fb7789f5c,
         0xbd4522a43f65486a,
         0x3cc2c9758daf5cd0,
-        0xbc3ab81ea75fcdf4,
-        0x3baf17697cf1cf13,
-        0xbb1e2637bef9ff1a,
-        0x3a88bce58901a35e,
     ];
     let dx = x as f64;
     let x2 = dx * dx;
-    let p = f_polyeval13(
+    let p = f_polyeval9(
         x2,
         f64::from_bits(C[0]),
         f64::from_bits(C[1]),
@@ -324,10 +317,6 @@ fn maclaurin_series(x: f32) -> f32 {
         f64::from_bits(C[6]),
         f64::from_bits(C[7]),
         f64::from_bits(C[8]),
-        f64::from_bits(C[9]),
-        f64::from_bits(C[10]),
-        f64::from_bits(C[11]),
-        f64::from_bits(C[12]),
     );
     (p * dx) as f32
 }
@@ -366,6 +355,7 @@ fn small_argument_path(x: f32) -> f32 {
         return maclaurin_series(x);
     }
 
+    // We hit exact zero, value, better to return it directly
     if dist == 0. {
         return (f64::from_bits(J1_ZEROS_VALUE[idx]) * sign_scale) as f32;
     }
@@ -415,7 +405,6 @@ fn j1_small_argument_path_hard(x: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

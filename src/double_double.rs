@@ -127,16 +127,16 @@ impl DoubleDouble {
         zv.to_f64()
     }
 
-    // #[inline]
-    // pub(crate) const fn from_full_exact_sub(a: f64, b: f64) -> Self {
-    //     let r_hi = a - b;
-    //     let t1 = r_hi - a;
-    //     let t2 = r_hi - t1;
-    //     let t3 = -b - t1;
-    //     let t4 = a - t2;
-    //     let r_lo = t3 + t4;
-    //     DoubleDouble::new(r_lo, r_hi)
-    // }
+    #[inline]
+    pub(crate) const fn from_full_exact_sub(a: f64, b: f64) -> Self {
+        let r_hi = a - b;
+        let t1 = r_hi - a;
+        let t2 = r_hi - t1;
+        let t3 = -b - t1;
+        let t4 = a - t2;
+        let r_lo = t3 + t4;
+        DoubleDouble::new(r_lo, r_hi)
+    }
 
     #[inline]
     pub(crate) fn add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
@@ -146,24 +146,24 @@ impl DoubleDouble {
         DoubleDouble::new(l, s)
     }
 
-    // #[inline]
-    // pub(crate) fn dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-    //     let DoubleDouble { hi: s, lo: e1 } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
-    //     let DoubleDouble { hi: t, lo: e2 } = DoubleDouble::from_full_exact_add(a.lo, b.lo);
-    //     let DoubleDouble { hi: s, lo: e3 } = DoubleDouble::from_full_exact_add(s, t);
-    //     let lo = e1 + e2 + e3;
-    //     let DoubleDouble { hi, lo } = DoubleDouble::from_exact_add(s, lo);
-    //     DoubleDouble { hi, lo }
-    // }
-    //
-    // #[inline]
-    // pub(crate) fn dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-    //     let DoubleDouble { hi: s, lo: e1 } = DoubleDouble::from_full_exact_sub(a.hi, b.hi);
-    //     let DoubleDouble { hi: t, lo: e2 } = DoubleDouble::from_full_exact_sub(a.lo, b.lo);
-    //     let DoubleDouble { hi: sum, lo: e3 } = DoubleDouble::from_full_exact_add(s, t);
-    //     let lo = e1 + e2 + e3;
-    //     DoubleDouble::from_exact_add(sum, lo)
-    // }
+    #[inline]
+    pub(crate) fn dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+        let DoubleDouble { hi: s, lo: e1 } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
+        let DoubleDouble { hi: t, lo: e2 } = DoubleDouble::from_full_exact_add(a.lo, b.lo);
+        let DoubleDouble { hi: s, lo: e3 } = DoubleDouble::from_full_exact_add(s, t);
+        let lo = e1 + e2 + e3;
+        let DoubleDouble { hi, lo } = DoubleDouble::from_exact_add(s, lo);
+        DoubleDouble { hi, lo }
+    }
+
+    #[inline]
+    pub(crate) fn dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+        let DoubleDouble { hi: s, lo: e1 } = DoubleDouble::from_full_exact_sub(a.hi, b.hi);
+        let DoubleDouble { hi: t, lo: e2 } = DoubleDouble::from_full_exact_sub(a.lo, b.lo);
+        let DoubleDouble { hi: sum, lo: e3 } = DoubleDouble::from_full_exact_add(s, t);
+        let lo = e1 + e2 + e3;
+        DoubleDouble::from_exact_add(sum, lo)
+    }
 
     #[inline]
     pub(crate) fn sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
@@ -763,6 +763,19 @@ impl DoubleDouble {
     #[inline]
     pub(crate) const fn to_f64(self) -> f64 {
         self.lo + self.hi
+    }
+
+    pub(crate) fn from_rsqrt(x: f64) -> DoubleDouble {
+        let r = DoubleDouble::div_dd_f64(DoubleDouble::from_sqrt(x), x);
+        let rx = DoubleDouble::quick_mult_f64(r, x);
+        let drx = DoubleDouble::mul_f64_add(r, x, -rx);
+        let h = DoubleDouble::mul_add(
+            r,
+            drx,
+            DoubleDouble::mul_add(r, rx, DoubleDouble::new(0., -1.0)),
+        );
+        let dr = DoubleDouble::quick_mult(DoubleDouble::quick_mult_f64(r, 0.5), h);
+        DoubleDouble::sub(r, dr)
     }
 }
 

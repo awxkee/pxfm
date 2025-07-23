@@ -59,8 +59,6 @@ for i in range(0, len(j1_zeros)):
     f_poly = bessel_J(1, x)
     x0 = mp.mpf(k_range)
     from mpmath import mp, j1, taylor, expm1
-    # The j1 (Bessel J_1) function from mpmath will compute with mp.dps precision
-    # The Taylor series computation will also respect mp.dps
     poly = taylor(lambda val: j1(val), x0, 23)
     # print(poly)
     print_taylor_coeffsf(poly, CDR(k_range))

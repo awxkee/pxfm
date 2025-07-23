@@ -12,10 +12,10 @@ use pxfm::{
     f_atanh, f_atanhf, f_atanpi, f_atanpif, f_cbrt, f_cbrtf, f_compound, f_compound_m1,
     f_compound_m1f, f_compoundf, f_cos, f_cosf, f_cosh, f_coshf, f_cospi, f_cospif, f_erf, f_erfc,
     f_erfcf, f_erff, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
-    f_exp10m1f, f_expf, f_expm1, f_expm1f, f_hypot, f_j1, f_j1f, f_log, f_log1p, f_log1pf, f_log2,
-    f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_pow, f_powf,
-    f_sin, f_sinc, f_sincf, f_sincos, f_sincosf, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan,
-    f_tanf, f_tanh, f_tanhf, f_tanpi, f_tanpif, powf,
+    f_exp10m1f, f_expf, f_expm1, f_expm1f, f_hypot, f_j0, f_j0f, f_j1, f_j1f, f_log, f_log1p,
+    f_log1pf, f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f,
+    f_logf, f_pow, f_powf, f_sin, f_sinc, f_sincf, f_sincos, f_sincosf, f_sinf, f_sinh, f_sinhf,
+    f_sinpi, f_sinpif, f_tan, f_tanf, f_tanh, f_tanhf, f_tanpi, f_tanpif, powf,
 };
 use std::hint::black_box;
 use std::time::Duration;
@@ -609,6 +609,22 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("libm::j0f", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::j0f(i as f32 / 1000.));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_j0f", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_j0f(i as f32 / 1000.));
+            }
+        })
+    });
+
     c.bench_function("libm::j1f", |b| {
         b.iter(|| {
             for i in 1..1000 {
@@ -621,6 +637,22 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_j1f(i as f32));
+            }
+        })
+    });
+
+    c.bench_function("libm::j0", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::j0(i as f64));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: j0", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_j0(i as f64));
             }
         })
     });

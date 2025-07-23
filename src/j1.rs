@@ -29,13 +29,11 @@
 
 #![allow(clippy::excessive_precision)]
 
-use crate::bits::get_exponent_f64;
 use crate::double_double::DoubleDouble;
-use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1_ZEROS_VALUE, J1MaclaurinSeries};
-use crate::polyeval::{f_polyeval8, f_polyeval10, f_polyeval12, f_polyeval18};
-use crate::sin::{sin_dd_small, sin_f128_small};
-use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
+use crate::polyeval::{f_polyeval8, f_polyeval18};
+use crate::sin::sin_dd_small;
+use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 
 /// Bessel J 1st order in f64
 ///
@@ -65,11 +63,11 @@ pub fn f_j1(x: f64) -> f64 {
         return j1_small_argument_path(x);
     }
 
-    let e = get_exponent_f64(x);
+    // let e = get_exponent_f64(x);
 
-    if e > 512 {
-        return j1_asympt_hard(x);
-    }
+    // if e > 512 {
+    //     return j1_asympt_hard(x);
+    // }
 
     j1_asympt(x)
 }
@@ -98,17 +96,24 @@ pub(crate) fn j1_asympt(x: f64) -> f64 {
         f64::from_bits(0xbfe921fb54442d18),
     );
 
-    let alpha = j1_asympt_alpha(x);
-    let beta = j1_asympt_beta(x);
+    let recip = if x.to_bits() > 0x7fd000000000000u64 {
+        DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_div(4.0, x), 0.25)
+    } else {
+        DoubleDouble::from_recip(x)
+    };
+
+    let alpha = j1_asympt_alpha(recip);
+    let beta = j1_asympt_beta(recip);
 
     let AngleReduced { angle } = rem2pi_any(x);
 
-    let x0pi34 = DoubleDouble::sub(MPI_OVER_4, alpha);
-    let r0 = DoubleDouble::add(angle, x0pi34);
+    // Without full subtraction cancellation happens sometimes
+    let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
+    let r0 = DoubleDouble::dd_add(angle, x0pi34);
 
     let m_cos = sin_dd_small(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_cos);
-    let r_sqrt = j1_rsqrt_dd(x);
+    let r_sqrt = DoubleDouble::from_rsqrt(x);
     let scale = DoubleDouble::quick_mult(SQRT_2_OVER_PI, r_sqrt);
     let p = DoubleDouble::quick_mult(scale, z0).to_f64();
     p * sign_scale
@@ -154,7 +159,7 @@ print(alpha_series)
 See notes/bessel_asympt.ipynb for generation
 **/
 #[inline]
-fn j1_asympt_alpha(x: f64) -> DoubleDouble {
+fn j1_asympt_alpha(recip: DoubleDouble) -> DoubleDouble {
     const C: [(u64, u64); 12] = [
         (0x0000000000000000, 0xbfd8000000000000),
         (0x0000000000000000, 0x3fc5000000000000),
@@ -171,7 +176,6 @@ fn j1_asympt_alpha(x: f64) -> DoubleDouble {
     ];
 
     // Doing (1/x)*(1/x) instead (1/(x*x)) to avoid spurious overflow/underflow
-    let recip = DoubleDouble::from_recip(x);
     let x2 = DoubleDouble::quick_mult(recip, recip);
 
     let mut p = DoubleDouble::mul_add(
@@ -191,7 +195,7 @@ fn j1_asympt_alpha(x: f64) -> DoubleDouble {
     p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
     p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
 
-    let z = DoubleDouble::div_dd_f64(p, x);
+    let z = DoubleDouble::quick_mult(p, recip);
 
     DoubleDouble::from_exact_add(z.hi, z.lo)
 }
@@ -241,7 +245,8 @@ print(b_series)
 
 See notes/bessel_asympt.ipynb for generation
 **/
-fn j1_asympt_beta(x: f64) -> DoubleDouble {
+#[inline]
+fn j1_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
     const C: [(u64, u64); 10] = [
         (0x0000000000000000, 0x3ff0000000000000),
         (0x0000000000000000, 0x3fc8000000000000),
@@ -256,7 +261,6 @@ fn j1_asympt_beta(x: f64) -> DoubleDouble {
     ];
 
     // Doing (1/x)*(1/x) instead (1/(x*x)) to avoid spurious overflow/underflow
-    let recip = DoubleDouble::from_recip(x);
     let x2 = DoubleDouble::quick_mult(recip, recip);
 
     let mut p = DoubleDouble::mul_add(
@@ -380,11 +384,8 @@ pub(crate) fn j1_maclaurin_series(x: f64) -> f64 {
 
     let dx2 = DoubleDouble::from_exact_mult(x, x);
 
-    let mut p_e = DoubleDouble::mul_add(
-        dx2,
-        DoubleDouble::new(0., p),
-        DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a4),
-    );
+    let mut p_e =
+        DoubleDouble::mul_f64_add(dx2, p, DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a4));
     p_e = DoubleDouble::mul_add(
         dx2,
         p_e,
@@ -449,6 +450,7 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
 
     let r = DoubleDouble::full_add_f64(DoubleDouble::new(-found_zero.lo, -found_zero.hi), x_abs);
 
+    // We hit exact zero, value, better to return it directly
     if dist == 0. {
         return f64::from_bits(J1_ZEROS_VALUE[idx]) * sign_scale;
     }
@@ -486,223 +488,209 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
     sums.to_f64() * sign_scale
 }
 
-#[inline]
-fn j1_rsqrt_dd(x: f64) -> DoubleDouble {
-    let r = DoubleDouble::div_dd_f64(DoubleDouble::from_sqrt(x), x);
-    let rx = DoubleDouble::quick_mult_f64(r, x);
-    let drx = DoubleDouble::mul_f64_add(r, x, -rx);
-    let h = DoubleDouble::mul_add(
-        r,
-        drx,
-        DoubleDouble::mul_add(r, rx, DoubleDouble::new(0., -1.0)),
-    );
-    let dr = DoubleDouble::quick_mult(DoubleDouble::quick_mult_f64(r, 0.5), h);
-    DoubleDouble::sub(r, dr)
-}
-
-#[inline]
-fn j1_rsqrt_hard_hard(x: f64, recip: DyadicFloat128) -> DyadicFloat128 {
-    let r = DyadicFloat128::new_from_f64(x.sqrt()) * recip;
-    let fx = DyadicFloat128::new_from_f64(x);
-    let rx = r * fx;
-    let drx = r * fx - rx;
-    const M_ONE: DyadicFloat128 = DyadicFloat128 {
-        sign: DyadicSign::Neg,
-        exponent: -127,
-        mantissa: 0x80000000_00000000_00000000_00000000_u128,
-    };
-    let h = r * rx + M_ONE + r * drx;
-    let mut ddr = r;
-    ddr.exponent -= 1; // ddr * 0.5
-    let dr = ddr * h;
-    r - dr
-}
-
-/// see [j1_asympt_beta] for more info
-fn j1_asympt_beta_hard(recip: DyadicFloat128) -> DyadicFloat128 {
-    static C: [DyadicFloat128; 10] = [
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -127,
-            mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -130,
-            mantissa: 0xc0000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -130,
-            mantissa: 0xc6000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -128,
-            mantissa: 0xce280000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -125,
-            mantissa: 0xf7adb400_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -120,
-            mantissa: 0x84c306ea_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -116,
-            mantissa: 0xdd74dbd0_37000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -110,
-            mantissa: 0x84388ea0_e0a14000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -105,
-            mantissa: 0xd5b80b26_45f372f4_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -99,
-            mantissa: 0xe082af12_794bf6f1_e1000000_00000000_u128,
-        },
-    ];
-
-    let x2 = recip * recip;
-
-    f_polyeval10(
-        x2, C[0], C[2], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8],
-    )
-}
-
-/// See [j1_asympt_alpha] for the info
-fn j1_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFloat128 {
-    static C: [DyadicFloat128; 12] = [
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -129,
-            mantissa: 0xc0000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -130,
-            mantissa: 0xa8000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -129,
-            mantissa: 0xbde66666_66666666_66666666_66666666_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -126,
-            mantissa: 0x97a436db_6db6db6d_b6db6db6_db6db6db_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -123,
-            mantissa: 0xf4fdfa00_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -118,
-            mantissa: 0xa4cbdaac_a2e8ba2e_8ba2e8ba_2e8ba2e9_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -113,
-            mantissa: 0xa548a0ca_934ec4ec_4ec4ec4e_c4ec4ec5_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -108,
-            mantissa: 0xe68da9c0_b5760666_66666666_66666666_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -102,
-            mantissa: 0xd5204aea_0c9a8879_69696969_69696969_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -96,
-            mantissa: 0xfc04982f_88dce9e0_ca50d794_35e50d79_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -89,
-            mantissa: 0xb973404f_6b0c58ff_c5b90000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -82,
-            mantissa: 0xa62db02b_c1cfc563_44ea32e9_0b21642d_u128,
-        },
-    ];
-
-    let x2 = reciprocal * reciprocal;
-
-    let p = f_polyeval12(
-        x2, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11],
-    );
-
-    p * reciprocal
-}
-
-/*
-   Evaluates:
-   J1 = sqrt(2/(PI*x)) * beta(x) * cos(x - 3*PI/4 - alpha(x))
-   discarding 1*PI/2 using identities gives:
-   J1 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
-
-   to avoid squashing small (-PI/4 - alpha(x)) into a large x actual expansion is:
-
-   J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
-
-   This method is required for situations where x*x or 1/(x*x) will overflow
-*/
-#[cold]
-fn j1_asympt_hard(x: f64) -> f64 {
-    static SGN: [f64; 2] = [1., -1.];
-    let sign_scale = SGN[x.is_sign_negative() as usize];
-    let x = x.abs();
-
-    const SQRT_2_OVER_PI: DyadicFloat128 = DyadicFloat128 {
-        sign: DyadicSign::Pos,
-        exponent: -128,
-        mantissa: 0xcc42299e_a1b28468_7e59e280_5d5c7180_u128,
-    };
-
-    const MPI_OVER_4: DyadicFloat128 = DyadicFloat128 {
-        sign: DyadicSign::Neg,
-        exponent: -128,
-        mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
-    };
-
-    let x_dyadic = DyadicFloat128::new_from_f64(x);
-    let recip = DyadicFloat128::accurate_reciprocal(x);
-
-    let alpha = j1_asympt_alpha_hard(recip);
-    let beta = j1_asympt_beta_hard(recip);
-
-    let angle = rem2pi_f128(x_dyadic);
-
-    let x0pi34 = MPI_OVER_4 - alpha;
-    let r0 = angle + x0pi34;
-
-    let m_sin = sin_f128_small(r0);
-
-    let z0 = beta * m_sin;
-    let r_sqrt = j1_rsqrt_hard_hard(x, recip);
-    let scale = SQRT_2_OVER_PI * r_sqrt;
-    let p = scale * z0;
-    p.fast_as_f64() * sign_scale
-}
+// #[inline]
+// fn j1_rsqrt_hard_hard(x: f64, recip: DyadicFloat128) -> DyadicFloat128 {
+//     let r = DyadicFloat128::new_from_f64(x.sqrt()) * recip;
+//     let fx = DyadicFloat128::new_from_f64(x);
+//     let rx = r * fx;
+//     let drx = r * fx - rx;
+//     const M_ONE: DyadicFloat128 = DyadicFloat128 {
+//         sign: DyadicSign::Neg,
+//         exponent: -127,
+//         mantissa: 0x80000000_00000000_00000000_00000000_u128,
+//     };
+//     let h = r * rx + M_ONE + r * drx;
+//     let mut ddr = r;
+//     ddr.exponent -= 1; // ddr * 0.5
+//     let dr = ddr * h;
+//     r - dr
+// }
+//
+// /// see [j1_asympt_beta] for more info
+// fn j1_asympt_beta_hard(recip: DyadicFloat128) -> DyadicFloat128 {
+//     static C: [DyadicFloat128; 10] = [
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -127,
+//             mantissa: 0x80000000_00000000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -130,
+//             mantissa: 0xc0000000_00000000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Neg,
+//             exponent: -130,
+//             mantissa: 0xc6000000_00000000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -128,
+//             mantissa: 0xce280000_00000000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Neg,
+//             exponent: -125,
+//             mantissa: 0xf7adb400_00000000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -120,
+//             mantissa: 0x84c306ea_00000000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Neg,
+//             exponent: -116,
+//             mantissa: 0xdd74dbd0_37000000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -110,
+//             mantissa: 0x84388ea0_e0a14000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Neg,
+//             exponent: -105,
+//             mantissa: 0xd5b80b26_45f372f4_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -99,
+//             mantissa: 0xe082af12_794bf6f1_e1000000_00000000_u128,
+//         },
+//     ];
+//
+//     let x2 = recip * recip;
+//
+//     f_polyeval10(
+//         x2, C[0], C[2], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8],
+//     )
+// }
+//
+// /// See [j1_asympt_alpha] for the info
+// fn j1_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFloat128 {
+//     static C: [DyadicFloat128; 12] = [
+//         DyadicFloat128 {
+//             sign: DyadicSign::Neg,
+//             exponent: -129,
+//             mantissa: 0xc0000000_00000000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -130,
+//             mantissa: 0xa8000000_00000000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Neg,
+//             exponent: -129,
+//             mantissa: 0xbde66666_66666666_66666666_66666666_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -126,
+//             mantissa: 0x97a436db_6db6db6d_b6db6db6_db6db6db_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Neg,
+//             exponent: -123,
+//             mantissa: 0xf4fdfa00_00000000_00000000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -118,
+//             mantissa: 0xa4cbdaac_a2e8ba2e_8ba2e8ba_2e8ba2e9_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Neg,
+//             exponent: -113,
+//             mantissa: 0xa548a0ca_934ec4ec_4ec4ec4e_c4ec4ec5_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -108,
+//             mantissa: 0xe68da9c0_b5760666_66666666_66666666_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Neg,
+//             exponent: -102,
+//             mantissa: 0xd5204aea_0c9a8879_69696969_69696969_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -96,
+//             mantissa: 0xfc04982f_88dce9e0_ca50d794_35e50d79_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Neg,
+//             exponent: -89,
+//             mantissa: 0xb973404f_6b0c58ff_c5b90000_00000000_u128,
+//         },
+//         DyadicFloat128 {
+//             sign: DyadicSign::Pos,
+//             exponent: -82,
+//             mantissa: 0xa62db02b_c1cfc563_44ea32e9_0b21642d_u128,
+//         },
+//     ];
+//
+//     let x2 = reciprocal * reciprocal;
+//
+//     let p = f_polyeval12(
+//         x2, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11],
+//     );
+//
+//     p * reciprocal
+// }
+//
+// /*
+//    Evaluates:
+//    J1 = sqrt(2/(PI*x)) * beta(x) * cos(x - 3*PI/4 - alpha(x))
+//    discarding 1*PI/2 using identities gives:
+//    J1 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
+//
+//    to avoid squashing small (-PI/4 - alpha(x)) into a large x actual expansion is:
+//
+//    J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
+//
+//    This method is required for situations where x*x or 1/(x*x) will overflow
+// */
+// #[cold]
+// fn j1_asympt_hard(x: f64) -> f64 {
+//     static SGN: [f64; 2] = [1., -1.];
+//     let sign_scale = SGN[x.is_sign_negative() as usize];
+//     let x = x.abs();
+//
+//     const SQRT_2_OVER_PI: DyadicFloat128 = DyadicFloat128 {
+//         sign: DyadicSign::Pos,
+//         exponent: -128,
+//         mantissa: 0xcc42299e_a1b28468_7e59e280_5d5c7180_u128,
+//     };
+//
+//     const MPI_OVER_4: DyadicFloat128 = DyadicFloat128 {
+//         sign: DyadicSign::Neg,
+//         exponent: -128,
+//         mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
+//     };
+//
+//     let x_dyadic = DyadicFloat128::new_from_f64(x);
+//     let recip = DyadicFloat128::accurate_reciprocal(x);
+//
+//     let alpha = j1_asympt_alpha_hard(recip);
+//     let beta = j1_asympt_beta_hard(recip);
+//
+//     let angle = rem2pi_f128(x_dyadic);
+//
+//     let x0pi34 = MPI_OVER_4 - alpha;
+//     let r0 = angle + x0pi34;
+//
+//     let m_sin = sin_f128_small(r0);
+//
+//     let z0 = beta * m_sin;
+//     let r_sqrt = j1_rsqrt_hard_hard(x, recip);
+//     let scale = SQRT_2_OVER_PI * r_sqrt;
+//     let p = scale * z0;
+//     p.fast_as_f64() * sign_scale
+// }
 
 #[cfg(test)]
 mod tests {

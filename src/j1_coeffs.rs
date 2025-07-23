@@ -93,7 +93,6 @@ epsilon = mpf("1e-35")
 x = mpf("0.0")
 
 previous_zero = R120(0)
-epsilon = 1e-12
 j1_zeros = []
 
 while x < mpf("76.0"):
