@@ -410,6 +410,6 @@ mod tests {
         assert_eq!(f_j0(99.746819858680596470279979), -8.419106281522749e-17);
         assert_eq!(f_j0(f64::INFINITY), 0.);
         assert_eq!(f_j0(f64::NEG_INFINITY), 0.);
-        assert_eq!(f_j0(f64::NEG_INFINITY), 0.);
+        assert!(f_j0(f64::NAN).is_nan());
     }
 }
