@@ -44,7 +44,8 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 ///   in the same precision, since any nearest representable number have ULP > 0.5,
 ///   for example `J1(0.000000000000000000000000000000000000023509886)` in single precision
 ///   have 0.7 ULP for any number with extended precision that would be represented in f32
-///   Same applies to J1(4.4501477170144018E-309) in double precision and some others subnormal numbers.
+///   Same applies to J1(4.4501477170144018E-309) in double precision and some others subnormal numbers
+#[inline(never)]
 pub fn f_j1(x: f64) -> f64 {
     if !x.is_normal() {
         if x.is_infinite() {
@@ -97,7 +98,7 @@ pub(crate) fn j1_asympt(x: f64) -> f64 {
     );
 
     let recip = if x.to_bits() > 0x7fd000000000000u64 {
-        DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_div(4.0, x), 0.25)
+        DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_safe_div(4.0, x), 0.25)
     } else {
         DoubleDouble::from_recip(x)
     };

@@ -313,80 +313,35 @@ impl DoubleDouble {
         }
     }
 
+    // Resistant to overflow without FMA
+    #[inline]
+    pub(crate) fn from_exact_safe_div(a: f64, b: f64) -> Self {
+        let q_hi = a / b;
+        let r = f64::mul_add(-q_hi, b, a);
+        let q_lo = r / b;
+        Self::new(q_lo, q_hi)
+    }
+
     #[inline]
     pub(crate) fn from_sqrt(x: f64) -> Self {
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            let h = x.sqrt();
-            /* h = sqrt(x) * (1 + e1) with |e1| < 2^-52
-            thus h^2 = x * (1 + e2) with |e2| < 2^-50.999 */
-            let e = -f_fmla(h, h, -x); // exact
+        let h = x.sqrt();
+        /* h = sqrt(x) * (1 + e1) with |e1| < 2^-52
+        thus h^2 = x * (1 + e2) with |e2| < 2^-50.999 */
+        let e = -dyad_fmla(h, h, -x); // exact
 
-            /* e = x - h^2 */
-            let l = e / (h + h);
-            DoubleDouble::new(l, h)
-        }
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            let h = x.sqrt();
-
-            let h_sqr = DoubleDouble::from_exact_mult(h, h);
-
-            let t = h_sqr.hi - x;
-            let e = -t - h_sqr.lo;
-
-            let l = e / (h + h);
-
-            DoubleDouble::new(l, h)
-        }
+        /* e = x - h^2 */
+        let l = e / (h + h);
+        DoubleDouble::new(l, h)
     }
 
     #[inline]
     pub(crate) fn div_dd_f64(a: DoubleDouble, b: f64) -> Self {
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            let q1 = a.hi / b;
-            let r = f_fmla(-q1, b, a.hi);
-            let r = r + a.lo;
-            let q2 = r / b;
+        let q1 = a.hi / b;
+        let r = f64::mul_add(-q1, b, a.hi);
+        let r = r + a.lo;
+        let q2 = r / b;
 
-            DoubleDouble::new(q2, q1)
-        }
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            let hi = a.hi / b;
-
-            let p = DoubleDouble::from_exact_mult(hi, b);
-            let r = ((a.hi - p.hi) - p.lo) + a.lo;
-
-            let lo = r / b;
-
-            DoubleDouble::new(lo, hi)
-        }
+        DoubleDouble::new(q2, q1)
     }
 
     /// Dekker division with one refinement step
@@ -536,6 +491,17 @@ impl DoubleDouble {
     #[inline]
     pub(crate) fn mul_f64_add(a: DoubleDouble, b: f64, c: DoubleDouble) -> Self {
         let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_f64(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
+        DoubleDouble::new(r + q, p)
+    }
+
+    /// Computes `a * b + c` safe to overflow without FMA
+    /// `b` is an `f64`, `a` and `c` are `DoubleDouble`.
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    #[inline]
+    pub(crate) fn mul_f64_safe_add(a: DoubleDouble, b: f64, c: DoubleDouble) -> Self {
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_safe_f64(a, b);
         let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
         DoubleDouble::new(r + q, p)
     }
@@ -737,6 +703,14 @@ impl DoubleDouble {
         }
     }
 
+    /// Double-double multiplication safe to overflow without FMA
+    #[inline]
+    pub(crate) fn quick_mult_safe_f64(a: DoubleDouble, b: f64) -> Self {
+        let h = b * a.hi;
+        let l = f64::mul_add(b, a.lo, f64::mul_add(b, a.hi, -h));
+        Self { lo: l, hi: h }
+    }
+
     /// Valid only |a.hi| > |b|
     #[inline]
     pub(crate) fn add_f64(a: DoubleDouble, b: f64) -> Self {
@@ -767,8 +741,8 @@ impl DoubleDouble {
 
     pub(crate) fn from_rsqrt(x: f64) -> DoubleDouble {
         let r = DoubleDouble::div_dd_f64(DoubleDouble::from_sqrt(x), x);
-        let rx = DoubleDouble::quick_mult_f64(r, x);
-        let drx = DoubleDouble::mul_f64_add(r, x, -rx);
+        let rx = DoubleDouble::quick_mult_safe_f64(r, x);
+        let drx = DoubleDouble::mul_f64_safe_add(r, x, -rx);
         let h = DoubleDouble::mul_add(
             r,
             drx,
