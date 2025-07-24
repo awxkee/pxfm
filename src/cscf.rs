@@ -26,21 +26,12 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, f_fmlaf};
+use crate::common::f_fmla;
 use crate::cosf::{sincos_reduce_big, sincos_reduce0, sincos_reduce1};
-use crate::polyeval::{f_polyeval4, f_polyeval6};
-use std::hint::black_box;
+use crate::polyeval::f_polyeval3;
+use crate::sinf::SINCOSF_SIN_TABLE;
 
-fn as_secf_big(x: f32) -> f32 {
-    let t = x.to_bits();
-    let ax = t.wrapping_shl(1);
-    if ax >= 0xffu32 << 24 {
-        if ax << 8 != 0 {
-            return x + x;
-        }
-
-        return f32::NAN;
-    }
+fn as_cscf_big(x: f32) -> f32 {
     const B: [u64; 4] = [
         0x3f93bd3cc9be45dc,
         0xbf103c1f081b0833,
@@ -53,6 +44,15 @@ fn as_secf_big(x: f32) -> f32 {
         0x3ec466bc5a518c16,
         0xbe232bdc61074ff6,
     ];
+    let t = x.to_bits();
+    let ax = t.wrapping_shl(1);
+    if ax >= 0xffu32 << 24 {
+        // nan or +-inf
+        if ax.wrapping_shl(8) != 0 {
+            return x + x;
+        }; // nan
+        return f32::NAN;
+    }
     let (z, ia) = sincos_reduce_big(t);
     let z2 = z * z;
     let z4 = z2 * z2;
@@ -67,20 +67,48 @@ fn as_secf_big(x: f32) -> f32 {
 
     let bb = f_fmla(z4, q1, q0);
 
-    let s0 = f64::from_bits(crate::cosf::SINCOS_F_TABLE[((ia.wrapping_add(8i32)) & 31) as usize]);
-    let c0 = f64::from_bits(crate::cosf::SINCOS_F_TABLE[(ia & 31) as usize]);
+    let s0 = f64::from_bits(SINCOSF_SIN_TABLE[(ia & 31) as usize]);
+    let c0 = f64::from_bits(SINCOSF_SIN_TABLE[((ia.wrapping_add(8)) & 31) as usize]);
 
-    let g0 = f_fmla(aa, s0, -bb * (z * c0));
-
-    let r = 1. / f_fmla(z, g0, c0);
+    let f0 = f_fmla(-bb, z * s0, aa * c0);
+    let r = 1. / f_fmla(z, f0, s0);
     r as f32
 }
 
-/// Computes secant
+/// Cosecant
 ///
-/// Max found ULP 0.5
+/// Max found ULP 0.4999996
 #[inline]
-pub fn f_secf(x: f32) -> f32 {
+pub fn f_cscf(x: f32) -> f32 {
+    let t = x.to_bits();
+    let ax = t.wrapping_shl(1);
+    let ia;
+    let z0 = x;
+    let z: f64;
+    #[allow(clippy::manual_range_contains)]
+    if ax > 0x99000000u32 || ax < 0x73000000u32 {
+        // |x| > 6.71089e+07 or |x| < 0.000244141
+        if ax < 0x73000000u32 {
+            // |x| < 0.000244141
+            if ax < 0x66000000u32 {
+                // |x| < 2.98023e-08
+                if ax == 0u32 {
+                    return if x.is_sign_negative() {
+                        f32::NEG_INFINITY
+                    } else {
+                        f32::INFINITY
+                    };
+                }
+                let dx = x as f64;
+                return (1. / dx) as f32;
+            }
+            let dx = x as f64;
+            let c_term = 1. / dx;
+            return f_fmla(dx, f64::from_bits(0x3fc5555555555555), c_term) as f32;
+        }
+        return as_cscf_big(x);
+    }
+
     const B: [u64; 4] = [
         0x3f93bd3cc9be45dc,
         0xbf103c1f081b0833,
@@ -93,59 +121,22 @@ pub fn f_secf(x: f32) -> f32 {
         0x3ec466bc5a518c16,
         0xbe232bdc61074ff6,
     ];
-    let t = x.to_bits();
-    let ax = t.wrapping_shl(1);
-    let (z, ia);
-    let z0 = x;
-    if ax > 0x99000000u32 || ax < 0x73000000 {
-        if ax < 0x73000000 {
-            if ax < 0x66000000u32 {
-                if ax == 0u32 {
-                    return 1.0;
-                };
-                return black_box(1.0) - black_box(f64::from_bits(0x3e60000000000000) as f32);
-            }
-            return f_fmlaf(f32::from_bits(0x3f000000) * x, x, 1.0);
-        }
-        return as_secf_big(x);
-    }
 
-    if ax < 0x82a41896u32 {
+    if ax < 0x822d97c8u32 {
         if ax < 0x79eb851eu32 {
             // 0.03
             let dx = x as f64;
+            let c_term = 1. / dx;
             let x2 = dx * dx;
-            // taylor order 6
-            let p = f_polyeval4(
+            let p = f_polyeval3(
                 x2,
-                1.,
-                f64::from_bits(0x3fe0000000000000),
-                f64::from_bits(0x3fcaaaaaaaaaaaab),
-                f64::from_bits(0x3fb5b05b05b05b06),
+                f64::from_bits(0x3fc5555555555555),
+                f64::from_bits(0x3f93e93e93e93e94),
+                f64::from_bits(0x3f60b2463814bc5f),
             );
-            return p as f32;
-        } else if ax < 0x7bae147au32 {
-            // 0.105
-            let dx = x as f64;
-            let x2 = dx * dx;
-            // taylor order 10
-            let p = f_polyeval6(
-                x2,
-                1.,
-                f64::from_bits(0x3fe0000000000000),
-                f64::from_bits(0x3fcaaaaaaaaaaaab),
-                f64::from_bits(0x3fb5b05b05b05b06),
-                f64::from_bits(0x3fa1965965965966),
-                f64::from_bits(0x3f8c834283cd3723),
-            );
-            return p as f32;
+            return f_fmla(dx, p, c_term) as f32;
         }
 
-        // Exception
-        if ax == 0x7f955ffcu32 {
-            return f32::from_bits(0xc29d7d8b);
-        }
-        // 13.128001
         (z, ia) = sincos_reduce0(z0);
     } else {
         (z, ia) = sincos_reduce1(z0);
@@ -163,12 +154,11 @@ pub fn f_secf(x: f32) -> f32 {
 
     let bb = f_fmla(z4, q1, q0);
 
-    let c0 = f64::from_bits(crate::cosf::SINCOS_F_TABLE[(ia & 31) as usize]);
-    let s0 = f64::from_bits(crate::cosf::SINCOS_F_TABLE[(ia.wrapping_add(8) & 31) as usize]);
+    let s0 = f64::from_bits(SINCOSF_SIN_TABLE[(ia & 31) as usize]);
+    let c0 = f64::from_bits(SINCOSF_SIN_TABLE[((ia.wrapping_add(8)) & 31) as usize]);
 
-    let n0 = f_fmla(bb, -(z2 * c0), c0);
-
-    let r = 1. / f_fmla(aa, z * s0, n0);
+    let f0 = f_fmla(aa, z * c0, s0);
+    let r = 1. / f_fmla(-bb, z2 * s0, f0);
     r as f32
 }
 
@@ -177,14 +167,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_f_secf() {
-        assert_eq!(f_secf(0.0), 1.0);
-        assert_eq!(f_secf(0.5), 1.139494);
-        assert_eq!(f_secf(-0.5), 1.139494);
-        assert_eq!(f_secf(1.5), 14.136833);
-        assert_eq!(f_secf(-1.5), 14.136833);
-        assert!(f_secf(f32::INFINITY).is_nan());
-        assert!(f_secf(f32::NEG_INFINITY).is_nan());
-        assert!(f_secf(f32::NAN).is_nan());
+    fn f_cscf_test() {
+        assert_eq!(f_cscf(0.04915107), 20.353632);
+        assert_eq!(f_cscf(0.5), 2.0858297);
+        assert_eq!(f_cscf(0.07), 14.297387);
+        assert_eq!(f_cscf(3.6171106e-5), 27646.375);
+        assert_eq!(f_cscf(-5.535772e-10), -1806432800.0);
+        assert_eq!(f_cscf(0.0), f32::INFINITY);
+        assert_eq!(f_cscf(-0.0), f32::NEG_INFINITY);
+        assert_eq!(f_cscf(-1.0854926e-19), -9.2124077e18);
     }
 }
