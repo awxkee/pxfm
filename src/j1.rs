@@ -191,10 +191,10 @@ fn j1_asympt_alpha(recip: DoubleDouble) -> DoubleDouble {
     p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[6]));
     p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[5]));
     p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[4]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[3]));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[3].1));
     p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[1].1));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[0].1));
 
     let z = DoubleDouble::quick_mult(p, recip);
 
@@ -249,14 +249,14 @@ See notes/bessel_asympt.ipynb for generation
 #[inline]
 fn j1_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
     const C: [(u64, u64); 10] = [
-        (0x0000000000000000, 0x3ff0000000000000),
-        (0x0000000000000000, 0x3fc8000000000000),
-        (0x0000000000000000, 0xbfc8c00000000000),
-        (0x0000000000000000, 0x3fe9c50000000000),
-        (0x0000000000000000, 0xc01ef5b680000000),
-        (0x0000000000000000, 0x40609860dd400000),
-        (0x0000000000000000, 0xc0abae9b7a06e000),
-        (0x0000000000000000, 0x41008711d41c1428),
+        (0x0000000000000000, 0x3ff0000000000000), // 1
+        (0x0000000000000000, 0x3fc8000000000000), // 2
+        (0x0000000000000000, 0xbfc8c00000000000), // 3
+        (0x0000000000000000, 0x3fe9c50000000000), // 4
+        (0x0000000000000000, 0xc01ef5b680000000), // 5
+        (0x0000000000000000, 0x40609860dd400000), // 6
+        (0x0000000000000000, 0xc0abae9b7a06e000), // 7
+        (0x0000000000000000, 0x41008711d41c1428), // 8
         (0xbdf7a00000000000, 0xc15ab70164c8be6e),
         (0xbe40e1f000000000, 0x41bc1055e24f297f),
     ];
@@ -270,14 +270,14 @@ fn j1_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
         DoubleDouble::from_bit_pair(C[8]),
     );
 
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[7]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[6]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[5]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[4]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[3]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[7].1)); // 8
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[6].1)); // 7
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[5].1)); // 6
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[4].1)); // 5
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[3].1)); // 4
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[2].1)); // 3
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[1].1)); // 2
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[0].1)); // 1
     p
 }
 
@@ -397,16 +397,8 @@ pub(crate) fn j1_maclaurin_series(x: f64) -> f64 {
         p_e,
         DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a2),
     );
-    p_e = DoubleDouble::mul_add(
-        dx2,
-        p_e,
-        DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a1),
-    );
-    p_e = DoubleDouble::mul_add(
-        dx2,
-        p_e,
-        DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a0),
-    );
+    p_e = DoubleDouble::mul_add_f64(dx2, p_e, f64::from_bits(J1_MACLAURIN_SERIES.a1.1));
+    p_e = DoubleDouble::mul_add_f64(dx2, p_e, f64::from_bits(J1_MACLAURIN_SERIES.a0.1));
 
     let px = DoubleDouble::quick_mult_f64(p_e, x);
     px.to_f64()

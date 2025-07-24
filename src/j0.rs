@@ -271,7 +271,7 @@ fn j0_asympt_alpha(recip: DoubleDouble) -> DoubleDouble {
     p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[3]));
     p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
     p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[0].1));
 
     let z = DoubleDouble::quick_mult(p, recip);
 
@@ -345,14 +345,14 @@ fn j0_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
         DoubleDouble::from_bit_pair(C[8]),
     );
 
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[7]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[6]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[5]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[4]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[3]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[7].1));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[6].1));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[5].1));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[4].1));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[3].1));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[2].1));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[1].1));
+    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[0].1));
     p
 }
 
