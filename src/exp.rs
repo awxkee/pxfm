@@ -31,9 +31,8 @@ use crate::common::{dd_fmla, f_fmla, fmla, pow2i, rintk};
 use crate::double_double::DoubleDouble;
 use crate::exp2::ldexp;
 
-/// Computes exponent for given value
-///
-/// ULP 4.5
+/// Exp for given value for const context.
+/// This is simplified version just to make a good approximation on const context.
 #[inline]
 pub const fn exp(d: f64) -> f64 {
     const EXP_POLY_1_D: f64 = 2f64;

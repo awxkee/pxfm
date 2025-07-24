@@ -40,7 +40,8 @@ const fn halley_refine(x: f32, a: f32) -> f32 {
     x * (tx + 2f32 * a) / (2f32 * tx + a)
 }
 
-/// Computes Cube Root
+/// Cbrt for given value for const context.
+/// This is simplified version just to make a good approximation on const context.
 #[inline]
 pub const fn cbrtf(x: f32) -> f32 {
     let u = x.to_bits();

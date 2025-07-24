@@ -59,6 +59,11 @@ pub fn f_j0(x: f64) -> f64 {
         return j0_small_argument_path(x);
     }
 
+    // Exceptions
+    if x_abs == 0x571a31ffe2ff7e9f {
+        return f64::from_bits(0xb2e58532f95056ff);
+    }
+
     j0_asympt(x)
 }
 
@@ -397,6 +402,10 @@ mod tests {
 
     #[test]
     fn test() {
+        assert_eq!(
+            f_j0(f64::from_bits(0xd71a31ffe2ff7e9f)),
+            f64::from_bits(0xb2e58532f95056ff)
+        );
         assert_eq!(f_j0(6.1795701510782757E+307), 6.075192922402001e-155);
         assert_eq!(f_j0(6.1795701510782757E+301), 4.118334155030934e-152);
         assert_eq!(f_j0(6.1795701510782757E+157), 9.5371668900364e-80);

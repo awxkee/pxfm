@@ -47,7 +47,7 @@ pub(crate) fn sincos_reduce0(x: f32) -> (f64, i32) {
     (idh - id, q as i32)
 }
 
-static TB: [u64; 32] = [
+pub(crate) static SINCOS_F_TABLE: [u64; 32] = [
     0x3ff0000000000000,
     0x3fef6297cff75cb0,
     0x3fed906bcf328d46,
@@ -183,8 +183,8 @@ fn as_cosf_big(x: f32) -> f32 {
 
     let bb = f_fmla(z4, q1, q0);
 
-    let s0 = f64::from_bits(TB[((ia.wrapping_add(8i32)) & 31) as usize]);
-    let c0 = f64::from_bits(TB[(ia & 31) as usize]);
+    let s0 = f64::from_bits(SINCOS_F_TABLE[((ia.wrapping_add(8i32)) & 31) as usize]);
+    let c0 = f64::from_bits(SINCOS_F_TABLE[(ia & 31) as usize]);
 
     let g0 = f_fmla(aa, s0, -bb * (z * c0));
 
@@ -232,6 +232,7 @@ pub fn f_cosf(x: f32) -> f32 {
         return as_cosf_big(x);
     }
     if ax < 0x82a41896u32 {
+        // 13.128001
         if ax == 0x812d97c8u32 {
             return search_from_table(x, 0.0);
         };
@@ -252,8 +253,8 @@ pub fn f_cosf(x: f32) -> f32 {
 
     let bb = f_fmla(z4, q1, q0);
 
-    let c0 = f64::from_bits(TB[(ia & 31) as usize]);
-    let s0 = f64::from_bits(TB[(ia.wrapping_add(8) & 31) as usize]);
+    let c0 = f64::from_bits(SINCOS_F_TABLE[(ia & 31) as usize]);
+    let s0 = f64::from_bits(SINCOS_F_TABLE[(ia.wrapping_add(8) & 31) as usize]);
 
     let n0 = f_fmla(bb, -(z2 * c0), c0);
 
@@ -267,11 +268,10 @@ mod tests {
 
     #[test]
     fn f_cosf_test() {
-        // assert_eq!(f_cosf(0.0), 1.0);
-        // assert_eq!(f_cosf(std::f32::consts::PI), -1f32);
-        println!(
-            "{}",
-            f_cosf(5435435643543543543534.178699584641464070955407805740833)
-        );
+        assert_eq!(f_cosf(0.0), 1.0);
+        assert_eq!(f_cosf(std::f32::consts::PI), -1f32);
+        assert_eq!(f_cosf(0.5), 0.87758255);
+        assert_eq!(f_cosf(0.7), 0.7648422);
+        assert_eq!(f_cosf(1.7), -0.12884454);
     }
 }

@@ -31,45 +31,6 @@ use crate::common::*;
 use crate::polyeval::f_polyeval3;
 use std::hint::black_box;
 
-/// Natural logarithm
-#[inline]
-pub const fn logf(d: f32) -> f32 {
-    let ux = d.to_bits();
-    #[allow(clippy::collapsible_if)]
-    if ux < (1 << 23) || ux >= 0x7f800000u32 {
-        if ux == 0 || ux >= 0x7f800000u32 {
-            if ux == 0x7f800000u32 {
-                return d;
-            }
-            let ax = ux.wrapping_shl(1);
-            if ax == 0u32 {
-                // -0.0
-                return f32::NEG_INFINITY;
-            }
-            if ax > 0xff000000u32 {
-                return d + d;
-            } // nan
-            return f32::NAN;
-        }
-    }
-
-    let mut ix = d.to_bits();
-    /* reduce x into [sqrt(2)/2, sqrt(2)] */
-    ix += 0x3f800000 - 0x3f3504f3;
-    let n = (ix >> 23) as i32 - 0x7f;
-    ix = (ix & 0x007fffff) + 0x3f3504f3;
-    let a = f32::from_bits(ix) as f64;
-
-    let x = (a - 1.) / (a + 1.);
-    let x2 = x * x;
-    let mut u = 0.2222220222147750310e+0;
-    u = fmla(u, x2, 0.2857142871244668543e+0);
-    u = fmla(u, x2, 0.3999999999950960318e+0);
-    u = fmla(u, x2, 0.6666666666666734090e+0);
-    u = fmla(u, x2, 2.);
-    fmla(x, u, std::f64::consts::LN_2 * (n as f64)) as f32
-}
-
 #[repr(C, align(8))]
 pub(crate) struct LogReductionF32Aligned(pub(crate) [u32; 128]);
 
@@ -240,7 +201,7 @@ static LOG_R: [u64; 128] = [
     0x0000000000000000,
 ];
 
-/// Natural logarithm using FMA
+/// Natural logarithm
 ///
 /// Max found ULP 0.4999988
 #[inline]
@@ -352,6 +313,46 @@ pub fn f_logf(x: f32) -> f32 {
     const LOG_2: f64 = f64::from_bits(0x3fe62e42fefa39ef);
     let r = f_fmla(m as f64, LOG_2, f_polyeval3(v2, p0, p1, p2));
     r as f32
+}
+
+/// Log for given value for const context.
+/// This is simplified version just to make a good approximation on const context.
+#[inline]
+pub const fn logf(d: f32) -> f32 {
+    let ux = d.to_bits();
+    #[allow(clippy::collapsible_if)]
+    if ux < (1 << 23) || ux >= 0x7f800000u32 {
+        if ux == 0 || ux >= 0x7f800000u32 {
+            if ux == 0x7f800000u32 {
+                return d;
+            }
+            let ax = ux.wrapping_shl(1);
+            if ax == 0u32 {
+                // -0.0
+                return f32::NEG_INFINITY;
+            }
+            if ax > 0xff000000u32 {
+                return d + d;
+            } // nan
+            return f32::NAN;
+        }
+    }
+
+    let mut ix = d.to_bits();
+    /* reduce x into [sqrt(2)/2, sqrt(2)] */
+    ix += 0x3f800000 - 0x3f3504f3;
+    let n = (ix >> 23) as i32 - 0x7f;
+    ix = (ix & 0x007fffff) + 0x3f3504f3;
+    let a = f32::from_bits(ix) as f64;
+
+    let x = (a - 1.) / (a + 1.);
+    let x2 = x * x;
+    let mut u = 0.2222220222147750310e+0;
+    u = fmla(u, x2, 0.2857142871244668543e+0);
+    u = fmla(u, x2, 0.3999999999950960318e+0);
+    u = fmla(u, x2, 0.6666666666666734090e+0);
+    u = fmla(u, x2, 2.);
+    fmla(x, u, std::f64::consts::LN_2 * (n as f64)) as f32
 }
 
 #[cfg(test)]

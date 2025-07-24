@@ -36,7 +36,8 @@ use crate::polyeval::{f_polyeval3, f_polyeval6, f_polyeval10};
 use crate::pow_tables::EXP2_MID1;
 use crate::powf_tables::{LOG2_R_TD, LOG2_R2_DD, POWF_R2};
 
-/// Power function for given value
+/// Power function for given value for const context.
+/// This is simplified version just to make a good approximation on const context.
 #[inline]
 pub const fn powf(d: f32, n: f32) -> f32 {
     let value = d.abs();

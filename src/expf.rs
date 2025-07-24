@@ -33,7 +33,8 @@ const L2U_F: f32 = 0.693_145_751_953_125;
 const L2L_F: f32 = 1.428_606_765_330_187_045_e-6;
 const R_LN2_F: f32 = std::f32::consts::LOG2_E;
 
-/// Computes exponent for given value
+/// Exp for given value for const context.
+/// This is simplified version just to make a good approximation on const context.
 #[inline]
 pub const fn expf(d: f32) -> f32 {
     const EXP_POLY_1_S: f32 = 2f32;

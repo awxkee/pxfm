@@ -83,15 +83,10 @@ pub(crate) fn range_reduction_small_dd(x: DoubleDouble) -> (DoubleDouble, i64) {
     let p_lo = f64::from_bits(MPI_OVER_128[2]); // lo
     let p_lo_lo = f64::from_bits(MPI_OVER_128[3]); // lo_lo
 
-    let q0 = DoubleDouble::from_exact_mult(kd, p_hi);
-    let q1 = DoubleDouble::from_exact_mult(kd, p_mid);
-    let q2 = DoubleDouble::from_exact_mult(kd, p_lo);
-    let q3 = DoubleDouble::from_exact_mult(kd, p_lo_lo);
-
-    let mut q = DoubleDouble::add(x, q0);
-    q = DoubleDouble::add(q, q1);
-    q = DoubleDouble::add(q, q2);
-    q = DoubleDouble::add(q, q3);
+    let mut q = DoubleDouble::f64_mul_f64_add(kd, p_hi, x);
+    q = DoubleDouble::f64_mul_f64_add(kd, p_mid, q);
+    q = DoubleDouble::f64_mul_f64_add(kd, p_lo, q);
+    q = DoubleDouble::f64_mul_f64_add(kd, p_lo_lo, q);
 
     (q, kd as i64)
 }

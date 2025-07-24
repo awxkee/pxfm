@@ -36,7 +36,7 @@ use crate::sincos_dyadic::range_reduction_small_f128;
 use crate::sincos_reduce::LargeArgumentReduction;
 
 #[inline]
-fn tan_eval(u: DoubleDouble) -> (DoubleDouble, f64) {
+pub(crate) fn tan_eval(u: DoubleDouble) -> (DoubleDouble, f64) {
     // Evaluate tan(y) = tan(x - k * (pi/128))
     // We use the degree-9 Taylor approximation:
     //   tan(y) ~ P(y) = y + y^3/3 + 2*y^5/15 + 17*y^7/315 + 62*y^9/2835
@@ -81,8 +81,8 @@ fn tan_eval(u: DoubleDouble) -> (DoubleDouble, f64) {
     (DoubleDouble::from_exact_add(u.hi, tan_lo), err)
 }
 
-#[cold]
-fn tan_eval_rational(u: &DyadicFloat128) -> DyadicFloat128 {
+#[inline]
+pub(crate) fn tan_eval_rational(u: &DyadicFloat128) -> DyadicFloat128 {
     let u_sq = u.quick_mul(u);
 
     // tan(x) ~ x + x^3/3 + x^5 * 2/15 + x^7 * 17/315 + x^9 * 62/2835 +
@@ -155,7 +155,7 @@ fn tan_eval_rational(u: &DyadicFloat128) -> DyadicFloat128 {
 // Using the initial approximation of q ~ (1/b), then apply 2 Newton-Raphson
 // iterations, before multiplying by a.
 #[inline]
-fn newton_raphson_div(a: &DyadicFloat128, b: &DyadicFloat128, q: f64) -> DyadicFloat128 {
+pub(crate) fn newton_raphson_div(a: &DyadicFloat128, b: &DyadicFloat128, q: f64) -> DyadicFloat128 {
     let q0 = DyadicFloat128::new_from_f64(q);
     const TWO: DyadicFloat128 = DyadicFloat128::new_from_f64(2.0);
     let mut b = *b;
@@ -169,7 +169,41 @@ fn newton_raphson_div(a: &DyadicFloat128, b: &DyadicFloat128, q: f64) -> DyadicF
     a.quick_mul(&q2)
 }
 
-/// Tan in double precision
+#[cold]
+fn tan_accurate(
+    x: f64,
+    k: u64,
+    argument_reduction: &mut LargeArgumentReduction,
+    den_dd: DoubleDouble,
+) -> f64 {
+    let x_e = (x.to_bits() >> 52) & 0x7ff;
+    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
+    let u_f128 = if x_e < E_BIAS + 16 {
+        range_reduction_small_f128(x)
+    } else {
+        argument_reduction.accurate()
+    };
+
+    let tan_u = tan_eval_rational(&u_f128);
+
+    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    let sin_k_f128 = get_sin_k_rational(k);
+    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
+    let msin_k_f128 = get_sin_k_rational(k.wrapping_add(128));
+
+    // num_f128 = sin(k*pi/128) + tan(y) * cos(k*pi/128)
+    let num_f128 = sin_k_f128 + (cos_k_f128 * tan_u);
+    // den_f128 = cos(k*pi/128) - tan(y) * sin(k*pi/128)
+    let den_f128 = cos_k_f128 + (msin_k_f128 * tan_u);
+
+    // tan(x) = (sin(k*pi/128) + tan(y) * cos(k*pi/128)) /
+    //          / (cos(k*pi/128) - tan(y) * sin(k*pi/128))
+    // reused from DoubleDouble fputil::div in the fast pass.
+    let result = newton_raphson_div(&num_f128, &den_f128, 1.0 / den_dd.hi);
+    result.fast_as_f64()
+}
+
+/// Tangent in double precision
 ///
 /// ULP 0.5
 #[inline]
@@ -253,29 +287,7 @@ pub fn f_tan(x: f64) -> f64 {
         return tan_upper;
     }
 
-    let u_f128 = if x_e < E_BIAS + 16 {
-        range_reduction_small_f128(x)
-    } else {
-        argument_reduction.accurate()
-    };
-
-    let tan_u = tan_eval_rational(&u_f128);
-
-    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    let sin_k_f128 = get_sin_k_rational(k);
-    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
-    let msin_k_f128 = get_sin_k_rational(k.wrapping_add(128));
-
-    // num_f128 = sin(k*pi/128) + tan(y) * cos(k*pi/128)
-    let num_f128 = sin_k_f128 + (cos_k_f128 * tan_u);
-    // den_f128 = cos(k*pi/128) - tan(y) * sin(k*pi/128)
-    let den_f128 = cos_k_f128 + (msin_k_f128 * tan_u);
-
-    // tan(x) = (sin(k*pi/128) + tan(y) * cos(k*pi/128)) /
-    //          / (cos(k*pi/128) - tan(y) * sin(k*pi/128))
-    // reused from DoubleDouble fputil::div in the fast pass.
-    let result = newton_raphson_div(&num_f128, &den_f128, 1.0 / den_dd.hi);
-    result.fast_as_f64()
+    tan_accurate(x, k, &mut argument_reduction, den_dd)
 }
 
 #[cfg(test)]

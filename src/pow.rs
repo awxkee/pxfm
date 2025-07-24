@@ -352,7 +352,8 @@ fn pow_rational128(x: f64, y: f64, s: f64) -> f64 {
     result.fast_as_f64()
 }
 
-/// Power function for given value for const context's only
+/// Pow for given value for const context.
+/// This is simplified version just to make a good approximation on const context.
 #[inline]
 pub const fn pow(d: f64, n: f64) -> f64 {
     let value = d.abs();

@@ -1,7 +1,8 @@
-use pxfm::{f_cbrtf, f_j0, f_j0f, f_j1, f_j1f};
+use pxfm::{f_cbrtf, f_cosf, f_cotf, f_j0, f_j0f, f_j1, f_j1f, f_secf, f_sinf};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
+use std::ops::Div;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -81,73 +82,83 @@ fn test_f32_against_mpfr_multithreaded() {
     use std::time::Instant;
 
     let start = Instant::now();
-    let failures = AtomicUsize::new(0);
+    let executions = Arc::new(AtomicUsize::new(0));
+    let failures = Arc::new(AtomicUsize::new(0));
 
-    // thread::spawn(move || {
-    //     loop {
-    //         unsafe {
-    //             thread::sleep(Duration::from_secs(25));
-    //             let elapsed = start.elapsed();
-    //             eprintln!(
-    //                 "[{:?}] Failures so far: {} Success so far: {}",
-    //                 elapsed,
-    //                 pxfm::OVERSHOOT.load(Ordering::Relaxed),
-    //                 pxfm::SUCCESS.load(Ordering::Relaxed),
-    //             );
-    //         }
-    //     }
-    // });
+    let exec1 = executions.clone();
+    let fail1 = failures.clone();
 
-    let mut exceptions = Arc::new(Mutex::new(Vec::<f64>::new()));
+    thread::spawn(move || {
+        loop {
+            unsafe {
+                thread::sleep(Duration::from_secs(25));
+                let elapsed = start.elapsed();
+                eprintln!(
+                    "[{:?}] Failures so far: {} Executions so far: {}, Percentage {}",
+                    elapsed,
+                    fail1.load(Ordering::Relaxed),
+                    exec1.load(Ordering::Relaxed),
+                    fail1.load(Ordering::Relaxed) as f32 / exec1.load(Ordering::Relaxed) as f32,
+                );
+            }
+        }
+    });
+
+    let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
 
     // // // // Exhaustive: 0..=u32::MAX
-    // (0u32..=u32::MAX).into_par_iter().for_each(|bits| {
-    //     let x = f32::from_bits(bits);
-    //
-    //     if !x.is_finite() {
-    //         return; // skip NaNs and infinities
-    //     }
-    //
-    //     let expected = Float::with_val(60, x).j1();
-    //     let actual = f_j1f(x);
-    //
-    //     let diff = count_ulp(actual, &expected);
-    //
-    //     if diff > 0.5 {
-    //         failures.fetch_add(1, Ordering::Relaxed);
-    //         exceptions.lock().unwrap().push(x);
-    //         eprintln!(
-    //             "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
-    //             expected.to_f32(),
-    //         );
-    //     }
-    // });
-
-    let start_bits = 100.3f64.to_bits();
-    let end_bits = 150.97f64.to_bits();
-
-    // Exhaustive: 0..=u64::MAX
-    (0..=u64::MAX).into_par_iter().for_each(|bits| {
-        let x = f64::from_bits(bits);
+    (0u32..=u32::MAX).into_par_iter().for_each(|bits| {
+        let x = f32::from_bits(bits);
 
         if !x.is_finite() {
             return; // skip NaNs and infinities
         }
 
-        let expected = Float::with_val(70, x).j0();
-        let actual = f_j0(x);
+        let expected = Float::with_val(60, x).sec();
+        let actual = f_secf(x);
 
-        let diff = count_ulp_f64(actual, &expected);
+        executions.fetch_add(1, Ordering::Relaxed);
+
+        let diff = count_ulp(actual, &expected);
+        // if diff.is_nan() || diff.is_infinite() {
+        //     return;
+        // }
 
         if diff > 0.5 {
             failures.fetch_add(1, Ordering::Relaxed);
             exceptions.lock().unwrap().push(x);
             eprintln!(
                 "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
-                expected.to_f64(),
+                expected.to_f32(),
             );
         }
     });
+
+    // let start_bits = 100.3f64.to_bits();
+    // let end_bits = 150.97f64.to_bits();
+    //
+    // // Exhaustive: 0..=u64::MAX
+    // (0..=u64::MAX).into_par_iter().for_each(|bits| {
+    //     let x = f64::from_bits(bits);
+    //
+    //     if !x.is_finite() {
+    //         return; // skip NaNs and infinities
+    //     }
+    //
+    //     let expected = Float::with_val(70, x).j0();
+    //     let actual = f_j0(x);
+    //
+    //     let diff = count_ulp_f64(actual, &expected);
+    //
+    //     if diff > 0.5 {
+    //         failures.fetch_add(1, Ordering::Relaxed);
+    //         exceptions.lock().unwrap().push(x);
+    //         eprintln!(
+    //             "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
+    //             expected.to_f64(),
+    //         );
+    //     }
+    // });
 
     println!("exceptions {:?}", exceptions.lock().unwrap());
 

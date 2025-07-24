@@ -288,7 +288,8 @@ pub fn f_log(x: f64) -> f64 {
     log_accurate(x_e, index, u).fast_as_f64()
 }
 
-/// Natural logarithm only for const context
+/// Log for given value for const context.
+/// This is simplified version just to make a good approximation on const context.
 #[inline]
 pub const fn log(d: f64) -> f64 {
     const LN_POLY_2_D: f64 = 0.6666666666666762678e+0;
