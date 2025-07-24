@@ -210,6 +210,24 @@ impl DoubleDouble {
         DoubleDouble { hi, lo }
     }
 
+    /// `a*b+c`
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    #[inline]
+    pub(crate) fn mul_add_f64(a: DoubleDouble, b: DoubleDouble, c: f64) -> DoubleDouble {
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_exact_add(c, h);
+        DoubleDouble::new(r + q, p)
+    }
+
+    /// Accurate reciprocal: 1 / self
+    #[inline]
+    pub(crate) fn recip_rapshon(self) -> DoubleDouble {
+        let y0 = DoubleDouble::recip(self);
+        let z = DoubleDouble::mul_add_f64(-self, y0, 1.0);
+        DoubleDouble::mul_add(y0, z, y0)
+    }
+
     /// Accurate reciprocal: 1 / self
     #[inline]
     pub(crate) fn recip(self) -> DoubleDouble {
@@ -754,11 +772,7 @@ impl DoubleDouble {
         let r = DoubleDouble::div_dd_f64(DoubleDouble::from_sqrt(x), x);
         let rx = DoubleDouble::quick_mult_safe_f64(r, x);
         let drx = DoubleDouble::mul_f64_safe_add(r, x, -rx);
-        let h = DoubleDouble::mul_add(
-            r,
-            drx,
-            DoubleDouble::mul_add(r, rx, DoubleDouble::new(0., -1.0)),
-        );
+        let h = DoubleDouble::mul_add(r, drx, DoubleDouble::mul_add_f64(r, rx, -1.0));
         let dr = DoubleDouble::quick_mult(DoubleDouble::quick_mult_f64(r, 0.5), h);
         DoubleDouble::sub(r, dr)
     }
