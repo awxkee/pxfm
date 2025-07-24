@@ -86,7 +86,7 @@ pub fn f_cotf(x: f32) -> f32 {
         if (t.wrapping_shl(9)) != 0 {
             return x + x;
         } // nan
-        return f32::INFINITY; // inf
+        return f32::NAN; // inf
     }
     let z2 = z * z;
     let z4 = z2 * z2;
@@ -130,8 +130,8 @@ mod tests {
         assert_eq!(f_cotf(-1.0020286469), -0.63923126);
         assert_eq!(f_cotf(0.0), f32::INFINITY);
         assert_eq!(f_cotf(-0.0), f32::NEG_INFINITY);
-        assert_eq!(f_cotf(f32::INFINITY), f32::INFINITY);
-        assert_eq!(f_cotf(f32::NEG_INFINITY), f32::INFINITY);
+        assert!(f_cotf(f32::INFINITY).is_nan());
+        assert!(f_cotf(f32::NEG_INFINITY).is_nan());
         assert!(f_cotf(f32::NAN).is_nan());
     }
 }

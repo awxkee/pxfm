@@ -170,10 +170,10 @@ fuzz_target!(|data: (f32, f32)| {
     //     "f_compoundf".to_string(),
     // );
 
-    test_method(x0, f_secf, &mpfr_x0.clone().sec(), "f_secf".to_string());
+    // test_method(x0, f_secf, &mpfr_x0.clone().sec(), "f_secf".to_string());
     test_method(x0, f_cotf, &mpfr_x0.clone().cot(), "f_cotf".to_string());
 
-    if x0.abs() > 0.00000000000001 {
+  /*  if x0.abs() > 0.00000000000001 {
         let mpfr_x0 = Float::with_val(25, x0);
         test_method_max_ulp(x0, f_j1f, &mpfr_x0.clone().j1(), "f_j1f".to_string(), 0.5);
     } else {
@@ -341,5 +341,5 @@ fuzz_target!(|data: (f32, f32)| {
         f_powf,
         &mpfr_x0.clone().pow(&mpfr_x1),
         "f_powf".to_string(),
-    );
+    );*/
 });

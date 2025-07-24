@@ -184,5 +184,8 @@ mod tests {
         assert_eq!(f_cot(-0.5), -1.830487721712452);
         assert_eq!(f_cot(12.0), -1.5726734063976893);
         assert_eq!(f_cot(-12.0), 1.5726734063976893);
+        assert!(f_cot(f64::INFINITY).is_nan());
+        assert!(f_cot(f64::NEG_INFINITY).is_nan());
+        assert!(f_cot(f64::NAN).is_nan());
     }
 }
