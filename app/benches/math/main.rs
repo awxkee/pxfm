@@ -6,7 +6,7 @@
  * // license that can be found in the LICENSE file.
  */
 use criterion::{Criterion, criterion_group, criterion_main};
-use pxfm::{exp, f_acos, f_acosf, f_acosh, f_acoshf, f_acospi, f_acospif, f_asin, f_asinf, f_asinh, f_asinhf, f_asinpi, f_asinpif, f_atan, f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf, f_atanh, f_atanhf, f_atanpi, f_atanpif, f_cbrt, f_cbrtf, f_compound, f_compound_m1, f_compound_m1f, f_compoundf, f_cos, f_cosf, f_cosh, f_coshf, f_cospi, f_cospif, f_cot, f_cotf, f_erf, f_erfc, f_erfcf, f_erff, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1, f_exp10m1f, f_expf, f_expm1, f_expm1f, f_hypot, f_j0, f_j0f, f_j1, f_j1f, f_log, f_log1p, f_log1pf, f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_pow, f_powf, f_sin, f_sinc, f_sincf, f_sincos, f_sincosf, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanh, f_tanhf, f_tanpi, f_tanpif, powf, f_cscf};
+use pxfm::{exp, f_acos, f_acosf, f_acosh, f_acoshf, f_acospi, f_acospif, f_asin, f_asinf, f_asinh, f_asinhf, f_asinpi, f_asinpif, f_atan, f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf, f_atanh, f_atanhf, f_atanpi, f_atanpif, f_cbrt, f_cbrtf, f_compound, f_compound_m1, f_compound_m1f, f_compoundf, f_cos, f_cosf, f_cosh, f_coshf, f_cospi, f_cospif, f_cot, f_cotf, f_erf, f_erfc, f_erfcf, f_erff, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1, f_exp10m1f, f_expf, f_expm1, f_expm1f, f_hypot, f_j0, f_j0f, f_j1, f_j1f, f_log, f_log1p, f_log1pf, f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_pow, f_powf, f_sin, f_sinc, f_sincf, f_sincos, f_sincosf, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanh, f_tanhf, f_tanpi, f_tanpif, powf, f_cscf, f_csc};
 use std::hint::black_box;
 use std::time::Duration;
 
@@ -15,7 +15,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.warm_up_time(Duration::new(1, 100));
     c.sample_size(15);
 
-    c.bench_function("libm: erfc", |b| {
+    /*c.bench_function("libm: erfc", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(libm::erfc(i as f64 / 1000.0));
@@ -797,7 +797,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 black_box(f_tan(i as f64 * 1000.0));
             }
         })
-    });
+    });*/
 
     c.bench_function("libm::sin", |b| {
         b.iter(|| {
@@ -815,10 +815,18 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("pxfm: FMA sin", |b| {
+    c.bench_function("pxfm: f_sin", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_sin(i as f64 * 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_csc", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_csc(i as f64 * 1000.0));
             }
         })
     });

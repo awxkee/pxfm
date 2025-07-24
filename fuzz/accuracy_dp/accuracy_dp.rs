@@ -298,8 +298,10 @@ fuzz_target!(|data: (f64, f64)| {
     //         0.50013,
     //     );
     // }
-    test_method(x0, f_sec, &mpfr_x0.clone().sec(), "f_sec".to_string(), 0.5);
 
+    test_method(x0, f_csc, &mpfr_x0.clone().csc(), "f_csc".to_string(), 0.5);
+
+    test_method(x0, f_sec, &mpfr_x0.clone().sec(), "f_sec".to_string(), 0.5);
     test_method(x0, f_cot, &mpfr_x0.clone().cot(), "f_cot".to_string(), 0.5);
     test_method(x0, f_j0, &mpfr_x0.clone().j0(), "f_j0".to_string(), 0.5);
     if x0 > 0.000000000000000001 {
