@@ -345,7 +345,7 @@ impl DoubleDouble {
         let h = x.sqrt();
         /* h = sqrt(x) * (1 + e1) with |e1| < 2^-52
         thus h^2 = x * (1 + e2) with |e2| < 2^-50.999 */
-        let e = -dyad_fmla(h, h, -x); // exact
+        let e = -f64::mul_add(h, h, -x); // exact
 
         /* e = x - h^2 */
         let l = e / (h + h);
@@ -774,7 +774,7 @@ impl DoubleDouble {
         let drx = DoubleDouble::mul_f64_safe_add(r, x, -rx);
         let h = DoubleDouble::mul_add(r, drx, DoubleDouble::mul_add_f64(r, rx, -1.0));
         let dr = DoubleDouble::quick_mult(DoubleDouble::quick_mult_f64(r, 0.5), h);
-        DoubleDouble::sub(r, dr)
+        DoubleDouble::add(r, dr)
     }
 }
 

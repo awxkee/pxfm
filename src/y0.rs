@@ -26,15 +26,13 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::dd_fmla;
 use crate::double_double::DoubleDouble;
 use crate::j0::j0_maclaurin_series;
-use crate::polyeval::{f_polyeval13, f_polyeval35};
-use crate::pow_exec::log_poly_1;
-use crate::pow_tables::{POW_INVERSE, POW_LOG_INV};
+use crate::polyeval::{f_polyeval15, f_polyeval35};
+use crate::pow_tables::POW_INVERSE;
 use crate::sin_helper::sin_dd_small;
 use crate::sincos_reduce::{AngleReduced, rem2pi_any};
-use crate::y0_coeffs::Y0_COEFFS;
+use crate::y0_coeffs::{LOG_NEG_DD, Y0_COEFFS};
 use crate::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES};
 
 /// Bessel of the second kind of order 0 (Y0)
@@ -71,7 +69,50 @@ pub fn f_y0(x: f64) -> f64 {
         return y0_small_argument_path(x);
     }
 
+    // Exceptions
+    //TODO: This actually may be handled
+    let bx = x.to_bits();
+    if bx == 0x6e7c1d741dc52512u64 {
+        return f64::from_bits(0x2696f860815bc669);
+    }
+
     y0_asympt(x)
+}
+
+#[inline(always)]
+pub(crate) fn log_poly(z: f64) -> DoubleDouble {
+    /*
+      See ./notes/y0_log.sollya
+    */
+    const P: [(u64, u64); 10] = [
+        (0x3c755555556795ff, 0x3fd5555555555555),
+        (0xba86f68980000000, 0xbfd0000000000000),
+        (0xbc699b285263b391, 0x3fc999999999999a),
+        (0xbc65526cf5c49dc3, 0xbfc5555555555555),
+        (0xbc34fc756f340748, 0x3fc24924924924aa),
+        (0xbc52e654a63b293e, 0xbfc0000000000023),
+        (0xbc5c73c13a9c2171, 0x3fbc71c71c2042d5),
+        (0xbc3d2af5e7ee68d8, 0xbfb999999934f78b),
+        (0xbc590d76077808da, 0x3fb74612a55c3e99),
+        (0xbc3447161ca8047c, 0xbfb5559a592aadc7),
+    ];
+    let x2 = DoubleDouble::from_exact_mult(z, z);
+    let mut t = DoubleDouble::mul_f64_add(
+        DoubleDouble::from_bit_pair(P[9]),
+        z,
+        DoubleDouble::from_bit_pair(P[8]),
+    );
+    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[7]));
+    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[6]));
+    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[5]));
+    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[4]));
+    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[3]));
+    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[2]));
+    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[1]));
+    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[0]));
+    t = DoubleDouble::quick_mult(t, x2);
+    t = DoubleDouble::quick_mult_f64(t, z);
+    DoubleDouble::mul_f64_add(x2, -0.5, t)
 }
 
 #[inline]
@@ -111,21 +152,19 @@ pub(crate) fn log_dd(x: f64) -> DoubleDouble {
     t *= CY[c];
 
     let r = f64::from_bits(POW_INVERSE[(i - 181) as usize]);
-    let l1 = f64::from_bits(POW_LOG_INV[(i - 181) as usize].1);
-    let l2 = f64::from_bits(POW_LOG_INV[(i - 181) as usize].0);
+    let log_r = DoubleDouble::from_bit_pair(LOG_NEG_DD[(i - 181) as usize]);
 
-    let z = dd_fmla(r, t, -1.0);
+    let z = f64::mul_add(r, t, -1.0);
 
     const LOG2_DD: DoubleDouble = DoubleDouble::new(
-        f64::from_bits(0x3d2ef35793c76730),
-        f64::from_bits(0x3fe62e42fefa3800),
+        f64::from_bits(0x3c7abc9e3b39803f),
+        f64::from_bits(0x3fe62e42fefa39ef),
     );
 
-    let th = dd_fmla(be as f64, LOG2_DD.hi, l1);
-    let tl = dd_fmla(be as f64, LOG2_DD.lo, l2);
+    let tt = DoubleDouble::mul_f64_add(LOG2_DD, be as f64, log_r);
 
-    let v = DoubleDouble::f64_add(th, DoubleDouble::new(tl, z));
-    let p = log_poly_1(z);
+    let v = DoubleDouble::full_add_f64(tt, z);
+    let p = log_poly(z);
     DoubleDouble::f64_add(v.hi, DoubleDouble::new(v.lo + p.lo, p.hi))
 }
 
@@ -163,7 +202,7 @@ print(Z0)
 ```
 **/
 fn y0_near_zero(x: f64) -> f64 {
-    const W: [(u64, u64); 13] = [
+    const W: [(u64, u64); 15] = [
         (0xbc86b01ec5417056, 0x3fe45f306dc9c883),
         (0x3c66b01ec5417056, 0xbfc45f306dc9c883),
         (0xbc26b01ec5417056, 0x3f845f306dc9c883),
@@ -177,9 +216,11 @@ fn y0_near_zero(x: f64) -> f64 {
         (0x3878d321ddfd3c6e, 0x3beb3749ebf0a0dd),
         (0x37e77548130d809b, 0xbb5cca5ae46eae67),
         (0xb73a848e7ca1c943, 0x3ac9976d3cd4293f),
+        (0xb6c884706195a054, 0xba336206ff1ce731),
+        (0xb6387a7d2389630d, 0x39995103e9f1818f),
     ];
     let x2 = DoubleDouble::from_exact_mult(x, x);
-    let w = f_polyeval13(
+    let w = f_polyeval15(
         x2,
         DoubleDouble::from_bit_pair(W[0]),
         DoubleDouble::from_bit_pair(W[1]),
@@ -194,9 +235,11 @@ fn y0_near_zero(x: f64) -> f64 {
         DoubleDouble::from_bit_pair(W[10]),
         DoubleDouble::from_bit_pair(W[11]),
         DoubleDouble::from_bit_pair(W[12]),
+        DoubleDouble::from_bit_pair(W[13]),
+        DoubleDouble::from_bit_pair(W[14]),
     );
 
-    const Z: [(u64, u64); 13] = [
+    const Z: [(u64, u64); 15] = [
         (0xbc5ddfd831a70821, 0x3fb2e4d699cbd01f),
         (0xbc6d93e63489aea6, 0xbfc6bbcb41034286),
         (0xbc1b88525c2e130b, 0x3f9075b1bbf41364),
@@ -210,8 +253,10 @@ fn y0_near_zero(x: f64) -> f64 {
         (0xb89bd46046c3c8de, 0x3c04b7ac8a1b15d0),
         (0x37d1a206fb205e32, 0xbb769201941d0d49),
         (0x3782f38acbf23993, 0x3ae4987e587ab039),
+        (0x36b691bdabf5672b, 0xba4ff1953e0a7c5b),
+        (0x3636e1c8cd260e18, 0x39b55031dc5e1967),
     ];
-    let z = f_polyeval13(
+    let z = f_polyeval15(
         x2,
         DoubleDouble::from_bit_pair(Z[0]),
         DoubleDouble::from_bit_pair(Z[1]),
@@ -226,6 +271,8 @@ fn y0_near_zero(x: f64) -> f64 {
         DoubleDouble::from_bit_pair(Z[10]),
         DoubleDouble::from_bit_pair(Z[11]),
         DoubleDouble::from_bit_pair(Z[12]),
+        DoubleDouble::from_bit_pair(Z[13]),
+        DoubleDouble::from_bit_pair(Z[14]),
     );
     let w_log = log_dd(x);
     DoubleDouble::mul_add(w, w_log, -z).to_f64()
@@ -375,8 +422,27 @@ pub(crate) fn y0_asympt(x: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_y0_small_argument_path() {
-        println!("{}", f_y0(1.3687500000010107));
+        assert_eq!(f_y0(98.1760435789366), 0.0000000000000056889416242533015);
+        assert_eq!(
+            f_y0(91.8929453121571802176),
+            -0.00000000000000007281665706677893
+        );
+        assert_eq!(f_y0(80.), -0.05562033908977);
+        assert_eq!(f_y0(5.), -0.30851762524903376);
+        assert_eq!(
+            f_y0(f64::from_bits(0x3fec982eb8d417ea)),
+            -0.000000000000000023389279284062102
+        );
+        assert_eq!(f_y0(f64::from_bits(0x3e04cdee58a47edd)), -13.58605001628649);
+        assert_eq!(
+            f_y0(0.89357696627916749),
+            -0.000000000000000023389279284062102
+        );
+        assert!(f_y0(f64::NAN).is_nan());
+        assert_eq!(f_y0(f64::INFINITY), 0.);
+        assert!(f_y0(f64::NEG_INFINITY).is_nan());
     }
 }

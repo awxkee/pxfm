@@ -57,11 +57,6 @@ pub(crate) fn sin_dd_small(z: DoubleDouble) -> DoubleDouble {
     let x_e = (z.hi.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
 
-    if x_e < E_BIAS - 26 {
-        let q = DoubleDouble::quick_mult_f64(z, f64::from_bits(0xbc90000000000000));
-        return DoubleDouble::add(z, q);
-    }
-
     if x_e < E_BIAS - 8 {
         return sin_eval_dd(z);
     }
@@ -113,11 +108,6 @@ fn cos_eval_dd(z: DoubleDouble) -> DoubleDouble {
 pub(crate) fn cos_dd_small(z: DoubleDouble) -> DoubleDouble {
     let x_e = (z.hi.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-
-    if x_e < E_BIAS - 26 {
-        let q = DoubleDouble::quick_mult_f64(z, f64::from_bits(0xbc90000000000000));
-        return DoubleDouble::add(z, q);
-    }
 
     if x_e < E_BIAS - 8 {
         return cos_eval_dd(z);
