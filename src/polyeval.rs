@@ -657,3 +657,88 @@ pub(crate) fn f_polyeval18<T: PolyevalMla + Copy + Mul<T, Output = T>>(
 //     let t14 = T::polyeval_mla(x, t13, a1);
 //     T::polyeval_mla(x, t14, a0)
 // }
+
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn f_polyeval28<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+    x: T,
+    a0: T,
+    a1: T,
+    a2: T,
+    a3: T,
+    a4: T,
+    a5: T,
+    a6: T,
+    a7: T,
+    a8: T,
+    a9: T,
+    a10: T,
+    a11: T,
+    a12: T,
+    a13: T,
+    a14: T,
+    a15: T,
+    a16: T,
+    a17: T,
+    a18: T,
+    a19: T,
+    a20: T,
+    a21: T,
+    a22: T,
+    a23: T,
+    a24: T,
+    a25: T,
+    a26: T,
+    a27: T,
+) -> T {
+    let x2 = x * x;
+    let x4 = x2 * x2;
+    let x8 = x4 * x4;
+
+    // Degree 0–3
+    let e0 = T::polyeval_mla(x, a1, a0);
+    let e1 = T::polyeval_mla(x, a3, a2);
+    let p0 = T::polyeval_mla(x2, e1, e0);
+
+    // Degree 4–7
+    let e2 = T::polyeval_mla(x, a5, a4);
+    let e3 = T::polyeval_mla(x, a7, a6);
+    let p1 = T::polyeval_mla(x2, e3, e2);
+
+    // Degree 8–11
+    let e4 = T::polyeval_mla(x, a9, a8);
+    let e5 = T::polyeval_mla(x, a11, a10);
+    let p2 = T::polyeval_mla(x2, e5, e4);
+
+    // Degree 12–15
+    let e6 = T::polyeval_mla(x, a13, a12);
+    let e7 = T::polyeval_mla(x, a15, a14);
+    let p3 = T::polyeval_mla(x2, e7, e6);
+
+    // Degree 16–19
+    let e8 = T::polyeval_mla(x, a17, a16);
+    let e9 = T::polyeval_mla(x, a19, a18);
+    let p4 = T::polyeval_mla(x2, e9, e8);
+
+    // Degree 20–23
+    let e10 = T::polyeval_mla(x, a21, a20);
+    let e11 = T::polyeval_mla(x, a23, a22);
+    let p5 = T::polyeval_mla(x2, e11, e10);
+
+    // Degree 24–27
+    let e12 = T::polyeval_mla(x, a25, a24);
+    let e13 = T::polyeval_mla(x, a27, a26);
+    let p6 = T::polyeval_mla(x2, e13, e12);
+
+    // Group into x⁴
+    let q0 = T::polyeval_mla(x4, p1, p0);
+    let q1 = T::polyeval_mla(x4, p3, p2);
+    let q2 = T::polyeval_mla(x4, p5, p4);
+
+    // Final x⁸ group
+    let r0 = T::polyeval_mla(x8, q1, q0);
+    let r1 = T::polyeval_mla(x8, p6, q2);
+
+    // Final result
+    T::polyeval_mla(x8 * x8, r1, r0)
+}

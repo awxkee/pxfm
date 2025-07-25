@@ -199,7 +199,7 @@ fn small_argument_path(x: f32) -> f32 {
 }
 
 #[inline]
-fn j1f_rsqrt(x: f64) -> f64 {
+pub(crate) fn j1f_rsqrt(x: f64) -> f64 {
     (1. / x) * x.sqrt()
 }
 
@@ -269,7 +269,7 @@ print(alpha_series)
 ```
 **/
 #[inline]
-fn j0f_asympt_alpha(x: f64) -> f64 {
+pub(crate) fn j0f_asympt_alpha(x: f64) -> f64 {
     const C: [u64; 12] = [
         0x3fc0000000000000,
         0xbfb0aaaaaaaaaaab,
@@ -317,7 +317,7 @@ def binomial_like(n, m):
         prod *= (z - (2*k - 1)**2)
     return prod / (QQ(2)**(2*m) * (ZZ(m).factorial()))
 
-R = LaurentSeriesRing(RealField(300), 'x',default_prec=300)
+R = LaurentSeriesRing(RealField(300), 'x', default_prec=300)
 x = R.gen()
 
 def Pn_asymptotic(n, y, terms=10):
@@ -348,7 +348,7 @@ print(b_series)
 ```
 **/
 #[inline]
-fn j0f_asympt_beta(x: f64) -> f64 {
+pub(crate) fn j0f_asympt_beta(x: f64) -> f64 {
     const C: [u64; 10] = [
         0x3ff0000000000000,
         0xbfb0000000000000,

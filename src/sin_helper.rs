@@ -164,9 +164,9 @@ pub(crate) fn sin_small(z: f64) -> f64 {
         return dyad_fmla(z, f64::from_bits(0xbc90000000000000), z);
     }
 
-    let (u_f128, k) = range_reduction_small(z);
+    let (angle_dd, k) = range_reduction_small(z);
 
-    let sin_cos = sincos_eval(u_f128);
+    let sin_cos = sincos_eval(angle_dd);
 
     // Fast look up version, but needs 256-entry table.
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
