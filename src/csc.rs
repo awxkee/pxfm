@@ -27,7 +27,8 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::double_double::DoubleDouble;
-use crate::sin::{SIN_K_PI_OVER_128, get_sin_k_rational, range_reduction_small, sincos_eval};
+use crate::sin::{get_sin_k_rational, range_reduction_small, sincos_eval};
+use crate::sin_table::SIN_K_PI_OVER_128;
 use crate::sincos_dyadic::{range_reduction_small_f128, sincos_eval_dyadic};
 use crate::sincos_reduce::LargeArgumentReduction;
 

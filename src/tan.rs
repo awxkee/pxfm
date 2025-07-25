@@ -32,6 +32,7 @@ use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::polyeval::f_polyeval9;
 use crate::sin::{get_sin_k_rational, range_reduction_small};
+use crate::sin_table::SIN_K_PI_OVER_128;
 use crate::sincos_dyadic::range_reduction_small_f128;
 use crate::sincos_reduce::LargeArgumentReduction;
 
@@ -253,8 +254,8 @@ pub fn f_tan(x: f64) -> f64 {
 
     // Fast look up version, but needs 256-entry table.
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    let sk = crate::sin::SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
-    let ck = crate::sin::SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
+    let sk = SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
+    let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
     let msin_k = DoubleDouble::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
     let cos_k = DoubleDouble::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
 

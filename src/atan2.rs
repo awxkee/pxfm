@@ -702,8 +702,8 @@ pub fn f_atan2(y: f64, x: f64) -> f64 {
     let mut min_exp = min_abs.wrapping_shr(52);
     let mut max_exp = max_abs.wrapping_shr(52);
 
-    let num = f64::from_bits(min_abs);
-    let den = f64::from_bits(max_abs);
+    let mut num = f64::from_bits(min_abs);
+    let mut den = f64::from_bits(max_abs);
 
     // Check for exceptional cases, whether inputs are 0, inf, nan, or close to
     // overflow, or close to underflow.
@@ -750,8 +750,19 @@ pub fn f_atan2(y: f64, x: f64) -> f64 {
         let scale_down = max_exp > 0x7ffu64 - 128u64;
         // At least one input is denormal, multiply both numerator and denominator
         // by some large enough power of 2 to normalize denormal inputs.
-        if scale_up || scale_down {
-            return atan2_hard(y, x).fast_as_f64();
+        // if scale_up || scale_down {
+        //     return atan2_hard(y, x).fast_as_f64();
+        // }
+        if scale_up {
+            num *= f64::from_bits(0x43f0000000000000);
+            if !scale_down {
+                den *= f64::from_bits(0x43f0000000000000);
+            }
+        } else if scale_down {
+            den *= f64::from_bits(0x3bf0000000000000);
+            if !scale_up {
+                num *= f64::from_bits(0x3bf0000000000000);
+            }
         }
 
         min_abs = num.to_bits();
@@ -795,12 +806,25 @@ pub fn f_atan2(y: f64, x: f64) -> f64 {
     let p = atan_eval(q);
 
     let vl = ATAN_I[idx as usize];
-    let vlo = DoubleDouble::new(f64::from_bits(vl.0), f64::from_bits(vl.1));
+    let vlo = DoubleDouble::from_bit_pair(vl);
     let mut r = DoubleDouble::add(const_term, DoubleDouble::add(vlo, p));
-    r.hi *= final_sign;
-    r.lo *= final_sign;
 
-    r.to_f64()
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3bd0000000000000),
+        f64::from_bits(0x3c00000000000000),
+    );
+
+    let ub = r.hi + (r.lo + err);
+    let lb = r.hi + (r.lo - err);
+
+    if ub == lb {
+        r.hi *= final_sign;
+        r.lo *= final_sign;
+
+        return r.to_f64();
+    }
+    atan2_hard(y, x).fast_as_f64()
 }
 
 #[cfg(test)]
@@ -809,11 +833,15 @@ mod tests {
 
     #[test]
     fn test_atan2() {
+        assert_eq!(
+            f_atan2(0.05474853958030223, 0.9999995380640253),
+            0.05469396182367716
+        );
         assert_eq!(f_atan2(-5., 2.), -1.1902899496825317);
         assert_eq!(f_atan2(2., -5.), 2.761086276477428);
         assert_eq!(
             f_atan2(1.220342145227879E-321, 6.9806238698201653E-309),
             0.00000000000017481849301519772
-        )
+        );
     }
 }

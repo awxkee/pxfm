@@ -31,7 +31,7 @@ use crate::j1::j1_small_argument_path;
 use crate::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
 use crate::j1f_coeffs::J1F_COEFFS;
 use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval15};
-use crate::sin::sin_small;
+use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
 
 /// Bessel J1

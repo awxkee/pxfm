@@ -116,8 +116,8 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
     let mut min_exp = min_abs.wrapping_shr(52);
     let mut max_exp = max_abs.wrapping_shr(52);
 
-    let num = f64::from_bits(min_abs);
-    let den = f64::from_bits(max_abs);
+    let mut num = f64::from_bits(min_abs);
+    let mut den = f64::from_bits(max_abs);
 
     // Check for exceptional cases, whether inputs are 0, inf, nan, or close to
     // overflow, or close to underflow.
@@ -165,9 +165,16 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
         let scale_down = max_exp > 0x7ffu64 - 128u64;
         // At least one input is denormal, multiply both numerator and denominator
         // by some large enough power of 2 to normalize denormal inputs.
-        if scale_up || scale_down {
-            let z = atan2_hard(y, x) * INV_PI_F128;
-            return z.fast_as_f64();
+        if scale_up {
+            num *= f64::from_bits(0x43f0000000000000);
+            if !scale_down {
+                den *= f64::from_bits(0x43f0000000000000);
+            }
+        } else if scale_down {
+            den *= f64::from_bits(0x3bf0000000000000);
+            if !scale_up {
+                num *= f64::from_bits(0x3bf0000000000000);
+            }
         }
 
         min_abs = num.to_bits();
@@ -175,6 +182,7 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
         min_exp = min_abs.wrapping_shr(52);
         max_exp = max_abs.wrapping_shr(52);
     }
+
     let final_sign = IS_NEG[((x_sign != y_sign) != recip) as usize];
     let const_term = CONST_ADJ[x_sign][y_sign][recip as usize];
     let exp_diff = max_exp - min_exp;
@@ -216,13 +224,28 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
     let p = atan_eval(q);
 
     let vl = ATAN_I[idx as usize];
-    let vlo = DoubleDouble::new(f64::from_bits(vl.0), f64::from_bits(vl.1));
+    let vlo = DoubleDouble::from_bit_pair(vl);
     let mut r = DoubleDouble::add(const_term, DoubleDouble::add(vlo, p));
-    r = DoubleDouble::quick_mult(r, INV_PI_DD);
-    r.hi *= final_sign;
-    r.lo *= final_sign;
 
-    r.to_f64()
+    r = DoubleDouble::quick_mult(r, INV_PI_DD);
+
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3bd0000000000000),
+        f64::from_bits(0x3c00000000000000),
+    );
+
+    let ub = r.hi + (r.lo + err);
+    let lb = r.hi + (r.lo - err);
+
+    if ub == lb {
+        r.hi *= final_sign;
+        r.lo *= final_sign;
+
+        return r.to_f64();
+    }
+
+    (atan2_hard(y, x) * INV_PI_F128).fast_as_f64()
 }
 
 #[cfg(test)]

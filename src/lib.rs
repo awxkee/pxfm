@@ -142,6 +142,8 @@ mod round_ties_even;
 mod sec;
 mod secf;
 mod sin;
+mod sin_helper;
+mod sin_table;
 mod sinc;
 mod sincf;
 mod sincos;

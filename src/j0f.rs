@@ -30,7 +30,7 @@ use crate::double_double::DoubleDouble;
 use crate::j0::j0_small_argument_path;
 use crate::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE, J0F_COEFFS};
 use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval15};
-use crate::sin::cos_small;
+use crate::sin_helper::cos_small;
 use crate::sincos_reduce::rem2pif_any;
 
 /// Bessel of the first kind J0

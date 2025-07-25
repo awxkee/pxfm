@@ -30,7 +30,7 @@ use crate::double_double::DoubleDouble;
 use crate::j0_coeffs::J0_COEFFS;
 use crate::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE};
 use crate::polyeval::{f_polyeval8, f_polyeval12};
-use crate::sin::cos_dd_small;
+use crate::sin_helper::cos_dd_small;
 use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 
 /// Bessel of the first kind J0
@@ -62,6 +62,8 @@ pub fn f_j0(x: f64) -> f64 {
     // Exceptions
     if x_abs == 0x571a31ffe2ff7e9f {
         return f64::from_bits(0xb2e58532f95056ff);
+    } else if x_abs == 0x7f2109fb0b442158u64 {
+        return f64::from_bits(0x9fdcdbc94d3753ee);
     }
 
     j0_asympt(x)
@@ -401,7 +403,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() {
+    fn test_j0() {
+        assert_eq!(f_j0(-2.3369499004222215E+304), -3.3630754230844632e-155);
         assert_eq!(
             f_j0(f64::from_bits(0xd71a31ffe2ff7e9f)),
             f64::from_bits(0xb2e58532f95056ff)

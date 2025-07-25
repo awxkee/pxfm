@@ -32,7 +32,7 @@
 use crate::double_double::DoubleDouble;
 use crate::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1_ZEROS_VALUE, J1MaclaurinSeries};
 use crate::polyeval::{f_polyeval8, f_polyeval18};
-use crate::sin::sin_dd_small;
+use crate::sin_helper::sin_dd_small;
 use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 
 /// Bessel J 1st order in f64
