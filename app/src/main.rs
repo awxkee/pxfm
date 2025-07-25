@@ -1,4 +1,6 @@
-use pxfm::{f_cbrtf, f_cosf, f_cotf, f_cscf, f_j0, f_j0f, f_j1, f_j1f, f_secf, f_sinf, f_y0, f_y0f};
+use pxfm::{
+    f_cbrtf, f_cosf, f_cotf, f_cscf, f_j0, f_j0f, f_j1, f_j1f, f_secf, f_sinf, f_y0, f_y0f,
+};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};

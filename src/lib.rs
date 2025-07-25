@@ -168,9 +168,9 @@ mod triple_double;
 mod trunc;
 mod u256;
 mod y0;
+mod y0_coeffs;
 mod y0f;
 mod y0f_coeffs;
-mod y0_coeffs;
 
 pub use acos::f_acos;
 pub use acosf::f_acosf;
