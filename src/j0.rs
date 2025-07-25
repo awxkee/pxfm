@@ -239,7 +239,7 @@ print(alpha_series)
 ```
 **/
 #[inline]
-fn j0_asympt_alpha(recip: DoubleDouble) -> DoubleDouble {
+pub(crate) fn j0_asympt_alpha(recip: DoubleDouble) -> DoubleDouble {
     const C: [(u64, u64); 12] = [
         (0x0000000000000000, 0x3fc0000000000000),
         (0x3c55555555555555, 0xbfb0aaaaaaaaaaab),
@@ -324,7 +324,7 @@ print(b_series)
 ```
 **/
 #[inline]
-fn j0_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
+pub(crate) fn j0_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
     const C: [(u64, u64); 10] = [
         (0x0000000000000000, 0x3ff0000000000000),
         (0x0000000000000000, 0xbfb0000000000000),

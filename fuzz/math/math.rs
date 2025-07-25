@@ -10,7 +10,7 @@ use pxfm::{
     f_expm1, f_expm1f, f_hypot, f_j0, f_j0f, f_j1, f_j1f, f_log, f_log1p, f_log1pf, f_log2,
     f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_sec, f_secf,
     f_sin, f_sincos, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tanf, f_tanh, f_tanpi, f_tanpif,
-    f_y0f,
+    f_y0, f_y0f,
 };
 
 fuzz_target!(|data: (f64, f32, f32, f64)| {
@@ -103,4 +103,5 @@ fuzz_target!(|data: (f64, f32, f32, f64)| {
     _ = f_cscf(z_f32);
     _ = f_csc(z_f64);
     _ = f_y0f(z_f32);
+    _ = f_y0(z_f64);
 });

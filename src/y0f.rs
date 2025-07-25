@@ -101,18 +101,23 @@ x = R.gen()
 N = 10  # Number of terms (adjust as needed)
 gamma = RealField(300)(euler_gamma)
 d2 = RealField(300)(2)
-
 pi = RealField(300).pi()
 
+# Define J0(x) Taylor expansion at x = 0
 def j_series(n, x):
     return sum([(-1)**m * (x/2)**(ZZ(n) + ZZ(2)*ZZ(m)) / (ZZ(m).factorial() * (ZZ(m) + ZZ(n)).factorial()) for m in range(N)])
 
 J0_series = j_series(0, x)
 
-Z0_series = sum([(-1)**m * (x/2)**(2*m) / ZZ(m).factorial()**2 * sum(1/k for k in range(1, m+1)) for m in range(1, N)])
+def z_series(x):
+    return sum([(-1)**m * (x/2)**(ZZ(2)*ZZ(m)) / ZZ(m).factorial()**ZZ(2) * sum(RealField(300)(1)/RealField(300)(k) for k in range(1, m+1)) for m in range(1, N)])
 
 W0 = (d2/pi) * J0_series
-Z0 = -gamma * (d2/pi) * J0_series + RealField(300)(2).log() * (d2/pi) * J0_series + (2/pi) * Z0_series
+Z0 = -gamma * (d2/pi) * J0_series + RealField(300)(2).log() * (d2/pi) * J0_series + (d2/pi) * z_series(x)
+
+# see the series
+print(W0)
+print(Z0)
 ```
 **/
 #[inline]
@@ -146,15 +151,15 @@ fn y0f_near_zero(x: f32) -> f32 {
     );
     const Z: [u64; 10] = [
         0x3fb2e4d699cbd01f,
-        0xbfc6bbcb41034287,
+        0xbfc6bbcb41034286,
         0x3f9075b1bbf41364,
         0xbf41a6206b7b973d,
-        0x3ee3e99794203bbe,
-        0xbe7bce4a600d3ea5,
-        0x3e0a6ee796b871b7,
+        0x3ee3e99794203bbd,
+        0xbe7bce4a600d3ea4,
+        0x3e0a6ee796b871b6,
         0xbd92393d82c6b2e4,
-        0x3d131085da82054d,
-        0xbc8f4ed4b492ebcd,
+        0x3d131085da82054c,
+        0xbc8f4ed4b492ebcc,
     ];
     let z0 = f_polyeval10(
         x2,

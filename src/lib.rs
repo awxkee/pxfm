@@ -167,8 +167,10 @@ mod tanpif;
 mod triple_double;
 mod trunc;
 mod u256;
+mod y0;
 mod y0f;
 mod y0f_coeffs;
+mod y0_coeffs;
 
 pub use acos::f_acos;
 pub use acosf::f_acosf;
@@ -267,4 +269,5 @@ pub use tanhf::f_tanhf;
 pub use tanpi::f_tanpi;
 pub use tanpif::f_tanpif;
 pub use trunc::{trunc, truncf};
+pub use y0::f_y0;
 pub use y0f::f_y0f;
