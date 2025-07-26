@@ -28,7 +28,7 @@
  */
 
 /**
-Generating Taylor expansions for zero and extremums see [crate::j1_coeffs::J1_ZEROS]
+Generating Taylor expansions for zero and extremums see [crate::bessel::j1_coeffs::J1_ZEROS]
 to start of explanation.
 
 Sage math:

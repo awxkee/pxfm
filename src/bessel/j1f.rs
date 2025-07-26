@@ -26,10 +26,10 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::j1::j1_small_argument_path;
+use crate::bessel::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
+use crate::bessel::j1f_coeffs::J1F_COEFFS;
 use crate::double_double::DoubleDouble;
-use crate::j1::j1_small_argument_path;
-use crate::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
-use crate::j1f_coeffs::J1F_COEFFS;
 use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval15};
 use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
@@ -162,7 +162,7 @@ print(alpha_series)
 See notes/bessel_asympt.ipynb for generation
 **/
 #[inline]
-fn j1f_asympt_alpha(x: f64) -> f64 {
+pub(crate) fn j1f_asympt_alpha(x: f64) -> f64 {
     const C: [u64; 12] = [
         0xbfd8000000000000,
         0x3fc5000000000000,
@@ -243,7 +243,7 @@ print(b_series)
 See notes/bessel_asympt.ipynb for generation
 **/
 #[inline]
-fn j1f_asympt_beta(x: f64) -> f64 {
+pub(crate) fn j1f_asympt_beta(x: f64) -> f64 {
     const C: [u64; 10] = [
         0x3ff0000000000000,
         0x3fc8000000000000,

@@ -17,3 +17,4 @@ exclude = ["*.jpg", "./assets/*", "*.png", "./notes/*", "notes/", ".github/"]
 
 [dependencies]
 num-traits = "0.2"
+rug = "1.27.0"

@@ -26,14 +26,14 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::j0::j0_maclaurin_series;
+use crate::bessel::y0_coeffs::{LOG_NEG_DD, Y0_COEFFS};
+use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES};
 use crate::double_double::DoubleDouble;
-use crate::j0::j0_maclaurin_series;
 use crate::polyeval::{f_polyeval15, f_polyeval35};
 use crate::pow_tables::POW_INVERSE;
 use crate::sin_helper::sin_dd_small;
 use crate::sincos_reduce::{AngleReduced, rem2pi_any};
-use crate::y0_coeffs::{LOG_NEG_DD, Y0_COEFFS};
-use crate::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES};
 
 /// Bessel of the second kind of order 0 (Y0)
 ///
@@ -281,7 +281,7 @@ fn y0_near_zero(x: f64) -> f64 {
 /// This method on small range searches for nearest zero or extremum.
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
 pub(crate) fn y0_small_argument_path(x: f64) -> f64 {
-    let x_abs = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
+    let x_abs = x;
 
     // let avg_step = 74.607799 / 47.0;
     // let inv_step = 1.0 / avg_step;
@@ -401,8 +401,8 @@ pub(crate) fn y0_asympt(x: f64) -> f64 {
         DoubleDouble::from_recip(x)
     };
 
-    let alpha = crate::j0::j0_asympt_alpha(recip);
-    let beta = crate::j0::j0_asympt_beta(recip);
+    let alpha = crate::bessel::j0::j0_asympt_alpha(recip);
+    let beta = crate::bessel::j0::j0_asympt_beta(recip);
 
     let AngleReduced { angle } = rem2pi_any(x);
 

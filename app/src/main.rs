@@ -1,4 +1,4 @@
-use pxfm::f_asinhf;
+use pxfm::{f_asinhf, f_y1f};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -105,19 +105,19 @@ fn test_f32_against_mpfr_multithreaded() {
 
     let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
 
-    // let start_bits = 0f32.to_bits();
-    // let end_bits = 1.35f32.to_bits();
+    let start_bits = 1.4f32.to_bits();
+    let end_bits = 2.9f32.to_bits();
 
     // Exhaustive: 0..=u32::MAX
-    (0..=u32::MAX).into_par_iter().for_each(|bits| {
+    (start_bits..=end_bits).into_par_iter().for_each(|bits| {
         let x = f32::from_bits(bits);
 
         if !x.is_finite() {
             return; // skip NaNs and infinities
         }
 
-        let expected = Float::with_val(60, x).asinh();
-        let actual = f_asinhf(x);
+        let expected = Float::with_val(60, x).y1();
+        let actual = f_y1f(x);
 
         executions.fetch_add(1, Ordering::Relaxed);
 

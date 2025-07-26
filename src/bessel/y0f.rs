@@ -26,15 +26,15 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::j0f::{j0f_asympt_alpha, j0f_asympt_beta, j1f_rsqrt};
+use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES, Y0F_COEFFS};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
-use crate::j0f::{j0f_asympt_alpha, j0f_asympt_beta, j1f_rsqrt};
 use crate::log2::{LOG_COEFFS, LOG_RANGE_REDUCTION};
 use crate::log10::LOG_R_DD;
 use crate::polyeval::{f_polyeval4, f_polyeval10, f_polyeval28};
 use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
-use crate::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES, Y0F_COEFFS};
 
 /// Bessel of the second kind of order 0 (Y0)
 ///
@@ -174,12 +174,12 @@ fn y0f_near_zero(x: f32) -> f32 {
         f64::from_bits(Z[8]),
         f64::from_bits(Z[9]),
     );
-    let w_log = log_short(dx);
+    let w_log = bessel_fast_log(dx);
     f_fmla(w0, w_log, -z0) as f32
 }
 
 #[inline]
-fn log_short(x: f64) -> f64 {
+pub(crate) fn bessel_fast_log(x: f64) -> f64 {
     let x_u = x.to_bits();
 
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
@@ -267,7 +267,7 @@ fn log_short(x: f64) -> f64 {
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
 #[inline]
 fn y0f_small_argument_path(x: f32) -> f32 {
-    let x_abs = f32::from_bits(x.to_bits() & 0x7fff_ffff) as f64;
+    let x_abs = x as f64;
 
     // let avg_step = 74.607799 / 47.0;
     // let inv_step = 1.0 / avg_step;
@@ -275,9 +275,9 @@ fn y0f_small_argument_path(x: f32) -> f32 {
     const INV_STEP: f64 = 0.6299609508652038;
 
     let fx = x_abs * INV_STEP;
-    const J0_ZEROS_COUNT: f64 = (Y0_ZEROS.len() - 1) as f64;
-    let idx0 = fx.min(J0_ZEROS_COUNT) as usize;
-    let idx1 = fx.ceil().min(J0_ZEROS_COUNT) as usize;
+    const Y0_ZEROS_COUNT: f64 = (Y0_ZEROS.len() - 1) as f64;
+    let idx0 = fx.min(Y0_ZEROS_COUNT) as usize;
+    let idx1 = fx.ceil().min(Y0_ZEROS_COUNT) as usize;
 
     let found_zero0 = DoubleDouble::from_bit_pair(Y0_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(Y0_ZEROS[idx1]);
@@ -342,7 +342,7 @@ fn y0f_small_argument_path(x: f32) -> f32 {
 
 /*
    Evaluates:
-   J1 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
+   Y0 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
 */
 fn y0f_asympt(x: f32) -> f32 {
     let dx = x as f64;

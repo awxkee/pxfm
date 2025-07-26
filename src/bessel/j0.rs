@@ -26,9 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::j0_coeffs::J0_COEFFS;
+use crate::bessel::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE};
 use crate::double_double::DoubleDouble;
-use crate::j0_coeffs::J0_COEFFS;
-use crate::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE};
 use crate::polyeval::{f_polyeval8, f_polyeval12};
 use crate::sin_helper::cos_dd_small;
 use crate::sincos_reduce::{AngleReduced, rem2pi_any};
