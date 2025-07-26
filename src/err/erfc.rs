@@ -28,7 +28,7 @@
  */
 use crate::common::dd_fmla;
 use crate::double_double::DoubleDouble;
-use crate::erf::{Erf, erf_accurate, erf_fast};
+use crate::err::erf::{Erf, erf_accurate, erf_fast};
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 use crate::exp2::ldexp;
 use std::hint::black_box;

@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -191,7 +191,7 @@ pub fn f_log10f(x: f32) -> f32 {
 
     m = m.wrapping_add(x_u.wrapping_shr(23) as i32);
     let index = (x_u >> 16) & 0x7F;
-    x_u = crate::logf::set_exponent_f32(x_u, 0x7F);
+    x_u = set_exponent_f32(x_u, 0x7F);
 
     let v;
     let u = f32::from_bits(x_u);
@@ -206,7 +206,7 @@ pub fn f_log10f(x: f32) -> f32 {
     {
         v = f_fmlaf(
             u,
-            f32::from_bits(crate::logf::LOG_REDUCTION_F32.0[index as usize]),
+            f32::from_bits(crate::logs::logf::LOG_REDUCTION_F32.0[index as usize]),
             -1.0,
         ) as f64; // Exact.
     }
@@ -220,7 +220,7 @@ pub fn f_log10f(x: f32) -> f32 {
     {
         v = f_fmla(
             u as f64,
-            f32::from_bits(crate::logf::LOG_REDUCTION_F32.0[index as usize]) as f64,
+            f32::from_bits(crate::logs::logf::LOG_REDUCTION_F32.0[index as usize]) as f64,
             -1.0,
         ); // Exact
     }

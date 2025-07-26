@@ -31,9 +31,9 @@ use crate::common::dd_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exp::exp;
-use crate::log::{log, log_dyadic};
+use crate::logs::log_dyadic;
 use crate::pow_exec::{exp_dyadic, pow_exp_1, pow_log_1};
-use crate::{f_exp2, f_exp10};
+use crate::{f_exp2, f_exp10, log};
 
 #[inline]
 pub(crate) fn is_integer(n: f64) -> bool {

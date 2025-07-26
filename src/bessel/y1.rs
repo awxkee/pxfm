@@ -33,7 +33,7 @@ use crate::bessel::y1f_coeffs::{Y1_ZEROS, Y1_ZEROS_VALUES};
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval15, f_polyeval35};
 use crate::sin_helper::cos_dd_small;
-use crate::sincos_reduce::{rem2pi_any, AngleReduced};
+use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 
 /// Bessel of the second kind order one ( Y1 )
 ///

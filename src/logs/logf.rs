@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -52,23 +52,6 @@ pub(crate) static LOG_REDUCTION_F32: LogReductionF32Aligned = LogReductionF32Ali
     0x3f080000, 0x3f080000, 0x3f070000, 0x3f070000, 0x3f060000, 0x3f060000, 0x3f050000, 0x3f050000,
     0x3f040000, 0x3f040000, 0x3f030000, 0x3f030000, 0x3f020000, 0x3f020000, 0x3f010000, 0x3f000000,
 ]);
-
-#[inline]
-const fn mask_trailing_ones_u32(len: u32) -> u32 {
-    if len >= 32 {
-        u32::MAX // All ones if length is 64 or more
-    } else {
-        (1u32 << len).wrapping_sub(1)
-    }
-}
-
-pub(crate) const EXP_MASK_F32: u32 = mask_trailing_ones_u32(8) << 23;
-
-#[inline]
-pub(crate) fn set_exponent_f32(x: u32, new_exp: u32) -> u32 {
-    let encoded_mask = new_exp.wrapping_shl(23) & EXP_MASK_F32;
-    x ^ ((x ^ encoded_mask) & EXP_MASK_F32)
-}
 
 static LOG_R: [u64; 128] = [
     0x0000000000000000,
@@ -291,7 +274,7 @@ pub fn f_logf(x: f32) -> f32 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        use crate::log2::LOG_RANGE_REDUCTION;
+        use crate::logs::log2::LOG_RANGE_REDUCTION;
         v = f_fmla(
             u as f64,
             f64::from_bits(LOG_RANGE_REDUCTION[index as usize]),

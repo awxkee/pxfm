@@ -26,28 +26,13 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-mod j0;
-mod j0_coeffs;
-mod j0f;
-mod j0f_coeffs;
-mod j1;
-mod j1_coeffs;
-mod j1f;
-mod j1f_coeffs;
-mod y0;
-mod y0_coeffs;
-mod y0f;
-mod y0f_coeffs;
-mod y1;
-mod y1_coeffs;
-mod y1f;
-mod y1f_coeffs;
+mod erf;
+mod erf_poly;
+mod erfc;
+mod erff;
+mod erffc;
 
-pub use j0::f_j0;
-pub use j0f::f_j0f;
-pub use j1::f_j1;
-pub use j1f::f_j1f;
-pub use y0::f_y0;
-pub use y0f::f_y0f;
-pub use y1::f_y1;
-pub use y1f::f_y1f;
+pub use erf::f_erf;
+pub use erfc::f_erfc;
+pub use erff::f_erff;
+pub use erffc::f_erfcf;

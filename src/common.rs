@@ -238,3 +238,20 @@ pub(crate) const fn min_normal_f64() -> f64 {
 
     f64::from_bits(bits)
 }
+
+#[inline]
+const fn mask_trailing_ones_u32(len: u32) -> u32 {
+    if len >= 32 {
+        u32::MAX // All ones if length is 64 or more
+    } else {
+        (1u32 << len).wrapping_sub(1)
+    }
+}
+
+pub(crate) const EXP_MASK_F32: u32 = mask_trailing_ones_u32(8) << 23;
+
+#[inline]
+pub(crate) fn set_exponent_f32(x: u32, new_exp: u32) -> u32 {
+    let encoded_mask = new_exp.wrapping_shl(23) & EXP_MASK_F32;
+    x ^ ((x ^ encoded_mask) & EXP_MASK_F32)
+}

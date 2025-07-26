@@ -26,28 +26,54 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-mod j0;
-mod j0_coeffs;
-mod j0f;
-mod j0f_coeffs;
-mod j1;
-mod j1_coeffs;
-mod j1f;
-mod j1f_coeffs;
-mod y0;
-mod y0_coeffs;
-mod y0f;
-mod y0f_coeffs;
-mod y1;
-mod y1_coeffs;
-mod y1f;
-mod y1f_coeffs;
+mod log;
+mod log10;
+mod log10_dyadic;
+mod log10f;
+mod log10p1;
+mod log10p1_tables;
+mod log10p1f;
+mod log1p;
+mod log1p_dd;
+mod log1p_dyadic;
+mod log1p_dyadic_tables;
+mod log1pf;
+mod log2;
+mod log2_dyadic;
+mod log2f;
+mod log2p1;
+mod log2p1_dyadic_tables;
+mod log2p1_tables;
+mod log2p1f;
+mod log_dyadic;
+mod log_range_reduction;
+mod logf;
 
-pub use j0::f_j0;
-pub use j0f::f_j0f;
-pub use j1::f_j1;
-pub use j1f::f_j1f;
-pub use y0::f_y0;
-pub use y0f::f_y0f;
-pub use y1::f_y1;
-pub use y1f::f_y1f;
+pub(crate) use log::log_dyadic;
+pub use log::{f_log, log};
+pub use log1p::f_log1p;
+pub(crate) use log1p::log1p_f64_dyadic;
+pub(crate) use log1p_dd::log1p_f64_dd;
+pub use log1pf::f_log1pf;
+#[cfg(not(any(
+    all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "fma"
+    ),
+    all(target_arch = "aarch64", target_feature = "neon")
+)))]
+pub(crate) use log2::LOG_CD;
+pub use log2::f_log2;
+pub(crate) use log2::{LOG_COEFFS, LOG_RANGE_REDUCTION};
+pub use log2f::f_log2f;
+pub(crate) use log2f::{LOG2_R, dirty_log2f};
+pub use log2p1::f_log2p1;
+pub use log2p1f::f_log2p1f;
+pub(crate) use log10::LOG_R_DD;
+pub use log10::f_log10;
+pub use log10f::f_log10f;
+pub use log10p1::f_log10p1;
+pub use log10p1f::f_log10p1f;
+#[allow(unused)]
+pub(crate) use logf::LOG_REDUCTION_F32;
+pub use logf::{f_logf, logf};

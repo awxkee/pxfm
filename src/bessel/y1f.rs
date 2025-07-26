@@ -29,7 +29,7 @@
 use crate::bessel::j0f::j1f_rsqrt;
 use crate::bessel::j1f::{j1f_asympt_alpha, j1f_asympt_beta};
 use crate::bessel::y0f::bessel_fast_log;
-use crate::bessel::y1f_coeffs::{Y1_ZEROS_VALUES, Y1_ZEROS, Y1F_COEFFS};
+use crate::bessel::y1f_coeffs::{Y1_ZEROS, Y1_ZEROS_VALUES, Y1F_COEFFS};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval10, f_polyeval29};

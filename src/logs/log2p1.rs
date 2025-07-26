@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -30,8 +30,8 @@ use crate::bits::{biased_exponent_f64, get_exponent_f64, mantissa_f64};
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::log2p1_dyadic_tables::{LOG2P1_F128_POLY, LOG2P1_INVERSE_2, LOG2P1_LOG_INV_2};
-use crate::log2p1_tables::{LOG2P1_EXACT, LOG2P1_INVERSE, LOG2P1_LOG_DD_INVERSE};
+use crate::logs::log2p1_dyadic_tables::{LOG2P1_F128_POLY, LOG2P1_INVERSE_2, LOG2P1_LOG_INV_2};
+use crate::logs::log2p1_tables::{LOG2P1_EXACT, LOG2P1_INVERSE, LOG2P1_LOG_DD_INVERSE};
 use crate::polyeval::f_polyeval13;
 
 /* put in h+l a double-double approximation of log(z)-z for

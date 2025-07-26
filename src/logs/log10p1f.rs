@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
-use crate::log1pf::special_logf;
+use crate::logs::log1pf::special_logf;
 use std::hint::black_box;
 
 static TR: [u64; 65] = [

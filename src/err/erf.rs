@@ -28,7 +28,7 @@
  */
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
-use crate::erf_poly::{ERF_POLY, ERF_POLY_C2};
+use crate::err::erf_poly::{ERF_POLY, ERF_POLY_C2};
 
 /* double-double approximation of 2/sqrt(pi) to nearest */
 const TWO_OVER_SQRT_PI: DoubleDouble = DoubleDouble::new(

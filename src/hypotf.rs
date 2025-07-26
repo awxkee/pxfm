@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::logf::EXP_MASK_F32;
+use crate::common::EXP_MASK_F32;
 
 #[inline]
 pub fn f_hypot3f(x: f32, y: f32, z: f32) -> f32 {

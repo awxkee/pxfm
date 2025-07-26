@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -28,7 +28,7 @@
  */
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::log1p_dyadic_tables::{LOG1P_R1, LOG1P_R2, LOG1P_S2, LOG1P_S3, LOGP1_R3};
+use crate::logs::log1p_dyadic_tables::{LOG1P_R1, LOG1P_R2, LOG1P_S2, LOG1P_S3, LOGP1_R3};
 
 #[cold]
 pub(crate) fn log1p_accurate(e_x: i32, index: usize, m_x: DoubleDouble) -> DyadicFloat128 {

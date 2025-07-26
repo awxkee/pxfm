@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -26,8 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, f_fmlaf};
-use crate::logf::set_exponent_f32;
+use crate::common::{f_fmla, f_fmlaf, set_exponent_f32};
 use crate::polyeval::f_polyeval3;
 
 pub(crate) static LOG2_R: [u64; 128] = [
@@ -207,7 +206,7 @@ pub fn f_log2f(x: f32) -> f32 {
         all(target_arch = "aarch64", target_feature = "neon")
     ))]
     {
-        use crate::logf::LOG_REDUCTION_F32;
+        use crate::logs::logf::LOG_REDUCTION_F32;
         v = f_fmlaf(u, f32::from_bits(LOG_REDUCTION_F32.0[index as usize]), -1.0) as f64; // Exact.
     }
     #[cfg(not(any(
@@ -218,7 +217,7 @@ pub fn f_log2f(x: f32) -> f32 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        use crate::log2::LOG_RANGE_REDUCTION;
+        use crate::logs::LOG_RANGE_REDUCTION;
         v = f_fmla(
             u as f64,
             f64::from_bits(LOG_RANGE_REDUCTION[index as usize]),
@@ -297,7 +296,7 @@ pub(crate) fn f_log2fx(x: f32) -> f64 {
         all(target_arch = "aarch64", target_feature = "neon")
     ))]
     {
-        use crate::logf::LOG_REDUCTION_F32;
+        use crate::logs::logf::LOG_REDUCTION_F32;
         v = f_fmlaf(u, f32::from_bits(LOG_REDUCTION_F32.0[index as usize]), -1.0) as f64; // Exact.
     }
     #[cfg(not(any(
@@ -308,7 +307,7 @@ pub(crate) fn f_log2fx(x: f32) -> f64 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        use crate::log2::LOG_RANGE_REDUCTION;
+        use crate::logs::log2::LOG_RANGE_REDUCTION;
         v = f_fmla(
             u as f64,
             f64::from_bits(LOG_RANGE_REDUCTION[index as usize]),

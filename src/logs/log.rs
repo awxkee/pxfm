@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -29,10 +29,10 @@
 use crate::common::{f_fmla, fmla, min_normal_f64};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::log_dyadic::{LOG_STEP_1, LOG_STEP_2, LOG_STEP_3, LOG_STEP_4};
-use crate::log_range_reduction::log_range_reduction;
-use crate::log2::{LOG_COEFFS, LOG_RANGE_REDUCTION};
-use crate::log10::LOG_R_DD;
+use crate::logs::log_dyadic::{LOG_STEP_1, LOG_STEP_2, LOG_STEP_3, LOG_STEP_4};
+use crate::logs::log_range_reduction::log_range_reduction;
+use crate::logs::log2::{LOG_COEFFS, LOG_RANGE_REDUCTION};
+use crate::logs::log10::LOG_R_DD;
 use crate::polyeval::f_polyeval4;
 
 /// Assumes that NaN and infinities, negatives were filtered out
@@ -93,7 +93,7 @@ pub(crate) fn log_dyadic(x: f64) -> DyadicFloat128 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        use crate::log2::LOG_CD;
+        use crate::logs::log2::LOG_CD;
         let c_m = x_m & 0x3FFF_E000_0000_0000u64;
         let c = f64::from_bits(c_m);
         u = f_fmla(r, m - c, f64::from_bits(LOG_CD[index as usize])); // exact
@@ -236,7 +236,7 @@ pub fn f_log(x: f64) -> f64 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        use crate::log2::LOG_CD;
+        use crate::logs::log2::LOG_CD;
         let c_m = x_m & 0x3FFF_E000_0000_0000u64;
         let c = f64::from_bits(c_m);
         u = f_fmla(r, m - c, f64::from_bits(LOG_CD[index as usize])); // exact

@@ -30,8 +30,7 @@ use crate::bessel::j0f::{j0f_asympt_alpha, j0f_asympt_beta, j1f_rsqrt};
 use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES, Y0F_COEFFS};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
-use crate::log2::{LOG_COEFFS, LOG_RANGE_REDUCTION};
-use crate::log10::LOG_R_DD;
+use crate::logs::{LOG_COEFFS, LOG_R_DD, LOG_RANGE_REDUCTION};
 use crate::polyeval::{f_polyeval4, f_polyeval10, f_polyeval28};
 use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
@@ -234,7 +233,7 @@ pub(crate) fn bessel_fast_log(x: f64) -> f64 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        use crate::log2::LOG_CD;
+        use crate::logs::LOG_CD;
         let c_m = x_m & 0x3FFF_E000_0000_0000u64;
         let c = f64::from_bits(c_m);
         u = f_fmla(r, m - c, f64::from_bits(LOG_CD[index as usize])); // exact

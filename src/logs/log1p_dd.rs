@@ -329,7 +329,7 @@ pub(crate) fn log1p_f64_dd(x: f64) -> (DoubleDouble, bool) {
 
 #[cfg(test)]
 mod tests {
-    use crate::log1p_dd::log1p_f64_dd;
+    use crate::logs::log1p_dd::log1p_f64_dd;
 
     #[test]
     fn test_log1p_f64_dd() {

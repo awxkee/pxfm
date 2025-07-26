@@ -29,8 +29,7 @@
 use crate::common::*;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::log1p::log1p_f64_dyadic;
-use crate::log1p_dd::log1p_f64_dd;
+use crate::logs::{log1p_f64_dd, log1p_f64_dyadic};
 use crate::polyeval::{f_polyeval8, f_polyeval18};
 use crate::pow::{is_integer, is_odd_integer};
 use crate::pow_exec::pow_expm1_1;

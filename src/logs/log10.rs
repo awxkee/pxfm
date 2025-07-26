@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -29,9 +29,9 @@
 use crate::common::{f_fmla, min_normal_f64};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::log_range_reduction::log_range_reduction;
-use crate::log2::LOG_COEFFS;
-use crate::log10_dyadic::{LOG10_STEP_1, LOG10_STEP_2, LOG10_STEP_3, LOG10_STEP_4};
+use crate::logs::log_range_reduction::log_range_reduction;
+use crate::logs::log2::LOG_COEFFS;
+use crate::logs::log10_dyadic::{LOG10_STEP_1, LOG10_STEP_2, LOG10_STEP_3, LOG10_STEP_4};
 use crate::polyeval::f_polyeval4;
 
 pub(crate) static LOG_R_DD: [(u64, u64); 128] = [
@@ -269,7 +269,7 @@ pub fn f_log10(x: f64) -> f64 {
     //   -2^-8 <= r * x_m - 1 < 2^-7
     let shifted = (x_u >> 45) as i64;
     let index = shifted & 0x7F;
-    let r = f64::from_bits(crate::log2::LOG_RANGE_REDUCTION[index as usize]);
+    let r = f64::from_bits(crate::logs::log2::LOG_RANGE_REDUCTION[index as usize]);
 
     // Add unbiased exponent. Add an extra 1 if the 8 leading fractional bits are
     // all 1's.
@@ -310,7 +310,7 @@ pub fn f_log10(x: f64) -> f64 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        use crate::log2::LOG_CD;
+        use crate::logs::log2::LOG_CD;
         let c_m = x_m & 0x3FFF_E000_0000_0000u64;
         let c = f64::from_bits(c_m);
         u = f_fmla(r, m - c, f64::from_bits(LOG_CD[index as usize])); // exact

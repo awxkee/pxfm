@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -29,8 +29,8 @@
 use crate::common::{f_fmla, min_normal_f64};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::log_range_reduction::log_range_reduction;
-use crate::log2_dyadic::{LOG2_STEP_1, LOG2_STEP_2, LOG2_STEP_3, LOG2_STEP_4};
+use crate::logs::log_range_reduction::log_range_reduction;
+use crate::logs::log2_dyadic::{LOG2_STEP_1, LOG2_STEP_2, LOG2_STEP_3, LOG2_STEP_4};
 use crate::polyeval::f_polyeval4;
 
 pub(crate) static LOG_RANGE_REDUCTION: [u64; 128] = [

@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -30,7 +30,7 @@ use crate::bits::{EXP_MASK, get_exponent_f64};
 use crate::common::{dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::DyadicFloat128;
-use crate::log1p_dyadic::log1p_accurate;
+use crate::logs::log1p_dyadic::log1p_accurate;
 use crate::polyeval::f_polyeval4;
 
 // R1[i] = 2^-8 * nearestint( 2^8 / (1 + i * 2^-7) )

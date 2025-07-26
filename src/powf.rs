@@ -30,8 +30,8 @@ use crate::bits::biased_exponent_f64;
 use crate::common::*;
 use crate::double_double::DoubleDouble;
 use crate::expf::expf;
-use crate::log2f::LOG2_R;
-use crate::logf::{EXP_MASK_F32, logf};
+use crate::logf;
+use crate::logs::LOG2_R;
 use crate::polyeval::{f_polyeval3, f_polyeval6, f_polyeval10};
 use crate::pow_tables::EXP2_MID1;
 use crate::powf_tables::{LOG2_R_TD, LOG2_R2_DD, POWF_R2};
@@ -414,7 +414,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
         all(target_arch = "aarch64", target_feature = "neon")
     ))]
     {
-        use crate::logf::LOG_REDUCTION_F32;
+        use crate::logs::LOG_REDUCTION_F32;
         dx = f_fmlaf(
             m_x,
             f32::from_bits(LOG_REDUCTION_F32.0[idx_x as usize]),
@@ -429,7 +429,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        use crate::log2::LOG_RANGE_REDUCTION;
+        use crate::logs::LOG_RANGE_REDUCTION;
         dx = f_fmla(
             m_x as f64,
             f64::from_bits(LOG_RANGE_REDUCTION[idx_x as usize]),
@@ -610,7 +610,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
 #[inline]
 pub fn dirty_powf(d: f32, n: f32) -> f32 {
     use crate::exp2f::dirty_exp2f;
-    use crate::log2f::dirty_log2f;
+    use crate::logs::dirty_log2f;
     let value = d.abs();
     let lg = dirty_log2f(value);
     let c = dirty_exp2f(n * lg);
