@@ -28,7 +28,7 @@
  */
 use crate::common::{dd_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
-use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
+use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 use crate::hyperbolic::acosh::lpoly_xd_generic;
 
 #[cold]

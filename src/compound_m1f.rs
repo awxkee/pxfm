@@ -32,7 +32,7 @@ use crate::compoundf::{
     compoundf_log2p1_fast,
 };
 use crate::double_double::DoubleDouble;
-use crate::exp2m1::exp2m1_accurate_tiny;
+use crate::exponents::exp2m1_accurate_tiny;
 use std::hint::black_box;
 
 // INVLOG2 = 1/log(2) * (1 + eps1) with |eps1| < 2^-55.976

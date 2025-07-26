@@ -75,18 +75,7 @@ mod double_double;
 mod dyadic_float;
 mod dyadic_float256;
 mod err;
-mod exp;
-mod exp10;
-mod exp10f;
-mod exp10m1;
-mod exp10m1f;
-mod exp2;
-mod exp2f;
-mod exp2m1;
-mod exp2m1f;
-mod expf;
-mod expm1;
-mod expm1f;
+mod exponents;
 mod floor;
 mod hyperbolic;
 mod hypot;
@@ -156,18 +145,10 @@ pub use cotf::f_cotf;
 pub use csc::f_csc;
 pub use cscf::f_cscf;
 pub use err::{f_erf, f_erfc, f_erfcf, f_erff};
-pub use exp::{exp, f_exp};
-pub use exp2::f_exp2;
-pub use exp2f::f_exp2f;
-pub use exp2m1::f_exp2m1;
-pub use exp2m1f::f_exp2m1f;
-pub use exp10::f_exp10;
-pub use exp10f::f_exp10f;
-pub use exp10m1::f_exp10m1;
-pub use exp10m1f::f_exp10m1f;
-pub use expf::{expf, f_expf};
-pub use expm1::f_expm1;
-pub use expm1f::f_expm1f;
+pub use exponents::{
+    exp, expf, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
+    f_exp10m1f, f_expf, f_expm1, f_expm1f,
+};
 pub use floor::{floor, floorf};
 pub use hyperbolic::{
     f_acosh, f_acoshf, f_asinh, f_asinhf, f_atanh, f_atanhf, f_cosh, f_coshf, f_sinh, f_sinhf,

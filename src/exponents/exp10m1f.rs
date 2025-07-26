@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
-use crate::exp10f::EXP10F_COEFFS;
+use crate::exponents::exp10f::EXP10F_COEFFS;
 use crate::polyeval::f_polyeval3;
 
 #[cold]
@@ -106,7 +106,7 @@ pub fn f_exp10m1f(x: f32) -> f32 {
 
     // Range reduction: 10^x = 2^(mid + hi) * 10^lo
     //   rr = (2^(mid + hi), lo)
-    let rr = crate::exp10f::exp_b_range_reduc(x);
+    let rr = crate::exponents::exp10f::exp_b_range_reduc(x);
 
     // The low part is approximated by a degree-5 minimax polynomial.
     // 10^lo ~ 1 + COEFFS[0] * lo + ... + COEFFS[4] * lo^5

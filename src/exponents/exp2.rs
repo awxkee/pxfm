@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -29,7 +29,7 @@
 use crate::common::{dd_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicSign, f64_from_parts};
-use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
+use crate::exponents::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
 
 #[inline]
 pub(crate) fn poly_xd_generic<const N: usize>(x: f64, poly: [(u64, u64); N]) -> DoubleDouble {

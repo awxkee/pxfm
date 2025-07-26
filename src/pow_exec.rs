@@ -29,9 +29,9 @@
 use crate::common::dd_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
-use crate::exp2::ldexp;
-use crate::expm1::{EXPM1_T0, EXPM1_T1};
+use crate::exponents::ldexp;
+use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1};
+use crate::exponents::{EXPM1_T0, EXPM1_T1};
 use crate::polyeval::{f_polyeval8, f_polyeval16};
 use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC, POW_INVERSE, POW_LOG_INV};
 

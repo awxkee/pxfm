@@ -29,7 +29,7 @@
 use crate::bits::biased_exponent_f64;
 use crate::common::*;
 use crate::double_double::DoubleDouble;
-use crate::expf::expf;
+use crate::exponents::expf;
 use crate::logf;
 use crate::logs::LOG2_R;
 use crate::polyeval::{f_polyeval3, f_polyeval6, f_polyeval10};
@@ -609,7 +609,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
 /// Power function for given value using FMA
 #[inline]
 pub fn dirty_powf(d: f32, n: f32) -> f32 {
-    use crate::exp2f::dirty_exp2f;
+    use crate::exponents::dirty_exp2f;
     use crate::logs::dirty_log2f;
     let value = d.abs();
     let lg = dirty_log2f(value);

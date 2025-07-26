@@ -27,28 +27,33 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #![deny(unreachable_pub)]
-mod acosh;
-mod acoshf;
-mod asinh;
-mod asinhf;
-mod atanh;
-mod atanhf;
-mod cosh;
-mod coshf;
-mod sinh;
-mod sinhf;
-mod tanh;
-mod tanhf;
+mod exp;
+mod exp10;
+mod exp10f;
+mod exp10m1;
+mod exp10m1f;
+mod exp2;
+mod exp2f;
+mod exp2m1;
+mod exp2m1f;
+mod expf;
+mod expm1;
+mod expm1f;
 
-pub use acosh::f_acosh;
-pub use acoshf::f_acoshf;
-pub use asinh::f_asinh;
-pub use asinhf::f_asinhf;
-pub use atanh::f_atanh;
-pub use atanhf::f_atanhf;
-pub use cosh::f_cosh;
-pub use coshf::f_coshf;
-pub use sinh::f_sinh;
-pub use sinhf::f_sinhf;
-pub use tanh::f_tanh;
-pub use tanhf::f_tanhf;
+pub(crate) use exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
+pub use exp::{exp, f_exp};
+pub use exp2::f_exp2;
+pub(crate) use exp2::ldexp;
+pub(crate) use exp2f::dirty_exp2f;
+pub use exp2f::f_exp2f;
+pub(crate) use exp2m1::exp2m1_accurate_tiny;
+pub use exp2m1::f_exp2m1;
+pub use exp2m1f::f_exp2m1f;
+pub use exp10::f_exp10;
+pub use exp10f::f_exp10f;
+pub use exp10m1::f_exp10m1;
+pub use exp10m1f::f_exp10m1f;
+pub use expf::{expf, f_expf};
+pub use expm1::f_expm1;
+pub(crate) use expm1::{EXPM1_T0, EXPM1_T1};
+pub use expm1f::f_expm1f;
