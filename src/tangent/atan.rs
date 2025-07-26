@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -28,6 +28,7 @@
  */
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
+use crate::shared_eval::poly_dd_3;
 
 pub(crate) static ATAN_CIRCLE: [[u16; 3]; 31] = [
     [419, 81, 0],
@@ -194,30 +195,6 @@ pub(crate) static ATAN_REDUCE: [(u64, u64); 129] = [
     (0x40545eed6854ce99, 0x3c02db53886013ca),
     (0x0000000000000000, 0x0000000000000000),
 ];
-
-#[inline]
-pub(crate) fn poly_dd_3(x: DoubleDouble, poly: [(u64, u64); 3], l: f64) -> DoubleDouble {
-    let zch = poly[2];
-    let ach = f64::from_bits(zch.0) + l;
-    let acl = (f64::from_bits(zch.0) - ach) + l + f64::from_bits(zch.1);
-    let mut ch = DoubleDouble::new(acl, ach);
-
-    let zch = poly[1];
-    ch = DoubleDouble::quick_mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    let zch = poly[0];
-    ch = DoubleDouble::quick_mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    ch
-}
 
 #[cold]
 fn atan_refine(x: f64, a: f64) -> f64 {

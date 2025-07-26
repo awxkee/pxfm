@@ -26,55 +26,32 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#![deny(unreachable_pub)]
-mod log;
-mod log10;
-mod log10_dyadic;
-mod log10f;
-mod log10p1;
-mod log10p1_tables;
-mod log10p1f;
-mod log1p;
-mod log1p_dd;
-mod log1p_dyadic;
-mod log1p_dyadic_tables;
-mod log1pf;
-mod log2;
-mod log2_dyadic;
-mod log2f;
-mod log2p1;
-mod log2p1_dyadic_tables;
-mod log2p1_tables;
-mod log2p1f;
-mod log_dyadic;
-mod log_range_reduction;
-mod logf;
+mod atan;
+mod atan2;
+mod atan2f;
+mod atan2pi;
+mod atan2pif;
+mod atanf;
+mod atanpi;
+mod atanpif;
+mod cot;
+mod cotf;
+mod tan;
+mod tanf;
+mod tanpi;
+mod tanpif;
 
-pub(crate) use log::log_dyadic;
-pub use log::{f_log, log};
-pub use log1p::f_log1p;
-pub(crate) use log1p::log1p_f64_dyadic;
-pub(crate) use log1p_dd::log1p_f64_dd;
-pub use log1pf::f_log1pf;
-#[cfg(not(any(
-    all(
-        any(target_arch = "x86", target_arch = "x86_64"),
-        target_feature = "fma"
-    ),
-    all(target_arch = "aarch64", target_feature = "neon")
-)))]
-pub(crate) use log2::LOG_CD;
-pub use log2::f_log2;
-pub(crate) use log2::{LOG_COEFFS, LOG_RANGE_REDUCTION};
-pub use log2f::f_log2f;
-pub(crate) use log2f::{LOG2_R, dirty_log2f};
-pub use log2p1::f_log2p1;
-pub use log2p1f::f_log2p1f;
-pub(crate) use log10::LOG_R_DD;
-pub use log10::f_log10;
-pub use log10f::f_log10f;
-pub use log10p1::f_log10p1;
-pub use log10p1f::f_log10p1f;
-#[allow(unused)]
-pub(crate) use logf::LOG_REDUCTION_F32;
-pub use logf::{f_logf, logf};
+pub use atan::f_atan;
+pub use atan2::f_atan2;
+pub use atan2f::f_atan2f;
+pub use atan2pi::f_atan2pi;
+pub use atan2pif::f_atan2pif;
+pub use atanf::f_atanf;
+pub use atanpi::f_atanpi;
+pub use atanpif::f_atanpif;
+pub use cot::f_cot;
+pub use cotf::f_cotf;
+pub use tan::f_tan;
+pub use tanf::f_tanf;
+pub use tanpi::f_tanpi;
+pub use tanpif::f_tanpif;

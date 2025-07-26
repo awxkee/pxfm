@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -26,9 +26,10 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::atan::{ATAN_CIRCLE, ATAN_REDUCE, poly_dd_3};
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
+use crate::shared_eval::poly_dd_3;
+use crate::tangent::atan::{ATAN_CIRCLE, ATAN_REDUCE};
 
 const ONE_OVER_PI_DD: DoubleDouble = DoubleDouble::new(
     f64::from_bits(0xbc76b01ec5417056),

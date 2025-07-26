@@ -26,10 +26,10 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::atan2f::poly_dekker_generic;
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::exponents::exp2::ldexp;
+use crate::shared_eval::poly_dekker_generic;
 use std::hint::black_box;
 
 static TZ: [(u64, u64); 65] = [

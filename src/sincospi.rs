@@ -26,9 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::atan::poly_dd_3;
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
+use crate::shared_eval::poly_dd_3;
 use crate::sincospi_tables::{
     SINCOS_PI_CM2, SINCOS_PI_SM2, SINCOS_PI_SN2, SINPI_CM1, SINPI_SM1, SINPI_SN1,
 };

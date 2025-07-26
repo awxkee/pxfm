@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
-use crate::tanf::{tan_reduce_big, tan_reduce1};
+use crate::tangent::tanf::{tan_reduce_big, tan_reduce1};
 
 /// Computes cotangent
 ///

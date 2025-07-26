@@ -26,10 +26,10 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::atan2f::poly_dekker_generic;
 use crate::common::{dd_fmla, f_fmla, fmla, pow2i, rintk};
 use crate::double_double::DoubleDouble;
 use crate::exponents::exp2::ldexp;
+use crate::shared_eval::poly_dekker_generic;
 
 /// Exp for given value for const context.
 /// This is simplified version just to make a good approximation on const context.

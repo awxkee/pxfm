@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -33,7 +33,7 @@ use crate::sin::{get_sin_k_rational, range_reduction_small};
 use crate::sin_table::SIN_K_PI_OVER_128;
 use crate::sincos_dyadic::range_reduction_small_f128;
 use crate::sincos_reduce::LargeArgumentReduction;
-use crate::tan::{newton_raphson_div, tan_eval, tan_eval_rational};
+use crate::tangent::tan::{newton_raphson_div, tan_eval, tan_eval_rational};
 
 #[cold]
 fn cot_accurate(
