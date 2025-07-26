@@ -26,13 +26,13 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::common::{dd_fmla, f_fmla};
+use crate::double_double::DoubleDouble;
 use crate::hyperbolic::acosh::{
     ACOSH_ASINH_B, ACOSH_ASINH_L1, ACOSH_ASINH_L2, ACOSH_ASINH_LL, ACOSH_ASINH_R1, ACOSH_ASINH_R2,
     ACOSH_ASINH_REFINE_T2, ACOSH_ASINH_REFINE_T4, ACOSH_SINH_REFINE_T1, ACOSH_SINH_REFINE_T3,
     lpoly_xd_generic,
 };
-use crate::common::{dd_fmla, f_fmla};
-use crate::double_double::DoubleDouble;
 
 #[cold]
 fn asinh_refine(x: f64, a: f64, z: DoubleDouble) -> f64 {

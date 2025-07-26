@@ -26,10 +26,10 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::hyperbolic::acosh::lpoly_xd_generic;
 use crate::common::{dd_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
+use crate::hyperbolic::acosh::lpoly_xd_generic;
 
 #[cold]
 pub(crate) fn hyperbolic_exp_accurate(x: f64, t: f64, zt: DoubleDouble) -> DoubleDouble {
