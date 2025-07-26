@@ -40,6 +40,8 @@ mod y0f;
 mod y0f_coeffs;
 mod y1f;
 mod y1f_coeffs;
+mod y1;
+mod y1_coeffs;
 
 pub use j0::f_j0;
 pub use j0f::f_j0f;
@@ -48,3 +50,4 @@ pub use j1f::f_j1f;
 pub use y0::f_y0;
 pub use y0f::f_y0f;
 pub use y1f::f_y1f;
+pub use y1::f_y1;

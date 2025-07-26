@@ -16,7 +16,7 @@ use pxfm::{
     f_j1, f_j1f, f_log, f_log1p, f_log1pf, f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f,
     f_log10p1, f_log10p1f, f_logf, f_pow, f_powf, f_sin, f_sinc, f_sincf, f_sincos, f_sincosf,
     f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanh, f_tanhf, f_tanpi, f_tanpif,
-    f_y0, f_y0f, f_y1f, powf,
+    f_y0, f_y0f, f_y1, f_y1f, powf,
 };
 use std::hint::black_box;
 use std::time::Duration;
@@ -709,7 +709,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::j1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::j1(i as f64));
+                black_box(libm::j1(i as f64 / 100.));
             }
         })
     });
@@ -717,7 +717,23 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: j1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_j1(i as f64));
+                black_box(f_j1(i as f64 / 100.));
+            }
+        })
+    });
+
+    c.bench_function("libm::y1", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::y1(i as f64 / 100.));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_y1", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_y1(i as f64 / 100.));
             }
         })
     });

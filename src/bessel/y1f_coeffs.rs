@@ -139,7 +139,7 @@ println!(
 );
 ```
 **/
-pub(crate) static Y1_ZERO_VALUES: [u64; 33] = [
+pub(crate) static Y1_ZEROS_VALUES: [u64; 33] = [
     0x0000000000000000,
     0x3c7cf9f8d5e1a475,
     0x3fdaabb4011ed330,

@@ -29,7 +29,7 @@
 use crate::bessel::j0f::j1f_rsqrt;
 use crate::bessel::j1f::{j1f_asympt_alpha, j1f_asympt_beta};
 use crate::bessel::y0f::bessel_fast_log;
-use crate::bessel::y1f_coeffs::{Y1_ZERO_VALUES, Y1_ZEROS, Y1F_COEFFS};
+use crate::bessel::y1f_coeffs::{Y1_ZEROS_VALUES, Y1_ZEROS, Y1F_COEFFS};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval10, f_polyeval29};
@@ -118,6 +118,10 @@ def z_series(x):
 
 W1 = d2/pi * J1_series
 Z1 = -(d2/(x*pi) * z_series(x) + d2/pi * gamma * J1_series(x) - d2/pi * log2 * J1_series(x))
+
+# see the series
+print(W0)
+print(Z0)
 ```
 See ./notes/bessel_y1_taylor.ipynb for generation
 **/
@@ -219,7 +223,7 @@ fn y1f_small_argument_path(x: f32) -> f32 {
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
-        return f64::from_bits(Y1_ZERO_VALUES[idx]) as f32;
+        return f64::from_bits(Y1_ZEROS_VALUES[idx]) as f32;
     }
 
     let c = &Y1F_COEFFS[idx - 1];
@@ -268,7 +272,6 @@ fn y1f_small_argument_path(x: f32) -> f32 {
 
    Discarding 1/2*PI gives:
    Y1 = sqrt(2/(PI*x)) * beta(x) * (-cos(x - PI/4 - alpha(x)))
-
 */
 fn y1f_asympt(x: f32) -> f32 {
     let dx = x as f64;

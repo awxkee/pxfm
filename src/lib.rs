@@ -183,7 +183,7 @@ pub use atanh::f_atanh;
 pub use atanhf::f_atanhf;
 pub use atanpi::f_atanpi;
 pub use atanpif::f_atanpif;
-pub use bessel::{f_j0, f_j0f, f_j1, f_j1f, f_y0, f_y0f, f_y1f};
+pub use bessel::{f_j0, f_j0f, f_j1, f_j1f, f_y0, f_y0f, f_y1f, f_y1};
 pub use cbrt::f_cbrt;
 pub use cbrtf::{cbrtf, f_cbrtf};
 pub use ceil::{ceil, ceilf};

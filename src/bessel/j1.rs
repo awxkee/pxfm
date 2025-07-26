@@ -83,7 +83,7 @@ pub fn f_j1(x: f64) -> f64 {
 
    J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
 */
-pub(crate) fn j1_asympt(x: f64) -> f64 {
+fn j1_asympt(x: f64) -> f64 {
     static SGN: [f64; 2] = [1., -1.];
     let sign_scale = SGN[x.is_sign_negative() as usize];
     let x = x.abs();
@@ -160,7 +160,7 @@ print(alpha_series)
 See notes/bessel_asympt.ipynb for generation
 **/
 #[inline]
-fn j1_asympt_alpha(recip: DoubleDouble) -> DoubleDouble {
+pub(crate) fn j1_asympt_alpha(recip: DoubleDouble) -> DoubleDouble {
     const C: [(u64, u64); 12] = [
         (0x0000000000000000, 0xbfd8000000000000),
         (0x0000000000000000, 0x3fc5000000000000),
@@ -247,7 +247,7 @@ print(b_series)
 See notes/bessel_asympt.ipynb for generation
 **/
 #[inline]
-fn j1_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
+pub(crate) fn j1_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
     const C: [(u64, u64); 10] = [
         (0x0000000000000000, 0x3ff0000000000000), // 1
         (0x0000000000000000, 0x3fc8000000000000), // 2
