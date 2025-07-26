@@ -306,7 +306,7 @@ fuzz_target!(|data: (f64, f64)| {
         "f_y1".to_string(),
         0.500001,
     );
-    /*test_method(x0, f_y0, &mpfr_x0.clone().y0(), "f_y0".to_string(), 0.5);
+    test_method(x0, f_y0, &mpfr_x0.clone().y0(), "f_y0".to_string(), 0.5);
     test_method(x0, f_csc, &mpfr_x0.clone().csc(), "f_csc".to_string(), 0.5);
     test_method(x0, f_sec, &mpfr_x0.clone().sec(), "f_sec".to_string(), 0.5);
     test_method(x0, f_cot, &mpfr_x0.clone().cot(), "f_cot".to_string(), 0.5);
@@ -554,7 +554,7 @@ fuzz_target!(|data: (f64, f64)| {
         &mpfr_x0.clone().pow(&mpfr_x1),
         "f_pow".to_string(),
         0.5,
-    );*/
+    );
 
     // let compound_mpfr = compound_mpfr(x0, x1);
 

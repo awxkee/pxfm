@@ -26,38 +26,28 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::asinhf::log_eval;
-use crate::common::f_fmla;
+mod acosh;
+mod acoshf;
+mod asinh;
+mod asinhf;
+mod atanh;
+mod atanhf;
+mod cosh;
+mod coshf;
+mod sinh;
+mod sinhf;
+mod tanh;
+mod tanhf;
 
-/// Hyperbolic arc cosine function
-///
-/// Max ULP 0.5
-#[inline]
-pub fn f_acoshf(x: f32) -> f32 {
-    if x <= 1.0 {
-        if x == 1.0 {
-            return 0.0;
-        }
-        // x < 1.
-        return f32::NAN;
-    }
-
-    if !x.is_finite() {
-        return x;
-    }
-    let x_d = x as f64;
-    // acosh(x) = log(x + sqrt(x^2 - 1))
-    log_eval(x_d + (f_fmla(x_d, x_d, -1.0).sqrt())) as f32
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_f_acoshf() {
-        println!("{:?}", f_acoshf(2.0));
-        assert_eq!(f_acoshf(2.0), 1.316958);
-        assert!(f_acoshf(0.5).is_nan());
-    }
-}
+pub use acosh::f_acosh;
+pub use acoshf::f_acoshf;
+pub use asinh::f_asinh;
+pub use asinhf::f_asinhf;
+pub use atanh::f_atanh;
+pub use atanhf::f_atanhf;
+pub use cosh::f_cosh;
+pub use coshf::f_coshf;
+pub use sinh::f_sinh;
+pub use sinhf::f_sinhf;
+pub use tanh::f_tanh;
+pub use tanhf::f_tanhf;
