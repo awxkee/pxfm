@@ -30,7 +30,7 @@ use crate::bessel::j1::j1_small_argument_path;
 use crate::bessel::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
 use crate::bessel::j1f_coeffs::J1F_COEFFS;
 use crate::double_double::DoubleDouble;
-use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval15};
+use crate::polyeval::{f_polyeval7, f_polyeval10, f_polyeval12, f_polyeval15};
 use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
 
@@ -274,49 +274,44 @@ pub(crate) fn j1f_asympt_beta(x: f64) -> f64 {
 }
 
 /**
-Generated in Sage Math:
+Generated in Sollya:
 ```python
-def print_expansion_at_0_f():
-    print(f"pub(crate) const J1_MACLAURIN_SERIES: [u64; 9] = [")
-    from mpmath import mp, j1, taylor, expm1
-    mp.prec = 60
-    poly = taylor(lambda val: j1(val), 0, 18)
-    z = 0
-    for i in range(1, 18, 2):
-        print(f"{double_to_hex(poly[i])},")
-    print("];")
+pretty = proc(u) {
+  return ~(floor(u*1000)/1000);
+};
 
-    print(f"poly {poly}")
+bessel_j1 = library("./cmake-build-release/libbessel_sollya.dylib");
 
-print_expansion_at_0_f()
+f = bessel_j1(x)/x;
+d = [0, 0.921];
+w = 1;
+pf = fpminimax(f, [|0,2,4,6,8,10,12|], [|D...|], d, absolute, floating);
+
+w = 1;
+or_f = bessel_j1(x);
+pf1 = pf * x;
+err_p = -log2(dirtyinfnorm(pf1*w-or_f, d));
+print ("relative error:", pretty(err_p));
+
+for i from 0 to degree(pf) by 2 do {
+    print("'", coeff(pf, i), "',");
+};
 ```
+See ./notes/bessel_sollya/bessel_j1f_at_zero.sollya
 **/
 #[inline]
 fn maclaurin_series(x: f32) -> f32 {
-    pub(crate) const C: [u64; 9] = [
-        0x3fe0000000000000,
-        0xbfb0000000000000,
-        0x3f65555555555555,
-        0xbf0c71c71c71c71c,
-        0x3ea6c16c16c16c17,
-        0xbe3845c8a0ce5129,
-        0x3dc27e4fb7789f5c,
-        0xbd4522a43f65486a,
-        0x3cc2c9758daf5cd0,
-    ];
     let dx = x as f64;
     let x2 = dx * dx;
-    let p = f_polyeval9(
+    let p = f_polyeval7(
         x2,
-        f64::from_bits(C[0]),
-        f64::from_bits(C[1]),
-        f64::from_bits(C[2]),
-        f64::from_bits(C[3]),
-        f64::from_bits(C[4]),
-        f64::from_bits(C[5]),
-        f64::from_bits(C[6]),
-        f64::from_bits(C[7]),
-        f64::from_bits(C[8]),
+        f64::from_bits(0x3fe0000000000000),
+        f64::from_bits(0xbfaffffffffffffc),
+        f64::from_bits(0x3f65555555554089),
+        f64::from_bits(0xbf0c71c71c2a74ae),
+        f64::from_bits(0x3ea6c16bbd1dc5c1),
+        f64::from_bits(0xbe384562afb69e7d),
+        f64::from_bits(0x3dc248d0d0221cd0),
     );
     (p * dx) as f32
 }

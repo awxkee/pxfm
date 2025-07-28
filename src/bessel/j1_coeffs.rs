@@ -28,16 +28,6 @@
  */
 
 #[derive(Clone)]
-pub(crate) struct J1MaclaurinSeries {
-    pub(crate) a0: (u64, u64),
-    pub(crate) a1: (u64, u64),
-    pub(crate) a2: (u64, u64),
-    pub(crate) a3: (u64, u64),
-    pub(crate) a4: (u64, u64),
-    pub(crate) series: [u64; 18],
-}
-
-#[derive(Clone)]
 pub(crate) struct J1TaylorExtendedSeries {
     pub(crate) a0: (u64, u64),
     pub(crate) a1: (u64, u64),

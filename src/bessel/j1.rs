@@ -29,9 +29,9 @@
 
 #![allow(clippy::excessive_precision)]
 
-use crate::bessel::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1_ZEROS_VALUE, J1MaclaurinSeries};
+use crate::bessel::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1_ZEROS_VALUE};
 use crate::double_double::DoubleDouble;
-use crate::polyeval::{f_polyeval8, f_polyeval18};
+use crate::polyeval::f_polyeval8;
 use crate::sin_helper::sin_dd_small;
 use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 
@@ -290,123 +290,60 @@ pub(crate) fn j1_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
 }
 
 /**
-Generated in Sage:
-```python
-DR = RealField(52)
+Generated in Sollya:
+```text
+pretty = proc(u) {
+  return ~(floor(u*1000)/1000);
+};
 
-DD = RealField(190)
+bessel_j1 = library("./cmake-build-release/libbessel_sollya.dylib");
 
-def double_to_hex(f):
-    packed = struct.pack('>d', float(f))
-    return '0x' + packed.hex()
+f = bessel_j1(x)/x;
+d = [0, 0.921];
+w = 1;
+pf = fpminimax(f, [|0,2,4,6,8,10,12,14,16,18,20,22,24|], [|107, 107, 107, 107, 107, D...|], d, absolute, floating);
 
-def split_double_double(x):
-    x_hi = DR(x)  # convert to f64
-    x_lo = x - DD(x_hi)
-    return (x_lo,x_hi)
+w = 1;
+or_f = bessel_j1(x);
+pf1 = pf * x;
+err_p = -log2(dirtyinfnorm(pf1*w-or_f, d));
+print ("relative error:", pretty(err_p));
 
-def print_double_double(mark, x):
-    splat = split_double_double(x)
-    print(f"{mark}({double_to_hex(splat[0])}, {double_to_hex(splat[1])}),")
-
-mp.prec = 106
-
-def print_expansion_at_0():
-    print(f"pub(crate) static J1_MACLAURIN_SERIES: J1MaclaurinSeries = J1MaclaurinSeries {{")
-    from mpmath import mp, j1, taylor, expm1
-    # The j1 (Bessel J_1) function from mpmath will compute with mp.dps precision
-    # The Taylor series computation will also respect mp.dps
-    poly = taylor(lambda val: j1(val), 0, 46)
-    # print(poly)
-    real_i = 0
-    print_double_double("a0: ", DD(poly[1]))
-    print_double_double("a1: ", DD(poly[3]))
-    print_double_double("a2: ", DD(poly[5]))
-    print_double_double("a3: ", DD(poly[7]))
-    print_double_double("a4: ", DD(poly[9]))
-    print("series: [")
-    for i in range(11, 46, 2):
-        print(f"{double_to_hex(poly[i])},")
-        real_i = real_i + 1
-    print("],")
-
-    print("};")
-
-    print(f"poly {poly}")
-
-print_expansion_at_0()
+for i from 0 to degree(pf) by 2 do {
+    print("'", coeff(pf, i), "',");
+};
 ```
+See ./notes/bessel_sollya/bessel_j1_at_zero.sollya
 **/
 #[inline]
 pub(crate) fn j1_maclaurin_series(x: f64) -> f64 {
-    const J1_MACLAURIN_SERIES: J1MaclaurinSeries = J1MaclaurinSeries {
-        a0: (0x0000000000000000, 0x3fe0000000000000),
-        a1: (0x0000000000000000, 0xbfb0000000000000),
-        a2: (0xbc1555555555554e, 0x3f65555555555556),
-        a3: (0xbbac71c71c71c717, 0xbf0c71c71c71c71c),
-        a4: (0x3b582d82d82d82da, 0x3ea6c16c16c16c16),
-        series: [
-            0xbe3845c8a0ce512a,
-            0x3dc27e4fb7789f5c,
-            0xbd4522a43f65486a,
-            0x3cc2c9758daf5ccf,
-            0xbc3ab81ea75fcdf5,
-            0x3baf17697cf1cf12,
-            0xbb1e2637bef9ff1b,
-            0x3a88bce58901a35d,
-            0xb9f165e7c2d153f4,
-            0x39553585cdcbfb0f,
-            0xb8b69f7da8510bcd,
-            0x38154ad09e6a6575,
-            0xb771d028acb00492,
-            0x36caaae78f4066a6,
-            0xb621f72d8389b3a4,
-            0x3575e69de22df5ce,
-            0xb4c84564b82a1185,
-            0x34188f11edf3ed4c,
-        ],
-    };
+    const CL: [(u64, u64); 5] = [
+        (0xb930000000000000, 0x3fe0000000000000),
+        (0x39c8e80000000000, 0xbfb0000000000000),
+        (0x3c05555554f3add7, 0x3f65555555555555),
+        (0xbbac71c4eb0f8c94, 0xbf0c71c71c71c71c),
+        (0xbb3f56b7a43206d4, 0x3ea6c16c16c16c17),
+    ];
 
-    let c = J1_MACLAURIN_SERIES.series;
-
-    let p = f_polyeval18(
+    let p = f_polyeval8(
         x * x,
-        f64::from_bits(c[0]),
-        f64::from_bits(c[1]),
-        f64::from_bits(c[2]),
-        f64::from_bits(c[3]),
-        f64::from_bits(c[4]),
-        f64::from_bits(c[5]),
-        f64::from_bits(c[6]),
-        f64::from_bits(c[7]),
-        f64::from_bits(c[8]),
-        f64::from_bits(c[9]),
-        f64::from_bits(c[10]),
-        f64::from_bits(c[11]),
-        f64::from_bits(c[12]),
-        f64::from_bits(c[13]),
-        f64::from_bits(c[14]),
-        f64::from_bits(c[15]),
-        f64::from_bits(c[16]),
-        f64::from_bits(c[17]),
+        f64::from_bits(0xbe3845c8a0ce5129),
+        f64::from_bits(0x3dc27e4fb7789ea2),
+        f64::from_bits(0xbd4522a43f633af1),
+        f64::from_bits(0x3cc2c97589d53f97),
+        f64::from_bits(0xbc3ab8151dca7912),
+        f64::from_bits(0x3baf08732286d1d4),
+        f64::from_bits(0xbb10ac65637413f4),
+        f64::from_bits(0xbae4d8336e4f779c),
     );
 
     let dx2 = DoubleDouble::from_exact_mult(x, x);
 
-    let mut p_e =
-        DoubleDouble::mul_f64_add(dx2, p, DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a4));
-    p_e = DoubleDouble::mul_add(
-        dx2,
-        p_e,
-        DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a3),
-    );
-    p_e = DoubleDouble::mul_add(
-        dx2,
-        p_e,
-        DoubleDouble::from_bit_pair(J1_MACLAURIN_SERIES.a2),
-    );
-    p_e = DoubleDouble::mul_add_f64(dx2, p_e, f64::from_bits(J1_MACLAURIN_SERIES.a1.1));
-    p_e = DoubleDouble::mul_add_f64(dx2, p_e, f64::from_bits(J1_MACLAURIN_SERIES.a0.1));
+    let mut p_e = DoubleDouble::mul_f64_add(dx2, p, DoubleDouble::from_bit_pair(CL[4]));
+    p_e = DoubleDouble::mul_add(dx2, p_e, DoubleDouble::from_bit_pair(CL[3]));
+    p_e = DoubleDouble::mul_add(dx2, p_e, DoubleDouble::from_bit_pair(CL[2]));
+    p_e = DoubleDouble::mul_add(dx2, p_e, DoubleDouble::from_bit_pair(CL[1]));
+    p_e = DoubleDouble::mul_add(dx2, p_e, DoubleDouble::from_bit_pair(CL[0]));
 
     let px = DoubleDouble::quick_mult_f64(p_e, x);
     px.to_f64()
