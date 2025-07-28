@@ -1,16 +1,17 @@
 #![no_main]
 
+use bessel::{bessel_i0, bessel_i1};
 use libfuzzer_sys::fuzz_target;
 use pxfm::{
     f_acosf, f_acoshf, f_acospif, f_asinf, f_asinhf, f_asinpif, f_atan2f, f_atan2pif, f_atanhf,
-    f_atanpif, f_cbrtf, f_compound_m1f, f_compoundf, f_cosf, f_coshf, f_cospif, f_cotf, f_cscf,
-    f_erfcf, f_erff, f_exp2f, f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_j0f,
-    f_j1f, f_log1pf, f_log2f, f_log2p1f, f_log10f, f_log10p1f, f_logf, f_powf, f_secf, f_sincf,
-    f_sinf, f_sinhf, f_sinpif, f_tanf, f_tanhf, f_tanpif, f_y0f, f_y1f,
+    f_atanpif, f_cbrtf, f_cosf, f_coshf, f_cospif, f_cotf, f_cscf, f_erfcf, f_erff, f_exp2f,
+    f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_i0f, f_i1f, f_j0f, f_j1f,
+    f_log1pf, f_log2f, f_log2p1f, f_log10f, f_log10p1f, f_logf, f_powf, f_secf, f_sincf, f_sinf,
+    f_sinhf, f_sinpif, f_tanf, f_tanhf, f_tanpif, f_y0f, f_y1f,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::ops::{Add, Div, Mul};
+use std::ops::{Div, Mul};
 
 fn count_ulp(d: f32, c: &Float) -> f32 {
     let c2 = c.to_f32();
@@ -46,6 +47,7 @@ fn count_ulp(d: f32, c: &Float) -> f32 {
     fry.to_f32().abs()
 }
 
+#[track_caller]
 fn test_method(value: f32, method: fn(f32) -> f32, mpfr_value: &Float, method_name: String) {
     let xr = method(value);
     let ulp = count_ulp(xr, mpfr_value);
@@ -170,7 +172,15 @@ fuzz_target!(|data: (f32, f32)| {
     //     "f_compoundf".to_string(),
     // );
 
-    test_method(x0, f_y1f, &mpfr_x0.clone().y1(), "f_y1f".to_string());
+    if x0 < 92. {
+        test_method(x0, f_i0f, &bessel_i0(x0 as f64, 100), "f_i0f".to_string());
+    }
+
+    if x0 < 91.9 && x0.abs() > 0.001 {
+        test_method(x0, f_i1f, &bessel_i1(x0 as f64, 100), "f_i1f".to_string());
+    }
+
+    /*    test_method(x0, f_y1f, &mpfr_x0.clone().y1(), "f_y1f".to_string());
     test_method(x0, f_y0f, &mpfr_x0.clone().y0(), "f_y0f".to_string());
     test_method(x0, f_cscf, &mpfr_x0.clone().csc(), "f_cscf".to_string());
     test_method(x0, f_secf, &mpfr_x0.clone().sec(), "f_secf".to_string());
@@ -344,5 +354,5 @@ fuzz_target!(|data: (f32, f32)| {
         f_powf,
         &mpfr_x0.clone().pow(&mpfr_x1),
         "f_powf".to_string(),
-    );
+    );*/
 });

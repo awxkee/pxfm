@@ -44,7 +44,6 @@ use crate::sincos_reduce::rem2pif_any;
 ///   For example `J1(0.000000000000000000000000000000000000023509886)` in single precision
 ///   have an error at least 0.72 ULP for any number with extended precision,
 ///   that would be represented in f32.
-#[inline]
 pub fn f_j1f(x: f32) -> f32 {
     if !x.is_normal() {
         if x.is_infinite() {
@@ -96,6 +95,7 @@ fn j1f_rsqrt(x: f64) -> f64 {
 
    J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
 */
+#[inline]
 fn j1f_asympt(x: f32) -> f32 {
     static SGN: [f64; 2] = [1., -1.];
     let sign_scale = SGN[x.is_sign_negative() as usize];

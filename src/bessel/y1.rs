@@ -118,6 +118,7 @@ print(Z0)
 ```
 See ./notes/bessel_y1_taylor.ipynb for generation
 **/
+#[inline]
 fn y1_near_zero(x: f64) -> f64 {
     const W: [(u64, u64); 15] = [
         (0xbc76b01ec5417056, 0x3fd45f306dc9c883),
@@ -209,6 +210,7 @@ fn y1_near_zero(x: f64) -> f64 {
 
 /// This method on small range searches for nearest zero or extremum.
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
+#[inline]
 pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
     let x_abs = x;
 
@@ -319,6 +321,7 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
    Discarding 1/2*PI gives:
    Y1 = sqrt(2/(PI*x)) * beta(x) * (-cos(x - PI/4 - alpha(x)))
 */
+#[inline]
 pub(crate) fn y1_asympt(x: f64) -> f64 {
     const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0xbc8cbc0d30ebfd15),

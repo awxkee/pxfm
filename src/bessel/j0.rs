@@ -362,6 +362,7 @@ pub(crate) fn j0_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
    Evaluates:
    J1 = sqrt(2/(PI*x)) * beta(x) * cos(x - PI/4 - alpha(x))
 */
+#[inline]
 pub(crate) fn j0_asympt(x: f64) -> f64 {
     let x = x.abs();
 

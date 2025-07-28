@@ -1,11 +1,12 @@
 #![no_main]
 #![allow(static_mut_refs)]
 
+use bessel::{bessel_i0, bessel_i1};
 use libfuzzer_sys::fuzz_target;
 use pxfm::*;
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Div, Mul};
 
 pub fn count_ulp_f64(d: f64, c: &Float) -> f64 {
     let c2 = c.to_f64();
@@ -298,6 +299,14 @@ fuzz_target!(|data: (f64, f64)| {
     //         0.50013,
     //     );
     // }
+
+    if x0.abs() < 714. && x0.abs() > 0.0001 {
+        test_method(x0, f_i0, &bessel_i0(x0, 70), "f_i0".to_string(), 0.5003);
+    }
+
+    if x0.abs() < 713. && x0.abs() > 0.0001 {
+        test_method(x0, f_i1, &bessel_i1(x0, 70), "f_i1".to_string(), 0.53);
+    }
 
     test_method(
         x0,

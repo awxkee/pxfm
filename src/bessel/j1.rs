@@ -45,7 +45,6 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 ///   for example `J1(0.000000000000000000000000000000000000023509886)` in single precision
 ///   have 0.7 ULP for any number with extended precision that would be represented in f32
 ///   Same applies to J1(4.4501477170144018E-309) in double precision and some others subnormal numbers
-#[inline(never)]
 pub fn f_j1(x: f64) -> f64 {
     if !x.is_normal() {
         if x.is_infinite() {
@@ -56,12 +55,20 @@ pub fn f_j1(x: f64) -> f64 {
         }
     }
 
-    let ax = x.to_bits() & 0x7fff_ffff_ffff_ffff;
+    let ax: u64 = x.to_bits() & 0x7fff_ffff_ffff_ffff;
     if f64::from_bits(ax) < 74.60109 {
         if f64::from_bits(ax) < 0.25 {
             return j1_maclaurin_series(x);
         }
         return j1_small_argument_path(x);
+    }
+
+    if ax == 0x6e7c1d741dc52512u64 {
+        return if x.is_sign_negative() {
+            -f64::from_bits(0x2696f860815bc669)
+        } else {
+            f64::from_bits(0x2696f860815bc669)
+        };
     }
 
     // let e = get_exponent_f64(x);
@@ -83,6 +90,7 @@ pub fn f_j1(x: f64) -> f64 {
 
    J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
 */
+#[inline]
 fn j1_asympt(x: f64) -> f64 {
     static SGN: [f64; 2] = [1., -1.];
     let sign_scale = SGN[x.is_sign_negative() as usize];

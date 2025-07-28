@@ -606,7 +606,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
     r_dd as f32
 }
 
-/// Power function for given value using FMA
+/// Dirty fast pow
 #[inline]
 pub fn dirty_powf(d: f32, n: f32) -> f32 {
     use crate::exponents::dirty_exp2f;

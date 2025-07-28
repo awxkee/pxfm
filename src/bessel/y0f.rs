@@ -38,7 +38,6 @@ use crate::sincos_reduce::rem2pif_any;
 /// Bessel of the second kind of order 0 (Y0)
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_y0f(x: f32) -> f32 {
     if x < 0. {
         return f32::NAN;
@@ -343,6 +342,7 @@ fn y0f_small_argument_path(x: f32) -> f32 {
    Evaluates:
    Y0 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
 */
+#[inline]
 fn y0f_asympt(x: f32) -> f32 {
     let dx = x as f64;
 

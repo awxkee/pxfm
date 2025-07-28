@@ -7,10 +7,14 @@ edition = "2024"
 pxfm = {path = "../", features = []}
 rayon = "1.10.0"
 rug = "1.27.0"
+zbessel-rs = "0.1"
+num-complex = "^0.4"
+bessel = {path = "../bessel"}
 
 [dev-dependencies]
-criterion = { version = "0.6", features = ["html_reports"] }
+criterion = { version = "0.7.0", features = ["html_reports"] }
 libm = "0.2"
+
 
 [[bench]]
 name = "math"

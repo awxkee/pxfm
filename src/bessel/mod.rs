@@ -27,6 +27,10 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #![deny(unreachable_pub)]
+mod i0;
+mod i0f;
+mod i1;
+mod i1f;
 mod j0;
 mod j0_coeffs;
 mod j0f;
@@ -44,6 +48,10 @@ mod y1_coeffs;
 mod y1f;
 mod y1f_coeffs;
 
+pub use i0::f_i0;
+pub use i0f::f_i0f;
+pub use i1::f_i1;
+pub use i1f::f_i1f;
 pub use j0::f_j0;
 pub use j0f::f_j0f;
 pub use j1::f_j1;

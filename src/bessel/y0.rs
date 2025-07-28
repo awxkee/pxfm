@@ -38,7 +38,6 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 /// Bessel of the second kind of order 0 (Y0)
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_y0(x: f64) -> f64 {
     if x < 0. {
         return f64::NAN;
@@ -201,6 +200,7 @@ print(W0)
 print(Z0)
 ```
 **/
+#[inline]
 fn y0_near_zero(x: f64) -> f64 {
     const W: [(u64, u64); 15] = [
         (0xbc86b01ec5417056, 0x3fe45f306dc9c883),
@@ -280,6 +280,7 @@ fn y0_near_zero(x: f64) -> f64 {
 
 /// This method on small range searches for nearest zero or extremum.
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
+#[inline]
 pub(crate) fn y0_small_argument_path(x: f64) -> f64 {
     let x_abs = x;
 
@@ -385,6 +386,7 @@ pub(crate) fn y0_small_argument_path(x: f64) -> f64 {
    Evaluates:
    J1 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
 */
+#[inline]
 pub(crate) fn y0_asympt(x: f64) -> f64 {
     const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0xbc8cbc0d30ebfd15),

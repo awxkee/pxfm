@@ -1,4 +1,4 @@
-workspace = { members = ["app", "fuzz"] }
+workspace = { members = ["app", "bessel", "fuzz"] }
 
 [package]
 name = "pxfm"
@@ -17,3 +17,6 @@ exclude = ["*.jpg", "./assets/*", "*.png", "./notes/*", "notes/", ".github/"]
 
 [dependencies]
 num-traits = "0.2"
+
+[profile.dev.package]
+bessel.opt-level = 3

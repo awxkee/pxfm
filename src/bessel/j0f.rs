@@ -36,7 +36,6 @@ use crate::sincos_reduce::rem2pif_any;
 /// Bessel of the first kind J0
 ///
 /// Max ulp 0.5
-#[inline]
 pub fn f_j0f(x: f32) -> f32 {
     let x_abs = x.to_bits() & 0x7fff_ffff;
 
@@ -207,6 +206,7 @@ pub(crate) fn j1f_rsqrt(x: f64) -> f64 {
    Evaluates:
    J1 = sqrt(2/(PI*x)) * beta(x) * cos(x - PI/4 - alpha(x))
 */
+#[inline]
 fn j0f_asympt(x: f32) -> f32 {
     let x = x.abs();
 

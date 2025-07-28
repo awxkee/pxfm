@@ -110,7 +110,7 @@ pub use asin::f_asin;
 pub use asinf::f_asinf;
 pub use asinpi::f_asinpi;
 pub use asinpif::f_asinpif;
-pub use bessel::{f_j0, f_j0f, f_j1, f_j1f, f_y0, f_y0f, f_y1, f_y1f};
+pub use bessel::{f_i0, f_i0f, f_i1, f_i1f, f_j0, f_j0f, f_j1, f_j1f, f_y0, f_y0f, f_y1, f_y1f};
 pub use cbrt::f_cbrt;
 pub use cbrtf::{cbrtf, f_cbrtf};
 pub use ceil::{ceil, ceilf};

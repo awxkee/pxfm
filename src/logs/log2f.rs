@@ -334,7 +334,7 @@ pub(crate) fn f_log2fx(x: f32) -> f64 {
     f_polyeval3(v2, c0, c1, c2)
 }
 
-/// Natural logarithm using FMA
+/// Dirty log2 using FMA
 #[inline(always)]
 #[allow(dead_code)]
 pub(crate) fn dirty_log2f(d: f32) -> f32 {
