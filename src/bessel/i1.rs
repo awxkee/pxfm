@@ -30,7 +30,7 @@ use crate::bessel::i0::i0_exp;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval13, f_polyeval30};
 
-/// Max found ULP 0.53
+/// Max found ULP 0.54
 pub fn f_i1(x: f64) -> f64 {
     if !x.is_normal() {
         if x == 0. {
@@ -261,9 +261,13 @@ fn i1_asympt(x: f64, sign_scale: f64) -> f64 {
 mod tests {
     use super::*;
     #[test]
-    fn test() {
-        let xb = 713.9876098185423f64.to_bits();
-        println!("{:16x}", xb);
-        println!("{}", f_i1(f64::from_bits(xb - 1)));
+    fn test_fi1() {
+        assert!(f_i1(f64::NAN).is_nan());
+        assert_eq!(f_i1(f64::INFINITY), f64::INFINITY);
+        assert_eq!(f_i1(f64::NEG_INFINITY), f64::NEG_INFINITY);
+        assert_eq!(f_i1(0.01), 0.005000062500260418);
+        assert_eq!(f_i1(-0.01), -0.005000062500260418);
+        assert_eq!(f_i1(-9.01), -1040.752038018038);
+        assert_eq!(f_i1(9.01), 1040.752038018038);
     }
 }

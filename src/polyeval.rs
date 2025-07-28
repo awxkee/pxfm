@@ -356,8 +356,7 @@ pub(crate) fn f_polyeval14<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     let q0 = T::polyeval_mla(x4, h1, h0);
     let q1 = T::polyeval_mla(x4, g6, h2);
 
-    let result = T::polyeval_mla(x8, q1, q0);
-    result
+    T::polyeval_mla(x8, q1, q0)
 }
 
 // #[inline(always)]
