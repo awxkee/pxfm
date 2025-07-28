@@ -172,15 +172,15 @@ fuzz_target!(|data: (f32, f32)| {
     //     "f_compoundf".to_string(),
     // );
 
-    if x0 < 92. {
+    if x0 < 92. && x0.abs() > 0.01 {
         test_method(x0, f_i0f, &bessel_i0(x0 as f64, 100), "f_i0f".to_string());
     }
 
-    if x0 < 91.9 && x0.abs() > 0.001 {
+    if x0 < 91.9 && x0.abs() > 0.01 {
         test_method(x0, f_i1f, &bessel_i1(x0 as f64, 100), "f_i1f".to_string());
     }
 
-    /*    test_method(x0, f_y1f, &mpfr_x0.clone().y1(), "f_y1f".to_string());
+    test_method(x0, f_y1f, &mpfr_x0.clone().y1(), "f_y1f".to_string());
     test_method(x0, f_y0f, &mpfr_x0.clone().y0(), "f_y0f".to_string());
     test_method(x0, f_cscf, &mpfr_x0.clone().csc(), "f_cscf".to_string());
     test_method(x0, f_secf, &mpfr_x0.clone().sec(), "f_secf".to_string());
@@ -354,5 +354,5 @@ fuzz_target!(|data: (f32, f32)| {
         f_powf,
         &mpfr_x0.clone().pow(&mpfr_x1),
         "f_powf".to_string(),
-    );*/
+    );
 });

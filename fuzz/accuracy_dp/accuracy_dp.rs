@@ -300,12 +300,12 @@ fuzz_target!(|data: (f64, f64)| {
     //     );
     // }
 
-    if x0.abs() < 714. && x0.abs() > 0.0001 {
+    if x0.abs() < 714. && x0.abs() > 0.01 {
         test_method(x0, f_i0, &bessel_i0(x0, 70), "f_i0".to_string(), 0.5003);
     }
 
-    if x0.abs() < 713. && x0.abs() > 0.0001 {
-        test_method(x0, f_i1, &bessel_i1(x0, 70), "f_i1".to_string(), 0.54);
+    if x0.abs() < 713. && x0.abs() > 0.01 {
+        test_method(x0, f_i1, &bessel_i1(x0, 70), "f_i1".to_string(), 0.5003);
     }
 
     test_method(

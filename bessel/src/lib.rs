@@ -1,5 +1,5 @@
 use rug::{Assign, Float};
-use std::ops::Mul;
+use std::ops::{Div, Mul};
 
 pub fn bessel_i0(x: f64, prec: u32) -> Float {
     let mut sum = Float::with_val(prec, 1); // First term: k = 0
@@ -19,7 +19,7 @@ pub fn bessel_i0(x: f64, prec: u32) -> Float {
         // (k!)^2 stored in k_fact_sq
         term.assign(&num / &k_fact_sq);
 
-        if term.clone().abs() < Float::with_val(prec, 1e-21) {
+        if term.clone().abs() < Float::with_val(prec, 1e-30) {
             break;
         }
 
@@ -45,25 +45,31 @@ pub fn bessel_i0(x: f64, prec: u32) -> Float {
 
 // Computes wrong values for small values
 pub fn bessel_i1(x: f64, prec: u32) -> Float {
+    use rug::Float;
+
     let mut sum = Float::with_val(prec, 0);
     let mut k_fact = Float::with_val(prec, 1); // k!
     let mut kp1_fact = Float::with_val(prec, 1); // (k+1)!
-    let x_half = Float::with_val(prec, x / 2.);
-    let mut x_pow = Float::with_val(prec, &x_half); // (x/2)^(2k+1), starts at 1st power
+
+    let mut x_half = Float::with_val(prec, x);
+    x_half /= 2; // accurate (x/2)
+
+    let mut x_pow = x_half.clone(); // (x/2)^(2k+1), start with k=0: (x/2)^1
 
     let max_terms = 1500;
-    let epsilon = Float::with_val(prec, 1e-21);
+    let epsilon = Float::with_val(prec, 1e-30);
 
     for k in 0..max_terms {
         if k > 0 {
             k_fact *= k;
             kp1_fact *= k + 1;
+            // multiply power by (x/2)^2
             x_pow *= &x_half;
             x_pow *= &x_half;
         }
 
         let denom = k_fact.clone().mul(kp1_fact.clone());
-        let term = Float::with_val(prec, &x_pow / denom);
+        let term = x_pow.clone().div(&denom);
 
         if term.clone().abs() < epsilon {
             break;

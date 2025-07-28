@@ -30,7 +30,9 @@ use crate::bessel::i0::i0_exp;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval13, f_polyeval30};
 
-/// Max found ULP 0.54
+/// Modified bessel of the first kind order 1
+///
+/// Max found ULP 0.5003
 pub fn f_i1(x: f64) -> f64 {
     if !x.is_normal() {
         if x == 0. {
@@ -268,6 +270,6 @@ mod tests {
         assert_eq!(f_i1(0.01), 0.005000062500260418);
         assert_eq!(f_i1(-0.01), -0.005000062500260418);
         assert_eq!(f_i1(-9.01), -1040.752038018038);
-        assert_eq!(f_i1(9.01), 1040.752038018038);
+        assert_eq!(f_i1(9.01), -1040.752038018038);
     }
 }

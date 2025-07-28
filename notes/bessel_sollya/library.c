@@ -296,3 +296,22 @@ int bessel_i1_approximant_big(mpfi_t result, mpfi_t x, int n)
     mpfr_clear(eps);
     return 0;
 }
+
+__attribute__((visibility("default")))
+int bessel_j1(mpfi_t result, mpfi_t x, int n)
+{
+    mpfr_t a, b;
+    mpfr_init2(a, mpfi_get_prec(result));
+    mpfr_init2(b, mpfi_get_prec(result));
+
+    mpfi_get_left(a, x);
+    mpfr_j1(a, a, mpfi_get_prec(result));
+
+    mpfi_get_right(b, x);
+    mpfr_j1(b, b, mpfi_get_prec(result));
+    mpfi_interv_fr(result, a, b);
+
+    mpfr_clear(a);
+    mpfr_clear(b);
+    return 0;
+}
