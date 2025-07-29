@@ -28,8 +28,9 @@
  */
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
-use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1};
-use crate::polyeval::{f_polyeval13, f_polyeval30};
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, rational128_exp};
+use crate::polyeval::{f_polyeval13, f_polyeval30, f_polyeval39};
 
 /// Modified bessel of the first kind of order 0
 ///
@@ -351,7 +352,249 @@ fn i0_asympt(x: f64) -> f64 {
 
     let e = i0_exp(dx * 0.5);
     let r_sqrt = DoubleDouble::from_rsqrt(dx);
-    DoubleDouble::quick_mult(z * r_sqrt * e, e).to_f64()
+    let r = DoubleDouble::quick_mult(z * r_sqrt * e, e);
+    let err = f_fmla(
+        r.hi,
+        f64::from_bits(0x3bb6a09e667f3bcd),
+        f64::from_bits(0x392bdb8cdadbe111),
+    );
+    let up = r.hi + (r.lo + err);
+    let lb = r.hi + (r.lo - err);
+    if up != lb {
+        return i0_asympt_hard(x);
+    }
+    lb
+}
+
+#[inline]
+fn j1_rsqrt_hard_hard(x: f64, recip: DyadicFloat128) -> DyadicFloat128 {
+    let r = DyadicFloat128::new_from_f64(x.sqrt()) * recip;
+    let fx = DyadicFloat128::new_from_f64(x);
+    let rx = r * fx;
+    let drx = r * fx - rx;
+    const M_ONE: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Neg,
+        exponent: -127,
+        mantissa: 0x80000000_00000000_00000000_00000000_u128,
+    };
+    let h = r * rx + M_ONE + r * drx;
+    let mut ddr = r;
+    ddr.exponent -= 1; // ddr * 0.5
+    let dr = ddr * h;
+    r - dr
+}
+
+#[cold]
+#[inline(never)]
+fn i0_asympt_hard(x: f64) -> f64 {
+    static P: [DyadicFloat128; 39] = [
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -129,
+            mantissa: 0xcc42299e_a1b28468_964d7809_1e153b28_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -132,
+            mantissa: 0xcc42299e_a1b27b1d_6d33e22d_42af57ad_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -133,
+            mantissa: 0xe5ca6ed2_764f20df_18f5f2d7_2a7e8b04_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -133,
+            mantissa: 0xef5d88c4_98654148_67cec9f3_2032427e_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -132,
+            mantissa: 0xb7439e21_53e1d4f0_aa491618_ca48a4a4_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -131,
+            mantissa: 0xb98cf60a_158f684f_5c72c4cd_2818c7b3_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -130,
+            mantissa: 0xea82ecdf_b9479960_ac88fc5b_8f9e0a7d_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -128,
+            mantissa: 0x8c273635_ca1c900e_98f6c71a_826d5977_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -123,
+            mantissa: 0xe06125df_765ba22f_cebf8c65_52b8d48c_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -116,
+            mantissa: 0xe89603d0_1581f464_f20bc333_7d71a36e_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -109,
+            mantissa: 0xd91fbda9_3c0ebc5e_a2b78b16_9c4b2560_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -102,
+            mantissa: 0xa78e0095_bfa0f966_97da5569_f60f8aa4_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -96,
+            mantissa: 0xd8b22ab2_a8dde015_5622fed3_9a60f561_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -90,
+            mantissa: 0xece6470e_66c24229_037f3c2f_416c833a_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -84,
+            mantissa: 0xdc8e3464_a24e8206_dbfe3ba9_11703acf_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -78,
+            mantissa: 0xaff3b9fb_40dda7ac_89cf17a8_bea6e2f2_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -73,
+            mantissa: 0xf1cb3f14_3e89cd6a_2dc6167a_ce504577_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -67,
+            mantissa: 0x8fb0d81a_a3692efd_189ec80d_0aae5d37_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -62,
+            mantissa: 0x94347114_15198a4d_6317caec_2faff732_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -57,
+            mantissa: 0x84ff7613_714a7551_09223bb6_1f49312d_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -53,
+            mantissa: 0xd0145383_8c852144_cfeeeea9_b4baa304_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -48,
+            mantissa: 0x8e109265_a66393e8_a33646c5_85d0ba16_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -44,
+            mantissa: 0xa9671293_1a0d6041_51cc9bc0_ad2461df_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -40,
+            mantissa: 0xb061afcc_6f4d05d2_b926d5d9_b47c0172_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -36,
+            mantissa: 0xa039d17c_4d55483a_2b39d90e_d8e03de3_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -33,
+            mantissa: 0xfd92ae02_a0366717_bd1331a2_19b3916c_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -29,
+            mantissa: 0xae5bfdae_50bb66d4_2ac34bea_4ba9b128_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -26,
+            mantissa: 0xcfa58c78_a4167a6e_97ae7616_f0553da3_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -23,
+            mantissa: 0xd52793cf_74ac26bd_d5800287_97bb5656_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -20,
+            mantissa: 0xbb737ea1_59a1ab1b_203d09f3_53293bfc_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -17,
+            mantissa: 0x8c172597_97519909_d450bc5e_f7346a1a_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -15,
+            mantissa: 0xb01241b7_f476dded_68756bd7_93311623_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -13,
+            mantissa: 0xb77a8654_a8c8cfb6_86fbd12f_20aa21c6_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -11,
+            mantissa: 0x9b85f327_836de71e_0a95c587_df73dd47_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -10,
+            mantissa: 0xd0c72b4a_81123937_16778b17_feaab3f7_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -9,
+            mantissa: 0xd54b34b5_08f7c7a1_53a5d591_64f5be90_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -8,
+            mantissa: 0x9b9b8af7_85bf3bf1_7158ff4f_6d389faa_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -8,
+            mantissa: 0x90351b61_b023a397_22d92dce_f0326527_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -10,
+            mantissa: 0xfeb8c9fd_06312e7b_7e5a02a3_0147801d_u128,
+        },
+    ];
+
+    let recip = DyadicFloat128::accurate_reciprocal(x);
+
+    let z = f_polyeval39(
+        recip, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12],
+        P[13], P[14], P[15], P[16], P[17], P[18], P[19], P[20], P[21], P[22], P[23], P[24], P[25],
+        P[26], P[27], P[28], P[29], P[30], P[31], P[32], P[33], P[34], P[35], P[36], P[37], P[38],
+    );
+    let r_sqrt = j1_rsqrt_hard_hard(x, recip);
+    let f_exp = rational128_exp(x);
+    (z * r_sqrt * f_exp).fast_as_f64()
 }
 
 #[cfg(test)]

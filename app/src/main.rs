@@ -107,71 +107,71 @@ fn test_f32_against_mpfr_multithreaded() {
         }
     });
 
-    let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
-
-    let start_bits = (3f32).to_bits();
-    let end_bits = (25f32).to_bits();
-    println!("amount {}", (end_bits - start_bits));
+    let mut exceptions = Arc::new(Mutex::new(Vec::<f64>::new()));
     //
-    // Exhaustive: 0..=u32::MAX
-    (start_bits..=end_bits).into_par_iter().for_each(|bits| {
-        let x = f32::from_bits(bits);
-
-        if !x.is_finite() {
-            return; // skip NaNs and infinities
-        }
-
-        let expected = Float::with_val(60, x).j1();
-        let actual = f_j1f(x);
-
-        executions.fetch_add(1, Ordering::Relaxed);
-
-        let diff = count_ulp(actual, &expected);
-        // if diff.is_nan() || diff.is_infinite() {
-        //     return;
-        // }
-
-        if diff > 0.5 {
-            failures.fetch_add(1, Ordering::Relaxed);
-            exceptions.lock().unwrap().push(x);
-            eprintln!(
-                "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
-                expected.to_f32(),
-            );
-        }
-    });
-
-    // let start_bits = (0.9205f64).to_bits();
-    // let end_bits = (0.921f64).to_bits();
-    //
+    // let start_bits = (3f32).to_bits();
+    // let end_bits = (25f32).to_bits();
     // println!("amount {}", (end_bits - start_bits));
     // //
-    // // // Exhaustive: 0..=u64::MAX
+    // // Exhaustive: 0..=u32::MAX
     // (start_bits..=end_bits).into_par_iter().for_each(|bits| {
-    //     let x = f64::from_bits(bits);
+    //     let x = f32::from_bits(bits);
     //
     //     if !x.is_finite() {
     //         return; // skip NaNs and infinities
     //     }
     //
     //     let expected = Float::with_val(60, x).j1();
-    //     let actual = f_j1(x);
+    //     let actual = f_j1f(x);
     //
-    //     let diff = count_ulp_f64(actual, &expected);
+    //     executions.fetch_add(1, Ordering::Relaxed);
     //
-    //     let execs = executions.fetch_add(1, Ordering::Relaxed);
+    //     let diff = count_ulp(actual, &expected);
+    //     // if diff.is_nan() || diff.is_infinite() {
+    //     //     return;
+    //     // }
     //
     //     if diff > 0.5 {
-    //         let f = failures.fetch_add(1, Ordering::Relaxed);
+    //         failures.fetch_add(1, Ordering::Relaxed);
     //         exceptions.lock().unwrap().push(x);
     //         eprintln!(
-    //             "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}, correct {}, wrong {}",
-    //             expected.to_f64(),
-    //             execs - f,
-    //             f,
+    //             "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
+    //             expected.to_f32(),
     //         );
     //     }
     // });
+
+    let start_bits = (16f64).to_bits();
+    let end_bits = (17f64).to_bits();
+
+    println!("amount {}", (end_bits - start_bits));
+    //
+    // // Exhaustive: 0..=u64::MAX
+    (start_bits..=end_bits).into_par_iter().for_each(|bits| {
+        let x = f64::from_bits(bits);
+
+        if !x.is_finite() {
+            return; // skip NaNs and infinities
+        }
+
+        let expected = bessel_i0(x, 70);
+        let actual = f_i0(x);
+
+        let diff = count_ulp_f64(actual, &expected);
+
+        let execs = executions.fetch_add(1, Ordering::Relaxed);
+
+        if diff > 0.5 {
+            let f = failures.fetch_add(1, Ordering::Relaxed);
+            exceptions.lock().unwrap().push(x);
+            eprintln!(
+                "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}, correct {}, wrong {}",
+                expected.to_f64(),
+                execs - f,
+                f,
+            );
+        }
+    });
 
     println!("exceptions {:?}", exceptions.lock().unwrap());
 

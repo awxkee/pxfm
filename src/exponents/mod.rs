@@ -36,12 +36,14 @@ mod exp2;
 mod exp2f;
 mod exp2m1;
 mod exp2m1f;
+mod exp_f128;
 mod expf;
 mod expm1;
 mod expm1f;
 
 pub(crate) use exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 pub use exp::{exp, f_exp};
+pub(crate) use exp_f128::rational128_exp;
 pub use exp2::f_exp2;
 pub(crate) use exp2::ldexp;
 pub(crate) use exp2f::dirty_exp2f;

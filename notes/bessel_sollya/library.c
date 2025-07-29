@@ -74,6 +74,10 @@ void bessel_i1(mpfr_t result, const mpfr_t x, mpfr_prec_t prec, int max_terms, c
 
 void besseli0(mpfr_t result, const mpfr_t x, mpfr_prec_t prec)
 {
+    mpfr_t epsilon;
+    mpfr_init2(epsilon, prec);
+    mpfr_set_ui(epsilon, 1, MPFR_RNDN);
+    mpfr_div_2si(epsilon, epsilon, prec + 2, MPFR_RNDN); // ε = 2^(-prec - 2)
     mpfr_t term, sum, k_fact, x_half_pow, x_half;
     mpfr_inits2(prec, term, sum, k_fact, x_half_pow, x_half, (mpfr_ptr)0);
 
@@ -99,11 +103,12 @@ void besseli0(mpfr_t result, const mpfr_t x, mpfr_prec_t prec)
         // sum += term
         mpfr_add(sum, sum, term, MPFR_RNDN);
 
-        if (mpfr_cmp_d(term, 1e-40) < 0) break;
+        if (mpfr_cmp(term, epsilon) < 0) break;
     }
 
     mpfr_set(result, sum, MPFR_RNDN);
     mpfr_clears(term, k_fact, sum, x_half_pow, x_half, (mpfr_ptr)0);
+    mpfr_clear(epsilon);
 }
 
 void compute_i0_approximant_asympt(mpfr_t result, const mpfr_t x, mpfr_prec_t prec)
