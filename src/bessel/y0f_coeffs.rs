@@ -247,7 +247,7 @@ print(intervals)
 def build_sollya_script(a, b, zero, deg):
     return f"""
 prec = 500;
-bessel_y0 = library("/Users/radzivon/RustroverProjects/pxfm/notes/bessel_sollya/cmake-build-release/libbessel_sollya.dylib");
+bessel_y0 = library("./notes/bessel_sollya/cmake-build-release/libbessel_sollya.dylib");
 f = bessel_y0(x + {zero});
 d = [{a}, {b}];
 pf = remez(f, {deg}, d);

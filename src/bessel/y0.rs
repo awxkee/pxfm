@@ -60,11 +60,11 @@ pub fn f_y0(x: f64) -> f64 {
         }
     }
 
-    if x <= 1.35 {
+    if x.abs() <= 1.35 {
         return y0_near_zero(x);
     }
 
-    if x <= 77. {
+    if x.abs() <= 77. {
         return y0_small_argument_path(x);
     }
 
