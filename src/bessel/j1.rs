@@ -31,7 +31,7 @@
 
 use crate::bessel::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1_ZEROS_VALUE};
 use crate::double_double::DoubleDouble;
-use crate::polyeval::f_polyeval8;
+use crate::polyeval::{f_polyeval8, f_polyeval11};
 use crate::sin_helper::sin_dd_small;
 use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 
@@ -383,9 +383,6 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
         return j1_maclaurin_series(x);
     }
 
-    let j1c = &J1_COEFFS[idx - 1];
-    let c = j1c.c;
-
     let r = DoubleDouble::full_add_f64(DoubleDouble::new(-found_zero.lo, -found_zero.hi), x_abs);
 
     // We hit exact zero, value, better to return it directly
@@ -393,32 +390,43 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
         return f64::from_bits(J1_ZEROS_VALUE[idx]) * sign_scale;
     }
 
-    let p = f_polyeval8(
+    let j1c = &J1_COEFFS[idx - 1];
+    let c0 = j1c;
+
+    let c = &c0[15..];
+
+    let p0 = f_polyeval11(
         r.to_f64(),
-        f64::from_bits(c[0]),
-        f64::from_bits(c[1]),
-        f64::from_bits(c[2]),
-        f64::from_bits(c[3]),
-        f64::from_bits(c[4]),
-        f64::from_bits(c[5]),
-        f64::from_bits(c[6]),
-        f64::from_bits(c[7]),
+        f64::from_bits(c[0].1),
+        f64::from_bits(c[1].1),
+        f64::from_bits(c[2].1),
+        f64::from_bits(c[3].1),
+        f64::from_bits(c[4].1),
+        f64::from_bits(c[5].1),
+        f64::from_bits(c[6].1),
+        f64::from_bits(c[7].1),
+        f64::from_bits(c[8].1),
+        f64::from_bits(c[9].1),
+        f64::from_bits(c[10].1),
     );
 
-    let mut p_e = DoubleDouble::mul_f64_add(r, p, DoubleDouble::from_bit_pair(j1c.a13));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a12));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a11));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a10));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a9));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a8));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a7));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a6));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a5));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a4));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a3));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a2));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a1));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a0));
+    let c = c0;
+
+    let mut p_e = DoubleDouble::mul_f64_add(r, p0, DoubleDouble::from_bit_pair(c[14]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[13]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[12]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[11]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[10]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[9]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[8]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[7]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[6]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[5]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[4]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[3]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[2]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[1]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[0]));
 
     let sums = DoubleDouble::from_full_exact_add(p_e.hi, p_e.lo);
     sums.to_f64() * sign_scale
@@ -634,23 +642,22 @@ mod tests {
 
     #[test]
     fn test_j1() {
-        println!("{}", f_j1(1.5));
-        // assert_eq!(f_j1(-6.1795701510782757E+307), 8.130935041593236e-155);
-        // assert_eq!(
-        //     f_j1(0.000000000000000000000000000000000000008827127),
-        //     0.0000000000000000000000000000000000000044135635
-        // );
-        // assert_eq!(f_j1(5.4), -0.3453447907795863);
-        // assert_eq!(
-        //     f_j1(77.743162408196766932633181568235159),
-        //     0.09049267898021947
-        // );
-        // assert_eq!(
-        //     f_j1(84.027189586293545175976760219782591),
-        //     0.0870430264022591
-        // );
-        // assert_eq!(f_j1(f64::NEG_INFINITY), 0.0);
-        // assert_eq!(f_j1(f64::INFINITY), 0.0);
-        // assert!(f_j1(f64::NAN).is_nan());
+        assert_eq!(f_j1(-6.1795701510782757E+307), 8.130935041593236e-155);
+        assert_eq!(
+            f_j1(0.000000000000000000000000000000000000008827127),
+            0.0000000000000000000000000000000000000044135635
+        );
+        assert_eq!(f_j1(5.4), -0.3453447907795863);
+        assert_eq!(
+            f_j1(77.743162408196766932633181568235159),
+            0.09049267898021947
+        );
+        assert_eq!(
+            f_j1(84.027189586293545175976760219782591),
+            0.0870430264022591
+        );
+        assert_eq!(f_j1(f64::NEG_INFINITY), 0.0);
+        assert_eq!(f_j1(f64::INFINITY), 0.0);
+        assert!(f_j1(f64::NAN).is_nan());
     }
 }

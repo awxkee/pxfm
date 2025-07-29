@@ -177,33 +177,33 @@ pub(crate) fn f_polyeval10<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     T::polyeval_mla(x8, p4, r0)
 }
 
-// #[inline(always)]
-// #[allow(clippy::too_many_arguments)]
-// pub(crate) fn f_polyeval11<T: PolyevalMla + Copy>(
-//     x: T,
-//     a0: T,
-//     a1: T,
-//     a2: T,
-//     a3: T,
-//     a4: T,
-//     a5: T,
-//     a6: T,
-//     a7: T,
-//     a8: T,
-//     a9: T,
-//     a10: T,
-// ) -> T {
-//     let z00 = T::polyeval_mla(x, a10, a9);
-//     let z0 = T::polyeval_mla(x, z00, a8);
-//     let t0 = T::polyeval_mla(x, z0, a7);
-//     let t01 = T::polyeval_mla(x, t0, a6);
-//     let t1 = T::polyeval_mla(x, t01, a5);
-//     let t2 = T::polyeval_mla(x, t1, a4);
-//     let t3 = T::polyeval_mla(x, t2, a3);
-//     let t4 = T::polyeval_mla(x, t3, a2);
-//     let t5 = T::polyeval_mla(x, t4, a1);
-//     T::polyeval_mla(x, t5, a0)
-// }
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn f_polyeval11<T: PolyevalMla + Copy>(
+    x: T,
+    a0: T,
+    a1: T,
+    a2: T,
+    a3: T,
+    a4: T,
+    a5: T,
+    a6: T,
+    a7: T,
+    a8: T,
+    a9: T,
+    a10: T,
+) -> T {
+    let z00 = T::polyeval_mla(x, a10, a9);
+    let z0 = T::polyeval_mla(x, z00, a8);
+    let t0 = T::polyeval_mla(x, z0, a7);
+    let t01 = T::polyeval_mla(x, t0, a6);
+    let t1 = T::polyeval_mla(x, t01, a5);
+    let t2 = T::polyeval_mla(x, t1, a4);
+    let t3 = T::polyeval_mla(x, t2, a3);
+    let t4 = T::polyeval_mla(x, t3, a2);
+    let t5 = T::polyeval_mla(x, t4, a1);
+    T::polyeval_mla(x, t5, a0)
+}
 
 #[inline(always)]
 pub(crate) fn f_polyeval3<T: PolyevalMla + Copy>(x: T, a0: T, a1: T, a2: T) -> T {
@@ -262,7 +262,7 @@ pub(crate) fn f_polyeval13<T: PolyevalMla + Copy + Mul<T, Output = T>>(
 
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn f_polyeval12<T: PolyevalMla + Copy>(
+pub(crate) fn f_polyeval12<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     x: T,
     a0: T,
     a1: T,
@@ -277,17 +277,27 @@ pub(crate) fn f_polyeval12<T: PolyevalMla + Copy>(
     a10: T,
     a11: T,
 ) -> T {
-    let t0 = T::polyeval_mla(x, a11, a10);
-    let k0 = T::polyeval_mla(x, t0, a9);
-    let k1 = T::polyeval_mla(x, k0, a8);
-    let z0 = T::polyeval_mla(x, k1, a7);
-    let t0a = T::polyeval_mla(x, z0, a6);
-    let t1 = T::polyeval_mla(x, t0a, a5);
-    let t2 = T::polyeval_mla(x, t1, a4);
-    let t3 = T::polyeval_mla(x, t2, a3);
-    let t4 = T::polyeval_mla(x, t3, a2);
-    let t5 = T::polyeval_mla(x, t4, a1);
-    T::polyeval_mla(x, t5, a0)
+    let x2 = x * x;
+    let x4 = x2 * x2;
+    let x8 = x4 * x4;
+
+    // Base pairs
+    let e0 = T::polyeval_mla(x, a1, a0); // a1·x + a0
+    let e1 = T::polyeval_mla(x, a3, a2); // a3·x + a2
+    let e2 = T::polyeval_mla(x, a5, a4);
+    let e3 = T::polyeval_mla(x, a7, a6);
+    let e4 = T::polyeval_mla(x, a9, a8);
+    let e5 = T::polyeval_mla(x, a11, a10);
+
+    // Group level 2
+    let f0 = T::polyeval_mla(x2, e1, e0); // e1·x² + e0
+    let f1 = T::polyeval_mla(x2, e3, e2);
+    let f2 = T::polyeval_mla(x2, e5, e4);
+
+    // Group level 3
+    let g0 = T::polyeval_mla(x4, f1, f0); // f1·x⁴ + f0
+
+    T::polyeval_mla(x8, f2, g0) // f2·x⁸ + g0
 }
 
 // #[inline(always)]

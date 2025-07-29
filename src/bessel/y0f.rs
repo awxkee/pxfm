@@ -60,7 +60,7 @@ pub fn f_y0f(x: f32) -> f32 {
         }
     }
 
-    let xb = x.to_bits() & 0x7fff_ffff;
+    let xb = x.to_bits();
 
     if xb <= 0x3faccccdu32 {
         // 1.35
