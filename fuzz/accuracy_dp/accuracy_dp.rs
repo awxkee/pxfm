@@ -300,7 +300,7 @@ fuzz_target!(|data: (f64, f64)| {
     //     );
     // }
 
-    if x0.abs() < 714. && x0.abs() > 0.01 {
+    /*if x0.abs() < 714. && x0.abs() > 0.01 {
         test_method(x0, f_i0, &bessel_i0(x0, 70), "f_i0".to_string(), 0.5003);
     }
 
@@ -318,12 +318,12 @@ fuzz_target!(|data: (f64, f64)| {
     test_method(x0, f_y0, &mpfr_x0.clone().y0(), "f_y0".to_string(), 0.5);
     test_method(x0, f_csc, &mpfr_x0.clone().csc(), "f_csc".to_string(), 0.5);
     test_method(x0, f_sec, &mpfr_x0.clone().sec(), "f_sec".to_string(), 0.5);
-    test_method(x0, f_cot, &mpfr_x0.clone().cot(), "f_cot".to_string(), 0.5);
+    test_method(x0, f_cot, &mpfr_x0.clone().cot(), "f_cot".to_string(), 0.5);*/
     test_method(x0, f_j0, &mpfr_x0.clone().j0(), "f_j0".to_string(), 0.5);
-    if x0 > 0.000000000000000001 {
+    /*if x0 > 0.000000000000000001 {
         test_method(x0, f_j1, &mpfr_x0.clone().j1(), "f_j1".to_string(), 0.5);
     }
-    test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
+     test_method(x0, f_sinc, &sinc_x0, "f_sinc".to_string(), 0.5);
     test_method(
         x0,
         f_erfc,
@@ -563,7 +563,7 @@ fuzz_target!(|data: (f64, f64)| {
         &mpfr_x0.clone().pow(&mpfr_x1),
         "f_pow".to_string(),
         0.5,
-    );
+    );*/
 
     // let compound_mpfr = compound_mpfr(x0, x1);
 

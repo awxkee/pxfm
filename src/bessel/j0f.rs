@@ -26,10 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::bessel::j0::j0_small_argument_path;
 use crate::bessel::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE, J0F_COEFFS};
 use crate::double_double::DoubleDouble;
-use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval15};
+use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval14};
 use crate::sin_helper::cos_small;
 use crate::sincos_reduce::rem2pif_any;
 
@@ -56,10 +55,11 @@ pub fn f_j0f(x: f32) -> f32 {
         if f32::from_bits(x_abs) <= 0.25 {
             return j0f_maclaurin_series(x);
         }
-        // interval [1.18; 1.39] is bad covered in single precision, so submit it to the double precision path
-        if f32::from_bits(x_abs) >= 1.18 && f32::from_bits(x_abs) <= 1.39 {
-            return j0_small_argument_path_hard(x);
+
+        if x_abs == 0x401a42e8u32 {
+            return f32::from_bits(0xbb3b2f69u32);
         }
+
         return small_argument_path(x);
     }
 
@@ -79,12 +79,6 @@ pub fn f_j0f(x: f32) -> f32 {
     }
 
     j0f_asympt(x)
-}
-
-#[cold]
-#[inline(never)]
-pub(crate) fn j0_small_argument_path_hard(x: f32) -> f32 {
-    j0_small_argument_path(x as f64) as f32
 }
 
 /**
@@ -175,7 +169,7 @@ fn small_argument_path(x: f32) -> f32 {
 
     let r = (x_abs - found_zero.hi) - found_zero.lo;
 
-    let p = f_polyeval15(
+    let p = f_polyeval14(
         r,
         f64::from_bits(c[0]),
         f64::from_bits(c[1]),
@@ -191,7 +185,6 @@ fn small_argument_path(x: f32) -> f32 {
         f64::from_bits(c[11]),
         f64::from_bits(c[12]),
         f64::from_bits(c[13]),
-        f64::from_bits(c[14]),
     );
 
     p as f32

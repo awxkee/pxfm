@@ -30,7 +30,7 @@ use crate::bessel::j1::j1_small_argument_path;
 use crate::bessel::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
 use crate::bessel::j1f_coeffs::J1F_COEFFS;
 use crate::double_double::DoubleDouble;
-use crate::polyeval::{f_polyeval7, f_polyeval10, f_polyeval12, f_polyeval15};
+use crate::polyeval::{f_polyeval7, f_polyeval10, f_polyeval12, f_polyeval14};
 use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
 
@@ -359,7 +359,7 @@ fn small_argument_path(x: f32) -> f32 {
 
     let r = (x_abs - found_zero.hi) - found_zero.lo;
 
-    let p = f_polyeval15(
+    let p = f_polyeval14(
         r,
         f64::from_bits(c[0]),
         f64::from_bits(c[1]),
@@ -375,7 +375,6 @@ fn small_argument_path(x: f32) -> f32 {
         f64::from_bits(c[11]),
         f64::from_bits(c[12]),
         f64::from_bits(c[13]),
-        f64::from_bits(c[14]),
     );
 
     const LOWER_ERR: u32 = 4;

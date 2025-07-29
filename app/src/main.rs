@@ -1,6 +1,6 @@
 use bessel::{bessel_i0, bessel_i1};
 use num_complex::Complex;
-use pxfm::{f_asinhf, f_i0, f_i0f, f_i1, f_i1f, f_j0f, f_j1, f_j1f, f_y1, f_y1f};
+use pxfm::{f_asinhf, f_i0, f_i0f, f_i1, f_i1f, f_j0, f_j0f, f_j1, f_j1f, f_y0f, f_y1, f_y1f};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -109,9 +109,9 @@ fn test_f32_against_mpfr_multithreaded() {
 
     let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
     //
-    let start_bits = (3f32).to_bits();
-    let end_bits = (25f32).to_bits();
-    println!("amount {}", (end_bits - start_bits));
+    let start_bits = (-1f32).to_bits();
+    let end_bits = (-78f32).to_bits();
+    println!("amount {}", end_bits - start_bits);
     //
     // Exhaustive: 0..=u32::MAX
     (0..=u32::MAX).into_par_iter().for_each(|bits| {
@@ -121,12 +121,8 @@ fn test_f32_against_mpfr_multithreaded() {
             return; // skip NaNs and infinities
         }
 
-        if x.abs() > 92. {
-            return;
-        }
-
-        let expected = bessel_i1(x as f64, 60);
-        let actual = f_i1f(x);
+        let expected = Float::with_val(60, x).y0();
+        let actual = f_y0f(x);
 
         executions.fetch_add(1, Ordering::Relaxed);
 
@@ -145,8 +141,8 @@ fn test_f32_against_mpfr_multithreaded() {
         }
     });
 
-    // let start_bits = (77.5f64).to_bits();
-    // let end_bits = (78.5f64).to_bits();
+    // let start_bits = (11.5f64).to_bits();
+    // let end_bits = (22.2f64).to_bits();
     //
     // println!("amount {}", end_bits - start_bits);
     //
@@ -158,8 +154,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //         return; // skip NaNs and infinities
     //     }
     //
-    //     let expected = bessel_i0(x, 70);
-    //     let actual = f_i0(x);
+    //     let expected = Float::with_val(60, x).j0();
+    //     let actual = f_j0(x);
     //
     //     let diff = count_ulp_f64(actual, &expected);
     //

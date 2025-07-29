@@ -180,9 +180,7 @@ pub(crate) fn j0_small_argument_path(x: f64) -> f64 {
         f64::from_bits(c[7]),
     );
 
-    let mut p_e = DoubleDouble::mul_f64_add(r, p, DoubleDouble::from_bit_pair(j1c.a15));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a14));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a13));
+    let mut p_e = DoubleDouble::mul_f64_add(r, p, DoubleDouble::from_bit_pair(j1c.a13));
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a12));
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a11));
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(j1c.a10));

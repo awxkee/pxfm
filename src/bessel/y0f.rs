@@ -31,7 +31,7 @@ use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES, Y0F_COEFFS};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::logs::{LOG_COEFFS, LOG_R_DD, LOG_RANGE_REDUCTION};
-use crate::polyeval::{f_polyeval4, f_polyeval10, f_polyeval28};
+use crate::polyeval::{f_polyeval4, f_polyeval10, f_polyeval20};
 use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
 
@@ -60,12 +60,16 @@ pub fn f_y0f(x: f32) -> f32 {
         }
     }
 
-    if x <= 1.35 {
-        return y0f_near_zero(x);
+    let xb = x.to_bits() & 0x7fff_ffff;
+
+    if xb <= 0x3faccccdu32 {
+        // 1.35
+        return y0f_near_zero(f32::from_bits(xb));
     }
 
-    if x <= 77. {
-        return y0f_small_argument_path(x);
+    if xb <= 0x4296999au32 {
+        // 75.3
+        return y0f_small_argument_path(f32::from_bits(xb));
     }
 
     // Exceptions:
@@ -303,7 +307,7 @@ fn y0f_small_argument_path(x: f32) -> f32 {
 
     let r = (x_abs - found_zero.hi) - found_zero.lo;
 
-    let p = f_polyeval28(
+    let p = f_polyeval20(
         r,
         f64::from_bits(c[0]),
         f64::from_bits(c[1]),
@@ -325,14 +329,6 @@ fn y0f_small_argument_path(x: f32) -> f32 {
         f64::from_bits(c[17]),
         f64::from_bits(c[18]),
         f64::from_bits(c[19]),
-        f64::from_bits(c[20]),
-        f64::from_bits(c[21]),
-        f64::from_bits(c[22]),
-        f64::from_bits(c[23]),
-        f64::from_bits(c[24]),
-        f64::from_bits(c[25]),
-        f64::from_bits(c[26]),
-        f64::from_bits(c[27]),
     );
 
     p as f32
