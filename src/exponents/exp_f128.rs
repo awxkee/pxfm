@@ -75,7 +75,7 @@ fn poly_exp_f128(x: DyadicFloat128) -> DyadicFloat128 {
         }, // 1/5040
     ];
 
-    let p = f_polyeval8(
+    f_polyeval8(
         x,
         COEFFS_128[0],
         COEFFS_128[1],
@@ -85,8 +85,7 @@ fn poly_exp_f128(x: DyadicFloat128) -> DyadicFloat128 {
         COEFFS_128[5],
         COEFFS_128[6],
         COEFFS_128[7],
-    );
-    p
+    )
 }
 
 #[cold]
