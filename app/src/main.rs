@@ -143,8 +143,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (7.4f64).to_bits();
-    let end_bits = (8f64).to_bits();
+    let start_bits = (39f64).to_bits();
+    let end_bits = (51f64).to_bits();
 
     println!("amount {}", end_bits - start_bits);
 
@@ -156,8 +156,8 @@ fn test_f32_against_mpfr_multithreaded() {
             return; // skip NaNs and infinities
         }
 
-        let expected = Float::with_val(60, x).y0();
-        let actual = f_y0(x);
+        let expected = Float::with_val(60, x).y1();
+        let actual = f_y1(x);
 
         let diff = count_ulp_f64(actual, &expected);
 

@@ -31,7 +31,7 @@ use crate::bessel::y0::log_dd;
 use crate::bessel::y1_coeffs::Y1_COEFFS;
 use crate::bessel::y1f_coeffs::{Y1_ZEROS, Y1_ZEROS_VALUES};
 use crate::double_double::DoubleDouble;
-use crate::polyeval::{f_polyeval15, f_polyeval35};
+use crate::polyeval::{f_polyeval13, f_polyeval15};
 use crate::sin_helper::cos_dd_small;
 use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 
@@ -60,11 +60,15 @@ pub fn f_y1(x: f64) -> f64 {
         }
     }
 
-    if x <= 1.4 {
+    let xb = x.to_bits();
+
+    if xb <= 0x3ff6666666666666u64 {
+        // 1.4
         return y1_near_zero(x);
     }
 
-    if x <= 51.5 {
+    if xb <= 0x4049c00000000000u64 {
+        // 51.5
         return y1_small_argument_path(x);
     }
 
@@ -254,7 +258,7 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
 
     let c = &c0[15..];
 
-    let p0 = f_polyeval35(
+    let p0 = f_polyeval13(
         r.to_f64(),
         f64::from_bits(c[0].1),
         f64::from_bits(c[1].1),
@@ -269,28 +273,6 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
         f64::from_bits(c[10].1),
         f64::from_bits(c[11].1),
         f64::from_bits(c[12].1),
-        f64::from_bits(c[13].1),
-        f64::from_bits(c[14].1),
-        f64::from_bits(c[15].1),
-        f64::from_bits(c[16].1),
-        f64::from_bits(c[17].1),
-        f64::from_bits(c[18].1),
-        f64::from_bits(c[19].1),
-        f64::from_bits(c[20].1),
-        f64::from_bits(c[21].1),
-        f64::from_bits(c[22].1),
-        f64::from_bits(c[23].1),
-        f64::from_bits(c[24].1),
-        f64::from_bits(c[25].1),
-        f64::from_bits(c[26].1),
-        f64::from_bits(c[27].1),
-        f64::from_bits(c[28].1),
-        f64::from_bits(c[29].1),
-        f64::from_bits(c[30].1),
-        f64::from_bits(c[31].1),
-        f64::from_bits(c[32].1),
-        f64::from_bits(c[33].1),
-        f64::from_bits(c[34].1),
     );
 
     let c = c0;

@@ -50,6 +50,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("pxfm: i1", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_i1(i as f64 / 50.0));
+            }
+        })
+    });
+
     c.bench_function("libm: erfc", |b| {
         b.iter(|| {
             for i in 1..1000 {

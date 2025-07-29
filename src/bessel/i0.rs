@@ -367,7 +367,7 @@ fn i0_asympt(x: f64) -> f64 {
 }
 
 #[inline]
-fn j1_rsqrt_hard_hard(x: f64, recip: DyadicFloat128) -> DyadicFloat128 {
+fn bessel_rsqrt_hard_hard(x: f64, recip: DyadicFloat128) -> DyadicFloat128 {
     let r = DyadicFloat128::new_from_f64(x.sqrt()) * recip;
     let fx = DyadicFloat128::new_from_f64(x);
     let rx = r * fx;
@@ -592,7 +592,7 @@ fn i0_asympt_hard(x: f64) -> f64 {
         P[13], P[14], P[15], P[16], P[17], P[18], P[19], P[20], P[21], P[22], P[23], P[24], P[25],
         P[26], P[27], P[28], P[29], P[30], P[31], P[32], P[33], P[34], P[35], P[36], P[37], P[38],
     );
-    let r_sqrt = j1_rsqrt_hard_hard(x, recip);
+    let r_sqrt = bessel_rsqrt_hard_hard(x, recip);
     let f_exp = rational128_exp(x);
     (z * r_sqrt * f_exp).fast_as_f64()
 }
