@@ -54,7 +54,7 @@ pub fn f_i0f(x: f32) -> f32 {
 
     if xb < 0x40f00000u32 {
         // 7.5
-        return i0f_0_to_7p5(x);
+        return i0f_0_to_7p5(f32::from_bits(xb));
     }
 
     i0f_asympt(f32::from_bits(xb))
@@ -157,6 +157,7 @@ for i from 0 to degree(pf) do {
 ```
 See ./notes/bessel_sollya
 **/
+#[inline]
 fn i0f_asympt(x: f32) -> f32 {
     let dx = x as f64;
     let recip = 1. / dx;

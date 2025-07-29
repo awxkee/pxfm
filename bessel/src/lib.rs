@@ -19,7 +19,7 @@ pub fn bessel_i0(x: f64, prec: u32) -> Float {
         // (k!)^2 stored in k_fact_sq
         term.assign(&num / &k_fact_sq);
 
-        if term.clone().abs() < Float::with_val(prec, 1e-30) {
+        if term.clone().abs() < Float::with_val(prec, 1e-100) {
             break;
         }
 
@@ -57,7 +57,7 @@ pub fn bessel_i1(x: f64, prec: u32) -> Float {
     let mut x_pow = x_half.clone(); // (x/2)^(2k+1), start with k=0: (x/2)^1
 
     let max_terms = 1500;
-    let epsilon = Float::with_val(prec, 1e-30);
+    let epsilon = Float::with_val(prec, 1e-70);
 
     for k in 0..max_terms {
         if k > 0 {
