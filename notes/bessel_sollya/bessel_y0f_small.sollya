@@ -9,7 +9,7 @@ bessel_y0 = library("./cmake-build-release/libbessel_sollya.dylib");
 f = bessel_y0(x + 10.173468135062722077185711776775842874118326);
 d = [-0.82, 0.77];
 w = 1;
-pf = remez(f, 25, d);
+pf = remez(f, 27, d);
 
 w = 1;
 or_f = bessel_y0(x + 10.173468135062722077185711776775842874118326);
