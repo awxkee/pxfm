@@ -182,7 +182,7 @@ fuzz_target!(|data: (f32, f32)| {
         test_method(x0, f_i1f, &bessel_i1(x0 as f64, 100), "f_i1f".to_string());
     }
 
-    if x0.abs() < 100. {
+    if x0 < 100. && x0.is_sign_positive() {
         let expected = bessel_k(
             Complex {
                 re: x0 as f64,
