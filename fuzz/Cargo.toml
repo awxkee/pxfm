@@ -11,6 +11,8 @@ cargo-fuzz = true
 libfuzzer-sys = "0.4"
 rug = "1.27"
 bessel = { path = "../bessel" }
+zbessel-rs = "0.1"
+num-complex = "0.4.6"
 
 [dependencies.pxfm]
 path = ".."

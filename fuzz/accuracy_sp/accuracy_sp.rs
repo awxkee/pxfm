@@ -2,16 +2,18 @@
 
 use bessel::{bessel_i0, bessel_i1};
 use libfuzzer_sys::fuzz_target;
+use num_complex::Complex;
 use pxfm::{
     f_acosf, f_acoshf, f_acospif, f_asinf, f_asinhf, f_asinpif, f_atan2f, f_atan2pif, f_atanhf,
     f_atanpif, f_cbrtf, f_cosf, f_coshf, f_cospif, f_cotf, f_cscf, f_erfcf, f_erff, f_exp2f,
-    f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_i0f, f_i1f, f_j0f, f_j1f,
+    f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_i0f, f_i1f, f_j0f, f_j1f, f_k0f,
     f_log1pf, f_log2f, f_log2p1f, f_log10f, f_log10p1f, f_logf, f_powf, f_secf, f_sincf, f_sinf,
     f_sinhf, f_sinpif, f_tanf, f_tanhf, f_tanpif, f_y0f, f_y1f,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
 use std::ops::{Div, Mul};
+use zbessel_rs::bessel_k;
 
 fn count_ulp(d: f32, c: &Float) -> f32 {
     let c2 = c.to_f32();
@@ -178,6 +180,27 @@ fuzz_target!(|data: (f32, f32)| {
 
     if x0 < 91.9 && x0.abs() > 0.01 {
         test_method(x0, f_i1f, &bessel_i1(x0 as f64, 100), "f_i1f".to_string());
+    }
+
+    if x0.abs() < 100. {
+        let expected = bessel_k(
+            Complex {
+                re: x0 as f64,
+                im: 0.,
+            },
+            0.,
+            1,
+            1,
+        )
+        .unwrap()
+        .values[0]
+            .re;
+        test_method(
+            x0,
+            f_k0f,
+            &Float::with_val(53, expected),
+            "f_k0f".to_string(),
+        );
     }
 
     test_method(x0, f_y1f, &mpfr_x0.clone().y1(), "f_y1f".to_string());

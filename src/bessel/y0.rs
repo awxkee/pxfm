@@ -28,9 +28,11 @@
  */
 use crate::bessel::j0::j0_maclaurin_series;
 use crate::bessel::y0_coeffs::{LOG_NEG_DD, Y0_COEFFS};
+use crate::bessel::y0_coeffs_dyadic::{Y0_COEFFS_RATIONAL128, Y0_ZEROS_RATIONAL128};
 use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES};
 use crate::double_double::DoubleDouble;
-use crate::polyeval::{f_polyeval13, f_polyeval15};
+use crate::dyadic_float::DyadicFloat128;
+use crate::polyeval::{f_polyeval13, f_polyeval15, f_polyeval28};
 use crate::pow_tables::POW_INVERSE;
 use crate::sin_helper::sin_dd_small;
 use crate::sincos_reduce::{AngleReduced, rem2pi_any};
@@ -361,7 +363,29 @@ pub(crate) fn y0_small_argument_path(x: f64) -> f64 {
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[1]));
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[0]));
 
-    p_e.to_f64()
+    let p = DoubleDouble::from_full_exact_add(p_e.hi, p_e.lo);
+    const ERR: f64 = f64::from_bits(0x3a0f1ffd44adb507);
+    let ub = p.hi + (p.lo + ERR);
+    let lb = p.hi + (p.lo - ERR);
+    if ub != lb {
+        return y0_small_argument_path_hard(x, idx);
+    }
+    p.to_f64()
+}
+
+#[cold]
+#[inline(never)]
+fn y0_small_argument_path_hard(x: f64, idx: usize) -> f64 {
+    let c = &Y0_COEFFS_RATIONAL128[idx - 1];
+    let zero = Y0_ZEROS_RATIONAL128[idx];
+    let dx = DyadicFloat128::new_from_f64(x) - zero;
+
+    let p = f_polyeval28(
+        dx, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13],
+        c[14], c[15], c[16], c[17], c[18], c[19], c[20], c[21], c[22], c[23], c[24], c[25], c[26],
+        c[27],
+    );
+    p.fast_as_f64()
 }
 
 /*

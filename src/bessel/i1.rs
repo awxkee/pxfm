@@ -64,8 +64,9 @@ pub fn f_i1(x: f64) -> f64 {
 
     let sign_scale = SIGN[x.is_sign_negative() as usize];
 
-    if x.abs() < 7.75 {
-        return i1_0_to_7p5(f64::from_bits(xb), sign_scale);
+    if xb < 0x401f000000000000u64 {
+        // 7.75
+        return i1_0_to_7p75(f64::from_bits(xb), sign_scale);
     }
 
     i1_asympt(f64::from_bits(xb), sign_scale)
@@ -120,7 +121,7 @@ See ./notes/bessel_sollya/bessel_i1_small.sollya for generation.
 Poly relative err 2^(-111.212)
 **/
 #[inline]
-fn i1_0_to_7p5(x: f64, sign_scale: f64) -> f64 {
+fn i1_0_to_7p75(x: f64, sign_scale: f64) -> f64 {
     let dx = x;
     const ONE_OVER_4: f64 = 1. / 4.;
     let eval_x = DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_mult(dx, dx), ONE_OVER_4);

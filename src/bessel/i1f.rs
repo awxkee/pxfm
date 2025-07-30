@@ -35,7 +35,7 @@ use crate::polyeval::{f_polyeval13, f_polyeval18};
 ///
 /// Max ULP 0.5
 pub fn f_i1f(x: f32) -> f32 {
-    if !x.is_normal() {
+    if (x.to_bits() & 0x0007_ffff) == 0 {
         if x == 0. {
             return 0.;
         }

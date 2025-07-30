@@ -43,7 +43,7 @@ pub fn f_y0f(x: f32) -> f32 {
         return f32::NAN;
     }
 
-    if !x.is_normal() {
+    if (x.to_bits() & 0x0007_ffff) == 0 {
         if x == 0. {
             return f32::NEG_INFINITY;
         }

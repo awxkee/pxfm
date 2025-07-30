@@ -38,7 +38,7 @@ use crate::sincos_reduce::rem2pif_any;
 pub fn f_j0f(x: f32) -> f32 {
     let x_abs = x.to_bits() & 0x7fff_ffff;
 
-    if !x.is_normal() {
+    if (x.to_bits() & 0x0007_ffff) == 0 {
         if f32::from_bits(x_abs) == 0. {
             // J0 value at 0
             return f64::from_bits(0x3ff0000000000000) as f32;

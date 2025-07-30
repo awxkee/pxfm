@@ -26,10 +26,11 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::bessel::j0_coeffs::J0_COEFFS;
+use crate::bessel::j0_coeffs::{J0_COEFFS, J0_COEFFS_RATIONAL128, J0_ZEROS_RATIONAL128};
 use crate::bessel::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE};
 use crate::double_double::DoubleDouble;
-use crate::polyeval::{f_polyeval9, f_polyeval12};
+use crate::dyadic_float::DyadicFloat128;
+use crate::polyeval::{f_polyeval9, f_polyeval12, f_polyeval24};
 use crate::sin_helper::cos_dd_small;
 use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 
@@ -168,7 +169,7 @@ pub(crate) fn j0_small_argument_path(x: f64) -> f64 {
         return f64::from_bits(J0_ZEROS_VALUE[idx]);
     }
 
-    let c = &c0[17..];
+    let c = &c0[15..];
 
     let p0 = f_polyeval9(
         r.to_f64(),
@@ -185,9 +186,7 @@ pub(crate) fn j0_small_argument_path(x: f64) -> f64 {
 
     let c = c0;
 
-    let mut p_e = DoubleDouble::mul_f64_add(r, p0, DoubleDouble::from_bit_pair(c[16]));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[15]));
-    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[14]));
+    let mut p_e = DoubleDouble::mul_f64_add(r, p0, DoubleDouble::from_bit_pair(c[14]));
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[13]));
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[12]));
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[11]));
@@ -203,8 +202,28 @@ pub(crate) fn j0_small_argument_path(x: f64) -> f64 {
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[1]));
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[0]));
 
-    let sums = DoubleDouble::from_full_exact_add(p_e.hi, p_e.lo);
-    sums.to_f64()
+    let p = DoubleDouble::from_full_exact_add(p_e.hi, p_e.lo);
+    const ERR: f64 = f64::from_bits(0x3990000000000000);
+    let ub = p.hi + (p.lo + ERR);
+    let lb = p.hi + (p.lo - ERR);
+    if ub != lb {
+        return j0_small_argument_path_hard(x, idx);
+    }
+    p.to_f64()
+}
+
+#[cold]
+#[inline(never)]
+fn j0_small_argument_path_hard(x: f64, idx: usize) -> f64 {
+    let c = &J0_COEFFS_RATIONAL128[idx - 1];
+    let zero = J0_ZEROS_RATIONAL128[idx];
+    let dx = DyadicFloat128::new_from_f64(x) - zero;
+
+    let p = f_polyeval24(
+        dx, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13],
+        c[14], c[15], c[16], c[17], c[18], c[19], c[20], c[21], c[22], c[23],
+    );
+    p.fast_as_f64()
 }
 
 /**
