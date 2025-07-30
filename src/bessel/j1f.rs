@@ -46,10 +46,13 @@ use crate::sincos_reduce::rem2pif_any;
 ///   that would be represented in f32.
 pub fn f_j1f(x: f32) -> f32 {
     if (x.to_bits() & 0x0007_ffff) == 0 {
+        if x == 0. {
+            return x;
+        }
         if x.is_infinite() {
             return 0.;
         }
-        if !x.is_subnormal() {
+        if x.is_nan() {
             return x + x;
         }
     }
@@ -419,5 +422,6 @@ mod tests {
         assert_eq!(f_j1f(f32::INFINITY), 0.);
         assert_eq!(f_j1f(f32::NEG_INFINITY), 0.);
         assert!(f_j1f(f32::NAN).is_nan());
+        assert_eq!(f_j1f(-1.7014118e38), 0.000000000000000000006856925);
     }
 }

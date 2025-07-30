@@ -50,10 +50,13 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any};
 ///   Same applies to J1(4.4501477170144018E-309) in double precision and some others subnormal numbers
 pub fn f_j1(x: f64) -> f64 {
     if !x.is_normal() {
+        if x == 0. {
+            return x;
+        }
         if x.is_infinite() {
             return 0.;
         }
-        if !x.is_subnormal() {
+        if x.is_nan() {
             return x + x;
         }
     }

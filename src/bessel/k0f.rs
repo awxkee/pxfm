@@ -69,6 +69,7 @@ pub fn f_k0f(x: f32) -> f32 {
         // 0.5
         return k0f_0p11_up_to_0p5(x);
     } else if xb <= 0x3f800000u32 {
+        // 1.0
         return k0f_0p5_up_to_1p0(x);
     }
 
