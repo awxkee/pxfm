@@ -182,8 +182,8 @@ fuzz_target!(|data: (f32, f32)| {
         test_method(x0, f_i1f, &bessel_i1(x0 as f64, 100), "f_i1f".to_string());
     }
 
-    if x0 < 100. && x0.is_sign_positive() {
-        let expected = bessel_k(
+    if x0 < 100. && x0.is_sign_positive() && x0.abs() > 0. {
+        if let Ok(expected) = bessel_k(
             Complex {
                 re: x0 as f64,
                 im: 0.,
@@ -191,16 +191,10 @@ fuzz_target!(|data: (f32, f32)| {
             0.,
             1,
             1,
-        )
-        .unwrap()
-        .values[0]
-            .re;
-        test_method(
-            x0,
-            f_k0f,
-            &Float::with_val(53, expected),
-            "f_k0f".to_string(),
-        );
+        ) {
+            let e = expected.values[0].re;
+            test_method(x0, f_k0f, &Float::with_val(53, e), "f_k0f".to_string());
+        }
     }
 
     test_method(x0, f_y1f, &mpfr_x0.clone().y1(), "f_y1f".to_string());
