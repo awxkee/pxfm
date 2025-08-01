@@ -28,6 +28,9 @@
  */
 use crate::common::f_fmla;
 
+/// Computes tan(PI*x)
+///
+/// Max found ULP 0.5
 #[inline]
 pub fn f_tanpif(x: f32) -> f32 {
     let mut ix = x.to_bits();

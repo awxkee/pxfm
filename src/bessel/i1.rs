@@ -30,7 +30,7 @@ use crate::bessel::i0::i0_exp;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval13, f_polyeval30};
 
-/// Modified bessel of the first kind order 1
+/// Modified Bessel of the first kind order 1
 ///
 /// Max found ULP 0.5003
 pub fn f_i1(x: f64) -> f64 {

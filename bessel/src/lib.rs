@@ -20,7 +20,7 @@ pub fn bessel_i0(x: f64, prec: u32) -> Float {
         // (k!)^2 stored in k_fact_sq
         term.assign(&num / &k_fact_sq);
 
-        if term.clone().abs() < Float::with_val(prec, 1e-120) {
+        if term.clone().abs() < Float::with_val(prec, 1e-100) {
             break;
         }
 
@@ -117,7 +117,7 @@ pub fn bessel_k0(x: f64, prec: u32) -> Float {
         term.assign(&psi_k1 * num / denom);
         result = result.add(&term.clone());
 
-        if term.clone().abs() < Float::with_val(prec, 1e-50) {
+        if term.clone().abs() < Float::with_val(prec, 1e-70) {
             break;
         }
     }

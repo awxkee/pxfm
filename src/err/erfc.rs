@@ -876,6 +876,7 @@ fn erfc_fast(x: f64) -> Erf {
     erfc_asympt_fast(x)
 }
 
+/// Complementary error function
 #[inline]
 pub fn f_erfc(x: f64) -> f64 {
     let t: u64 = x.to_bits();

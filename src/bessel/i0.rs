@@ -35,7 +35,7 @@ use crate::polyeval::{
 };
 use std::ops::Mul;
 
-/// Modified bessel of the first kind of order 0
+/// Modified Bessel of the first kind of order 0
 ///
 /// Max ULP 0.5003
 pub fn f_i0(x: f64) -> f64 {
@@ -59,9 +59,9 @@ pub fn f_i0(x: f64) -> f64 {
     }
 
     if xb <= 0x400ccccccccccccdu64 {
-        return i0_0_to_3p5(f64::from_bits(xb));
+        return i0_0_to_3p5(f64::from_bits(xb)).to_f64();
     } else if xb <= 0x401e000000000000u64 {
-        return i0_0_to_7p5(f64::from_bits(xb));
+        return i3p6_to_7p5(f64::from_bits(xb));
     } else if xb <= 0x4023000000000000u64 {
         // 9.5
         return i0_7p5_to_9p5(f64::from_bits(xb));
@@ -163,7 +163,23 @@ See ./notes/bessel_i0.ipynb for generation
 Next step is poly generation in Sollya see ./notes/bessel_sollya/bessel_i0_small.sollya for generation
 **/
 #[inline]
-fn i0_0_to_7p5(x: f64) -> f64 {
+fn i3p6_to_7p5(x: f64) -> f64 {
+    let r = i0_0_to_3p6_dd(x);
+
+    const ERR: f64 = f64::from_bits(0x3c3ee8f34dd80440);
+
+    let err = f_fmla(r.hi, f64::from_bits(0x3a08406003b2ae42), ERR);
+
+    let ub = r.hi + (r.lo + err);
+    let lb = r.hi + (r.lo - err);
+    if ub != lb {
+        return eval_small_hard_3p6_to_7p5(x);
+    }
+    r.to_f64()
+}
+
+#[inline]
+fn i0_0_to_3p6_dd(x: f64) -> DoubleDouble {
     let dx = x;
     const ONE_OVER_4: f64 = 1. / 4.;
     let eval_x = DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_mult(dx, dx), ONE_OVER_4);
@@ -220,18 +236,7 @@ fn i0_0_to_7p5(x: f64) -> f64 {
 
     let z = DoubleDouble::quick_mult(p, eval_x);
 
-    let r = DoubleDouble::full_add_f64(z, 1.);
-
-    const ERR: f64 = f64::from_bits(0x3c3ee8f34dd80440);
-
-    let err = f_fmla(r.hi, f64::from_bits(0x3a08406003b2ae42), ERR);
-
-    let ub = r.hi + (r.lo + err);
-    let lb = r.hi + (r.lo - err);
-    if ub != lb {
-        return eval_small_hard_3p6_to_7p5(x);
-    }
-    r.to_f64()
+    DoubleDouble::full_add_f64(z, 1.)
 }
 
 #[cold]
@@ -405,7 +410,7 @@ Next step is poly generation in Sollya see ./notes/bessel_sollya/bessel_i0_small
 Poly relative error: 2^(-105.765)
 **/
 #[inline]
-fn i0_0_to_3p5(x: f64) -> f64 {
+pub(crate) fn i0_0_to_3p5(x: f64) -> DoubleDouble {
     let dx = x;
     const ONE_OVER_4: f64 = 1. / 4.;
     let eval_x = DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_mult(dx, dx), ONE_OVER_4);
@@ -456,7 +461,7 @@ fn i0_0_to_3p5(x: f64) -> f64 {
 
     let z = DoubleDouble::quick_mult(p, eval_x);
 
-    DoubleDouble::full_add_f64(z, 1.).to_f64()
+    DoubleDouble::full_add_f64(z, 1.)
 }
 
 /**
@@ -720,7 +725,7 @@ fn i0_7p5_to_9p5_hard(x: f64) -> f64 {
         P[13], P[14], P[15], P[16], P[17], P[18], P[19], P[20], P[21], P[22], P[23], P[24], P[25],
         P[26], P[27], P[28], P[29],
     );
-    let r_sqrt = bessel_rsqrt_hard_hard(x, recip);
+    let r_sqrt = bessel_rsqrt_hard(x, recip);
     let f_exp = rational128_exp(x);
     (z * r_sqrt * f_exp).fast_as_f64()
 }
@@ -854,7 +859,7 @@ fn i0_asympt(x: f64) -> f64 {
 }
 
 #[inline]
-fn bessel_rsqrt_hard_hard(x: f64, recip: DyadicFloat128) -> DyadicFloat128 {
+pub(crate) fn bessel_rsqrt_hard(x: f64, recip: DyadicFloat128) -> DyadicFloat128 {
     let r = DyadicFloat128::new_from_f64(x.sqrt()) * recip;
     let fx = DyadicFloat128::new_from_f64(x);
     let rx = r * fx;
@@ -1079,7 +1084,7 @@ fn i0_asympt_hard(x: f64) -> f64 {
         P[13], P[14], P[15], P[16], P[17], P[18], P[19], P[20], P[21], P[22], P[23], P[24], P[25],
         P[26], P[27], P[28], P[29], P[30], P[31], P[32], P[33], P[34], P[35], P[36], P[37], P[38],
     );
-    let r_sqrt = bessel_rsqrt_hard_hard(x, recip);
+    let r_sqrt = bessel_rsqrt_hard(x, recip);
     let f_exp = rational128_exp(x);
     (z * r_sqrt * f_exp).fast_as_f64()
 }

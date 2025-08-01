@@ -31,7 +31,7 @@ use crate::common::f_fmla;
 use crate::f_exp;
 use crate::polyeval::{f_polyeval13, f_polyeval18};
 
-/// Modified bessel of the first kind order 1
+/// Modified Bessel of the first kind order 1
 ///
 /// Max ULP 0.5
 pub fn f_i1f(x: f32) -> f32 {
@@ -67,7 +67,7 @@ pub fn f_i1f(x: f32) -> f32 {
     let sign_scale = SIGN[x.is_sign_negative() as usize];
 
     if xb <= 0x40f80000u32 {
-        return i1f_small(f32::from_bits(xb), sign_scale);
+        return i1f_small(f32::from_bits(xb), sign_scale) as f32;
     }
 
     i1f_asympt(f32::from_bits(xb), sign_scale)
@@ -122,7 +122,7 @@ See ./notes/bessel_sollya/bessel_i1f_small.sollya for generation.
 Poly relative err 2^(-53.034)
 **/
 #[inline]
-fn i1f_small(x: f32, sign_scale: f64) -> f32 {
+pub(crate) fn i1f_small(x: f32, sign_scale: f64) -> f64 {
     let dx = x as f64;
     let x_over_two = dx * 0.5;
     let x_over_two_sqr = x_over_two * x_over_two;
@@ -147,7 +147,7 @@ fn i1f_small(x: f32, sign_scale: f64) -> f32 {
 
     let p1 = f_fmla(0.5, x_over_two_sqr, 1.);
     let p2 = f_fmla(x_over_two_p4, p, p1);
-    (p2 * x_over_two * sign_scale) as f32
+    p2 * x_over_two * sign_scale
 }
 
 /**

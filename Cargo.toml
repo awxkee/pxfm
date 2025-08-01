@@ -2,7 +2,7 @@ workspace = { members = ["app", "bessel", "fuzz"] }
 
 [package]
 name = "pxfm"
-version = "0.1.11"
+version = "0.1.12"
 edition = "2024"
 documentation = "https://github.com/awxkee/pxfm"
 keywords = ["libm", "math"]
@@ -20,3 +20,9 @@ num-traits = "0.2"
 
 [profile.dev.package]
 bessel.opt-level = 3
+
+[package.metadata.docs.rs]
+# To build locally:
+# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --open
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

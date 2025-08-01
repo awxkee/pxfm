@@ -31,7 +31,7 @@ use crate::bessel::j0f::j1f_rsqrt;
 use crate::f_exp;
 use crate::polyeval::{f_polyeval8, f_polyeval13, f_polyeval14, f_polyeval18};
 
-/// Modified bessel of the first kind of order 0
+/// Modified Bessel of the first kind of order 0
 ///
 /// Max ULP 0.5
 pub fn f_i0f(x: f32) -> f32 {
