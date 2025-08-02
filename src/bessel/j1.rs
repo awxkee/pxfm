@@ -570,7 +570,7 @@ fn j1_small_argument_path_hard(x: f64, idx: usize, sign_scale: f64) -> f64 {
 }
 
 /// see [j1_asympt_beta] for more info
-fn j1_asympt_beta_hard(recip: DyadicFloat128) -> DyadicFloat128 {
+pub(crate) fn j1_asympt_beta_hard(recip: DyadicFloat128) -> DyadicFloat128 {
     const C: [DyadicFloat128; 12] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
@@ -642,7 +642,7 @@ fn j1_asympt_beta_hard(recip: DyadicFloat128) -> DyadicFloat128 {
 }
 //
 /// See [j1_asympt_alpha] for the info
-fn j1_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFloat128 {
+pub(crate) fn j1_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFloat128 {
     const C: [DyadicFloat128; 18] = [
         DyadicFloat128 {
             sign: DyadicSign::Neg,

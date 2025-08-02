@@ -436,10 +436,6 @@ pub(crate) fn y0_asympt(x: f64) -> f64 {
 #[cold]
 #[inline(never)]
 fn y0_asympt_hard(x: f64) -> f64 {
-    static SGN: [f64; 2] = [1., -1.];
-    let sign_scale = SGN[x.is_sign_negative() as usize];
-    let x = x.abs();
-
     const SQRT_2_OVER_PI: DyadicFloat128 = DyadicFloat128 {
         sign: DyadicSign::Pos,
         exponent: -128,
@@ -469,7 +465,7 @@ fn y0_asympt_hard(x: f64) -> f64 {
     let r_sqrt = bessel_rsqrt_hard(x, recip);
     let scale = SQRT_2_OVER_PI * r_sqrt;
     let p = scale * z0;
-    p.fast_as_f64() * sign_scale
+    p.fast_as_f64()
 }
 
 #[cfg(test)]
