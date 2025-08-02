@@ -247,3 +247,288 @@ pub(crate) fn f_horner_polyeval23<T: PolyevalMla + Copy>(
     acc = T::polyeval_mla(x, acc, a1);
     T::polyeval_mla(x, acc, a0)
 }
+
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn f_horner_polyeval9<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+    x: T,
+    a0: T,
+    a1: T,
+    a2: T,
+    a3: T,
+    a4: T,
+    a5: T,
+    a6: T,
+    a7: T,
+    a8: T,
+) -> T {
+    let t0 = T::polyeval_mla(x, a8, a7);
+    let t01 = T::polyeval_mla(x, t0, a6);
+    let t1 = T::polyeval_mla(x, t01, a5);
+    let t2 = T::polyeval_mla(x, t1, a4);
+    let t3 = T::polyeval_mla(x, t2, a3);
+    let t4 = T::polyeval_mla(x, t3, a2);
+    let t5 = T::polyeval_mla(x, t4, a1);
+    T::polyeval_mla(x, t5, a0)
+}
+
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn f_polyeval39<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+    x: T,
+    a0: T,
+    a1: T,
+    a2: T,
+    a3: T,
+    a4: T,
+    a5: T,
+    a6: T,
+    a7: T,
+    a8: T,
+    a9: T,
+    a10: T,
+    a11: T,
+    a12: T,
+    a13: T,
+    a14: T,
+    a15: T,
+    a16: T,
+    a17: T,
+    a18: T,
+    a19: T,
+    a20: T,
+    a21: T,
+    a22: T,
+    a23: T,
+    a24: T,
+    a25: T,
+    a26: T,
+    a27: T,
+    a28: T,
+    a29: T,
+    a30: T,
+    a31: T,
+    a32: T,
+    a33: T,
+    a34: T,
+    a35: T,
+    a36: T,
+    a37: T,
+    a38: T,
+) -> T {
+    let mut acc = a38;
+    acc = T::polyeval_mla(x, acc, a37);
+    acc = T::polyeval_mla(x, acc, a36);
+    acc = T::polyeval_mla(x, acc, a35);
+    acc = T::polyeval_mla(x, acc, a34);
+    acc = T::polyeval_mla(x, acc, a33);
+    acc = T::polyeval_mla(x, acc, a32);
+    acc = T::polyeval_mla(x, acc, a31);
+    acc = T::polyeval_mla(x, acc, a30);
+    acc = T::polyeval_mla(x, acc, a29);
+    acc = T::polyeval_mla(x, acc, a28);
+    acc = T::polyeval_mla(x, acc, a27);
+    acc = T::polyeval_mla(x, acc, a26);
+    acc = T::polyeval_mla(x, acc, a25);
+    acc = T::polyeval_mla(x, acc, a24);
+    acc = T::polyeval_mla(x, acc, a23);
+    acc = T::polyeval_mla(x, acc, a22);
+    acc = T::polyeval_mla(x, acc, a21);
+    acc = T::polyeval_mla(x, acc, a20);
+    acc = T::polyeval_mla(x, acc, a19);
+    acc = T::polyeval_mla(x, acc, a18);
+    acc = T::polyeval_mla(x, acc, a17);
+    acc = T::polyeval_mla(x, acc, a16);
+    acc = T::polyeval_mla(x, acc, a15);
+    acc = T::polyeval_mla(x, acc, a14);
+    acc = T::polyeval_mla(x, acc, a13);
+    acc = T::polyeval_mla(x, acc, a12);
+    acc = T::polyeval_mla(x, acc, a11);
+    acc = T::polyeval_mla(x, acc, a10);
+    acc = T::polyeval_mla(x, acc, a9);
+    acc = T::polyeval_mla(x, acc, a8);
+    acc = T::polyeval_mla(x, acc, a7);
+    acc = T::polyeval_mla(x, acc, a6);
+    acc = T::polyeval_mla(x, acc, a5);
+    acc = T::polyeval_mla(x, acc, a4);
+    acc = T::polyeval_mla(x, acc, a3);
+    acc = T::polyeval_mla(x, acc, a2);
+    acc = T::polyeval_mla(x, acc, a1);
+    T::polyeval_mla(x, acc, a0)
+}
+
+// #[inline(always)]
+// #[allow(clippy::too_many_arguments)]
+// pub(crate) fn f_polyeval40<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+//     x: T,
+//     a0: T,
+//     a1: T,
+//     a2: T,
+//     a3: T,
+//     a4: T,
+//     a5: T,
+//     a6: T,
+//     a7: T,
+//     a8: T,
+//     a9: T,
+//     a10: T,
+//     a11: T,
+//     a12: T,
+//     a13: T,
+//     a14: T,
+//     a15: T,
+//     a16: T,
+//     a17: T,
+//     a18: T,
+//     a19: T,
+//     a20: T,
+//     a21: T,
+//     a22: T,
+//     a23: T,
+//     a24: T,
+//     a25: T,
+//     a26: T,
+//     a27: T,
+//     a28: T,
+//     a29: T,
+//     a30: T,
+//     a31: T,
+//     a32: T,
+//     a33: T,
+//     a34: T,
+//     a35: T,
+//     a36: T,
+//     a37: T,
+//     a38: T,
+//     a39: T,
+// ) -> T {
+//     let mut acc = a39;
+//     acc = T::polyeval_mla(x, acc, a38);
+//     acc = T::polyeval_mla(x, acc, a37);
+//     acc = T::polyeval_mla(x, acc, a36);
+//     acc = T::polyeval_mla(x, acc, a35);
+//     acc = T::polyeval_mla(x, acc, a34);
+//     acc = T::polyeval_mla(x, acc, a33);
+//     acc = T::polyeval_mla(x, acc, a32);
+//     acc = T::polyeval_mla(x, acc, a31);
+//     acc = T::polyeval_mla(x, acc, a30);
+//     acc = T::polyeval_mla(x, acc, a29);
+//     acc = T::polyeval_mla(x, acc, a28);
+//     acc = T::polyeval_mla(x, acc, a27);
+//     acc = T::polyeval_mla(x, acc, a26);
+//     acc = T::polyeval_mla(x, acc, a25);
+//     acc = T::polyeval_mla(x, acc, a24);
+//     acc = T::polyeval_mla(x, acc, a23);
+//     acc = T::polyeval_mla(x, acc, a22);
+//     acc = T::polyeval_mla(x, acc, a21);
+//     acc = T::polyeval_mla(x, acc, a20);
+//     acc = T::polyeval_mla(x, acc, a19);
+//     acc = T::polyeval_mla(x, acc, a18);
+//     acc = T::polyeval_mla(x, acc, a17);
+//     acc = T::polyeval_mla(x, acc, a16);
+//     acc = T::polyeval_mla(x, acc, a15);
+//     acc = T::polyeval_mla(x, acc, a14);
+//     acc = T::polyeval_mla(x, acc, a13);
+//     acc = T::polyeval_mla(x, acc, a12);
+//     acc = T::polyeval_mla(x, acc, a11);
+//     acc = T::polyeval_mla(x, acc, a10);
+//     acc = T::polyeval_mla(x, acc, a9);
+//     acc = T::polyeval_mla(x, acc, a8);
+//     acc = T::polyeval_mla(x, acc, a7);
+//     acc = T::polyeval_mla(x, acc, a6);
+//     acc = T::polyeval_mla(x, acc, a5);
+//     acc = T::polyeval_mla(x, acc, a4);
+//     acc = T::polyeval_mla(x, acc, a3);
+//     acc = T::polyeval_mla(x, acc, a2);
+//     acc = T::polyeval_mla(x, acc, a1);
+//     T::polyeval_mla(x, acc, a0)
+// }
+
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn f_polyeval41<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+    x: T,
+    a0: T,
+    a1: T,
+    a2: T,
+    a3: T,
+    a4: T,
+    a5: T,
+    a6: T,
+    a7: T,
+    a8: T,
+    a9: T,
+    a10: T,
+    a11: T,
+    a12: T,
+    a13: T,
+    a14: T,
+    a15: T,
+    a16: T,
+    a17: T,
+    a18: T,
+    a19: T,
+    a20: T,
+    a21: T,
+    a22: T,
+    a23: T,
+    a24: T,
+    a25: T,
+    a26: T,
+    a27: T,
+    a28: T,
+    a29: T,
+    a30: T,
+    a31: T,
+    a32: T,
+    a33: T,
+    a34: T,
+    a35: T,
+    a36: T,
+    a37: T,
+    a38: T,
+    a39: T,
+    a40: T,
+) -> T {
+    let mut acc = a40;
+    acc = T::polyeval_mla(x, acc, a39);
+    acc = T::polyeval_mla(x, acc, a38);
+    acc = T::polyeval_mla(x, acc, a37);
+    acc = T::polyeval_mla(x, acc, a36);
+    acc = T::polyeval_mla(x, acc, a35);
+    acc = T::polyeval_mla(x, acc, a34);
+    acc = T::polyeval_mla(x, acc, a33);
+    acc = T::polyeval_mla(x, acc, a32);
+    acc = T::polyeval_mla(x, acc, a31);
+    acc = T::polyeval_mla(x, acc, a30);
+    acc = T::polyeval_mla(x, acc, a29);
+    acc = T::polyeval_mla(x, acc, a28);
+    acc = T::polyeval_mla(x, acc, a27);
+    acc = T::polyeval_mla(x, acc, a26);
+    acc = T::polyeval_mla(x, acc, a25);
+    acc = T::polyeval_mla(x, acc, a24);
+    acc = T::polyeval_mla(x, acc, a23);
+    acc = T::polyeval_mla(x, acc, a22);
+    acc = T::polyeval_mla(x, acc, a21);
+    acc = T::polyeval_mla(x, acc, a20);
+    acc = T::polyeval_mla(x, acc, a19);
+    acc = T::polyeval_mla(x, acc, a18);
+    acc = T::polyeval_mla(x, acc, a17);
+    acc = T::polyeval_mla(x, acc, a16);
+    acc = T::polyeval_mla(x, acc, a15);
+    acc = T::polyeval_mla(x, acc, a14);
+    acc = T::polyeval_mla(x, acc, a13);
+    acc = T::polyeval_mla(x, acc, a12);
+    acc = T::polyeval_mla(x, acc, a11);
+    acc = T::polyeval_mla(x, acc, a10);
+    acc = T::polyeval_mla(x, acc, a9);
+    acc = T::polyeval_mla(x, acc, a8);
+    acc = T::polyeval_mla(x, acc, a7);
+    acc = T::polyeval_mla(x, acc, a6);
+    acc = T::polyeval_mla(x, acc, a5);
+    acc = T::polyeval_mla(x, acc, a4);
+    acc = T::polyeval_mla(x, acc, a3);
+    acc = T::polyeval_mla(x, acc, a2);
+    acc = T::polyeval_mla(x, acc, a1);
+    T::polyeval_mla(x, acc, a0)
+}

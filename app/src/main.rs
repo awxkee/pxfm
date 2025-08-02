@@ -170,8 +170,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (7.5f64).to_bits();
-    let end_bits = (7.5f64).to_bits();
+    let start_bits = (7.75f64).to_bits();
+    let end_bits = (7.76f64).to_bits();
 
     println!(
         "ulp {}",

@@ -30,14 +30,12 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, rational128_exp};
-use crate::polyeval::{
-    PolyevalMla, f_horner_polyeval21, f_horner_polyeval30, f_polyeval20, f_polyeval30, f_polyeval39,
-};
-use std::ops::Mul;
+use crate::horner::{f_horner_polyeval9, f_horner_polyeval11, f_polyeval39};
+use crate::polyeval::{f_horner_polyeval21, f_horner_polyeval30, f_polyeval20, f_polyeval30};
 
 /// Modified Bessel of the first kind of order 0
 ///
-/// Max ULP 0.5003
+/// Max ULP 0.5
 pub fn f_i0(x: f64) -> f64 {
     let xb = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
@@ -68,58 +66,6 @@ pub fn f_i0(x: f64) -> f64 {
     }
 
     i0_asympt(f64::from_bits(xb))
-}
-
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn f_horner_polyeval11<T: PolyevalMla + Copy + Mul<T, Output = T>>(
-    x: T,
-    a0: T,
-    a1: T,
-    a2: T,
-    a3: T,
-    a4: T,
-    a5: T,
-    a6: T,
-    a7: T,
-    a8: T,
-    a9: T,
-    a10: T,
-) -> T {
-    let z00 = T::polyeval_mla(x, a10, a9);
-    let z0 = T::polyeval_mla(x, z00, a8);
-    let t0 = T::polyeval_mla(x, z0, a7);
-    let t01 = T::polyeval_mla(x, t0, a6);
-    let t1 = T::polyeval_mla(x, t01, a5);
-    let t2 = T::polyeval_mla(x, t1, a4);
-    let t3 = T::polyeval_mla(x, t2, a3);
-    let t4 = T::polyeval_mla(x, t3, a2);
-    let t5 = T::polyeval_mla(x, t4, a1);
-    T::polyeval_mla(x, t5, a0)
-}
-
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn f_horner_polyeval9<T: PolyevalMla + Copy + Mul<T, Output = T>>(
-    x: T,
-    a0: T,
-    a1: T,
-    a2: T,
-    a3: T,
-    a4: T,
-    a5: T,
-    a6: T,
-    a7: T,
-    a8: T,
-) -> T {
-    let t0 = T::polyeval_mla(x, a8, a7);
-    let t01 = T::polyeval_mla(x, t0, a6);
-    let t1 = T::polyeval_mla(x, t01, a5);
-    let t2 = T::polyeval_mla(x, t1, a4);
-    let t3 = T::polyeval_mla(x, t2, a3);
-    let t4 = T::polyeval_mla(x, t3, a2);
-    let t5 = T::polyeval_mla(x, t4, a1);
-    T::polyeval_mla(x, t5, a0)
 }
 
 /**
