@@ -27,7 +27,10 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::bessel::i0::i0_exp;
+use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::horner::f_horner_polyeval23;
 use crate::polyeval::{f_polyeval13, f_polyeval30};
 
 /// Modified Bessel of the first kind order 1
@@ -189,7 +192,165 @@ fn i1_0_to_7p75(x: f64, sign_scale: f64) -> f64 {
 
     let x_over_05 = DoubleDouble::from_exact_mult(x, 0.5);
 
-    DoubleDouble::quick_mult(z, x_over_05).to_f64() * sign_scale
+    let r = DoubleDouble::quick_mult(z, x_over_05);
+
+    let err = f_fmla(
+        r.hi,
+        f64::from_bits(0x3c20000000000000),
+        f64::from_bits(0x3980000000000000),
+    );
+    let ub = r.hi + (r.lo + err);
+    let lb = r.hi + (r.lo - err);
+    if ub == lb {
+        return r.to_f64() * sign_scale;
+    }
+    i1_0_to_7p5_hard(x, sign_scale)
+}
+
+#[cold]
+#[inline(never)]
+fn i1_0_to_7p5_hard(x: f64, sign_scale: f64) -> f64 {
+    const P: [DyadicFloat128; 23] = [
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -131,
+            mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaaa_aaaaaaaa_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -135,
+            mantissa: 0xe38e38e3_8e38e38e_38e38e38_e38e3ad0_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -139,
+            mantissa: 0xb60b60b6_0b60b60b_60b60b60_b609b8cc_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -144,
+            mantissa: 0xc22e4506_72894ab6_cd8efb11_d497871a_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -149,
+            mantissa: 0x93f27dbb_c4fae397_780b69f4_926f09e4_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -155,
+            mantissa: 0xa91521fb_2a434d3f_649f54e6_8d87bb1c_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -161,
+            mantissa: 0x964bac6d_7ae67d8d_aec65bfd_1f6265fa_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -168,
+            mantissa: 0xd5c0f53a_fe6fa17f_8c9309f3_dffc1e1a_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -175,
+            mantissa: 0xf8bb4be7_8e7896b0_4e3d30b7_818b3816_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -182,
+            mantissa: 0xf131bdf7_cff8d032_93e2aa28_3791a7ca_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -189,
+            mantissa: 0xc5e72c48_0d1aeb77_d6bda068_c9b4e2b2_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -196,
+            mantissa: 0x8b2f3e16_8a9fcdd2_bfee896d_351e9414_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -204,
+            mantissa: 0xa9ac2e6e_5fc674fa_4d35755f_27d0abd8_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -212,
+            mantissa: 0xb4fbed42_8d38f1f6_80b0cf5d_aae25ff6_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -220,
+            mantissa: 0xaa5684f2_47c8645f_a8931821_f236d34a_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -228,
+            mantissa: 0x8e814593_5ee16079_f0a5050a_66c3d544_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -237,
+            mantissa: 0xd5573007_36641d12_8895577d_6cbd4444_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -245,
+            mantissa: 0x8fbabd80_ed9f8d6d_1e301d22_b46e56a2_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -254,
+            mantissa: 0xaefe68ca_093c3c26_2ce2eea8_9b6ec820_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -263,
+            mantissa: 0xc8a8d97d_c60320a1_58888c31_cbd4ac2a_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -274,
+            mantissa: 0xecc60a7a_17661b22_e1390e47_b31f6a46_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -278,
+            mantissa: 0xf7964e72_ed6ab977_8bc70ede_d6163034_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -284,
+            mantissa: 0xa9328051_1d8e8a54_31a21ed7_9e9491e8_u128,
+        },
+    ];
+
+    let dx = DyadicFloat128::new_from_f64(x);
+    let mut x_over_two = dx;
+    x_over_two.exponent -= 1; // * 0.5
+    let mut eval_x = dx * dx;
+    eval_x.exponent -= 2; // * 0.25
+
+    let p = f_horner_polyeval23(
+        eval_x, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12],
+        P[13], P[14], P[15], P[16], P[17], P[18], P[19], P[20], P[21], P[22],
+    );
+
+    let mut eval_x_over_two = eval_x;
+    eval_x_over_two.exponent -= 1; // * 0.5
+
+    const ONES: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -127,
+        mantissa: 0x80000000_00000000_00000000_00000000_u128,
+    };
+
+    let eval_x_sqr = eval_x * eval_x;
+    let r = (p * eval_x_sqr + eval_x_over_two + ONES) * x_over_two;
+    r.fast_as_f64() * sign_scale
 }
 
 /**
@@ -265,6 +426,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_fi1() {
+        assert_eq!(f_i1(7.482812501363189), 245.58002285881892);
         assert!(f_i1(f64::NAN).is_nan());
         assert_eq!(f_i1(f64::INFINITY), f64::INFINITY);
         assert_eq!(f_i1(f64::NEG_INFINITY), f64::NEG_INFINITY);
