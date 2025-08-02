@@ -55,18 +55,13 @@ pub fn f_j0(x: f64) -> f64 {
         }
     }
 
-    if f64::from_bits(x_abs) <= 74.8 {
-        if f64::from_bits(x_abs) <= 0.25 {
+    if x_abs <= 0x4052b33333333333u64 {
+        // 74.8
+        if x_abs <= 0x3fd0000000000000u64 {
+            // 0.25
             return j0_maclaurin_series(x);
         }
         return j0_small_argument_path(x);
-    }
-
-    // Exceptions
-    if x_abs == 0x571a31ffe2ff7e9f {
-        return f64::from_bits(0xb2e58532f95056ff);
-    } else if x_abs == 0x7f2109fb0b442158u64 {
-        return f64::from_bits(0x9fdcdbc94d3753ee);
     }
 
     j0_asympt(x)
@@ -535,7 +530,7 @@ pub(crate) fn j0_asympt(x: f64) -> f64 {
 }
 
 /// see [j0_asympt_beta] for more info
-fn j0_asympt_beta_hard(recip: DyadicFloat128) -> DyadicFloat128 {
+pub(crate) fn j0_asympt_beta_hard(recip: DyadicFloat128) -> DyadicFloat128 {
     const C: [DyadicFloat128; 12] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
@@ -607,7 +602,7 @@ fn j0_asympt_beta_hard(recip: DyadicFloat128) -> DyadicFloat128 {
 }
 //
 /// See [j0_asympt_alpha] for the info
-fn j0_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFloat128 {
+pub(crate) fn j0_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFloat128 {
     const C: [DyadicFloat128; 18] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
@@ -717,7 +712,7 @@ fn j0_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFloat128 {
 */
 #[cold]
 #[inline(never)]
-fn j0_asympt_hard(x: f64) -> f64 {
+pub(crate) fn j0_asympt_hard(x: f64) -> f64 {
     static SGN: [f64; 2] = [1., -1.];
     let sign_scale = SGN[x.is_sign_negative() as usize];
     let x = x.abs();

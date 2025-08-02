@@ -26,16 +26,17 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::j0::j0_maclaurin_series;
 use crate::bessel::y0_coeffs::{LOG_NEG_DD, Y0_COEFFS};
 use crate::bessel::y0_coeffs_dyadic::{Y0_COEFFS_RATIONAL128, Y0_ZEROS_RATIONAL128};
 use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES};
 use crate::double_double::DoubleDouble;
-use crate::dyadic_float::DyadicFloat128;
+use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::polyeval::{f_polyeval13, f_polyeval15, f_polyeval28};
 use crate::pow_tables::POW_INVERSE;
-use crate::sin_helper::sin_dd_small;
-use crate::sincos_reduce::{AngleReduced, rem2pi_any};
+use crate::sin_helper::{sin_dd_small, sin_f128_small};
+use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the second kind of order 0 (Y0)
 ///
@@ -72,13 +73,6 @@ pub fn f_y0(x: f64) -> f64 {
     if xb <= 0x4052d9999999999au64 {
         // 75.4
         return y0_small_argument_path(x);
-    }
-
-    // Exceptions
-    //TODO: This actually may be handled
-    let bx = x.to_bits();
-    if bx == 0x6e7c1d741dc52512u64 {
-        return f64::from_bits(0x2696f860815bc669);
     }
 
     y0_asympt(x)
@@ -390,7 +384,7 @@ fn y0_small_argument_path_hard(x: f64, idx: usize) -> f64 {
 
 /*
    Evaluates:
-   J1 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
+   Y0 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
 */
 #[inline]
 pub(crate) fn y0_asympt(x: f64) -> f64 {
@@ -423,8 +417,59 @@ pub(crate) fn y0_asympt(x: f64) -> f64 {
     let r_sqrt = DoubleDouble::from_rsqrt(x);
     let scale = DoubleDouble::quick_mult(SQRT_2_OVER_PI, r_sqrt);
     let p = DoubleDouble::quick_mult(scale, z0);
-    let norm = DoubleDouble::from_full_exact_add(p.hi, p.lo);
-    norm.to_f64()
+    let r = DoubleDouble::from_exact_add(p.hi, p.lo);
+    const ERR: f64 = f64::from_bits(0x3a20000000000000); // 2^-93
+
+    let ub = r.hi + (r.lo + ERR);
+    let lb = r.hi + (r.lo - ERR);
+
+    if ub == lb {
+        return r.to_f64();
+    }
+    y0_asympt_hard(x)
+}
+
+/*
+   Evaluates:
+   Y0 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
+*/
+#[cold]
+#[inline(never)]
+fn y0_asympt_hard(x: f64) -> f64 {
+    static SGN: [f64; 2] = [1., -1.];
+    let sign_scale = SGN[x.is_sign_negative() as usize];
+    let x = x.abs();
+
+    const SQRT_2_OVER_PI: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -128,
+        mantissa: 0xcc42299e_a1b28468_7e59e280_5d5c7180_u128,
+    };
+
+    const MPI_OVER_4: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Neg,
+        exponent: -128,
+        mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
+    };
+
+    let x_dyadic = DyadicFloat128::new_from_f64(x);
+    let recip = DyadicFloat128::accurate_reciprocal(x);
+
+    let alpha = crate::bessel::j0::j0_asympt_alpha_hard(recip);
+    let beta = crate::bessel::j0::j0_asympt_beta_hard(recip);
+
+    let angle = rem2pi_f128(x_dyadic);
+
+    let x0pi34 = MPI_OVER_4 - alpha;
+    let r0 = angle + x0pi34;
+
+    let m_sin = sin_f128_small(r0);
+
+    let z0 = beta * m_sin;
+    let r_sqrt = bessel_rsqrt_hard(x, recip);
+    let scale = SQRT_2_OVER_PI * r_sqrt;
+    let p = scale * z0;
+    p.fast_as_f64() * sign_scale
 }
 
 #[cfg(test)]
@@ -433,6 +478,10 @@ mod tests {
 
     #[test]
     fn test_y0_small_argument_path() {
+        assert_eq!(
+            f_y0(f64::from_bits(0x6e7c1d741dc52512u64)),
+            f64::from_bits(0x2696f860815bc669)
+        );
         assert_eq!(f_y0(98.1760435789366), 0.0000000000000056889416242533015);
         assert_eq!(
             f_y0(91.8929453121571802176),
