@@ -147,6 +147,20 @@ pub(crate) fn sin_f128_small(z: DyadicFloat128) -> DyadicFloat128 {
     (sin_k_f128 * sin_cos.v_cos) + (cos_k_f128 * sin_cos.v_sin)
 }
 
+pub(crate) fn cos_f128_small(z: DyadicFloat128) -> DyadicFloat128 {
+    let (u_f128, k) = range_reduction_small_f128_f128(z);
+
+    let sin_cos = sincos_eval_dyadic(&u_f128);
+    // -sin(k * pi/128) = sin((k + 128) * pi/128)
+    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    let msin_k_f128 = get_sin_k_rational((k as u64).wrapping_add(128));
+    let cos_k_f128 = get_sin_k_rational((k as u64).wrapping_add(64));
+
+    // cos(x) = cos((k * pi/128 + u)
+    //        = cos(u) * cos(k*pi/128) - sin(u) * sin(k*pi/128)
+    (cos_k_f128 * sin_cos.v_cos) + (msin_k_f128 * sin_cos.v_sin)
+}
+
 #[inline]
 pub(crate) fn sin_small(z: f64) -> f64 {
     let x_e = (z.to_bits() >> 52) & 0x7ff;

@@ -1,6 +1,6 @@
 use bessel::{bessel_i0, bessel_k0};
 use num_complex::Complex;
-use pxfm::{f_i0, f_j1, f_k0, f_k1};
+use pxfm::{f_i0, f_j0, f_j1, f_k0, f_k1};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -170,8 +170,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (3.35f64).to_bits();
-    let end_bits = (3.6f64).to_bits();
+    let start_bits = (100f64).to_bits();
+    let end_bits = (10000f64).to_bits();
 
     println!(
         "ulp {}",
@@ -204,8 +204,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = bessel_i0(x, 80);
-        let actual = f_i0(x);
+        let expected = Float::with_val(100, x).j0();
+        let actual = f_j0(x);
 
         let diff = count_ulp_f64(actual, &expected);
 
