@@ -170,8 +170,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (1.9f64).to_bits();
-    let end_bits = (2f64).to_bits();
+    let start_bits = (3.35f64).to_bits();
+    let end_bits = (3.6f64).to_bits();
 
     println!(
         "ulp {}",
@@ -204,8 +204,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = compute_besselk(x).unwrap();
-        let actual = f_k1(x);
+        let expected = bessel_i0(x, 80);
+        let actual = f_i0(x);
 
         let diff = count_ulp_f64(actual, &expected);
 

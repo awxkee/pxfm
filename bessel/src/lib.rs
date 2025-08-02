@@ -20,11 +20,11 @@ pub fn bessel_i0(x: f64, prec: u32) -> Float {
         // (k!)^2 stored in k_fact_sq
         term.assign(&num / &k_fact_sq);
 
-        if term.clone().abs() < Float::with_val(prec, 1e-100) {
-            break;
-        }
+        // if term.clone().abs() < Float::with_val(prec, 1e-100) {
+        //     break;
+        // }
 
-        if terms > 1500 {
+        if terms > 100 {
             break;
         }
 

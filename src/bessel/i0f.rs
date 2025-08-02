@@ -26,9 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::bessel::i0::f_horner_polyeval11;
 use crate::bessel::j0f::j1f_rsqrt;
 use crate::f_exp;
+use crate::horner::f_horner_polyeval11;
 use crate::polyeval::{f_polyeval8, f_polyeval13, f_polyeval14, f_polyeval18};
 
 /// Modified Bessel of the first kind of order 0

@@ -1,31 +1,31 @@
-// /*
-//  * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
-//  * //
-//  * // Redistribution and use in source and binary forms, with or without modification,
-//  * // are permitted provided that the following conditions are met:
-//  * //
-//  * // 1.  Redistributions of source code must retain the above copyright notice, this
-//  * // list of conditions and the following disclaimer.
-//  * //
-//  * // 2.  Redistributions in binary form must reproduce the above copyright notice,
-//  * // this list of conditions and the following disclaimer in the documentation
-//  * // and/or other materials provided with the distribution.
-//  * //
-//  * // 3.  Neither the name of the copyright holder nor the names of its
-//  * // contributors may be used to endorse or promote products derived from
-//  * // this software without specific prior written permission.
-//  * //
-//  * // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-//  * // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-//  * // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-//  * // DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-//  * // FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-//  * // DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-//  * // SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-//  * // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-//  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-//  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//  */
+/*
+ * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
+ * //
+ * // Redistribution and use in source and binary forms, with or without modification,
+ * // are permitted provided that the following conditions are met:
+ * //
+ * // 1.  Redistributions of source code must retain the above copyright notice, this
+ * // list of conditions and the following disclaimer.
+ * //
+ * // 2.  Redistributions in binary form must reproduce the above copyright notice,
+ * // this list of conditions and the following disclaimer in the documentation
+ * // and/or other materials provided with the distribution.
+ * //
+ * // 3.  Neither the name of the copyright holder nor the names of its
+ * // contributors may be used to endorse or promote products derived from
+ * // this software without specific prior written permission.
+ * //
+ * // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * // DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * // FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * // DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * // SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 // use crate::dekker::Dekker;
 //
 // #[derive(Clone, Copy, Debug)]
@@ -44,6 +44,40 @@
 //
 // impl TripleDouble {
 //     #[inline]
+//     pub(crate) fn mul_dd_add_f64(p0: TripleDouble, p1: DoubleDouble, p2: f64) -> TripleDouble {
+//         let q0 = TripleDouble::quick_mul_dd(p0, p1);
+//         let z0 = TripleDouble::add_f64(p2, q0);
+//         z0
+//     }
+// }
+//
+// impl TripleDouble {
+//     #[inline]
+//     pub(crate) fn mul_dd_add(p0: TripleDouble, p1: DoubleDouble, p2: TripleDouble) -> TripleDouble {
+//         let q0 = TripleDouble::quick_mul_dd(p0, p1);
+//         let z0 = TripleDouble::add(q0, p2);
+//         z0
+//     }
+//
+//     #[inline]
+//     pub(crate) fn mul_dd_add_dd(p0: TripleDouble, p1: DoubleDouble, p2: DoubleDouble) -> TripleDouble {
+//         let q0 = TripleDouble::quick_mul_dd(p0, p1);
+//         let z0 = TripleDouble::add_dd(p2, q0);
+//         z0
+//     }
+// }
+//
+// impl TripleDouble {
+//     #[inline]
+//     pub(crate) fn f64_mul_add(p0: f64, p1: DoubleDouble, p2: TripleDouble) -> TripleDouble {
+//         let q0 = TripleDouble::from_quick_mult_dd_f64(p1, p0);
+//         let z0 = TripleDouble::add(q0, p2);
+//         z0
+//     }
+// }
+//
+// impl TripleDouble {
+//     #[inline]
 //     pub(crate) fn from_bit_pair(p0: (u64, u64, u64)) -> TripleDouble {
 //         TripleDouble {
 //             hi: f64::from_bits(p0.2),
@@ -53,47 +87,192 @@
 //     }
 // }
 //
-// impl TripleDoublePacked {
-//     #[inline]
-//     pub(crate) fn new(hi: u64, mid: u64, lo: u64) -> Self {
-//         Self { hi, mid, lo }
-//     }
+// #[inline]
+// fn add12(a: f64, b: f64) -> DoubleDouble {
+//     let rh = a + b;
+//     let rl = (a + b) - rh;
+//     DoubleDouble::new(rl, rh)
+// }
 //
-//     #[inline]
-//     pub(crate) const fn unpack(self) -> TripleDouble {
-//         TripleDouble {
-//             hi: f64::from_bits(self.hi),
-//             mid: f64::from_bits(self.mid),
-//             lo: f64::from_bits(self.lo),
-//         }
-//     }
+// #[inline]
+// fn mul12(a: f64, b: f64) -> DoubleDouble {
+//     DoubleDouble::from_exact_mult(a, b)
+// }
+//
+// #[inline]
+// fn add22(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+//     /*
+//     t1 ← ah ⊕ bh
+//     if |ah | ≥ |bh | then
+//     t2 ← ah - t1
+//     t3 ← t2 ⊕ bh
+//     t4 ← t3 ⊕ bl
+//     t5 ← t4 ⊕ al
+//     else
+//     t2 ← bh - t1
+//     t3 ← t2 ⊕ ah
+//     t4 ← t3 ⊕ al
+//     t5 ← t4 ⊕ bl
+//     end if
+//     (rh , rl ) ← Add12 (t1, t5)
+//          */
+//     let t1 = a.hi + b.hi;
+//     let t5 = if a.hi.abs() > b.hi.abs() {
+//         let t2 = a.hi - t1;
+//         let t3 = t2 + b.hi;
+//         let t4 = t3 + b.lo;
+//         t4 + a.lo
+//     } else {
+//         let t2 = b.hi - t1;
+//         let t3 = t2 + a.hi;
+//         let t4 = t3 + a.lo;
+//         t4 + b.lo
+//     };
+//     add12(t1, t5)
 // }
 //
 // impl TripleDouble {
-//     pub(crate) const fn from_packed(u: TripleDoublePacked) -> TripleDouble {
+//     #[inline]
+//     pub(crate) fn from_quick_mult(a: DoubleDouble, b: DoubleDouble) -> TripleDouble {
+//         /*
+//         (rh , t1) ← Mul12 (ah , bh )
+//         (t2, t3) ← Mul12 (ah , bl )
+//         (t4, t5) ← Mul12 (al , bh )
+//         t6 ← al ⊗ bl
+//         (t7, t8) ← Add22 (t2, t3, t4, t5)
+//         (t9, t10) ← Add12 (t1, t6)
+//         (rm , rl ) ← Add22 (t7, t8, t9, t10)
+//          */
+//         let DoubleDouble { hi: rh, lo: t1 } = mul12(a.hi, b.hi);
+//         let r0 = mul12(a.hi, b.lo);
+//         let r1 = mul12(a.lo, b.hi);
+//         let t6 = a.lo * b.lo;
+//         let q0 = add22(r0, r1);
+//         let q1 = add12(t1, t6);
+//         let DoubleDouble { hi: rm, lo: rl } = add22(q0, q1);
 //         TripleDouble {
-//             hi: f64::from_bits(u.hi),
-//             lo: f64::from_bits(u.lo),
-//             mid: f64::from_bits(u.mid),
+//             hi: rh,
+//             mid: rm,
+//             lo: rl,
 //         }
 //     }
-// }
 //
-// impl TripleDouble {
 //     #[inline]
-//     pub(crate) fn from_add_to_f64(x: f64, rhs: TripleDouble) -> TripleDouble {
-//         let Dekker { hi: s0, lo: e0 } = Dekker::from_full_exact_add(x, rhs.hi);
-//         let Dekker { hi: s1, lo: e1 } = Dekker::from_full_exact_add(rhs.mid, e0);
-//         let Dekker { hi: s2, lo: e2 } = Dekker::from_full_exact_add(rhs.lo, e1);
-//
-//         let Dekker { hi: r1, lo: t1 } = Dekker::from_exact_add(s1, s2 + e2);
-//         let Dekker { hi: r0, lo: r1 } = Dekker::from_exact_add(s0, r1);
-//         TripleDouble::new(t1, r1, r0)
+//     pub(crate) fn from_quick_mult_dd_f64(a: DoubleDouble, b: f64) -> TripleDouble {
+//         let DoubleDouble { hi: rh, lo: t1 } = mul12(a.hi, b);
+//         let DoubleDouble { hi: t2, lo: t3 } = mul12(a.lo, b);
+//         let DoubleDouble { hi: t5, lo: t4 } = add12(t1, t2);
+//         let t6 = t3 + t4;
+//         let DoubleDouble { hi: rm, lo: rl } = add12(t5, t6);
+//         TripleDouble::new(rl, rm, rh)
 //     }
 //
 //     #[inline]
-//     pub(crate) fn to_dekker(self) -> Dekker {
-//         Dekker::new(self.lo + self.mid, self.hi)
+//     pub(crate) fn from_quick_mult_f64(a: TripleDouble, b: f64) -> TripleDouble {
+//         let DoubleDouble { hi: rh, lo: t2 } = mul12(a.hi, b);
+//         let DoubleDouble { hi: t3, lo: t4 } = mul12(a.mid, b);
+//         let t5 = a.lo * b;
+//         let DoubleDouble { hi: t9, lo: t7 } = add12(t2, t3);
+//         let t8 = t4 + t5;
+//         let t10 = t7 + t8;
+//         let DoubleDouble { hi: rm, lo: rl } = add12(t9, t10);
+//         TripleDouble::new(rl, rm, rh)
+//     }
+//
+//     #[inline]
+//     pub(crate) fn quick_mul_dd(b: TripleDouble, a: DoubleDouble) -> TripleDouble {
+//         /*
+//
+//         (rh , t1) ← Mul12 (ah , bh )
+//         (t2, t3) ← Mul12 (ah , bm )
+//         (t4, t5) ← Mul12 (ah , bl )
+//         (t6, t7) ← Mul12 (al , bh )
+//         (t8, t9) ← Mul12 (al , bm )
+//         t10 ← al ⊗ bl
+//         (t11, t12) ← Add22 (t2, t3, t4, t5)
+//         (t13, t14) ← Add22 (t6, t7, t8, t9)
+//         (t15, t16) ← Add22 (t11, t12, t13, t14)
+//         (t17, t18) ← Add12 (t1, t10)
+//         (rm , rl ) ← Add22 (t17, t18, t15, t16)
+//                  */
+//         let DoubleDouble { hi: rh, lo: t1 } = mul12(a.hi, b.hi);
+//         let DoubleDouble { hi: t2, lo: t3 } = mul12(a.hi, b.mid);
+//         let DoubleDouble { hi: t4, lo: t5 } = mul12(a.hi, b.lo);
+//         let DoubleDouble { hi: t6, lo: t7 } = mul12(a.lo, b.hi);
+//         let DoubleDouble { hi: t8, lo: t9 } = mul12(a.lo, b.mid);
+//         let t10 = a.lo * b.lo;
+//         let z0 = add22(DoubleDouble::new(t3, t2), DoubleDouble::new(t4, t5));
+//         let z1 = add22(DoubleDouble::new(t6, t7), DoubleDouble::new(t8, t9));
+//         let q0 = add22(z0, z1);
+//         let q1 = add12(t1, t10);
+//         let DoubleDouble { hi: rm, lo: rl } = add22(q1, q0);
+//         TripleDouble {
+//             hi: rh,
+//             mid: rm,
+//             lo: rl,
+//         }
+//     }
+//
+//     pub(crate) fn add(a: TripleDouble, b: TripleDouble) -> TripleDouble {
+//         /*
+//         (rh , t1) ← Add12 (ah , bh )
+//         (t2, t3) ← Add12 (am , bm )
+//         (t7, t4) ← Add12 (t1, t2)
+//         t6 ← al ⊕ bl
+//         t5 ← t3 ⊕ t4
+//         t8 ← t5 ⊕ t6
+//         (rm , rl ) ← Add12 (t7, t8)
+//                  */
+//         let DoubleDouble { hi: rh, lo: t1 } = add12(a.hi, b.hi);
+//         let DoubleDouble { hi: t2, lo: t3 } = add12(a.mid, b.mid);
+//         let DoubleDouble { hi: t7, lo: t4 } = add12(t1, t2);
+//         let t6 = a.lo + b.lo;
+//         let t5 = t3 + t4;
+//         let t8 = t5 + t6;
+//         let DoubleDouble { hi: rm, lo: rl } = add12(t7, t8);
+//         TripleDouble {
+//             hi: rh,
+//             mid: rm,
+//             lo: rl,
+//         }
+//     }
+//
+//     pub(crate) fn add_dd(a: DoubleDouble, b: TripleDouble) -> TripleDouble {
+//         /*
+//         (rh , t1) ← Add12 (ah , bh )
+//         (t2, t3) ← Add12 (al , bm )
+//         (t4, t5) ← Add12 (t1, t2)
+//         t6 ← t3 ⊕ bl
+//         t7 ← t6 ⊕ t5
+//         (rm , rl ) ← Add12 (t4, t7)
+//          */
+//         let DoubleDouble { hi: rh, lo: t1 } = add12(a.hi, b.hi);
+//         let DoubleDouble { hi: t2, lo: t3 } = add12(a.hi, b.mid);
+//         let DoubleDouble { hi: t4, lo: t5 } = add12(t1, t2);
+//         let t6 = t3 + b.lo;
+//         let t7 = t6 + t5;
+//         let DoubleDouble { hi: rm, lo: rl } = add12(t4, t7);
+//         TripleDouble {
+//             hi: rh,
+//             mid: rm,
+//             lo: rl,
+//         }
+//     }
+//
+//     #[inline]
+//     pub(crate) fn add_f64(a: f64, b: TripleDouble) -> TripleDouble {
+//         let DoubleDouble { hi: rh, lo: t1 } = add12(a, b.hi);
+//         let DoubleDouble { hi: t2, lo: t3 } = add12(t1, b.mid);
+//         let t4 = t3 + b.lo;
+//         let DoubleDouble { hi: rm, lo: rl } = add12(t2, t4);
+//         TripleDouble::new(rl, rm, rh)
+//     }
+//
+//     #[inline]
+//     pub(crate) fn to_dd(self) -> DoubleDouble {
+//         let DoubleDouble { hi: t1, lo: t2 } = add12(self.hi, self.mid);
+//         let t3 = t2 + self.lo;
+//         DoubleDouble::new(t1, t3)
 //     }
 //
 //     #[inline]
@@ -102,383 +281,9 @@
 //     }
 //
 //     #[inline]
-//     pub(crate) const fn from_f64(x: f64) -> Self {
-//         Self {
-//             hi: x,
-//             lo: 0.,
-//             mid: 0.,
-//         }
-//     }
-//
-//     #[inline]
-//     pub(crate) fn from_reciprocal(x: f64) -> TripleDouble {
-//         let mut y = TripleDouble::from_f64(1. / x);
-//         // r1 = 1 - x * y
-//
-//         let xy = y.mul_f64(x); // ~106 bits
-//         let one = TripleDouble::from_f64(1.);
-//         let r1 = one.sub(xy); // r1 ≈ residual
-//         let correction1 = y.mul(r1); // y * (1 - x * y)
-//         y = y.add(correction1); // improved y
-//
-//         let x0y = y.mul_f64(x); // ~106 bits
-//         let r2 = one.sub(x0y); // r1 ≈ residual
-//         let correction2 = y.mul(r2); // y * (1 - x * y)
-//         y = y.add(correction2); // improved y
-//
-//         y
-//     }
-//
-//     #[inline]
-//     pub(crate) fn add(self, other: TripleDouble) -> TripleDouble {
-//         let Dekker { hi: s0, lo: e0 } = Dekker::from_full_exact_add(self.hi, other.hi);
-//         let Dekker { hi: s1, lo: e1 } = Dekker::from_full_exact_add(self.mid, other.mid);
-//         let Dekker { hi: s2, lo: e2 } = Dekker::from_full_exact_add(self.lo, other.lo);
-//
-//         let Dekker { hi: t0, lo: e3 } = Dekker::from_full_exact_add(s1, e0);
-//         let Dekker { hi: t1, lo: e4 } = Dekker::from_full_exact_add(s2, e1 + e3);
-//         let t2 = e2 + e4;
-//
-//         let Dekker { hi, lo: mid } = Dekker::from_exact_add(s0, t0);
-//         let Dekker { hi: mid, lo } = Dekker::from_exact_add(mid, t1 + t2);
-//
-//         TripleDouble { hi, mid, lo }
-//     }
-//
-//     #[inline]
-//     pub(crate) fn sub(self, other: TripleDouble) -> TripleDouble {
-//         let Dekker { hi: s0, lo: e0 } = Dekker::from_full_exact_sub(self.hi, other.hi);
-//         let Dekker { hi: s1, lo: e1 } = Dekker::from_full_exact_sub(self.mid, other.mid);
-//         let Dekker { hi: s2, lo: e2 } = Dekker::from_full_exact_sub(self.lo, other.lo);
-//
-//         let Dekker { hi: t0, lo: e3 } = Dekker::from_full_exact_add(s1, e0);
-//         let Dekker { hi: t1, lo: e4 } = Dekker::from_full_exact_add(s2, e1 + e3);
-//         let t2 = e2 + e4;
-//
-//         let Dekker { hi, lo: mid } = Dekker::from_exact_add(s0, t0);
-//         let Dekker { hi: mid, lo } = Dekker::from_exact_add(mid, t1 + t2);
-//
-//         TripleDouble { hi, mid, lo }
-//     }
-//
-//     #[inline]
-//     fn renorm(self) -> TripleDouble {
-//         let Dekker { hi: s0, lo: e0 } = Dekker::from_full_exact_add(self.hi, self.mid);
-//         let Dekker { hi: s1, lo: e1 } = Dekker::from_full_exact_add(e0, self.lo);
-//         let Dekker { hi, lo: mid } = Dekker::from_full_exact_add(s0, s1);
-//         let lo = e1;
-//
-//         TripleDouble { hi, mid, lo }
-//     }
-//
-//     #[inline]
-//     pub(crate) fn div_f64(self, b: f64) -> TripleDouble {
-//         // Step 1: Approximate quotient
-//         let q0 = self.hi / b;
-//
-//         // Step 2: Compute residual (hi - q0 * b), using FMA
-//         let r0 = f64::mul_add(-q0, b, self.hi); // exact residual
-//
-//         // Step 3: Refine with mid-part
-//         let r1 = r0 + self.mid;
-//         let q1 = r1 / b;
-//
-//         // Step 4: Second residual (using remaining error and lo)
-//         let r2 = f64::mul_add(-q1, b, r1 + self.lo);
-//         let q2 = r2 / b;
-//
-//         // Step 5: Sum and renormalize
-//         let Dekker { hi: s0, lo: e0 } = Dekker::from_full_exact_add(q0, q1);
-//         let Dekker { hi: s1, lo: e1 } = Dekker::from_full_exact_add(e0, q2);
-//         let Dekker { hi, lo: mid } = Dekker::from_full_exact_add(s0, s1);
-//         let lo = e1;
-//
-//         TripleDouble { hi, mid, lo }
-//     }
-//
-//     #[inline]
-//     fn mul_f64(self, b: f64) -> TripleDouble {
-//         let Dekker { hi: p0, lo: e0 } = Dekker::from_exact_mult(self.hi, b);
-//         let Dekker { hi: p1, lo: e1 } = Dekker::from_exact_mult(self.mid, b);
-//         let Dekker { hi: p2, lo: e2 } = Dekker::from_exact_mult(self.lo, b);
-//
-//         let Dekker { hi: s1, lo: t1 } = Dekker::from_full_exact_add(e0, p1);
-//         let Dekker { hi: s2, lo: t2 } = Dekker::from_full_exact_add(t1, e1);
-//         let Dekker { hi: s3, lo: t3 } = Dekker::from_full_exact_add(t2, p2);
-//         let s4 = t3 + e2;
-//
-//         let Dekker { hi: r0, lo: r1_ } = Dekker::from_exact_add(p0, s1);
-//         let Dekker { hi: r1, lo: r2_ } = Dekker::from_exact_add(r1_, s2);
-//         let r2 = r2_ + s3 + s4;
-//
-//         TripleDouble {
-//             hi: r0,
-//             mid: r1,
-//             lo: r2,
-//         }
-//     }
-//
-//     #[inline]
-//     fn mul_short(self, rhs: TripleDouble) -> TripleDouble {
-//         // Only partial product expansion, enough for one correction step
-//         let Dekker { hi: p0, lo: e0 } =
-//             Dekker::from_full_exact_add(self.hi * rhs.hi, self.hi * rhs.mid + self.mid * rhs.hi);
-//         let Dekker { hi: p1, lo: e1 } = Dekker::from_full_exact_add(
-//             e0,
-//             self.hi * rhs.lo + self.mid * rhs.mid + self.lo * rhs.hi,
-//         );
-//         let Dekker { hi, lo: mid } = Dekker::from_full_exact_add(p0, p1);
-//         let lo = e1; // error term
-//         TripleDouble { hi, mid, lo }
-//     }
-//
-//     #[inline]
-//     pub(crate) fn mul(self, other: TripleDouble) -> TripleDouble {
-//         // Step 1: compute leading product and error
-//         let Dekker { hi: p0, lo: e0 } = Dekker::from_exact_mult(self.hi, other.hi);
-//
-//         // Step 2: compute cross terms
-//         let Dekker { hi: p1a, lo: e1a } = Dekker::from_exact_mult(self.hi, other.mid);
-//         let Dekker { hi: p1b, lo: e1b } = Dekker::from_exact_mult(self.mid, other.hi);
-//
-//         let Dekker { hi: s1, lo: e1 } = Dekker::from_full_exact_add(p1a, p1b);
-//         let e1_total = e1 + e1a + e1b;
-//
-//         // Step 3: low-order terms
-//         let Dekker { hi: p2a, lo: e2a } = Dekker::from_exact_mult(self.hi, other.lo);
-//         let Dekker { hi: p2b, lo: e2b } = Dekker::from_exact_mult(self.mid, other.mid);
-//         let Dekker { hi: p2c, lo: e2c } = Dekker::from_exact_mult(self.lo, other.hi);
-//
-//         let Dekker { hi: s2_1, lo: e2_1 } = Dekker::from_full_exact_add(p2a, p2b);
-//         let Dekker { hi: s2, lo: e2_2 } = Dekker::from_full_exact_add(s2_1, p2c);
-//         let e2_total = e2a + e2b + e2c + e2_1 + e2_2;
-//
-//         // Final accumulation
-//         let Dekker { hi: r0, lo: t1 } = Dekker::from_exact_add(p0, e0);
-//         let Dekker { hi: r1, lo: t2 } = Dekker::from_exact_add(s1, e1_total + t1);
-//         let Dekker { hi: r2, lo: _ } = Dekker::from_exact_add(s2, e2_total + t2);
-//
-//         TripleDouble {
-//             hi: r0,
-//             mid: r1,
-//             lo: r2,
-//         }
-//         .renorm()
-//     }
-//
-//     #[inline]
-//     pub(crate) fn div(self, rhs: TripleDouble) -> TripleDouble {
-//         // Step 1: Initial rough reciprocal: 1 / rhs
-//         let inv_hi = 1.0 / rhs.hi;
-//
-//         // Step 2: Multiply self by reciprocal estimate (TripleDouble × f64)
-//         let q0 = self.mul_f64(inv_hi);
-//
-//         // Step 3: Compute rhs * q0 (TripleDouble × TripleDouble)
-//         let prod = rhs.mul_short(q0);
-//
-//         // Step 4: Compute residual r = self - rhs * q0
-//         let r = self.sub(prod);
-//
-//         // Step 5: Correction term = r.hi / rhs.hi
-//         let delta = r.hi / rhs.hi;
-//         let q1 = TripleDouble::from_add_to_f64(delta, q0);
-//
-//         q1.renorm()
-//     }
-//
-//     #[inline]
-//     pub(crate) fn recip(self) -> TripleDouble {
-//         // Step 1: Initial approximation using f64 reciprocal
-//         let approx = 1.0 / self.hi;
-//         let mut y = TripleDouble::from_f64(approx);
-//
-//         // Step 2: Newton–Raphson: y = y * (2 - x * y)
-//         // 1st refinement
-//         let xy = self.mul(y);
-//         let one = TripleDouble::from_f64(1.);
-//         let diff = one.sub(xy);
-//         let r = y.mul(diff);
-//         y = y.add(r);
-//
-//         // Optional: 2nd refinement for full precision
-//         let xy = self.mul(y);
-//         let diff = one.sub(xy);
-//         let r = y.mul(diff);
-//         y = y.add(r);
-//
-//         y
-//     }
-//
-//     // pub fn div(self, rhs: TripleDouble) -> TripleDouble {
-//     //     // Step 1: Initial rough reciprocal: 1 / rhs
-//     //     let inv_hi = 1.0 / rhs.hi;
-//     //
-//     //     // Step 2: Multiply self by reciprocal estimate (TripleDouble × f64)
-//     //     let mut q0 = self.mul_f64(inv_hi);
-//     //
-//     //     // Step 3: Compute rhs * q0 (TripleDouble × TripleDouble)
-//     //     let prod = rhs.mul_triple(q0);
-//     //
-//     //     // Step 4: Compute residual r = self - rhs * q0
-//     //     let r = self.sub_triple(prod);
-//     //
-//     //     // Step 5: Correction term = r.hi / rhs.hi
-//     //     let delta = r.hi / rhs.hi;
-//     //     let q1 = q0.add_f64(delta);
-//     //
-//     //     q1.renormalize()
-//     // }
-// }
-//
-// /*
-// impl TripleDouble {
-//     #[inline(always)]
-//     fn two_sum(a: f64, b: f64) -> (f64, f64) {
-//         let s = a + b;
-//         let bv = s - a;
-//         let err = (a - (s - bv)) + (b - bv);
-//         (s, err)
-//     }
-//
-//     #[inline(always)]
-//     fn quick_two_sum(a: f64, b: f64) -> (f64, f64) {
-//         let s = a + b;
-//         let err = b - (s - a);
-//         (s, err)
-//     }
-//
-//     #[inline(always)]
-//     fn two_prod(a: f64, b: f64) -> (f64, f64) {
-//         let p = Dekker::from_exact_mult(a, b);
-//         (p.hi, p.lo)
-//     }
-//
-//     /// Triple-double subtraction: self - other (approximate)
-//     pub(crate) fn sub(self, other: TripleDouble) -> TripleDouble {
-//         self.add(TripleDouble {
-//             hi: -other.hi,
-//             mid: -other.mid,
-//             lo: -other.lo,
-//         })
-//     }
-//
-//     /// Multiply triple-double by f64 scalar
-//    pub(crate) fn mul_f64(self, b: f64) -> TripleDouble {
-//         let (p0, e0) = Self::two_prod(self.hi, b);
-//         let (p1, e1) = Self::two_prod(self.mid, b);
-//         let (p2, e2) = Self::two_prod(self.lo, b);
-//
-//         let (s0, c0) = Self::two_sum(p1, e0);
-//         let (s1, c1) = Self::two_sum(p2, e1 + c0);
-//         let lo = e2 + c1;
-//
-//         let (hi, mid) = Self::quick_two_sum(p0, s0);
-//         let (mid, lo) = Self::quick_two_sum(mid, s1 + lo);
-//
-//         TripleDouble { hi, mid, lo }
-//     }
-//
-//     fn mul_f64_scalar(a: f64, b: f64) -> TripleDouble {
-//         let (p, e) = Self::two_prod(a, b);
-//         TripleDouble {
-//             hi: p,
-//             mid: e,
-//             lo: 0.0,
-//         }
-//     }
-//
-//     pub(crate) fn mul(a: TripleDouble, b: TripleDouble) -> TripleDouble {
-//         let (p1, e1) = Self::two_prod(a.hi, b.hi);
-//         let (p2, e2) = Self::two_prod(a.hi, b.mid);
-//         let (p3, e3) = Self::two_prod(a.mid, b.hi);
-//
-//         let (s1, t1) = Self::two_sum(p1, p2);
-//         let (s2, t2) = Self::two_sum(s1, p3);
-//
-//         let s3 = e1 + e2 + e3 + t1 + t2;
-//
-//         Self::renorm(s2, s3)
-//     }
-//
-//     fn renorm(hi: f64, rest: f64) -> TripleDouble {
-//         let (s1, e1) = Self::two_sum(hi, rest);
-//         let (s2, e2) = Self::two_sum(s1, e1);
-//         TripleDouble { hi: s2, mid: e2, lo: 0.0 }
-//     }
-//
-//     pub(crate) fn recip_f64(x: f64) -> Self {
-//         // Initial approximation in f64
-//         let r0 = 1.0 / x;
-//
-//         // Promote to triple-double
-//         let mut r = TripleDouble { hi: r0, mid: 0.0, lo: 0.0 };
-//
-//         // === Newton-Raphson iterations ===
-//         // r ← r + r * (1 - x * r)
-//         for _ in 0..2 {
-//             // b * r (as TD)
-//             let xr = Self::mul_f64(r, x);
-//
-//             // 1 - x * r
-//             let e = TripleDouble {
-//                 hi: 1.0 - xr.hi,
-//                 mid: -xr.mid,
-//                 lo: -xr.lo,
-//             };
-//
-//             // r * e
-//             let correction = Self::mul(r, e);
-//
-//             // r = r + correction
-//             r = r.add(correction);
-//         }
-//
-//         r
-//     }
-//
-//     /// Division triple-double / f64
-//     pub(crate) fn div_f64(self, b: f64) -> TripleDouble {
-//         // Step 1: q0 = a / b
-//         let q0 = self.hi / b;
-//
-//         // Step 2: compute r0 = a - q0 * b
-//         let qb0 = Self::mul_f64_scalar(q0, b);
-//         let r0 = self.sub(qb0);
-//
-//         // Step 3: q1 = r0.hi / b
-//         let q1 = r0.hi / b;
-//
-//         // Step 4: r1 = r0 - q1 * b
-//         let qb1 = Self::mul_f64_scalar(q1, b);
-//         let r1 = r0.sub(qb1);
-//
-//         // Step 5: q2 = r1.hi / b
-//         let q2 = r1.hi / b;
-//
-//         TripleDouble {
-//             hi: q0,
-//             mid: q1,
-//             lo: q2,
-//         }
-//     }
-//
-//     pub(crate) fn div_f64_newton_rapshon(self, b: f64) -> TripleDouble {
-//         let mut q = TripleDouble::div_f64(self, b);
-//         // Compute e = 1 - b * q
-//         let bq = Self::mul_f64(q, b);
-//         let e = self.sub(bq);
-//
-//         // Refine: q = q + q * e
-//         let qe = Self::div_f64(e, b);
-//         q = q.add(qe);
-//
-//         q
-//     }
-//
-//     #[inline]
 //     pub(crate) fn to_f64(self) -> f64 {
-//         (self.hi + self.mid) + self.lo
+//         let DoubleDouble { hi: t1, lo: t2 } = add12(self.hi, self.mid);
+//         let t3 = t2 + self.lo;
+//         t1 + t3
 //     }
 // }
-// */

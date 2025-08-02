@@ -362,162 +362,162 @@ pub(crate) fn rem2pif_any(x: f32) -> f64 {
     }
 }
 
-// pub(crate) fn frac2pi_d128(x: DyadicFloat128) -> DyadicFloat128 {
-//     let e = x.biased_exponent();
-//
-//     let mut fe = x;
-//
-//     if e <= 1
-//     // |X| < 2
-//     {
-//         /* multiply by T[0]/2^64 + T[1]/2^128, where
-//         |T[0]/2^64 + T[1]/2^128 - 1/(2pi)| < 2^-130.22 */
-//         let mut x_hi = (x.mantissa >> 64) as u64;
-//         let mut x_lo: u64;
-//         let mut u: u128 = x_hi as u128 * INVPI_2_62[1] as u128;
-//         let tiny: u64 = u as u64;
-//         x_lo = (u >> 64) as u64;
-//         u = x_hi as u128 * INVPI_2_62[0] as u128;
-//         x_lo = x_lo.wrapping_add(u as u64);
-//         x_hi = (u >> 64) as u64 + (x_lo < u as u64) as u64;
-//         /* hi + lo/2^64 + tiny/2^128 = hi_in * (T[0]/2^64 + T[1]/2^128) thus
-//         |hi + lo/2^64 + tiny/2^128 - hi_in/(2*pi)| < hi_in * 2^-130.22
-//         Since X is normalized at input, hi_in >= 2^63, and since T[0] >= 2^61,
-//         we have hi >= 2^(63+61-64) = 2^60, thus the normalize() below
-//         perform a left shift by at most 3 bits */
-//         let mut e = x.exponent;
-//         fe.mantissa = (x_hi as u128).wrapping_shl(64) | (x_lo as u128);
-//         fe.normalize();
-//         e -= fe.exponent;
-//         // put the upper e bits of tiny into X->lo
-//         if (e) != 0 {
-//             x_hi = (fe.mantissa >> 64) as u64;
-//             x_lo = (fe.mantissa & 0xffff_ffff_ffff_ffff) as u64;
-//             x_lo |= tiny >> (64 - e);
-//             fe.mantissa = (x_hi as u128).wrapping_shl(64) | (x_lo as u128);
-//         }
-//         /* The error is bounded by 2^-130.22 (relative) + ulp(lo) (absolute).
-//            Since now X->hi >= 2^63, the absolute error of ulp(lo) converts into
-//            a relative error of less than 2^-127.
-//            This yields a maximal relative error of:
-//            (1 + 2^-130.22) * (1 + 2^-127) - 1 < 2^-126.852.
-//         */
-//         return fe;
-//     }
-//
-//     // now 2 <= e <= 1024
-//
-//     /* The upper 64-bit word X->hi corresponds to hi/2^64*2^e, if multiplied by
-//     T[i]/2^((i+1)*64) it yields hi*T[i]/2^128 * 2^(e-i*64).
-//     If e-64i <= -128, it contributes to less than 2^-128;
-//     if e-64i >= 128, it yields an integer, which is 0 modulo 1.
-//     We thus only consider the values of i such that -127 <= e-64i <= 127,
-//     i.e., (-127+e)/64 <= i <= (127+e)/64.
-//     Up to 4 consecutive values of T[i] can contribute (only 3 when e is a
-//     multiple of 64). */
-//     let i = (if e < 127 { 0 } else { (e - 127 + 64 - 1) / 64 }) as usize; // ceil((e-127)/64)
-//     // 0 <= i <= 15
-//     let mut c: [u64; 5] = [0u64; 5];
-//
-//     let mut x_hi = (x.mantissa >> 64) as u64;
-//     let mut x_lo: u64;
-//
-//     let mut u: u128 = x_hi as u128 * INVPI_2_62[i + 3] as u128; // i+3 <= 18
-//     c[0] = u as u64;
-//     c[1] = (u >> 64) as u64;
-//     u = x_hi as u128 * INVPI_2_62[i + 2] as u128;
-//     c[1] = c[1].wrapping_add(u as u64);
-//     c[2] = (u >> 64) as u64 + (c[1] < u as u64) as u64;
-//     u = x_hi as u128 * INVPI_2_62[i + 1] as u128;
-//     c[2] = c[2].wrapping_add(u as u64);
-//     c[3] = (u >> 64) as u64 + (c[2] < u as u64) as u64;
-//     u = x_hi as u128 * INVPI_2_62[i] as u128;
-//     c[3] = c[3].wrapping_add(u as u64);
-//     c[4] = (u >> 64) as u64 + (c[3] < u as u64) as u64;
-//
-//     let f = e as i32 - 64 * i as i32; // hi*T[i]/2^128 is multiplied by 2^f
-//
-//     /* {c, 5} = hi*(T[i]+T[i+1]/2^64+T[i+2]/2^128+T[i+3]/2^192) */
-//     /* now shift c[0..4] by f bits to the left */
-//     let tiny;
-//     if f < 64 {
-//         x_hi = (c[4] << f) | (c[3] >> (64 - f));
-//         x_lo = (c[3] << f) | (c[2] >> (64 - f));
-//         tiny = (c[2] << f) | (c[1] >> (64 - f));
-//         /* the ignored part was less than 1 in c[1],
-//         thus less than 2^(f-64) <= 1/2 in tiny */
-//     } else if f == 64 {
-//         x_hi = c[3];
-//         x_lo = c[2];
-//         tiny = c[1];
-//         /* the ignored part was less than 1 in c[1],
-//         thus less than 1 in tiny */
-//     } else
-//     /* 65 <= f <= 127: this case can only occur when e >= 65 */
-//     {
-//         let g = f - 64; /* 1 <= g <= 63 */
-//         /* we compute an extra term */
-//         u = x_hi as u128 * INVPI_2_62[i + 4] as u128; // i+4 <= 19
-//         u >>= 64;
-//         c[0] = c[0].wrapping_add(u as u64);
-//         c[1] += (c[0] < u as u64) as u64;
-//         c[2] += ((c[0] < u as u64) && c[1] == 0) as u64;
-//         c[3] += ((c[0] < u as u64) && c[1] == 0 && c[2] == 0) as u64;
-//         c[4] += ((c[0] < u as u64) && c[1] == 0 && c[2] == 0 && c[3] == 0) as u64;
-//         x_hi = (c[3] << g) | (c[2] >> (64 - g));
-//         x_lo = (c[2] << g) | (c[1] >> (64 - g));
-//         tiny = (c[1] << g) | (c[0] >> (64 - g));
-//         /* the ignored part was less than 1 in c[0],
-//         thus less than 1/2 in tiny */
-//     }
-//     let mut fe = x;
-//     fe.exponent = -127;
-//     fe.mantissa = (x_hi as u128).wrapping_shl(64) | (x_lo as u128);
-//     fe.normalize();
-//     let ze = fe.biased_exponent();
-//     if ze < 0 {
-//         x_hi = (fe.mantissa >> 64) as u64;
-//         x_lo = (fe.mantissa & 0xffff_ffff_ffff_ffff) as u64;
-//         x_lo |= tiny >> (64 + ze);
-//         fe.mantissa = (x_hi as u128).wrapping_shl(64) | (x_lo as u128);
-//     }
-//     fe
-// }
+pub(crate) fn frac2pi_d128(x: DyadicFloat128) -> DyadicFloat128 {
+    let e = x.biased_exponent();
 
-// pub(crate) fn rem2pi_f128(x: DyadicFloat128) -> DyadicFloat128 {
-//     /*
-//         Generated by SageMath:
-//         ```python
-//     def double_to_hex(f):
-//         # Converts Python float (f64) to hex string
-//         packed = struct.pack('>d', float(f))
-//         return '0x' + packed.hex()
-//
-//     def format_dyadic_hex(value):
-//         l = hex(value)[2:]
-//         n = 8
-//         x = [l[i:i + n] for i in range(0, len(l), n)]
-//         return "0x" + "_".join(x) + "_u128"
-//
-//     def print_dyadic(value):
-//         (s, m, e) = RealField(128)(value).sign_mantissa_exponent();
-//         print("DyadicFloat128 {")
-//         print(f"    sign: DyadicSign::{'Pos' if s >= 0 else 'Neg'},")
-//         print(f"    exponent: {e},")
-//         print(f"    mantissa: {format_dyadic_hex(m)},")
-//         print("},")
-//
-//     print_dyadic(RealField(300).pi() * 2)
-//         ```
-//          */
-//     const TWO_PI: DyadicFloat128 = DyadicFloat128 {
-//         sign: DyadicSign::Pos,
-//         exponent: -125,
-//         mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
-//     };
-//     let frac2pi = frac2pi_d128(x);
-//     TWO_PI * frac2pi
-// }
+    let mut fe = x;
+
+    if e <= 1
+    // |X| < 2
+    {
+        /* multiply by T[0]/2^64 + T[1]/2^128, where
+        |T[0]/2^64 + T[1]/2^128 - 1/(2pi)| < 2^-130.22 */
+        let mut x_hi = (x.mantissa >> 64) as u64;
+        let mut x_lo: u64;
+        let mut u: u128 = x_hi as u128 * INVPI_2_62[1] as u128;
+        let tiny: u64 = u as u64;
+        x_lo = (u >> 64) as u64;
+        u = x_hi as u128 * INVPI_2_62[0] as u128;
+        x_lo = x_lo.wrapping_add(u as u64);
+        x_hi = (u >> 64) as u64 + (x_lo < u as u64) as u64;
+        /* hi + lo/2^64 + tiny/2^128 = hi_in * (T[0]/2^64 + T[1]/2^128) thus
+        |hi + lo/2^64 + tiny/2^128 - hi_in/(2*pi)| < hi_in * 2^-130.22
+        Since X is normalized at input, hi_in >= 2^63, and since T[0] >= 2^61,
+        we have hi >= 2^(63+61-64) = 2^60, thus the normalize() below
+        perform a left shift by at most 3 bits */
+        let mut e = x.exponent;
+        fe.mantissa = (x_hi as u128).wrapping_shl(64) | (x_lo as u128);
+        fe.normalize();
+        e -= fe.exponent;
+        // put the upper e bits of tiny into X->lo
+        if (e) != 0 {
+            x_hi = (fe.mantissa >> 64) as u64;
+            x_lo = (fe.mantissa & 0xffff_ffff_ffff_ffff) as u64;
+            x_lo |= tiny >> (64 - e);
+            fe.mantissa = (x_hi as u128).wrapping_shl(64) | (x_lo as u128);
+        }
+        /* The error is bounded by 2^-130.22 (relative) + ulp(lo) (absolute).
+           Since now X->hi >= 2^63, the absolute error of ulp(lo) converts into
+           a relative error of less than 2^-127.
+           This yields a maximal relative error of:
+           (1 + 2^-130.22) * (1 + 2^-127) - 1 < 2^-126.852.
+        */
+        return fe;
+    }
+
+    // now 2 <= e <= 1024
+
+    /* The upper 64-bit word X->hi corresponds to hi/2^64*2^e, if multiplied by
+    T[i]/2^((i+1)*64) it yields hi*T[i]/2^128 * 2^(e-i*64).
+    If e-64i <= -128, it contributes to less than 2^-128;
+    if e-64i >= 128, it yields an integer, which is 0 modulo 1.
+    We thus only consider the values of i such that -127 <= e-64i <= 127,
+    i.e., (-127+e)/64 <= i <= (127+e)/64.
+    Up to 4 consecutive values of T[i] can contribute (only 3 when e is a
+    multiple of 64). */
+    let i = (if e < 127 { 0 } else { (e - 127 + 64 - 1) / 64 }) as usize; // ceil((e-127)/64)
+    // 0 <= i <= 15
+    let mut c: [u64; 5] = [0u64; 5];
+
+    let mut x_hi = (x.mantissa >> 64) as u64;
+    let mut x_lo: u64;
+
+    let mut u: u128 = x_hi as u128 * INVPI_2_62[i + 3] as u128; // i+3 <= 18
+    c[0] = u as u64;
+    c[1] = (u >> 64) as u64;
+    u = x_hi as u128 * INVPI_2_62[i + 2] as u128;
+    c[1] = c[1].wrapping_add(u as u64);
+    c[2] = (u >> 64) as u64 + (c[1] < u as u64) as u64;
+    u = x_hi as u128 * INVPI_2_62[i + 1] as u128;
+    c[2] = c[2].wrapping_add(u as u64);
+    c[3] = (u >> 64) as u64 + (c[2] < u as u64) as u64;
+    u = x_hi as u128 * INVPI_2_62[i] as u128;
+    c[3] = c[3].wrapping_add(u as u64);
+    c[4] = (u >> 64) as u64 + (c[3] < u as u64) as u64;
+
+    let f = e as i32 - 64 * i as i32; // hi*T[i]/2^128 is multiplied by 2^f
+
+    /* {c, 5} = hi*(T[i]+T[i+1]/2^64+T[i+2]/2^128+T[i+3]/2^192) */
+    /* now shift c[0..4] by f bits to the left */
+    let tiny;
+    if f < 64 {
+        x_hi = (c[4] << f) | (c[3] >> (64 - f));
+        x_lo = (c[3] << f) | (c[2] >> (64 - f));
+        tiny = (c[2] << f) | (c[1] >> (64 - f));
+        /* the ignored part was less than 1 in c[1],
+        thus less than 2^(f-64) <= 1/2 in tiny */
+    } else if f == 64 {
+        x_hi = c[3];
+        x_lo = c[2];
+        tiny = c[1];
+        /* the ignored part was less than 1 in c[1],
+        thus less than 1 in tiny */
+    } else
+    /* 65 <= f <= 127: this case can only occur when e >= 65 */
+    {
+        let g = f - 64; /* 1 <= g <= 63 */
+        /* we compute an extra term */
+        u = x_hi as u128 * INVPI_2_62[i + 4] as u128; // i+4 <= 19
+        u >>= 64;
+        c[0] = c[0].wrapping_add(u as u64);
+        c[1] += (c[0] < u as u64) as u64;
+        c[2] += ((c[0] < u as u64) && c[1] == 0) as u64;
+        c[3] += ((c[0] < u as u64) && c[1] == 0 && c[2] == 0) as u64;
+        c[4] += ((c[0] < u as u64) && c[1] == 0 && c[2] == 0 && c[3] == 0) as u64;
+        x_hi = (c[3] << g) | (c[2] >> (64 - g));
+        x_lo = (c[2] << g) | (c[1] >> (64 - g));
+        tiny = (c[1] << g) | (c[0] >> (64 - g));
+        /* the ignored part was less than 1 in c[0],
+        thus less than 1/2 in tiny */
+    }
+    let mut fe = x;
+    fe.exponent = -127;
+    fe.mantissa = (x_hi as u128).wrapping_shl(64) | (x_lo as u128);
+    fe.normalize();
+    let ze = fe.biased_exponent();
+    if ze < 0 {
+        x_hi = (fe.mantissa >> 64) as u64;
+        x_lo = (fe.mantissa & 0xffff_ffff_ffff_ffff) as u64;
+        x_lo |= tiny >> (64 + ze);
+        fe.mantissa = (x_hi as u128).wrapping_shl(64) | (x_lo as u128);
+    }
+    fe
+}
+
+pub(crate) fn rem2pi_f128(x: DyadicFloat128) -> DyadicFloat128 {
+    /*
+        Generated by SageMath:
+        ```python
+    def double_to_hex(f):
+        # Converts Python float (f64) to hex string
+        packed = struct.pack('>d', float(f))
+        return '0x' + packed.hex()
+
+    def format_dyadic_hex(value):
+        l = hex(value)[2:]
+        n = 8
+        x = [l[i:i + n] for i in range(0, len(l), n)]
+        return "0x" + "_".join(x) + "_u128"
+
+    def print_dyadic(value):
+        (s, m, e) = RealField(128)(value).sign_mantissa_exponent();
+        print("DyadicFloat128 {")
+        print(f"    sign: DyadicSign::{'Pos' if s >= 0 else 'Neg'},")
+        print(f"    exponent: {e},")
+        print(f"    mantissa: {format_dyadic_hex(m)},")
+        print("},")
+
+    print_dyadic(RealField(300).pi() * 2)
+        ```
+         */
+    const TWO_PI: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -125,
+        mantissa: 0xc90fdaa2_2168c234_c4c6628b_80dc1cd1_u128,
+    };
+    let frac2pi = frac2pi_d128(x);
+    TWO_PI * frac2pi
+}
 
 // #[cfg(test)]
 // mod tests {

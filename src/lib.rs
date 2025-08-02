@@ -67,6 +67,7 @@ mod dyadic_float256;
 mod err;
 mod exponents;
 mod floor;
+mod horner;
 mod hyperbolic;
 mod hypot;
 mod hypotf;

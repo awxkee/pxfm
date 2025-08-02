@@ -31,7 +31,7 @@ use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, rational128_exp};
 use crate::polyeval::{
-    PolyevalMla, f_horner_polyeval21, f_horner_polyeval30, f_polyeval30, f_polyeval39,
+    PolyevalMla, f_horner_polyeval21, f_horner_polyeval30, f_polyeval20, f_polyeval30, f_polyeval39,
 };
 use std::ops::Mul;
 
@@ -59,7 +59,7 @@ pub fn f_i0(x: f64) -> f64 {
     }
 
     if xb <= 0x400ccccccccccccdu64 {
-        return i0_0_to_3p5(f64::from_bits(xb)).to_f64();
+        return i0_0_to_3p6_exec(f64::from_bits(xb));
     } else if xb <= 0x401e000000000000u64 {
         return i3p6_to_7p5(f64::from_bits(xb));
     } else if xb <= 0x4023000000000000u64 {
@@ -462,6 +462,144 @@ pub(crate) fn i0_0_to_3p5(x: f64) -> DoubleDouble {
     let z = DoubleDouble::quick_mult(p, eval_x);
 
     DoubleDouble::full_add_f64(z, 1.)
+}
+
+#[inline]
+pub(crate) fn i0_0_to_3p6_exec(x: f64) -> f64 {
+    let r = i0_0_to_3p6_dd(x);
+    let err = f_fmla(
+        r.hi,
+        f64::from_bits(0x3c20000000000000),
+        f64::from_bits(0x3970000000000000),
+    );
+    let ub = r.hi + (r.lo + err);
+    let lb = r.hi + (r.lo - err);
+    if ub == lb {
+        return r.to_f64();
+    }
+    i0_0_to_3p6_hard(x)
+}
+
+#[cold]
+#[inline(never)]
+fn i0_0_to_3p6_hard(x: f64) -> f64 {
+    // See ./notes/bessel_sollya/bessel_i0_small_rational128.sollya
+    let mut dx = DyadicFloat128::new_from_f64(x);
+    dx = dx * dx;
+    dx.exponent -= 2; // * 0.25
+    const P: [DyadicFloat128; 20] = [
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -127,
+            mantissa: 0x80000000_00000000_00000000_00000000_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -129,
+            mantissa: 0x80000000_00000000_00000000_00000008_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -133,
+            mantissa: 0xe38e38e3_8e38e38e_38e38e38_e38e22c4_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -137,
+            mantissa: 0xe38e38e3_8e38e38e_38e38e38_e3a43412_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -141,
+            mantissa: 0x91a2b3c4_d5e6f809_1a2b3c4d_5332b504_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -146,
+            mantissa: 0x81742e04_4c5b8724_8909fcbd_7c995b8a_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -152,
+            mantissa: 0xa91521fb_2a434d3f_649f4edc_3e07de2a_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -158,
+            mantissa: 0xa91521fb_2a434d3f_64a291ec_56f26dc6_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -164,
+            mantissa: 0x85989944_df05c4ef_b6731346_f776e9ba_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -171,
+            mantissa: 0xab00c42f_31f2e79a_15232ee1_4ce32720_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -178,
+            mantissa: 0xb4e54e79_dbfa9bbc_4a391754_f8b1e038_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -185,
+            mantissa: 0xa0cbd3fa_8aa605f4_ed9568b3_c02893ce_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -193,
+            mantissa: 0xf392aca7_7281aa35_fccc9f5c_d105e062_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -200,
+            mantissa: 0x9f116b87_7ea9f5fd_e26b0cc9_056b7fbe_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -208,
+            mantissa: 0xb4fbed40_e04899a4_0b62c76f_aad78b72_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -216,
+            mantissa: 0xb4fbedb2_7b0d92fa_2b9dee5e_8f241966_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -224,
+            mantissa: 0xa05157e0_217cd73b_3a7d1681_7d9e923c_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -233,
+            mantissa: 0xfd5dfb7b_c3d1fe5b_a3491aa5_bc061ec0_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -241,
+            mantissa: 0xb306b987_18677d4c_f4c4eca9_5d30e83a_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -250,
+            mantissa: 0xf94742a0_7060713c_15a39160_c3b15b1e_u128,
+        },
+    ];
+    const ONE: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -127,
+        mantissa: 0x80000000_00000000_00000000_00000000_u128,
+    };
+    let p = f_polyeval20(
+        dx, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12], P[13],
+        P[14], P[15], P[16], P[17], P[18], P[19],
+    );
+    let z = p * dx;
+    (z + ONE).fast_as_f64()
 }
 
 /**
