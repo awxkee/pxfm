@@ -469,7 +469,7 @@ pub(crate) fn i0_0_to_3p6_exec(x: f64) -> f64 {
     let r = i0_0_to_3p6_dd(x);
     let err = f_fmla(
         r.hi,
-        f64::from_bits(0x3c20000000000000),
+        f64::from_bits(0x3be0000000000000),
         f64::from_bits(0x3970000000000000),
     );
     let ub = r.hi + (r.lo + err);

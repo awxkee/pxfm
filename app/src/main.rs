@@ -170,7 +170,7 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (7.4f64).to_bits();
+    let start_bits = (7.5f64).to_bits();
     let end_bits = (7.5f64).to_bits();
 
     println!(

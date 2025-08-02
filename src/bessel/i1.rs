@@ -196,7 +196,7 @@ fn i1_0_to_7p75(x: f64, sign_scale: f64) -> f64 {
 
     let err = f_fmla(
         r.hi,
-        f64::from_bits(0x3c20000000000000),
+        f64::from_bits(0x3bf0000000000000),
         f64::from_bits(0x3980000000000000),
     );
     let ub = r.hi + (r.lo + err);
