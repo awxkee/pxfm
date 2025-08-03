@@ -107,7 +107,7 @@ pub fn bessel_k0(x: f64, prec: u32) -> Float {
 
     // Series sum: ∑ [ (ψ(k+1) + γ) / (k!)² * (x²/4)^k ]
     let mut k_fact = Float::with_val(prec, 1);
-    for k in 0..1000 {
+    for k in 0..1500 {
         let psi_k1 = harmonic(k, prec) - &gamma;
         if k > 0 {
             k_fact *= k;
@@ -117,9 +117,9 @@ pub fn bessel_k0(x: f64, prec: u32) -> Float {
         term.assign(&psi_k1 * num / denom);
         result = result.add(&term.clone());
 
-        if term.clone().abs() < Float::with_val(prec, 1e-70) {
-            break;
-        }
+        // if term.clone().abs() < Float::with_val(prec, 1e-70) {
+        //     break;
+        // }
     }
 
     let log_term = Float::with_val(prec, x / 2.).ln() * i0;

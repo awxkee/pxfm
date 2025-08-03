@@ -1,6 +1,4 @@
-use bessel::{bessel_i0, bessel_i1, bessel_k0};
-use num_complex::Complex;
-use pxfm::{f_i0, f_i1, f_j0, f_j1, f_k0, f_k1, f_y0, f_y1};
+use pxfm::{f_j1, f_k0};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -9,7 +7,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use zbessel_rs::bessel_k;
 
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
     let output = Command::new("python3")
@@ -170,8 +167,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (7.75f64).to_bits();
-    let end_bits = (7.76f64).to_bits();
+    let start_bits = (0.75f64).to_bits();
+    let end_bits = (0.76f64).to_bits();
 
     println!(
         "ulp {}",
@@ -204,8 +201,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = bessel_i1(x, 90);
-        let actual = f_i1(x);
+        let expected = compute_besselk(x).unwrap();
+        let actual = f_k0(x);
 
         let diff = count_ulp_f64(actual, &expected);
 
