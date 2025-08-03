@@ -68,8 +68,8 @@ pub fn f_y1(x: f64) -> f64 {
 
     let xb = x.to_bits();
 
-    if xb <= 0x3ff6666666666666u64 {
-        // 1.4
+    if xb <= 0x3ff6b851eb851eb8u64 {
+        // 1.42
         return y1_near_zero_fast(x);
     }
 
@@ -567,6 +567,7 @@ mod tests {
 
     #[test]
     fn test_y1() {
+        assert_eq!(f_y1(1.4000000000000004), -0.4791469742327998);
         assert_eq!(f_y1(2.0002288794493848), -0.10690337355867671);
         assert_eq!(
             f_y1(f64::from_bits(0x571a31ffe2ff7e9fu64)),
