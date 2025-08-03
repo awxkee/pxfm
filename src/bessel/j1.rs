@@ -33,6 +33,7 @@ use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::j1_coeffs::{
     J1_COEFFS, J1_COEFFS_RATIONAL128, J1_ZEROS, J1_ZEROS_RATIONAL, J1_ZEROS_VALUE,
 };
+use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::horner::{f_horner_polyeval12, f_horner_polyeval18};
@@ -124,13 +125,17 @@ fn j1_asympt(x: f64) -> f64 {
     let scale = DoubleDouble::quick_mult(SQRT_2_OVER_PI, r_sqrt);
     let r = DoubleDouble::quick_mult(scale, z0);
 
-    const ERR: f64 = f64::from_bits(0x39d0000000000000);
-
-    let ub = r.hi + (r.lo + ERR);
-    let lb = r.hi + (r.lo - ERR);
+    let p = DoubleDouble::from_exact_add(r.hi, r.lo);
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3bc0000000000000), // 2^-67
+        f64::from_bits(0x39c0000000000000), // 2^-99
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
 
     if ub == lb {
-        return r.to_f64() * sign_scale;
+        return p.to_f64() * sign_scale;
     }
 
     j1_asympt_hard(origin_x)
@@ -353,16 +358,20 @@ pub(crate) fn j1_maclaurin_series(x: f64) -> f64 {
     p_e = DoubleDouble::mul_add(dx2, p_e, DoubleDouble::from_bit_pair(CL[1]));
     p_e = DoubleDouble::mul_add(dx2, p_e, DoubleDouble::from_bit_pair(CL[0]));
 
-    let px = DoubleDouble::quick_mult_f64(p_e, x);
+    let p = DoubleDouble::quick_mult_f64(p_e, x);
 
-    const ERR: f64 = f64::from_bits(0x395b1889a0146d8a);
-    let ub = px.hi + (px.lo + ERR);
-    let lb = px.hi + (px.lo - ERR);
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3bd0000000000000), // 2^-66
+        f64::from_bits(0x3a00000000000000), // 2^-95
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
     if ub != lb {
         return j1_maclaurin_series_hard(x);
     }
 
-    px.to_f64()
+    p.to_f64()
 }
 
 /**
@@ -544,11 +553,14 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[1]));
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[0]));
 
-    let p = DoubleDouble::from_full_exact_add(p_e.hi, p_e.lo);
-
-    const ERR: f64 = f64::from_bits(0x3990000000000000);
-    let ub = p.hi + (p.lo + ERR);
-    let lb = p.hi + (p.lo - ERR);
+    let p = DoubleDouble::from_exact_add(p_e.hi, p_e.lo);
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3bf0000000000000), // 2^-64
+        f64::from_bits(0x3a00000000000000), // 2^-95
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
     if ub != lb {
         return j1_small_argument_path_hard(x, idx, sign_scale);
     }
