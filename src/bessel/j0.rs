@@ -27,7 +27,11 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::bessel::i0::bessel_rsqrt_hard;
-use crate::bessel::j0_coeffs::{J0_COEFFS, J0_COEFFS_RATIONAL128, J0_ZEROS_RATIONAL128};
+use crate::bessel::j0_coeffs_dyadic_remez::J0_COEFFS_RATIONAL128_REMEZ;
+use crate::bessel::j0_coeffs_dyadic_taylor::J0_COEFFS_RATIONAL128;
+use crate::bessel::j0_coeffs_remez::J0_COEFFS_REMEZ;
+use crate::bessel::j0_coeffs_taylor::J0_COEFFS_TAYLOR;
+use crate::bessel::j0_dyadic_zeros::J0_ZEROS_RATIONAL128;
 use crate::bessel::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
@@ -256,7 +260,13 @@ pub(crate) fn j0_small_argument_path(x: f64) -> f64 {
         return j0_maclaurin_series(x);
     }
 
-    let j1c = &J0_COEFFS[idx - 1];
+    let is_too_close_too_zero = dist.abs() < 1e-3;
+
+    let j1c = if is_too_close_too_zero {
+        &J0_COEFFS_TAYLOR[idx - 1]
+    } else {
+        &J0_COEFFS_REMEZ[idx - 1]
+    };
     let c0 = j1c;
 
     let r = DoubleDouble::full_add_f64(DoubleDouble::new(-found_zero.lo, -found_zero.hi), x);
@@ -302,21 +312,26 @@ pub(crate) fn j0_small_argument_path(x: f64) -> f64 {
     let p = DoubleDouble::from_exact_add(p_e.hi, p_e.lo);
     let err = f_fmla(
         p.hi,
-        f64::from_bits(0x3bf0000000000000), // 2^-64
-        f64::from_bits(0x3a00000000000000), // 2^-95
+        f64::from_bits(0x3c10000000000000), // 2^-62
+        f64::from_bits(0x3a90000000000000), // 2^-86
     );
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
     if ub != lb {
-        return j0_small_argument_path_hard(x, idx);
+        return j0_small_argument_path_hard(x, idx, dist);
     }
     p.to_f64()
 }
 
 #[cold]
 #[inline(never)]
-fn j0_small_argument_path_hard(x: f64, idx: usize) -> f64 {
-    let c = &J0_COEFFS_RATIONAL128[idx - 1];
+fn j0_small_argument_path_hard(x: f64, idx: usize, dist: f64) -> f64 {
+    let is_too_close_too_zero = dist.abs() < 1e-3;
+    let c = if is_too_close_too_zero {
+        &J0_COEFFS_RATIONAL128[idx - 1]
+    } else {
+        &J0_COEFFS_RATIONAL128_REMEZ[idx - 1]
+    };
     let zero = J0_ZEROS_RATIONAL128[idx];
     let dx = DyadicFloat128::new_from_f64(x) - zero;
 

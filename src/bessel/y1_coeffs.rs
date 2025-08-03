@@ -104,7 +104,7 @@ for i in range(0, len(intervals)):
 print("];")
 ```
 **/
-pub(crate) static Y1_COEFFS: [[(u64, u64); 28]; 32] = [
+pub(crate) static Y1_COEFFS_REMEZ: [[(u64, u64); 28]; 32] = [
     [
         (0xb839eddec375bf6c, 0x3b9d10948a169574),
         (0xbc74a40e665752d5, 0x3fe0aa48442f014b),

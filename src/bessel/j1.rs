@@ -30,9 +30,11 @@
 #![allow(clippy::excessive_precision)]
 
 use crate::bessel::i0::bessel_rsqrt_hard;
-use crate::bessel::j1_coeffs::{
-    J1_COEFFS, J1_COEFFS_RATIONAL128, J1_ZEROS, J1_ZEROS_RATIONAL, J1_ZEROS_VALUE,
-};
+use crate::bessel::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1_ZEROS_VALUE};
+use crate::bessel::j1_coeffs_taylor::J1_COEFFS_TAYLOR;
+use crate::bessel::j1_remez_dyadic_coeffs::J1_COEFFS_RATIONAL128_REMEZ;
+use crate::bessel::j1_taylor_dyadic_coeffs::J1_COEFFS_RATIONAL128_TAYLOR;
+use crate::bessel::j1_zeros_dyadic::J1_ZEROS_RATIONAL;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
@@ -525,7 +527,13 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
         return f64::from_bits(J1_ZEROS_VALUE[idx]) * sign_scale;
     }
 
-    let j1c = &J1_COEFFS[idx - 1];
+    let is_zero_too_close = dist.abs() < 1e-3;
+
+    let j1c = if is_zero_too_close {
+        &J1_COEFFS_TAYLOR[idx - 1]
+    } else {
+        &J1_COEFFS[idx - 1]
+    };
     let c0 = j1c;
 
     let c = &c0[15..];
@@ -564,22 +572,27 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
     let p = DoubleDouble::from_exact_add(p_e.hi, p_e.lo);
     let err = f_fmla(
         p.hi,
-        f64::from_bits(0x3bf0000000000000), // 2^-64
+        f64::from_bits(0x3c10000000000000), // 2^-62
         f64::from_bits(0x3a00000000000000), // 2^-95
     );
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
     if ub != lb {
-        return j1_small_argument_path_hard(x_abs, idx, sign_scale);
+        return j1_small_argument_path_hard(x_abs, idx, sign_scale, dist);
     }
     p.to_f64() * sign_scale
 }
 
 #[cold]
 #[inline(never)]
-fn j1_small_argument_path_hard(x: f64, idx: usize, sign_scale: f64) -> f64 {
-    let c = &J1_COEFFS_RATIONAL128[idx - 1];
+fn j1_small_argument_path_hard(x: f64, idx: usize, sign_scale: f64, dist: f64) -> f64 {
     let zero = J1_ZEROS_RATIONAL[idx];
+    let is_zero_too_close = dist.abs() < 1e-3;
+    let c = if is_zero_too_close {
+        &J1_COEFFS_RATIONAL128_TAYLOR[idx - 1]
+    } else {
+        &J1_COEFFS_RATIONAL128_REMEZ[idx - 1]
+    };
     let dx = DyadicFloat128::new_from_f64(x) - zero;
 
     let p = f_polyeval24(

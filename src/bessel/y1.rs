@@ -31,13 +31,15 @@ use crate::bessel::j1::{
     j1_asympt_alpha, j1_asympt_alpha_hard, j1_asympt_beta, j1_asympt_beta_hard,
 };
 use crate::bessel::y0::log_dd;
-use crate::bessel::y1_coeffs::Y1_COEFFS;
-use crate::bessel::y1_coeffs_dyadic::{Y1_COEFFS_RATIONAL128, Y1_ZEROS_RATIONAL128};
+use crate::bessel::y1_coeffs::Y1_COEFFS_REMEZ;
+use crate::bessel::y1_coeffs_dyadic_remez::Y1_COEFFS_RATIONAL128;
+use crate::bessel::y1_coeffs_dyadic_taylor::{Y1_COEFFS_RATIONAL_TAYLOR128, Y1_ZEROS_RATIONAL128};
+use crate::bessel::y1_coeffs_taylor::Y1_COEFFS;
 use crate::bessel::y1f_coeffs::{Y1_ZEROS, Y1_ZEROS_VALUES};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval28};
+use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval28, f_polyeval30};
 use crate::sin_helper::{cos_dd_small, cos_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
@@ -68,9 +70,16 @@ pub fn f_y1(x: f64) -> f64 {
 
     let xb = x.to_bits();
 
-    if xb <= 0x3ff6b851eb851eb8u64 {
-        // 1.42
+    if xb <= 0x3ff75c28f5c28f5cu64 {
+        // 1.46
         return y1_near_zero_fast(x);
+    }
+
+    // transient zone from 1.46 to 2 have bad behaviour for log poly already,
+    // and not yet good to be easily covered, thus it use its own poly
+    if xb <= 0x4000000000000000u64 {
+        // 2
+        return y1_transient_zone_fast(x);
     }
 
     if xb <= 0x4049c00000000000u64 {
@@ -357,6 +366,269 @@ fn y1_near_zero(x: f64, w_log: DoubleDouble) -> f64 {
     DoubleDouble::dd_add(m_two_over_pi_div_x, zvp).to_f64()
 }
 
+#[inline]
+fn y1_transient_zone_fast(x: f64) -> f64 {
+    /*
+    <<FunctionApproximations`
+    ClearAll["Global`*"]
+    f[x_]:= BesselY[1,x + 2.1971413260310170351490335626990]
+    {approx,error} =MiniMaxApproximation[f[x],{x,{1.42 -  2.1971413260310170351490335626990, 2-  2.1971413260310170351490335626990 },27,0},WorkingPrecision->120]
+    poly=error[[1]];
+    coeffs=CoefficientList[poly,x];
+    TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+     */
+    const C: [(u64, u64); 28] = [
+        (0x38d23216c8eac2ee, 0x3c631de77e55e9b0),
+        (0x3c77f3a6718f8e03, 0x3fe0aa48442f0150),
+        (0xbc52b77d09be8679, 0xbfbe56f82217b33a),
+        (0x3c237af39fc9d759, 0xbfa0d2af4e922afe),
+        (0xbc08241e95389bc3, 0xbf73a6dec2f9f739),
+        (0x3c18eac6a35acd63, 0x3f7e671c82a1c956),
+        (0x3be0a0f3c8908083, 0xbf65429d5dbc3bb0),
+        (0x3be217fa58861600, 0x3f517abad71c26c0),
+        (0x3bebc327d6c65514, 0xbf40b28b4ef33a56),
+        (0xbbcb597d6bdd5992, 0x3f2ef0d150ec9934),
+        (0x3bb1a480de696e07, 0xbf1c0758a86844be),
+        (0xbb9c6ea6352ab84e, 0x3f0b7c88b58d9ef3),
+        (0x3b7dbb78dfd868a9, 0xbee97ef9519bdcfd),
+        (0xbb8d4519030f499d, 0x3f04815f08e7ad5e),
+        (0x3bbbd70e1480e260, 0x3f10f348483b57bc),
+        (0x3b7117cf4d2b6f3c, 0x3f231914389bb1bb),
+        (0x3b8ca48beaf6a58d, 0x3f30b29e838345b4),
+        (0x3bccfac65ce17cf9, 0x3f39a69e98f61897),
+        (0xbbeae7e3065b09c9, 0x3f40b9511666fcf0),
+        (0xbbe5cbddf691e7e6, 0x3f428cd8388e634b),
+        (0xbbd91372412d1e1b, 0x3f414ba048d9e1d5),
+        (0xbbb0781a70c6f715, 0x3f3acdcf66f1de95),
+        (0xbba3ae83fd425494, 0x3f30f44ae6620bba),
+        (0x3bc001d75da77b74, 0x3f21154a0a1f2161),
+        (0xbb91c9afb1a1b874, 0x3f0a687b664cbac6),
+        (0x3b8e0a06b9444963, 0x3eed7c3cbb4ba5d8),
+        (0x3b4f0e9dfc915934, 0x3ec53ca23fdd0999),
+        (0xbb0409258f8ffca8, 0x3e8de620acb51b2d),
+    ];
+
+    // this poly relative to first zero
+    const ZERO: DoubleDouble =
+        DoubleDouble::from_bit_pair((0xbc8bd1e50d219bfd, 0x400193bed4dff243));
+
+    let r = DoubleDouble::full_add_f64(-ZERO, x);
+
+    let p0 = f_polyeval13(
+        r.to_f64(),
+        f64::from_bits(C[15].1),
+        f64::from_bits(C[16].1),
+        f64::from_bits(C[17].1),
+        f64::from_bits(C[18].1),
+        f64::from_bits(C[19].1),
+        f64::from_bits(C[20].1),
+        f64::from_bits(C[21].1),
+        f64::from_bits(C[22].1),
+        f64::from_bits(C[23].1),
+        f64::from_bits(C[24].1),
+        f64::from_bits(C[25].1),
+        f64::from_bits(C[26].1),
+        f64::from_bits(C[27].1),
+    );
+
+    let mut p_e = DoubleDouble::mul_f64_add(r, p0, DoubleDouble::from_bit_pair(C[14]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[13]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[12]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[11]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[10]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[9]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[8]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[7]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[6]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[5]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[4]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[3]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[2]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[1]));
+    p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(C[0]));
+
+    let p = DoubleDouble::from_exact_add(p_e.hi, p_e.lo);
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3c20000000000000), // 2^-61
+        f64::from_bits(0x3a90000000000000), // 2^-86
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
+    if ub == lb {
+        return p.to_f64();
+    }
+    y1_transient_hard(x)
+}
+
+#[cold]
+#[inline(never)]
+fn y1_transient_hard(x: f64) -> f64 {
+    /*
+    <<FunctionApproximations`
+    ClearAll["Global`*"]
+    f[x_]:= BesselY[1,x + 2.1971413260310170351490335626990]
+    {approx,error} =MiniMaxApproximation[f[x],{x,{1.42 -  2.1971413260310170351490335626990, 2-  2.1971413260310170351490335626990 },27,0},WorkingPrecision->120]
+    poly=error[[1]];
+    coeffs=CoefficientList[poly,x];
+    TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+     */
+    pub(crate) static C: [DyadicFloat128; 28] = [
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -184,
+            mantissa: 0x98ef3bf2_af4d8048_c85b23ab_0bb72488_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -128,
+            mantissa: 0x85524221_780a817f_3a6718f8_e03513ec_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -131,
+            mantissa: 0xf2b7c110_bd99d256_efa137d0_cf1f7988_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -132,
+            mantissa: 0x86957a74_9157ef64_286301b1_453792e2_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -135,
+            mantissa: 0x9d36f617_cfb9c982_41e95389_bc32e8c2_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -135,
+            mantissa: 0xf338e415_0e4ab31d_58d46b59_ac6792eb_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -136,
+            mantissa: 0xaa14eaed_e1dd7f7a_f861bb7b_fbe6acb5_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -137,
+            mantissa: 0x8bd5d6b8_e1360121_7fa58861_5ff9b614_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -138,
+            mantissa: 0x85945a77_99d2ac87_9b052735_5d7f5f59_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -140,
+            mantissa: 0xf7868a87_64c99c94_d0528454_cdccd44c_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -141,
+            mantissa: 0xe03ac543_4225edcb_6fe432d2_3f11a8b0_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -142,
+            mantissa: 0xdbe445ac_6cf79639_159cad54_7b1eda7c_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Neg,
+            exponent: -144,
+            mantissa: 0xcbf7ca8c_dee7e624_48720279_75757a17_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -142,
+            mantissa: 0xa40af847_3d6aef15_d737e785_b3163322_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -141,
+            mantissa: 0x879a4241_dabde37a_e1c2901c_4c06b1dc_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -140,
+            mantissa: 0x98c8a1c4_dd8dd811_17cf4d2b_6f3c3910_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -139,
+            mantissa: 0x8594f41c_1a2da01c_a48beaf6_a58cef9f_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -139,
+            mantissa: 0xcd34f4c7_b0c4b9cf_ac65ce17_cf940c9c_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -138,
+            mantissa: 0x85ca88b3_37e77ca3_039f349e_c6ddb06d_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -138,
+            mantissa: 0x9466c1c4_731a5546_84412dc3_033a8ee7_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -138,
+            mantissa: 0x8a5d0246_cf0ea66e_c8dbed2e_1e50b14f_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -139,
+            mantissa: 0xd66e7b37_8ef4a77c_3f2c79c8_4757a40d_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -139,
+            mantissa: 0x87a25733_105dcfb1_45f00af6_adb11b5f_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -140,
+            mantissa: 0x88aa5050_f90b0a00_3aebb4ef_6e7e9ce1_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -142,
+            mantissa: 0xd343db32_65d62ee3_6504e5e4_78c55965_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -144,
+            mantissa: 0xebe1e5da_5d2ec3c1_40d72889_2c57e483_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -146,
+            mantissa: 0xa9e511fe_e84cc8f8_74efe48a_c9a09ebc_u128,
+        },
+        DyadicFloat128 {
+            sign: DyadicSign::Pos,
+            exponent: -150,
+            mantissa: 0xef310565_a8d9675f_b6d38380_1abf92a6_u128,
+        },
+    ];
+    const ZERO: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -126,
+        mantissa: 0x8c9df6a6_ff921721_70d796f3_2017e155_u128,
+    };
+    let r = DyadicFloat128::new_from_f64(x) - ZERO;
+    let v = f_polyeval28(
+        r, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11], C[12], C[13],
+        C[14], C[15], C[16], C[17], C[18], C[19], C[20], C[21], C[22], C[23], C[24], C[25], C[26],
+        C[27],
+    );
+    v.fast_as_f64()
+}
+
 /// This method on small range searches for nearest zero or extremum.
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
 #[inline]
@@ -391,10 +663,16 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
         return y1_near_zero_fast(x);
     }
 
-    let j1c = &Y1_COEFFS[idx - 1];
+    let close_to_zero = dist.abs() < 1e-3;
+
+    let j1c = if close_to_zero {
+        &Y1_COEFFS[idx - 1]
+    } else {
+        &Y1_COEFFS_REMEZ[idx - 1]
+    };
     let c0 = j1c;
 
-    let r = DoubleDouble::full_add_f64(DoubleDouble::new(-found_zero.lo, -found_zero.hi), x_abs);
+    let r = DoubleDouble::full_add_f64(-found_zero, x_abs);
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
@@ -441,30 +719,45 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
     let p = DoubleDouble::from_exact_add(p_e.hi, p_e.lo);
     let err = f_fmla(
         p.hi,
-        f64::from_bits(0x3c20000000000000), // 2^-61
-        f64::from_bits(0x3a90000000000000), // 2^-86
+        f64::from_bits(0x3c50000000000000), // 2^-58
+        f64::from_bits(0x3b00000000000000), // 2^-79
     );
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
-    if ub != lb {
-        return y1_small_argument_path_hard(x, idx);
+    if ub == lb {
+        return p.to_f64();
     }
-    p.to_f64()
+    y1_small_argument_path_hard(x, idx, dist)
 }
 
 #[cold]
 #[inline(never)]
-fn y1_small_argument_path_hard(x: f64, idx: usize) -> f64 {
-    let c = &Y1_COEFFS_RATIONAL128[idx - 1];
+fn y1_small_argument_path_hard(x: f64, idx: usize, dist: f64) -> f64 {
+    // if we're too close to zero taylor will converge faster and more accurate,
+    // since remez, minimax and other almost cannot polynomial optimize near zero
     let zero = Y1_ZEROS_RATIONAL128[idx];
-    let dx = DyadicFloat128::new_from_f64(x) - zero;
+    if dist.abs() < 1e-3 {
+        let c = &Y1_COEFFS_RATIONAL_TAYLOR128[idx - 1];
+        let dx = DyadicFloat128::new_from_f64(x) - zero;
 
-    let p = f_polyeval28(
-        dx, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13],
-        c[14], c[15], c[16], c[17], c[18], c[19], c[20], c[21], c[22], c[23], c[24], c[25], c[26],
-        c[27],
-    );
-    p.fast_as_f64()
+        let p = f_polyeval28(
+            dx, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12],
+            c[13], c[14], c[15], c[16], c[17], c[18], c[19], c[20], c[21], c[22], c[23], c[24],
+            c[25], c[26], c[27],
+        );
+        p.fast_as_f64()
+    } else {
+        let c = &Y1_COEFFS_RATIONAL128[idx - 1];
+        let zero = Y1_ZEROS_RATIONAL128[idx];
+        let dx = DyadicFloat128::new_from_f64(x) - zero;
+
+        let p = f_polyeval30(
+            dx, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12],
+            c[13], c[14], c[15], c[16], c[17], c[18], c[19], c[20], c[21], c[22], c[23], c[24],
+            c[25], c[26], c[27], c[28], c[29],
+        );
+        p.fast_as_f64()
+    }
 }
 
 /*
@@ -567,6 +860,7 @@ mod tests {
 
     #[test]
     fn test_y1() {
+        assert_eq!(f_y1(2.197142201034536), 4.5568985277260593e-7);
         assert_eq!(f_y1(1.4000000000000004), -0.4791469742327998);
         assert_eq!(f_y1(2.0002288794493848), -0.10690337355867671);
         assert_eq!(
