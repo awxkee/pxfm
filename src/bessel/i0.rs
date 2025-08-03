@@ -29,7 +29,7 @@
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::exponents::{rational128_exp, EXP_REDUCE_T0, EXP_REDUCE_T1};
+use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, rational128_exp};
 use crate::horner::{f_horner_polyeval11, f_polyeval39};
 use crate::polyeval::{f_horner_polyeval21, f_horner_polyeval30, f_polyeval20, f_polyeval30};
 
