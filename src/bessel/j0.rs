@@ -56,16 +56,18 @@ pub fn f_j0(x: f64) -> f64 {
         }
     }
 
+    let ax = f64::from_bits(x_abs);
+
     if x_abs <= 0x4052b33333333333u64 {
         // 74.8
         if x_abs <= 0x3fd0000000000000u64 {
             // 0.25
-            return j0_maclaurin_series(x);
+            return j0_maclaurin_series(ax);
         }
-        return j0_small_argument_path(x);
+        return j0_small_argument_path(ax);
     }
 
-    j0_asympt(x)
+    j0_asympt(ax)
 }
 
 /**
@@ -228,14 +230,12 @@ pub(crate) fn j0_maclaurin_series_hard(x: f64) -> f64 {
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
 #[inline]
 pub(crate) fn j0_small_argument_path(x: f64) -> f64 {
-    let x_abs = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
-
     // let avg_step = 74.6145 / 47.0;
     // let inv_step = 1.0 / avg_step;
 
     const INV_STEP: f64 = 0.6299043751549631;
 
-    let fx = x_abs * INV_STEP;
+    let fx = x * INV_STEP;
     const J0_ZEROS_COUNT: f64 = (J0_ZEROS.len() - 1) as f64;
     let idx0 = fx.min(J0_ZEROS_COUNT) as usize;
     let idx1 = fx.ceil().min(J0_ZEROS_COUNT) as usize;
@@ -243,8 +243,8 @@ pub(crate) fn j0_small_argument_path(x: f64) -> f64 {
     let found_zero0 = DoubleDouble::from_bit_pair(J0_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(J0_ZEROS[idx1]);
 
-    let dist0 = (found_zero0.hi - x_abs).abs();
-    let dist1 = (found_zero1.hi - x_abs).abs();
+    let dist0 = (found_zero0.hi - x).abs();
+    let dist1 = (found_zero1.hi - x).abs();
 
     let (found_zero, idx, dist) = if dist0 < dist1 {
         (found_zero0, idx0, dist0)
@@ -259,7 +259,7 @@ pub(crate) fn j0_small_argument_path(x: f64) -> f64 {
     let j1c = &J0_COEFFS[idx - 1];
     let c0 = j1c;
 
-    let r = DoubleDouble::full_add_f64(DoubleDouble::new(-found_zero.lo, -found_zero.hi), x_abs);
+    let r = DoubleDouble::full_add_f64(DoubleDouble::new(-found_zero.lo, -found_zero.hi), x);
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
@@ -759,6 +759,7 @@ mod tests {
 
     #[test]
     fn test_j0() {
+        assert_eq!(f_j0(-2.000976555054876), 0.22332760641907712);
         assert_eq!(f_j0(-2.3369499004222215E+304), -3.3630754230844632e-155);
         assert_eq!(
             f_j0(f64::from_bits(0xd71a31ffe2ff7e9f)),

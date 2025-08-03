@@ -330,6 +330,11 @@ See ./notes/bessel_sollya/bessel_j1_at_zero.sollya
 **/
 #[inline]
 pub(crate) fn j1_maclaurin_series(x: f64) -> f64 {
+    let origin_x = x;
+    static SGN: [f64; 2] = [1., -1.];
+    let sign_scale = SGN[x.is_sign_negative() as usize];
+    let x = x.abs();
+
     const CL: [(u64, u64); 5] = [
         (0xb930000000000000, 0x3fe0000000000000),
         (0x39c8e80000000000, 0xbfb0000000000000),
@@ -368,10 +373,10 @@ pub(crate) fn j1_maclaurin_series(x: f64) -> f64 {
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
     if ub != lb {
-        return j1_maclaurin_series_hard(x);
+        return j1_maclaurin_series_hard(origin_x);
     }
 
-    p.to_f64()
+    p.to_f64() * sign_scale
 }
 
 /**
@@ -400,6 +405,9 @@ print_expansion_at_0()
 #[cold]
 #[inline(never)]
 fn j1_maclaurin_series_hard(x: f64) -> f64 {
+    static SGN: [f64; 2] = [1., -1.];
+    let sign_scale = SGN[x.is_sign_negative() as usize];
+    let x = x.abs();
     static C: [DyadicFloat128; 13] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
@@ -473,7 +481,7 @@ fn j1_maclaurin_series_hard(x: f64) -> f64 {
     let p = f_polyeval13(
         dx, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11], C[12],
     );
-    (p * rx).fast_as_f64()
+    (p * rx).fast_as_f64() * sign_scale
 }
 
 /// This method on small range searches for nearest zero or extremum.
@@ -562,7 +570,7 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
     if ub != lb {
-        return j1_small_argument_path_hard(x, idx, sign_scale);
+        return j1_small_argument_path_hard(x_abs, idx, sign_scale);
     }
     p.to_f64() * sign_scale
 }
@@ -819,6 +827,8 @@ mod tests {
             f_j1(162605674999778540000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
             0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008686943178258183
         );
+        assert_eq!(f_j1(3.831705970207517), -1.8501090915423025e-15);
+        assert_eq!(f_j1(-3.831705970207517), 1.8501090915423025e-15);
         assert_eq!(f_j1(-6.1795701510782757E+307), 8.130935041593236e-155);
         assert_eq!(
             f_j1(0.000000000000000000000000000000000000008827127),
