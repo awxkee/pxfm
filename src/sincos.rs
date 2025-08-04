@@ -135,6 +135,7 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
 
 #[cold]
 #[inline(never)]
+#[allow(clippy::too_many_arguments)]
 fn sincos_hard(
     x: f64,
     x_e: u64,
