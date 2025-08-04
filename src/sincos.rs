@@ -121,6 +121,31 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
         return (sin_upper, cos_upper);
     }
 
+    sincos_hard(
+        x,
+        x_e,
+        k,
+        &mut argument_reduction,
+        sin_upper,
+        sin_lower,
+        cos_upper,
+        cos_lower,
+    )
+}
+
+#[cold]
+#[inline(never)]
+fn sincos_hard(
+    x: f64,
+    x_e: u64,
+    k: u64,
+    argument_reduction: &mut LargeArgumentReduction,
+    sin_upper: f64,
+    sin_lower: f64,
+    cos_upper: f64,
+    cos_lower: f64,
+) -> (f64, f64) {
+    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
     let u_f128 = if x_e < E_BIAS + 16 {
         range_reduction_small_f128(x)
     } else {

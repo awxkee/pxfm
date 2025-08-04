@@ -78,53 +78,7 @@ pub fn f_acos(x: f64) -> f64 {
             return r_upper;
         }
 
-        // Ziv's accuracy test failed, perform 128-bit calculation.
-
-        // Recalculate mod 1/64.
-        let idx = (x_sq.hi * f64::from_bits(0x4050000000000000)).round() as usize;
-
-        // Get x^2 - idx/64 exactly.  When FMA is available, double-double
-        // multiplication will be correct for all rounding modes. Otherwise, we use
-        // Float128 directly.
-        let mut x_f128 = DyadicFloat128::new_from_f64(x);
-
-        let u: DyadicFloat128;
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            // u = x^2 - idx/64
-            let u_hi = DyadicFloat128::new_from_f64(f_fmla(
-                idx as f64,
-                f64::from_bits(0xbf90000000000000),
-                x_sq.hi,
-            ));
-            u = u_hi.quick_add(&DyadicFloat128::new_from_f64(x_sq.lo));
-        }
-
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            let x_sq_f128 = x_f128.quick_mul(&x_f128);
-            u = x_sq_f128.quick_add(&DyadicFloat128::new_from_f64(
-                idx as f64 * f64::from_bits(0xbf90000000000000),
-            ));
-        }
-
-        let p_f128 = asin_eval_dyadic(u, idx);
-        // Flip the sign of x_f128 to perform subtraction.
-        x_f128.sign = x_f128.sign.negate();
-        let r = PI_OVER_TWO_F128.quick_add(&x_f128.quick_mul(&p_f128));
-        return r.fast_as_f64();
+        return acos_less_0p5_hard(x, x_sq);
     }
 
     // |x| >= 0.5
@@ -249,6 +203,12 @@ pub fn f_acos(x: f64) -> f64 {
         return r_upper;
     }
 
+    acos_hard(x, u, v_hi, h, vh, vl)
+}
+
+#[cold]
+#[inline(never)]
+fn acos_hard(x: f64, u: f64, v_hi: f64, h: f64, vh: f64, vl: f64) -> f64 {
     // Ziv's accuracy test failed, we redo the computations in Float128.
     // Recalculate mod 1/64.
     let idx = (u * f64::from_bits(0x4050000000000000)).round() as usize;
@@ -323,6 +283,58 @@ pub fn f_acos(x: f64) -> f64 {
     }
 
     r_f128.fast_as_f64()
+}
+
+#[cold]
+#[inline(never)]
+fn acos_less_0p5_hard(x: f64, x_sq: DoubleDouble) -> f64 {
+    // Ziv's accuracy test failed, perform 128-bit calculation.
+
+    // Recalculate mod 1/64.
+    let idx = (x_sq.hi * f64::from_bits(0x4050000000000000)).round() as usize;
+
+    // Get x^2 - idx/64 exactly.  When FMA is available, double-double
+    // multiplication will be correct for all rounding modes. Otherwise, we use
+    // Float128 directly.
+    let mut x_f128 = DyadicFloat128::new_from_f64(x);
+
+    let u: DyadicFloat128;
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        // u = x^2 - idx/64
+        let u_hi = DyadicFloat128::new_from_f64(f_fmla(
+            idx as f64,
+            f64::from_bits(0xbf90000000000000),
+            x_sq.hi,
+        ));
+        u = u_hi.quick_add(&DyadicFloat128::new_from_f64(x_sq.lo));
+    }
+
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        let x_sq_f128 = x_f128.quick_mul(&x_f128);
+        u = x_sq_f128.quick_add(&DyadicFloat128::new_from_f64(
+            idx as f64 * f64::from_bits(0xbf90000000000000),
+        ));
+    }
+
+    let p_f128 = asin_eval_dyadic(u, idx);
+    // Flip the sign of x_f128 to perform subtraction.
+    x_f128.sign = x_f128.sign.negate();
+    let r = PI_OVER_TWO_F128.quick_add(&x_f128.quick_mul(&p_f128));
+    r.fast_as_f64()
 }
 
 #[cfg(test)]

@@ -259,11 +259,11 @@ pub fn f_cospif(x: f32) -> f32 {
     {
         let ax: u32 = ix & 0x7fffffff;
         // Warning: -4.9348 * x underflows for |x| < 2.38205e-39
-        if ax >= 0x19f030u32 {
-            return f_fmlaf(f32::from_bits(0xc09de9e6) * x, x, 1.0);
+        return if ax >= 0x19f030u32 {
+            f_fmlaf(f32::from_bits(0xc09de9e6) * x, x, 1.0)
         } else {
             // |x| < 2.38205e-39
-            return f_fmlaf(-x, x, 1.0);
+            f_fmlaf(-x, x, 1.0)
         }
     }
     if p > 31 {

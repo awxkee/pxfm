@@ -26,7 +26,6 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::bessel::j1::j1_small_argument_path;
 use crate::bessel::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
 use crate::bessel::j1f_coeffs::J1F_COEFFS;
 use crate::double_double::DoubleDouble;
@@ -58,8 +57,11 @@ pub fn f_j1f(x: f32) -> f32 {
     }
 
     let ax = x.to_bits() & 0x7fff_ffff;
-    if f32::from_bits(ax) < 74.60109 {
-        if f32::from_bits(ax) < 0.25 {
+
+    if ax < 0x429533c2u32 {
+        // 74.60109
+        if ax < 0x3e800000u32 {
+            // 0.25
             return maclaurin_series(x);
         }
         return small_argument_path(x);
@@ -380,24 +382,7 @@ fn small_argument_path(x: f32) -> f32 {
         f64::from_bits(c[13]),
     );
 
-    const LOWER_ERR: u32 = 4;
-
-    // Mask sticky bits in double precision before rounding to single precision.
-    const MASK: u32 = (1u32 << (52 - 23 - 1)) - 1;
-    const UPPER_ERR: u32 = MASK - LOWER_ERR;
-
-    let r_bits = (r.to_bits() as u32) & MASK;
-    if r_bits > LOWER_ERR && r_bits < UPPER_ERR {
-        return (p * sign_scale) as f32;
-    }
-    // called ~40 times in total
-    j1_small_argument_path_hard(x)
-}
-
-#[cold]
-#[inline(never)]
-fn j1_small_argument_path_hard(x: f32) -> f32 {
-    j1_small_argument_path(x as f64) as f32
+    (p * sign_scale) as f32
 }
 
 #[cfg(test)]

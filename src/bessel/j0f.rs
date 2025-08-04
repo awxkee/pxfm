@@ -51,8 +51,10 @@ pub fn f_j0f(x: f32) -> f32 {
         }
     }
 
-    if f32::from_bits(x_abs) <= 74.8 {
-        if f32::from_bits(x_abs) <= 0.25 {
+    if x_abs <= 0x4295999au32 {
+        // 74.8
+        if x_abs <= 0x3e800000u32 {
+            // 0.25
             return j0f_maclaurin_series(x);
         }
 

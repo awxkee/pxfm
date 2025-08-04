@@ -633,8 +633,6 @@ fn y1_transient_hard(x: f64) -> f64 {
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
 #[inline]
 pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
-    let x_abs = x;
-
     // let avg_step = 51.03 / 33.0;
     // let inv_step = 1.0 / avg_step;
     //
@@ -642,7 +640,7 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
 
     const INV_STEP: f64 = 0.6466784244562023;
 
-    let fx = x_abs * INV_STEP;
+    let fx = x * INV_STEP;
     const Y1_ZEROS_COUNT: f64 = (Y1_ZEROS.len() - 1) as f64;
     let idx0 = fx.min(Y1_ZEROS_COUNT) as usize;
     let idx1 = fx.ceil().min(Y1_ZEROS_COUNT) as usize;
@@ -650,8 +648,8 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
     let found_zero0 = DoubleDouble::from_bit_pair(Y1_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(Y1_ZEROS[idx1]);
 
-    let dist0 = (found_zero0.hi - x_abs).abs();
-    let dist1 = (found_zero1.hi - x_abs).abs();
+    let dist0 = (found_zero0.hi - x).abs();
+    let dist1 = (found_zero1.hi - x).abs();
 
     let (found_zero, idx, dist) = if dist0 < dist1 {
         (found_zero0, idx0, dist0)
@@ -672,7 +670,7 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
     };
     let c0 = j1c;
 
-    let r = DoubleDouble::full_add_f64(-found_zero, x_abs);
+    let r = DoubleDouble::full_add_f64(-found_zero, x);
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
@@ -719,7 +717,7 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
     let p = DoubleDouble::from_exact_add(p_e.hi, p_e.lo);
     let err = f_fmla(
         p.hi,
-        f64::from_bits(0x3c50000000000000), // 2^-58
+        f64::from_bits(0x3c30000000000000), // 2^-60
         f64::from_bits(0x3b00000000000000), // 2^-79
     );
     let ub = p.hi + (p.lo + err);
@@ -801,7 +799,7 @@ pub(crate) fn y1_asympt(x: f64) -> f64 {
     let p = DoubleDouble::from_exact_add(r.hi, r.lo);
     let err = f_fmla(
         p.hi,
-        f64::from_bits(0x3c60000000000000), // 2^-57
+        f64::from_bits(0x3c30000000000000), // 2^-60
         f64::from_bits(0x3a80000000000000), // 2^-87
     );
     let ub = p.hi + (p.lo + err);

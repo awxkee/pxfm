@@ -307,6 +307,7 @@ fn frac_2pi(x: f64) -> DoubleDouble {
 }
 
 /// Returns x mod 2*PI
+#[inline]
 pub(crate) fn rem2pi_any(x: f64) -> AngleReduced {
     const TWO_PI: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3cb1a62633145c07),
@@ -342,7 +343,7 @@ print(double_to_hex(lo))
 #[inline]
 fn rem2pif_small(x: f32) -> f64 {
     const ONE_OVER_PI_2: f64 = f64::from_bits(0x3fc45f306dc9c883);
-    const TWO_PI: [u64; 3] = [0x401921fb54440000, 0x3da68c234c4c0000, 0x3b498a2e03700000];
+    const TWO_PI: [u64; 3] = [0x401921fb54440000, 0x3da68c234c4c0000, 0x3b498a2e03707345];
     let dx = x as f64;
     let kd = (dx * ONE_OVER_PI_2).round();
     let mut y = dd_fmla(-kd, f64::from_bits(TWO_PI[0]), dx);

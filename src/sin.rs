@@ -198,6 +198,7 @@ pub(crate) fn sincos_eval(u: DoubleDouble) -> SinCos {
 }
 
 #[cold]
+#[inline(never)]
 fn sin_accurate(x: f64, argument_reduction: &mut LargeArgumentReduction, x_e: u64, k: u64) -> f64 {
     const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
     let u_f128 = if x_e < EXP_BIAS + 16 {
@@ -287,6 +288,7 @@ pub fn f_sin(x: f64) -> f64 {
 }
 
 #[cold]
+#[inline(never)]
 fn cos_accurate(x: f64, argument_reduction: &mut LargeArgumentReduction, x_e: u64, k: u64) -> f64 {
     const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
     let u_f128 = if x_e < EXP_BIAS + 16 {

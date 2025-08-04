@@ -534,6 +534,17 @@ impl DoubleDouble {
         DoubleDouble::new(r + q, p)
     }
 
+    // /// Computes `a * b + c`
+    // /// `b` is an `f64`, `a` and `c` are `DoubleDouble`.
+    // ///
+    // /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    // #[inline]
+    // pub(crate) fn single_mul_add(a: f64, b: f64, c: f64) -> Self {
+    //     let DoubleDouble { hi: h, lo: r } = DoubleDouble::from_exact_mult(a, b);
+    //     let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_full_exact_add(c, h);
+    //     DoubleDouble::new(r + q, p)
+    // }
+
     /// Computes `a * b + c` safe to overflow without FMA
     /// `b` is an `f64`, `a` and `c` are `DoubleDouble`.
     ///
