@@ -693,7 +693,6 @@ mod tests {
     use super::*;
     #[test]
     fn test_fi1() {
-        // Mismatch: x = 7.754375000715553, expected = 317.15788419954504, got = 317.1578841995451, ULP diff = 0.5000000308500603, correct 9625985, wrong 0
         assert_eq!(f_i1(7.750000000757874), 315.8524811496668);
         assert_eq!(f_i1(7.482812501363189), 245.58002285881892);
         assert!(f_i1(f64::NAN).is_nan());
