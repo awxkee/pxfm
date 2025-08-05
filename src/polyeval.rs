@@ -506,14 +506,14 @@ pub(crate) fn f_polyeval7<T: PolyevalMla + Copy>(
     T::polyeval_mla(x, t5, a0)
 }
 
-// #[allow(clippy::too_many_arguments)]
-// pub(crate) fn f_polyeval5<T: PolyevalMla + Copy>(x: T, a0: T, a1: T, a2: T, a3: T, a4: T) -> T {
-//     let mut acc = a4;
-//     acc = T::polyeval_mla(x, acc, a3);
-//     acc = T::polyeval_mla(x, acc, a2);
-//     acc = T::polyeval_mla(x, acc, a1);
-//     T::polyeval_mla(x, acc, a0)
-// }
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn f_polyeval5<T: PolyevalMla + Copy>(x: T, a0: T, a1: T, a2: T, a3: T, a4: T) -> T {
+    let mut acc = a4;
+    acc = T::polyeval_mla(x, acc, a3);
+    acc = T::polyeval_mla(x, acc, a2);
+    acc = T::polyeval_mla(x, acc, a1);
+    T::polyeval_mla(x, acc, a0)
+}
 
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]

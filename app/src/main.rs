@@ -1,7 +1,11 @@
-use pxfm::{f_j0f, f_j1, f_j1f, f_k0, f_k1, f_y0, f_y0f, f_y1, f_y1f};
+use pxfm::{
+    f_cosf, f_cospif, f_cscf, f_j0f, f_j1, f_j1f, f_k0, f_k1, f_secf, f_sincf, f_sinf, f_sinpi,
+    f_sinpif, f_y0, f_y0f, f_y1, f_y1f,
+};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
+use std::ops::Div;
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -122,12 +126,12 @@ fn test_f32_against_mpfr_multithreaded() {
 
     let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
     //
-    let start_bits = 100f32.to_bits();
-    let end_bits = (78f32).to_bits();
+    let start_bits = 0f32.to_bits();
+    let end_bits = (1f32).to_bits();
     println!("amount {}", end_bits - start_bits);
     //
     // Exhaustive: 0..=u32::MAX
-    (start_bits..=u32::MAX).into_par_iter().for_each(|bits| {
+    (0..=u32::MAX).into_par_iter().for_each(|bits| {
         let x = f32::from_bits(bits);
 
         if !x.is_finite() {
@@ -147,8 +151,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = Float::with_val(90, x).j1();
-        let actual = f_j1f(x);
+        let expected = Float::with_val(90, x).cos_pi();
+        let actual = f_cospif(x);
 
         executions.fetch_add(1, Ordering::Relaxed);
 
@@ -162,7 +166,7 @@ fn test_f32_against_mpfr_multithreaded() {
             exceptions.lock().unwrap().push(x);
             eprintln!(
                 "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
-                expected.to_f64(),
+                expected.to_f32(),
             );
         }
     });

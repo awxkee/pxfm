@@ -81,13 +81,14 @@ pub(crate) const fn fmla(a: f64, b: f64, c: f64) -> f64 {
     c + a * b
 }
 
+/// Optional FMA, if it is available hardware FMA will use, if not then just scalar `c + a * b`
 #[inline(always)]
 pub(crate) fn f_fmla(a: f64, b: f64, c: f64) -> f64 {
     mlaf(c, a, b)
 }
 
-// Executes mandatory FMA
-// if not available will be simulated through Dekker and Veltkamp
+/// Executes mandatory FMA
+/// if not available will be simulated through Dekker and Veltkamp
 #[inline(always)]
 pub(crate) fn dd_fmla(a: f64, b: f64, c: f64) -> f64 {
     #[cfg(any(
