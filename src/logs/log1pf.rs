@@ -231,12 +231,7 @@ fn log1pf_small(x: f32, z: f64, ax: u32) -> f32 {
     let zf1 = f_fmla(z2, f1, f2);
 
     let f = z2 * f_fmla(z4, zf0, zf1);
-    let mut r = (z + f).to_bits();
-    if (r & 0xfffffffu64) == 0 {
-        r = r.wrapping_add(
-            (f64::from_bits(0x40d0000000000000) * (f + (z - f64::from_bits(r)))).to_bits(),
-        );
-    }
+    let r = (z + f).to_bits();
     f64::from_bits(r) as f32
 }
 
@@ -297,6 +292,7 @@ mod tests {
 
     #[test]
     fn log1pf_works() {
+        assert_eq!(f_log1pf(-0.0000014305108), -0.0000014305118);
         assert_eq!(f_log1pf(0.0), 0.0);
         assert_eq!(f_log1pf(2.0), 1.0986123);
         assert_eq!(f_log1pf(-0.7), -1.2039728);
