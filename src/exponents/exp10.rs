@@ -28,8 +28,8 @@
  */
 use crate::common::{dd_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
+use crate::exponents::auxiliary::fast_ldexp;
 use crate::exponents::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
-use crate::exponents::exp2::ldexp;
 use std::hint::black_box;
 
 #[inline]
@@ -130,7 +130,7 @@ fn as_exp10_accurate(x: f64) -> f64 {
             f = DoubleDouble::from_exact_add(f.hi, f.lo);
             zfh = f.hi;
         }
-        zfh = ldexp(zfh, ie as i32);
+        zfh = fast_ldexp(zfh, ie as i32);
     } else {
         ix = (1u64.wrapping_sub(ie as u64)) << 52;
         f = DoubleDouble::mult(f, dt);
@@ -229,7 +229,7 @@ pub fn f_exp10(x: f64) -> f64 {
         if lb != ub {
             return as_exp10_accurate(x);
         }
-        fh = ldexp(fh + fl, ie as i32);
+        fh = fast_ldexp(fh + fl, ie as i32);
     } else {
         // x <= -307.653: exp10(x) < 2^-1022
         ix = 1u64.wrapping_sub(ie as u64).wrapping_shl(52);

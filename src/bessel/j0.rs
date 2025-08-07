@@ -269,7 +269,7 @@ pub(crate) fn j0_small_argument_path(x: f64) -> f64 {
     };
     let c0 = j1c;
 
-    let r = DoubleDouble::full_add_f64(DoubleDouble::new(-found_zero.lo, -found_zero.hi), x);
+    let r = DoubleDouble::full_add_f64(-found_zero, x);
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {

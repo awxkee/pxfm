@@ -506,6 +506,31 @@ pub(crate) fn f_polyeval7<T: PolyevalMla + Copy>(
     T::polyeval_mla(x, t5, a0)
 }
 
+// #[inline(always)]
+// #[allow(clippy::too_many_arguments)]
+// pub(crate) fn f_estrin_polyeval7<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+//     x: T,
+//     a0: T,
+//     a1: T,
+//     a2: T,
+//     a3: T,
+//     a4: T,
+//     a5: T,
+//     a6: T,
+// ) -> T {
+//     let x2 = x * x;
+//     let x4 = x2 * x2;
+//
+//     let b0 = T::polyeval_mla(x, a1, a0);      // a0 + a1·x
+//     let b1 = T::polyeval_mla(x, a3, a2);      // a2 + a3·x
+//     let b2 = T::polyeval_mla(x, a5, a4);      // a4 + a5·x
+//
+//     let c0 = T::polyeval_mla(x2, b1, b0);     // b0 + b1·x²
+//     let c1 = T::polyeval_mla(x2, a6, b2);     // b2 + a6·x²
+//
+//     T::polyeval_mla(x4, c1, c0)               // c0 + c1·x⁴
+// }
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn f_polyeval5<T: PolyevalMla + Copy>(x: T, a0: T, a1: T, a2: T, a3: T, a4: T) -> T {
     let mut acc = a4;

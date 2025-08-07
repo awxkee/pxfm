@@ -30,7 +30,6 @@ use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::j1::{
     j1_asympt_alpha, j1_asympt_alpha_hard, j1_asympt_beta, j1_asympt_beta_hard,
 };
-use crate::bessel::y0::log_dd;
 use crate::bessel::y1_coeffs::Y1_COEFFS_REMEZ;
 use crate::bessel::y1_coeffs_dyadic_remez::Y1_COEFFS_RATIONAL128;
 use crate::bessel::y1_coeffs_dyadic_taylor::{Y1_COEFFS_RATIONAL_TAYLOR128, Y1_ZEROS_RATIONAL128};
@@ -39,6 +38,7 @@ use crate::bessel::y1f_coeffs::{Y1_ZEROS, Y1_ZEROS_VALUES};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::logs::log_dd;
 use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval28, f_polyeval30};
 use crate::sin_helper::{cos_dd_small, cos_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
@@ -225,7 +225,7 @@ fn y1_near_zero_fast(x: f64) -> f64 {
     let err = f_fmla(
         p.hi,
         f64::from_bits(0x3c30000000000000), // 2^-60
-        f64::from_bits(0x3ae0000000000000), // 2^-80
+        f64::from_bits(0x3be0000000000000), // 2^-65
     );
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);

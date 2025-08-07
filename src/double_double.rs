@@ -523,6 +523,28 @@ impl DoubleDouble {
         DoubleDouble::new(r + q, p)
     }
 
+    // #[inline]
+    // pub(crate) fn mul_f64_add_full(a: DoubleDouble, b: f64, c: DoubleDouble) -> Self {
+    //     /*
+    //         double _t1, _t2, _t3, _t4, _t5, _t6, _t7, _t8;   \
+    //                                                  \
+    //         Mul12(&_t1,&_t2,(a),(bh));                       \
+    //         Add12(_t3,_t4,(ch),_t1);                         \
+    //         _t5 = (bl) * (a);                                \
+    //         _t6 = (cl) + _t2;                                \
+    //         _t7 = _t5 + _t6;                                 \
+    //         _t8 = _t7 + _t4;                                 \
+    //         Add12((*(resh)),(*(resl)),_t3,_t8);              \
+    //     */
+    //     let DoubleDouble { hi: t1, lo: t2 } = DoubleDouble::from_exact_mult(a.hi, b);
+    //     let DoubleDouble { hi: t3, lo: t4 } = DoubleDouble::from_full_exact_add(c.hi, t1);
+    //     let t5 = a.lo * b;
+    //     let t6 = c.lo + t2;
+    //     let t7 = t5 + t6;
+    //     let t8 = t7 + t4;
+    //     DoubleDouble::from_full_exact_add(t3, t8)
+    // }
+
     /// Computes `a * b + c`
     /// `b` is an `f64`, `a` and `c` are `DoubleDouble`.
     ///

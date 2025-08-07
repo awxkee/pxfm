@@ -28,7 +28,7 @@
  */
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
-use crate::exponents::exp2::ldexp;
+use crate::exponents::fast_ldexp;
 use crate::shared_eval::poly_dekker_generic;
 use std::hint::black_box;
 
@@ -359,7 +359,7 @@ fn as_expm1_accurate(x: f64) -> f64 {
         }
         f.lo += e;
         let dst = DoubleDouble::from_exact_add(f.hi, f.lo);
-        ldexp(dst.hi, ie as i32)
+        fast_ldexp(dst.hi, ie as i32)
     }
 }
 
@@ -485,7 +485,7 @@ pub fn f_expm1(x: f64) -> f64 {
         if ub != lb {
             return as_expm1_accurate(x);
         }
-        ldexp(lb, ie as i32)
+        fast_ldexp(lb, ie as i32)
     }
 }
 

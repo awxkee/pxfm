@@ -27,13 +27,12 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::bessel::i0::{bessel_rsqrt_hard, i0_exp};
-use crate::bessel::y0::log_dd;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::rational128_exp;
 use crate::horner::{f_horner_polyeval10, f_horner_polyeval12, f_horner_polyeval16};
-use crate::logs::log_dyadic;
+use crate::logs::{log_dd, log_dyadic};
 use crate::polyeval::{f_polyeval10, f_polyeval22, f_polyeval24};
 
 /// Modified Bessel of the second kind order 0

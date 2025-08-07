@@ -28,7 +28,7 @@
  */
 use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::j0::j0_maclaurin_series;
-use crate::bessel::y0_coeffs::{LOG_NEG_DD, Y0_COEFFS};
+use crate::bessel::y0_coeffs::Y0_COEFFS;
 use crate::bessel::y0_coeffs_dyadic_remez::Y0_COEFFS_RATIONAL128_REMEZ;
 use crate::bessel::y0_coeffs_dyadic_taylor::Y0_COEFFS_RATIONAL128;
 use crate::bessel::y0_coeffs_taylor::Y0_COEFFS_TAYLOR;
@@ -37,8 +37,8 @@ use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::logs::log_dd;
 use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval28};
-use crate::pow_tables::POW_INVERSE;
 use crate::sin_helper::{sin_dd_small, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
@@ -87,95 +87,6 @@ pub fn f_y0(x: f64) -> f64 {
     }
 
     y0_asympt(x)
-}
-
-#[inline(always)]
-pub(crate) fn log_poly(z: f64) -> DoubleDouble {
-    /*
-      See ./notes/y0_log.sollya
-    */
-    const P: [(u64, u64); 10] = [
-        (0x3c755555556795ff, 0x3fd5555555555555),
-        (0xba86f68980000000, 0xbfd0000000000000),
-        (0xbc699b285263b391, 0x3fc999999999999a),
-        (0xbc65526cf5c49dc3, 0xbfc5555555555555),
-        (0xbc34fc756f340748, 0x3fc24924924924aa),
-        (0xbc52e654a63b293e, 0xbfc0000000000023),
-        (0xbc5c73c13a9c2171, 0x3fbc71c71c2042d5),
-        (0xbc3d2af5e7ee68d8, 0xbfb999999934f78b),
-        (0xbc590d76077808da, 0x3fb74612a55c3e99),
-        (0xbc3447161ca8047c, 0xbfb5559a592aadc7),
-    ];
-    let x2 = DoubleDouble::from_exact_mult(z, z);
-    let mut t = DoubleDouble::mul_f64_add(
-        DoubleDouble::from_bit_pair(P[9]),
-        z,
-        DoubleDouble::from_bit_pair(P[8]),
-    );
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[7]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[6]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[5]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[4]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[3]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[2]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[1]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[0]));
-    t = DoubleDouble::quick_mult(t, x2);
-    t = DoubleDouble::quick_mult_f64(t, z);
-    DoubleDouble::mul_f64_add(x2, -0.5, t)
-}
-
-#[inline]
-pub(crate) fn log_dd(x: f64) -> DoubleDouble {
-    let x_u = x.to_bits();
-    let mut m = x_u & 0xfffffffffffff;
-    let mut e: i64 = ((x_u >> 52) & 0x7ff) as i64;
-
-    let t;
-    if e != 0 {
-        t = m | (0x3ffu64 << 52);
-        m = m.wrapping_add(1u64 << 52);
-        e -= 0x3ff;
-    } else {
-        /* x is a subnormal double  */
-        let k = m.leading_zeros() - 11;
-
-        e = -0x3fei64 - k as i64;
-        m = m.wrapping_shl(k);
-        t = m | (0x3ffu64 << 52);
-    }
-
-    /* now |x| = 2^_e*_t = 2^(_e-52)*m with 1 <= _t < 2,
-    and 2^52 <= _m < 2^53 */
-
-    //   log(x) = log(t) + E · log(2)
-    let mut t = f64::from_bits(t);
-
-    // If m > sqrt(2) we divide it by 2 so ensure 1/sqrt(2) < t < sqrt(2)
-    let c: usize = (m >= 0x16a09e667f3bcd) as usize;
-    static CY: [f64; 2] = [1.0, 0.5];
-    static CM: [u64; 2] = [44, 45];
-
-    e = e.wrapping_add(c as i64);
-    let be = e;
-    let i = m >> CM[c];
-    t *= CY[c];
-
-    let r = f64::from_bits(POW_INVERSE[(i - 181) as usize]);
-    let log_r = DoubleDouble::from_bit_pair(LOG_NEG_DD[(i - 181) as usize]);
-
-    let z = f64::mul_add(r, t, -1.0);
-
-    const LOG2_DD: DoubleDouble = DoubleDouble::new(
-        f64::from_bits(0x3c7abc9e3b39803f),
-        f64::from_bits(0x3fe62e42fefa39ef),
-    );
-
-    let tt = DoubleDouble::mul_f64_add(LOG2_DD, be as f64, log_r);
-
-    let v = DoubleDouble::full_add_f64(tt, z);
-    let p = log_poly(z);
-    DoubleDouble::f64_add(v.hi, DoubleDouble::new(v.lo + p.lo, p.hi))
 }
 
 /**
@@ -293,7 +204,7 @@ fn y0_near_zero_fast(x: f64) -> f64 {
     let err = f_fmla(
         p.hi,
         f64::from_bits(0x3c50000000000000), // 2^-58
-        f64::from_bits(0x3ad0000000000000), // 2^-84
+        f64::from_bits(0x3be0000000000000), // 2^-65
     );
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
@@ -899,6 +810,7 @@ mod tests {
 
     #[test]
     fn test_y0() {
+        assert_eq!(f_y0(0.906009703874588), 0.01085796448629276);
         assert_eq!(
             f_y0(f64::from_bits(0x6e7c1d741dc52512u64)),
             f64::from_bits(0x2696f860815bc669)

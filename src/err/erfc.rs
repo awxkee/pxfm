@@ -29,8 +29,7 @@
 use crate::common::dd_fmla;
 use crate::double_double::DoubleDouble;
 use crate::err::erf::{Erf, erf_accurate, erf_fast};
-use crate::exponents::ldexp;
-use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1};
+use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, ldexp};
 use std::hint::black_box;
 
 static ASYMPTOTIC_POLY: [[u64; 13]; 6] = [

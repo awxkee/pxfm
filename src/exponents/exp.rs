@@ -28,7 +28,7 @@
  */
 use crate::common::{dd_fmla, f_fmla, fmla, pow2i, rintk};
 use crate::double_double::DoubleDouble;
-use crate::exponents::exp2::ldexp;
+use crate::exponents::auxiliary::fast_ldexp;
 use crate::shared_eval::poly_dekker_generic;
 
 /// Exp for given value for const context.
@@ -274,7 +274,7 @@ fn as_exp_accurate(x: f64, t: f64, tz: DoubleDouble, ie: i64) -> f64 {
             f = DoubleDouble::add(tz, f);
         }
         f = DoubleDouble::from_exact_add(f.hi, f.lo);
-        f.hi = ldexp(f.hi, ie as i32);
+        f.hi = fast_ldexp(f.hi, ie as i32);
     }
     f.hi
 }
@@ -369,7 +369,7 @@ pub fn f_exp(x: f64) -> f64 {
         if ub != lb {
             return as_exp_accurate(x, t, tz, ie);
         }
-        f.hi = ldexp(lb, ie as i32);
+        f.hi = fast_ldexp(lb, ie as i32);
     }
     f.hi
 }

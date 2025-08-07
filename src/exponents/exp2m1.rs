@@ -28,7 +28,7 @@
  */
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
-use crate::exponents::exp2::ldexp;
+use crate::exponents::fast_ldexp;
 
 const LN2H: f64 = f64::from_bits(0x3fe62e42fefa39ef);
 const LN2L: f64 = f64::from_bits(0x3c7abc9e3b39803f);
@@ -637,7 +637,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
             return if i >= 0 {
                 ((1u64 << i) - 1) as f64
             } else {
-                -1.0 + ldexp(1.0, i)
+                -1.0 + fast_ldexp(1.0, i)
             };
         }
     }

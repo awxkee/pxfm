@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #![deny(unreachable_pub)]
+mod auxiliary;
 mod exp;
 mod exp10;
 mod exp10f;
@@ -41,11 +42,11 @@ mod expf;
 mod expm1;
 mod expm1f;
 
+pub(crate) use auxiliary::{fast_ldexp, ldexp};
 pub(crate) use exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
 pub use exp::{exp, f_exp};
 pub(crate) use exp_f128::rational128_exp;
 pub use exp2::f_exp2;
-pub(crate) use exp2::ldexp;
 pub(crate) use exp2f::dirty_exp2f;
 pub use exp2f::f_exp2f;
 pub(crate) use exp2m1::exp2m1_accurate_tiny;

@@ -1077,7 +1077,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::log10", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::log10(i as f64));
+                black_box(libm::log10(i as f64 / 1000.0));
             }
         })
     });
@@ -1085,15 +1085,15 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: log10", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::log10(i as f64));
+                black_box(f64::log10(i as f64 / 1000.0));
             }
         })
     });
 
-    c.bench_function("pxfm: FMA log10", |b| {
+    c.bench_function("pxfm: log10", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log10(i as f64));
+                black_box(f_log10(i as f64 / 1000.0));
             }
         })
     });
@@ -1514,7 +1514,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("pxfm: FMA log2", |b| {
+    c.bench_function("pxfm: log2", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_log2(i as f64));
@@ -1525,7 +1525,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::log", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::log(i as f64));
+                black_box(libm::log(i as f64 / 1000.0));
             }
         })
     });
@@ -1533,15 +1533,15 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: log", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::ln(i as f64));
+                black_box(f64::ln(i as f64 / 1000.0));
             }
         })
     });
 
-    c.bench_function("pxfm: FMA log", |b| {
+    c.bench_function("pxfm: log", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log(i as f64));
+                black_box(f_log(i as f64 / 1000.0));
             }
         })
     });
