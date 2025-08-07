@@ -419,4 +419,48 @@ mod tests {
         assert!(f_log(f64::NEG_INFINITY).is_nan());
         assert_eq!(f_log(f64::INFINITY), f64::INFINITY);
     }
+
+    #[test]
+    fn log_control_values() {
+        assert_eq!(
+            f_log(f64::from_bits(0x3ff1211bef8f68e9)),
+            0.06820362355801819
+        );
+        assert_eq!(
+            f_log(f64::from_bits(0x3ff008000db2e8be)),
+            0.0019512710640270448
+        );
+        assert_eq!(
+            f_log(f64::from_bits(0x3ff10803885617a6)),
+            0.062464334544603616
+        );
+        assert_eq!(
+            f_log(f64::from_bits(0x3ff48ae5a67204f5)),
+            0.24991043470757288
+        );
+        assert_eq!(
+            f_log(f64::from_bits(0x3fedc0b586f2b260)),
+            -0.07281366978582131
+        );
+        assert_eq!(
+            f_log(f64::from_bits(0x3fe490af72a25a81)),
+            -0.44213668842326787
+        );
+        assert_eq!(
+            f_log(f64::from_bits(0x4015b6e7e4e96f86)),
+            1.6916847703128641
+        );
+        assert_eq!(
+            f_log(f64::from_bits(0x3ff0ffc349469a2f)),
+            0.06057012512237759
+        );
+        assert_eq!(
+            f_log(f64::from_bits(0x3fe69e7aa6da2df5)),
+            -0.3469430325599064
+        );
+        assert_eq!(
+            f_log(f64::from_bits(0x3fe5556123e8a2b0)),
+            -0.4054566631657151
+        );
+    }
 }
