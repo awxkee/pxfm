@@ -44,7 +44,7 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::logs::log_dd_fast;
-use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval19, f_polyeval24};
+use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval22, f_polyeval24};
 use crate::sin_helper::{sin_dd_small, sin_dd_small_fast, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
@@ -746,9 +746,8 @@ pub(crate) fn y0_small_argument_fast(x: f64) -> f64 {
         return f64::from_bits(Y0_ZEROS_VALUES[idx]);
     }
 
-    let p = f_polyeval19(
+    let p = f_polyeval22(
         r.hi,
-        f64::from_bits(c[5].1),
         f64::from_bits(c[6].1),
         f64::from_bits(c[7].1),
         f64::from_bits(c[8].1),
@@ -767,20 +766,26 @@ pub(crate) fn y0_small_argument_fast(x: f64) -> f64 {
         f64::from_bits(c[21].1),
         f64::from_bits(c[22].1),
         f64::from_bits(c[23].1),
+        f64::from_bits(c[24].1),
+        f64::from_bits(c[25].1),
+        f64::from_bits(c[26].1),
+        f64::from_bits(c[27].1),
     );
 
-    let mut z = DoubleDouble::mul_f64_add(r, p, DoubleDouble::from_bit_pair(c[4]));
+    let mut z = DoubleDouble::mul_f64_add(r, p, DoubleDouble::from_bit_pair(c[5]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[4]));
     z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[3]));
     z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[2]));
     z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[1]));
     z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[0]));
+    let p = z;
     let err = f_fmla(
-        z.hi,
-        f64::from_bits(0x3c70000000000000), // 2^-56
+        p.hi,
+        f64::from_bits(0x3c60000000000000), // 2^-57
         f64::from_bits(0x3c20000000000000), // 2^-61
     );
-    let ub = z.hi + (z.lo + err);
-    let lb = z.hi + (z.lo - err);
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
     if ub != lb {
         return y0_small_argument_moderate(r, x, c, idx, dist);
     }
@@ -999,6 +1004,8 @@ mod tests {
 
     #[test]
     fn test_y0() {
+        //ULP should be less than 0.5, but it was 1017.1969361449036, on 3 result 0.37685001001284685, using f_y0 and MPFR 0.3768500100127904
+        assert_eq!(f_y0(3.), 0.3768500100127904);
         assert_eq!(f_y0(0.906009703874588), 0.01085796448629276);
         assert_eq!(f_y0(80.), -0.05562033908977);
         assert_eq!(f_y0(5.), -0.30851762524903376);

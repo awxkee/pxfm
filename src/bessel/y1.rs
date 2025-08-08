@@ -26,8 +26,12 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::bessel::alpha1::{bessel_1_asympt_alpha, bessel_1_asympt_alpha_hard};
-use crate::bessel::beta1::{bessel_1_asympt_beta, bessel_1_asympt_beta_hard};
+use crate::bessel::alpha1::{
+    bessel_1_asympt_alpha, bessel_1_asympt_alpha_fast, bessel_1_asympt_alpha_hard,
+};
+use crate::bessel::beta1::{
+    bessel_1_asympt_beta, bessel_1_asympt_beta_fast, bessel_1_asympt_beta_hard,
+};
 use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::y1_coeffs::Y1_COEFFS_REMEZ;
 use crate::bessel::y1_coeffs_dyadic_remez::Y1_COEFFS_RATIONAL128;
@@ -38,8 +42,8 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::logs::log_dd_fast;
-use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15};
-use crate::sin_helper::{cos_dd_small, cos_f128_small};
+use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval22, f_polyeval24};
+use crate::sin_helper::{cos_dd_small, cos_dd_small_fast, cos_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the second kind order one ( Y1 )
@@ -83,10 +87,10 @@ pub fn f_y1(x: f64) -> f64 {
 
     if xb <= 0x4049c00000000000u64 {
         // 51.5
-        return y1_small_argument_path(x);
+        return y1_small_argument_fast(x);
     }
 
-    y1_asympt(x)
+    y1_asympt_fast(x)
 }
 
 /**
@@ -413,6 +417,99 @@ fn y1_transient_zone_fast(x: f64) -> f64 {
 
     let r = DoubleDouble::full_add_f64(-ZERO, x);
 
+    let p0 = f_polyeval24(
+        r.to_f64(),
+        f64::from_bits(C[4].1),
+        f64::from_bits(C[5].1),
+        f64::from_bits(C[6].1),
+        f64::from_bits(C[7].1),
+        f64::from_bits(C[8].1),
+        f64::from_bits(C[9].1),
+        f64::from_bits(C[10].1),
+        f64::from_bits(C[11].1),
+        f64::from_bits(C[12].1),
+        f64::from_bits(C[13].1),
+        f64::from_bits(C[14].1),
+        f64::from_bits(C[15].1),
+        f64::from_bits(C[16].1),
+        f64::from_bits(C[17].1),
+        f64::from_bits(C[18].1),
+        f64::from_bits(C[19].1),
+        f64::from_bits(C[20].1),
+        f64::from_bits(C[21].1),
+        f64::from_bits(C[22].1),
+        f64::from_bits(C[23].1),
+        f64::from_bits(C[24].1),
+        f64::from_bits(C[25].1),
+        f64::from_bits(C[26].1),
+        f64::from_bits(C[27].1),
+    );
+
+    let mut p = DoubleDouble::mul_f64_add(r, p0, DoubleDouble::from_bit_pair(C[3]));
+    p = DoubleDouble::mul_add(p, r, DoubleDouble::from_bit_pair(C[2]));
+    p = DoubleDouble::mul_add(p, r, DoubleDouble::from_bit_pair(C[1]));
+    p = DoubleDouble::mul_add(p, r, DoubleDouble::from_bit_pair(C[0]));
+
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3c50000000000000), // 2^-58
+        f64::from_bits(0x3b90000000000000), // 2^-70
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
+    if ub == lb {
+        return p.to_f64();
+    }
+    y1_transient_zone(x)
+}
+
+fn y1_transient_zone(x: f64) -> f64 {
+    /*
+    <<FunctionApproximations`
+    ClearAll["Global`*"]
+    f[x_]:= BesselY[1,x + 2.1971413260310170351490335626990]
+    {approx,error} =MiniMaxApproximation[f[x],{x,{1.42 -  2.1971413260310170351490335626990, 2-  2.1971413260310170351490335626990 },27,0},WorkingPrecision->120]
+    poly=error[[1]];
+    coeffs=CoefficientList[poly,x];
+    TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+     */
+    const C: [(u64, u64); 28] = [
+        (0x38d23216c8eac2ee, 0x3c631de77e55e9b0),
+        (0x3c77f3a6718f8e03, 0x3fe0aa48442f0150),
+        (0xbc52b77d09be8679, 0xbfbe56f82217b33a),
+        (0x3c237af39fc9d759, 0xbfa0d2af4e922afe),
+        (0xbc08241e95389bc3, 0xbf73a6dec2f9f739),
+        (0x3c18eac6a35acd63, 0x3f7e671c82a1c956),
+        (0x3be0a0f3c8908083, 0xbf65429d5dbc3bb0),
+        (0x3be217fa58861600, 0x3f517abad71c26c0),
+        (0x3bebc327d6c65514, 0xbf40b28b4ef33a56),
+        (0xbbcb597d6bdd5992, 0x3f2ef0d150ec9934),
+        (0x3bb1a480de696e07, 0xbf1c0758a86844be),
+        (0xbb9c6ea6352ab84e, 0x3f0b7c88b58d9ef3),
+        (0x3b7dbb78dfd868a9, 0xbee97ef9519bdcfd),
+        (0xbb8d4519030f499d, 0x3f04815f08e7ad5e),
+        (0x3bbbd70e1480e260, 0x3f10f348483b57bc),
+        (0x3b7117cf4d2b6f3c, 0x3f231914389bb1bb),
+        (0x3b8ca48beaf6a58d, 0x3f30b29e838345b4),
+        (0x3bccfac65ce17cf9, 0x3f39a69e98f61897),
+        (0xbbeae7e3065b09c9, 0x3f40b9511666fcf0),
+        (0xbbe5cbddf691e7e6, 0x3f428cd8388e634b),
+        (0xbbd91372412d1e1b, 0x3f414ba048d9e1d5),
+        (0xbbb0781a70c6f715, 0x3f3acdcf66f1de95),
+        (0xbba3ae83fd425494, 0x3f30f44ae6620bba),
+        (0x3bc001d75da77b74, 0x3f21154a0a1f2161),
+        (0xbb91c9afb1a1b874, 0x3f0a687b664cbac6),
+        (0x3b8e0a06b9444963, 0x3eed7c3cbb4ba5d8),
+        (0x3b4f0e9dfc915934, 0x3ec53ca23fdd0999),
+        (0xbb0409258f8ffca8, 0x3e8de620acb51b2d),
+    ];
+
+    // this poly relative to first zero
+    const ZERO: DoubleDouble =
+        DoubleDouble::from_bit_pair((0xbc8bd1e50d219bfd, 0x400193bed4dff243));
+
+    let r = DoubleDouble::full_add_f64(-ZERO, x);
+
     let p0 = f_polyeval13(
         r.to_f64(),
         f64::from_bits(C[15].1),
@@ -631,7 +728,7 @@ fn y1_transient_hard(x: f64) -> f64 {
 /// This method on small range searches for nearest zero or extremum.
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
 #[inline]
-pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
+pub(crate) fn y1_small_argument_fast(x: f64) -> f64 {
     // let avg_step = 51.03 / 33.0;
     // let inv_step = 1.0 / avg_step;
     //
@@ -662,12 +759,11 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
 
     let close_to_zero = dist.abs() < 1e-3;
 
-    let j1c = if close_to_zero {
+    let c = if close_to_zero {
         &Y1_COEFFS[idx - 1]
     } else {
         &Y1_COEFFS_REMEZ[idx - 1]
     };
-    let c0 = j1c;
 
     let r = DoubleDouble::full_add_f64(-found_zero, x);
 
@@ -676,6 +772,59 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
         return f64::from_bits(Y1_ZEROS_VALUES[idx]);
     }
 
+    let p = f_polyeval22(
+        r.hi,
+        f64::from_bits(c[6].1),
+        f64::from_bits(c[7].1),
+        f64::from_bits(c[8].1),
+        f64::from_bits(c[9].1),
+        f64::from_bits(c[10].1),
+        f64::from_bits(c[11].1),
+        f64::from_bits(c[12].1),
+        f64::from_bits(c[13].1),
+        f64::from_bits(c[14].1),
+        f64::from_bits(c[15].1),
+        f64::from_bits(c[16].1),
+        f64::from_bits(c[17].1),
+        f64::from_bits(c[18].1),
+        f64::from_bits(c[19].1),
+        f64::from_bits(c[20].1),
+        f64::from_bits(c[21].1),
+        f64::from_bits(c[22].1),
+        f64::from_bits(c[23].1),
+        f64::from_bits(c[24].1),
+        f64::from_bits(c[25].1),
+        f64::from_bits(c[26].1),
+        f64::from_bits(c[27].1),
+    );
+
+    let mut z = DoubleDouble::mul_f64_add(r, p, DoubleDouble::from_bit_pair(c[5]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[4]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[3]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[2]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[1]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[0]));
+    let p = z;
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3c60000000000000), // 2^-57
+        f64::from_bits(0x3c20000000000000), // 2^-61
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
+    if ub == lb {
+        return p.to_f64();
+    }
+    y0_small_argument_moderate(r, x, c, idx, dist)
+}
+
+fn y0_small_argument_moderate(
+    r: DoubleDouble,
+    x: f64,
+    c0: &[(u64, u64); 28],
+    idx: usize,
+    dist: f64,
+) -> f64 {
     let c = &c0[15..];
 
     let p0 = f_polyeval13(
@@ -717,19 +866,19 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
     let err = f_fmla(
         p.hi,
         f64::from_bits(0x3c30000000000000), // 2^-60
-        f64::from_bits(0x3bb0000000000000), // 2^-68
+        f64::from_bits(0x3bf0000000000000), // 2^-64
     );
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
     if ub == lb {
         return p.to_f64();
     }
-    y1_small_argument_path_hard(x, idx, dist)
+    y1_small_argument_hard(x, idx, dist)
 }
 
 #[cold]
 #[inline(never)]
-fn y1_small_argument_path_hard(x: f64, idx: usize, dist: f64) -> f64 {
+fn y1_small_argument_hard(x: f64, idx: usize, dist: f64) -> f64 {
     // if we're too close to zero taylor will converge faster and more accurate,
     // since remez, minimax and other almost cannot polynomial optimize near zero
     let zero = Y1_ZEROS_RATIONAL128[idx];
@@ -764,7 +913,7 @@ fn y1_small_argument_path_hard(x: f64, idx: usize, dist: f64) -> f64 {
    Y1 = sqrt(2/(PI*x)) * beta(x) * (-cos(x - PI/4 - alpha(x)))
 */
 #[inline]
-pub(crate) fn y1_asympt(x: f64) -> f64 {
+pub(crate) fn y1_asympt_fast(x: f64) -> f64 {
     const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0xbc8cbc0d30ebfd15),
         f64::from_bits(0x3fe9884533d43651),
@@ -780,8 +929,8 @@ pub(crate) fn y1_asympt(x: f64) -> f64 {
         DoubleDouble::from_recip(x)
     };
 
-    let alpha = bessel_1_asympt_alpha(recip);
-    let beta = bessel_1_asympt_beta(recip);
+    let alpha = bessel_1_asympt_alpha_fast(recip);
+    let beta = bessel_1_asympt_beta_fast(recip);
 
     let AngleReduced { angle } = rem2pi_any(x);
 
@@ -789,9 +938,51 @@ pub(crate) fn y1_asympt(x: f64) -> f64 {
     let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
     let r0 = DoubleDouble::dd_add(angle, x0pi34);
 
+    let m_cos = -cos_dd_small_fast(r0);
+    let z0 = DoubleDouble::quick_mult(beta, m_cos);
+    let r_sqrt = DoubleDouble::from_rsqrt_fast(x);
+    let scale = DoubleDouble::quick_mult(SQRT_2_OVER_PI, r_sqrt);
+    let r = DoubleDouble::quick_mult(scale, z0);
+    let p = DoubleDouble::from_exact_add(r.hi, r.lo);
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3c40000000000000), // 2^-60
+        f64::from_bits(0x3bf0000000000000), // 2^-87
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
+    if ub == lb {
+        return p.to_f64();
+    }
+    y1_asympt(x, recip, r_sqrt, angle)
+}
+
+/*
+   Evaluates:
+   Y1 = sqrt(2/(PI*x)) * beta(x) * sin(x - 3*PI/4 - alpha(x))
+
+   Discarding 1/2*PI gives:
+   Y1 = sqrt(2/(PI*x)) * beta(x) * (-cos(x - PI/4 - alpha(x)))
+*/
+fn y1_asympt(x: f64, recip: DoubleDouble, r_sqrt: DoubleDouble, angle: DoubleDouble) -> f64 {
+    const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
+        f64::from_bits(0xbc8cbc0d30ebfd15),
+        f64::from_bits(0x3fe9884533d43651),
+    );
+    const MPI_OVER_4: DoubleDouble = DoubleDouble::new(
+        f64::from_bits(0xbc81a62633145c07),
+        f64::from_bits(0xbfe921fb54442d18),
+    );
+
+    let alpha = bessel_1_asympt_alpha(recip);
+    let beta = bessel_1_asympt_beta(recip);
+
+    // Without full subtraction cancellation happens sometimes
+    let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
+    let r0 = DoubleDouble::dd_add(angle, x0pi34);
+
     let m_cos = -cos_dd_small(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_cos);
-    let r_sqrt = DoubleDouble::from_rsqrt(x);
     let scale = DoubleDouble::quick_mult(SQRT_2_OVER_PI, r_sqrt);
     let r = DoubleDouble::quick_mult(scale, z0);
     let p = DoubleDouble::from_exact_add(r.hi, r.lo);
@@ -889,6 +1080,7 @@ mod tests {
 
     #[test]
     fn test_y1_edge_cases() {
+        assert_eq!(f_y1(2.1904620854463985), -0.003483735161678524);
         assert_eq!(f_y1(2.197142201034536), 4.5568985277260593e-7);
         assert_eq!(f_y1(1.4000000000000004), -0.4791469742327998);
         assert_eq!(f_y1(2.0002288794493848), -0.10690337355867671);

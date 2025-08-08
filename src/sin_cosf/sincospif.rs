@@ -119,10 +119,10 @@ pub fn f_sincospif(x: f32) -> (f32, f32) {
         if x_abs >= 0x7f80_0000u32 {
             return (x + f32::NAN, x + f32::NAN);
         }
-        static SF: [f32; 2] = [-0., 0.];
+        static SF: [f32; 2] = [0., -0.];
         let sf = SF[x.is_sign_negative() as usize];
         if x_abs < 0x4b80_0000u32 {
-            static CF: [f32; 2] = [-1., 1.];
+            static CF: [f32; 2] = [1., -1.];
             let cs = CF[((x_abs & 0x1) != 0) as usize];
             return (sf, cs);
         }

@@ -27,7 +27,6 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::polyeval::f_polyeval7;
 use crate::sincos_reduce_tables::ONE_TWENTY_EIGHT_OVER_PI;
 
 pub(crate) fn range_reduction_small_f128(x: f64) -> DyadicFloat128 {
@@ -107,7 +106,7 @@ pub(crate) fn sincos_eval_dyadic(u: &DyadicFloat128) -> SinCosDyadic {
     let u_sq = u.quick_mul(u);
 
     // sin(u) ~ x - x^3/3! + x^5/5! - x^7/7! + x^9/9! - x^11/11! + x^13/13!
-    const SIN_COEFFS: [DyadicFloat128; 7] = [
+    static SIN_COEFFS: [DyadicFloat128; 7] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -127,
@@ -146,7 +145,7 @@ pub(crate) fn sincos_eval_dyadic(u: &DyadicFloat128) -> SinCosDyadic {
     ];
 
     // cos(u) ~ 1 - x^2/2 + x^4/4! - x^6/6! + x^8/8! - x^10/10! + x^12/12!
-    const COS_COEFFS: [DyadicFloat128; 7] = [
+    static COS_COEFFS: [DyadicFloat128; 7] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -127,
@@ -184,26 +183,17 @@ pub(crate) fn sincos_eval_dyadic(u: &DyadicFloat128) -> SinCosDyadic {
         }, // 1/12!
     ];
 
-    let sin_u = u.quick_mul(&f_polyeval7(
-        u_sq,
-        SIN_COEFFS[0],
-        SIN_COEFFS[1],
-        SIN_COEFFS[2],
-        SIN_COEFFS[3],
-        SIN_COEFFS[4],
-        SIN_COEFFS[5],
-        SIN_COEFFS[6],
-    ));
-    let cos_u = f_polyeval7(
-        u_sq,
-        COS_COEFFS[0],
-        COS_COEFFS[1],
-        COS_COEFFS[2],
-        COS_COEFFS[3],
-        COS_COEFFS[4],
-        COS_COEFFS[5],
-        COS_COEFFS[6],
-    );
+    let mut sin_u = SIN_COEFFS[6];
+    for i in (0..7).rev() {
+        sin_u = sin_u * u_sq + SIN_COEFFS[i];
+    }
+    sin_u = sin_u * *u;
+
+    let mut cos_u = COS_COEFFS[6];
+    for i in (0..7).rev() {
+        cos_u = cos_u * u_sq + COS_COEFFS[i];
+    }
+
     SinCosDyadic {
         v_sin: sin_u,
         v_cos: cos_u,

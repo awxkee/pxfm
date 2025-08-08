@@ -92,7 +92,7 @@ pub fn f_cospif(x: f32) -> f32 {
             return x + f32::NAN;
         }
         if x_abs < 0x4b80_0000u32 {
-            static CF: [f32; 2] = [-1., 1.];
+            static CF: [f32; 2] = [1., -1.];
             return CF[((x_abs & 0x1) != 0) as usize];
         }
         return 1.;
