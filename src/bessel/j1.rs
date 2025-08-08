@@ -44,9 +44,7 @@ use crate::bessel::j1_zeros_dyadic::J1_ZEROS_RATIONAL;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::polyeval::{
-    f_polyeval8, f_polyeval9, f_polyeval12, f_polyeval13, f_polyeval19, f_polyeval24,
-};
+use crate::polyeval::{f_polyeval8, f_polyeval9, f_polyeval12, f_polyeval19};
 use crate::sin_helper::{sin_dd_small, sin_dd_small_fast, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
@@ -441,9 +439,12 @@ fn j1_maclaurin_series_hard(x: f64) -> f64 {
 
     let rx = DyadicFloat128::new_from_f64(x);
     let dx = rx * rx;
-    let p = f_polyeval13(
-        dx, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11], C[12],
-    );
+
+    let mut p = C[12];
+    for i in (0..12).rev() {
+        p = dx * p + C[i];
+    }
+
     (p * rx).fast_as_f64() * sign_scale
 }
 
@@ -606,10 +607,10 @@ fn j1_small_argument_path_hard(x: f64, idx: usize, sign_scale: f64, dist: f64) -
     };
     let dx = DyadicFloat128::new_from_f64(x) - zero;
 
-    let p = f_polyeval24(
-        dx, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13],
-        c[14], c[15], c[16], c[17], c[18], c[19], c[20], c[21], c[22], c[23],
-    );
+    let mut p = c[23];
+    for i in (0..23).rev() {
+        p = dx * p + c[i];
+    }
     p.fast_as_f64() * sign_scale
 }
 

@@ -31,9 +31,8 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::rational128_exp;
-use crate::horner::{f_horner_polyeval15, f_horner_polyeval25};
 use crate::logs::{log_dd, log_dyadic};
-use crate::polyeval::{f_horner_polyeval13, f_horner_polyeval14, f_polyeval11, f_polyeval22};
+use crate::polyeval::{f_horner_polyeval13, f_polyeval11, f_polyeval22};
 
 /// Modified Bessel of the second kind order 1
 ///
@@ -71,7 +70,7 @@ pub fn f_k1(x: f64) -> f64 {
 
 #[inline(always)]
 fn i1_0_to_1_hard(x: f64) -> DyadicFloat128 {
-    const P: [DyadicFloat128; 15] = [
+    static P: [DyadicFloat128; 15] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -131,
@@ -155,10 +154,10 @@ fn i1_0_to_1_hard(x: f64) -> DyadicFloat128 {
     let mut eval_x = dx * dx;
     eval_x.exponent -= 2; // * 0.25
 
-    let p = f_horner_polyeval15(
-        eval_x, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12],
-        P[13], P[14],
-    );
+    let mut p = P[14];
+    for i in (0..14).rev() {
+        p = eval_x * p + P[i];
+    }
 
     let mut eval_x_over_two = eval_x;
     eval_x_over_two.exponent -= 1; // * 0.5
@@ -309,7 +308,7 @@ expr = (z**17 * (R(-6989) + R(2520) * euler_gamma - R(2520) * lg))/R('4832746593
 #[cold]
 #[inline(never)]
 fn k1_small_rational(x: f64) -> f64 {
-    const P: [DyadicFloat128; 14] = [
+    static P: [DyadicFloat128; 14] = [
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -129,
@@ -383,9 +382,11 @@ fn k1_small_rational(x: f64) -> f64 {
     ];
     let dx = DyadicFloat128::new_from_f64(x);
     let x2 = dx * dx;
-    let p = f_horner_polyeval14(
-        x2, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12], P[13],
-    );
+
+    let mut p = P[13];
+    for i in (0..13).rev() {
+        p = x2 * p + P[i];
+    }
 
     let recip = DyadicFloat128::accurate_reciprocal(x);
 
@@ -555,7 +556,7 @@ R('83.7882740830616503293819459356854835383521002198942068063204') * z**3
 #[cold]
 #[inline(never)]
 fn k1_asympt_hard(x: f64) -> f64 {
-    const P: [DyadicFloat128; 25] = [
+    static P: [DyadicFloat128; 25] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -127,
@@ -683,7 +684,7 @@ fn k1_asympt_hard(x: f64) -> f64 {
         },
     ];
 
-    const Q: [DyadicFloat128; 4] = [
+    static Q: [DyadicFloat128; 4] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -127,
@@ -710,15 +711,15 @@ fn k1_asympt_hard(x: f64) -> f64 {
     let e = rational128_exp(x);
     let r_sqrt = bessel_rsqrt_hard(x, recip);
 
-    let p0 = f_horner_polyeval25(
-        recip, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12],
-        P[13], P[14], P[15], P[16], P[17], P[18], P[19], P[20], P[21], P[22], P[23], P[24],
-    );
+    let mut p0 = P[24];
+    for i in (0..24).rev() {
+        p0 = recip * p0 + P[i];
+    }
 
     let mut q0 = Q[3];
-    q0 = q0 * recip + Q[2];
-    q0 = q0 * recip + Q[1];
-    q0 = q0 * recip + Q[0];
+    for i in (0..3).rev() {
+        q0 = recip * q0 + Q[i];
+    }
 
     let v = p0 * q0.reciprocal();
     let r = v * (e.reciprocal() * r_sqrt);

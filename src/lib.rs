@@ -140,7 +140,9 @@ pub use round::{round, roundf};
 pub use round_ties_even::{round_ties_even, roundf_ties_even};
 pub use sec::f_sec;
 pub use sin::{f_cos, f_sin};
-pub use sin_cosf::{f_cosf, f_cospif, f_cscf, f_secf, f_sincf, f_sincosf, f_sinf, f_sinpif};
+pub use sin_cosf::{
+    f_cosf, f_cospif, f_cscf, f_secf, f_sincf, f_sincosf, f_sincospif, f_sinf, f_sinpif,
+};
 pub use sinc::f_sinc;
 pub use sincos::f_sincos;
 pub use sincospi::{f_cospi, f_sinpi};

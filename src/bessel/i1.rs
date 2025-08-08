@@ -31,7 +31,6 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::rational128_exp;
-use crate::horner::{f_horner_polyeval23, f_polyeval41};
 use crate::polyeval::{f_polyeval13, f_polyeval30};
 
 /// Modified Bessel of the first kind order 1
@@ -211,7 +210,7 @@ fn i1_0_to_7p75(x: f64, sign_scale: f64) -> f64 {
 #[cold]
 #[inline(never)]
 fn i1_0_to_7p5_hard(x: f64, sign_scale: f64) -> f64 {
-    const P: [DyadicFloat128; 23] = [
+    static P: [DyadicFloat128; 23] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -131,
@@ -335,10 +334,10 @@ fn i1_0_to_7p5_hard(x: f64, sign_scale: f64) -> f64 {
     let mut eval_x = dx * dx;
     eval_x.exponent -= 2; // * 0.25
 
-    let p = f_horner_polyeval23(
-        eval_x, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12],
-        P[13], P[14], P[15], P[16], P[17], P[18], P[19], P[20], P[21], P[22],
-    );
+    let mut p = P[22];
+    for i in (0..22).rev() {
+        p = eval_x * p + P[i];
+    }
 
     let mut eval_x_over_two = eval_x;
     eval_x_over_two.exponent -= 1; // * 0.5
@@ -677,12 +676,10 @@ fn i1_asympt_hard(x: f64, sign_scale: f64) -> f64 {
 
     let recip = DyadicFloat128::accurate_reciprocal(x);
 
-    let z = f_polyeval41(
-        recip, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12],
-        P[13], P[14], P[15], P[16], P[17], P[18], P[19], P[20], P[21], P[22], P[23], P[24], P[25],
-        P[26], P[27], P[28], P[29], P[30], P[31], P[32], P[33], P[34], P[35], P[36], P[37], P[38],
-        P[39], P[40],
-    );
+    let mut z = P[40];
+    for i in (0..40).rev() {
+        z = recip * z + P[i];
+    }
     let r_sqrt = bessel_rsqrt_hard(x, recip);
     let f_exp = rational128_exp(x);
     (z * r_sqrt * f_exp).fast_as_f64() * sign_scale

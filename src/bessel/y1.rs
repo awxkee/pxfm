@@ -38,7 +38,7 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::logs::log_dd_fast;
-use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval28, f_polyeval30};
+use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15};
 use crate::sin_helper::{cos_dd_small, cos_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
@@ -620,12 +620,12 @@ fn y1_transient_hard(x: f64) -> f64 {
         mantissa: 0x8c9df6a6_ff921721_70d796f3_2017e155_u128,
     };
     let r = DyadicFloat128::new_from_f64(x) - ZERO;
-    let v = f_polyeval28(
-        r, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11], C[12], C[13],
-        C[14], C[15], C[16], C[17], C[18], C[19], C[20], C[21], C[22], C[23], C[24], C[25], C[26],
-        C[27],
-    );
-    v.fast_as_f64()
+
+    let mut p = C[27];
+    for i in (0..27).rev() {
+        p = r * p + C[i];
+    }
+    p.fast_as_f64()
 }
 
 /// This method on small range searches for nearest zero or extremum.
@@ -737,22 +737,21 @@ fn y1_small_argument_path_hard(x: f64, idx: usize, dist: f64) -> f64 {
         let c = &Y1_COEFFS_RATIONAL_TAYLOR128[idx - 1];
         let dx = DyadicFloat128::new_from_f64(x) - zero;
 
-        let p = f_polyeval28(
-            dx, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12],
-            c[13], c[14], c[15], c[16], c[17], c[18], c[19], c[20], c[21], c[22], c[23], c[24],
-            c[25], c[26], c[27],
-        );
+        let mut p = c[27];
+        for i in (0..27).rev() {
+            p = dx * p + c[i];
+        }
+
         p.fast_as_f64()
     } else {
         let c = &Y1_COEFFS_RATIONAL128[idx - 1];
         let zero = Y1_ZEROS_RATIONAL128[idx];
         let dx = DyadicFloat128::new_from_f64(x) - zero;
 
-        let p = f_polyeval30(
-            dx, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12],
-            c[13], c[14], c[15], c[16], c[17], c[18], c[19], c[20], c[21], c[22], c[23], c[24],
-            c[25], c[26], c[27], c[28], c[29],
-        );
+        let mut p = c[29];
+        for i in (0..29).rev() {
+            p = dx * p + c[i];
+        }
         p.fast_as_f64()
     }
 }

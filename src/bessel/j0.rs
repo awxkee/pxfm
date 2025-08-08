@@ -42,8 +42,7 @@ use crate::bessel::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::horner::f_horner_polyeval12;
-use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval19, f_polyeval24};
+use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval19};
 use crate::sin_helper::{cos_dd_small, cos_dd_small_fast, cos_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
@@ -233,7 +232,7 @@ print_expansion_at_0()
 #[cold]
 #[inline(never)]
 pub(crate) fn j0_maclaurin_series_hard(x: f64) -> f64 {
-    const P: [DyadicFloat128; 12] = [
+    static P: [DyadicFloat128; 12] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -127,
@@ -297,9 +296,12 @@ pub(crate) fn j0_maclaurin_series_hard(x: f64) -> f64 {
     ];
     let dx = DyadicFloat128::new_from_f64(x);
     let x2 = dx * dx;
-    let p = f_horner_polyeval12(
-        x2, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11],
-    );
+
+    let mut p = P[11];
+    for i in (0..11).rev() {
+        p = x2 * p + P[i];
+    }
+
     p.fast_as_f64()
 }
 
@@ -457,10 +459,11 @@ fn j0_small_argument_hard(x: f64, idx: usize, dist: f64) -> f64 {
     let zero = J0_ZEROS_RATIONAL128[idx];
     let dx = DyadicFloat128::new_from_f64(x) - zero;
 
-    let p = f_polyeval24(
-        dx, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13],
-        c[14], c[15], c[16], c[17], c[18], c[19], c[20], c[21], c[22], c[23],
-    );
+    let mut p = c[23];
+    for i in (0..23).rev() {
+        p = dx * p + c[i];
+    }
+
     p.fast_as_f64()
 }
 

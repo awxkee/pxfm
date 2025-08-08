@@ -741,7 +741,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::j0", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::j0(i as f64 * 2.));
+                black_box(libm::j0(i as f64 / 100.));
             }
         })
     });
@@ -749,7 +749,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: j0", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_j0(i as f64 * 2.));
+                black_box(f_j0(i as f64 / 100.));
             }
         })
     });
@@ -757,7 +757,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::y0", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::y0(i as f64 / 1000.0));
+                black_box(libm::y0(i as f64 / 100.));
             }
         })
     });
@@ -765,7 +765,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: y0", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_y0(i as f64 / 1000.0));
+                black_box(f_y0(i as f64 / 100.));
             }
         })
     });
@@ -773,7 +773,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::j1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::j1(i as f64 / 10.0));
+                black_box(libm::j1(i as f64 / 100.));
             }
         })
     });
@@ -781,7 +781,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: j1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_j1(i as f64 / 10.0));
+                black_box(f_j1(i as f64 / 100.));
             }
         })
     });
@@ -789,7 +789,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::y1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::y1(i as f64 / 1000.));
+                black_box(libm::y1(i as f64 / 100.));
             }
         })
     });
@@ -797,7 +797,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_y1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_y1(i as f64 / 1000.));
+                black_box(f_y1(i as f64 / 100.));
             }
         })
     });

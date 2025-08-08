@@ -28,7 +28,6 @@
  */
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::horner::f_horner_polyeval18;
 use crate::polyeval::f_polyeval9;
 
 /**
@@ -193,7 +192,7 @@ pub(crate) fn bessel_1_asympt_alpha(recip: DoubleDouble) -> DoubleDouble {
 //
 /// See [bessel_1_asympt_alpha] for the info
 pub(crate) fn bessel_1_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFloat128 {
-    const C: [DyadicFloat128; 18] = [
+    static C: [DyadicFloat128; 18] = [
         DyadicFloat128 {
             sign: DyadicSign::Neg,
             exponent: -129,
@@ -288,10 +287,10 @@ pub(crate) fn bessel_1_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFl
 
     let x2 = reciprocal * reciprocal;
 
-    let p = f_horner_polyeval18(
-        x2, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11], C[12], C[13],
-        C[14], C[15], C[16], C[17],
-    );
+    let mut p = C[17];
+    for i in (0..17).rev() {
+        p = x2 * p + C[i];
+    }
 
     p * reciprocal
 }
