@@ -1,7 +1,4 @@
-use pxfm::{
-    f_cosf, f_cospif, f_cotf, f_cscf, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k1, f_log, f_secf, f_sincf,
-    f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tanf, f_y0, f_y0f, f_y1, f_y1f,
-};
+use pxfm::{f_cosf, f_cospif, f_cotf, f_cscf, f_i0, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k1, f_log, f_secf, f_sincf, f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tanf, f_y0, f_y0f, f_y1, f_y1f};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -11,6 +8,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+use bessel::bessel_i0;
 
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
     let output = Command::new("python3")
@@ -186,7 +184,7 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (1.7f64).to_bits();
+    let start_bits = (9.6f64).to_bits();
     let end_bits = (start_bits + 1000000);
 
     //
@@ -211,8 +209,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = Float::with_val(90, x).y1();
-        let actual = f_y1(x);
+        let expected = bessel_i0(x, 90);//Float::with_val(90, x).y1();
+        let actual = f_i0(x);
 
         let diff = count_ulp_f64(actual, &expected);
 

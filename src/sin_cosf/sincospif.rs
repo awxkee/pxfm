@@ -154,11 +154,16 @@ pub fn f_sincospif(x: f32) -> (f32, f32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{f_cospif, f_sinpif};
 
     #[test]
     fn test_sincospif() {
         let v0 = f_sincospif(-8489897.0);
-        assert_eq!(v0.0, -0.0);
-        assert_eq!(v0.1, -1.0);
+        assert_eq!(v0.0, f_sinpif(-8489897.0));
+        assert_eq!(v0.1, f_cospif(-8489897.0));
+
+        let v1 = f_sincospif(3.23);
+        assert_eq!(v1.0, f_sinpif(3.23));
+        assert_eq!(v1.1, f_cospif(3.23));
     }
 }
