@@ -26,10 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::alpha1::{bessel_1_asympt_alpha, bessel_1_asympt_alpha_hard};
+use crate::bessel::beta1::{bessel_1_asympt_beta, bessel_1_asympt_beta_hard};
 use crate::bessel::i0::bessel_rsqrt_hard;
-use crate::bessel::j1::{
-    j1_asympt_alpha, j1_asympt_alpha_hard, j1_asympt_beta, j1_asympt_beta_hard,
-};
 use crate::bessel::y1_coeffs::Y1_COEFFS_REMEZ;
 use crate::bessel::y1_coeffs_dyadic_remez::Y1_COEFFS_RATIONAL128;
 use crate::bessel::y1_coeffs_dyadic_taylor::{Y1_COEFFS_RATIONAL_TAYLOR128, Y1_ZEROS_RATIONAL128};
@@ -38,14 +37,14 @@ use crate::bessel::y1f_coeffs::{Y1_ZEROS, Y1_ZEROS_VALUES};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::logs::log_dd;
+use crate::logs::log_dd_fast;
 use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval28, f_polyeval30};
 use crate::sin_helper::{cos_dd_small, cos_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the second kind order one ( Y1 )
 ///
-/// Max found ULP 0.500001
+/// Max found ULP 0.5002
 pub fn f_y1(x: f64) -> f64 {
     if x < 0. {
         return f64::NAN;
@@ -210,7 +209,7 @@ fn y1_near_zero_fast(x: f64) -> f64 {
     z = DoubleDouble::mul_add(x2, z, DoubleDouble::from_bit_pair(Z[0]));
     z = DoubleDouble::quick_mult_f64(z, x);
 
-    let w_log = log_dd(x);
+    let w_log = log_dd_fast(x);
 
     const MINUS_TWO_OVER_PI: DoubleDouble =
         DoubleDouble::from_bit_pair((0x3c86b01ec5417056, 0xbfe45f306dc9c883));
@@ -718,7 +717,7 @@ pub(crate) fn y1_small_argument_path(x: f64) -> f64 {
     let err = f_fmla(
         p.hi,
         f64::from_bits(0x3c30000000000000), // 2^-60
-        f64::from_bits(0x3b00000000000000), // 2^-79
+        f64::from_bits(0x3bb0000000000000), // 2^-68
     );
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
@@ -782,8 +781,8 @@ pub(crate) fn y1_asympt(x: f64) -> f64 {
         DoubleDouble::from_recip(x)
     };
 
-    let alpha = j1_asympt_alpha(recip);
-    let beta = j1_asympt_beta(recip);
+    let alpha = bessel_1_asympt_alpha(recip);
+    let beta = bessel_1_asympt_beta(recip);
 
     let AngleReduced { angle } = rem2pi_any(x);
 
@@ -835,8 +834,8 @@ fn y1_asympt_hard(x: f64) -> f64 {
     let x_dyadic = DyadicFloat128::new_from_f64(x);
     let recip = DyadicFloat128::accurate_reciprocal(x);
 
-    let alpha = j1_asympt_alpha_hard(recip);
-    let beta = j1_asympt_beta_hard(recip);
+    let alpha = bessel_1_asympt_alpha_hard(recip);
+    let beta = bessel_1_asympt_beta_hard(recip);
 
     let angle = rem2pi_f128(x_dyadic);
 
@@ -858,9 +857,8 @@ mod tests {
 
     #[test]
     fn test_y1() {
-        assert_eq!(f_y1(2.197142201034536), 4.5568985277260593e-7);
-        assert_eq!(f_y1(1.4000000000000004), -0.4791469742327998);
-        assert_eq!(f_y1(2.0002288794493848), -0.10690337355867671);
+        // ULP should be less than 0.500001, but it was 0.5089558379720955, on 2.1957931471395398 result -0.0007023285780874727, using f_y1 and MPFR -0.0007023285780874729
+        assert_eq!(f_y1(2.1957931471395398), -0.0007023285780874729);
         assert_eq!(
             f_y1(f64::from_bits(0x571a31ffe2ff7e9fu64)),
             f64::from_bits(0x32e58532f95056ffu64)
@@ -888,5 +886,12 @@ mod tests {
         assert_eq!(f_y1(f64::INFINITY), 0.);
         assert!(f_y1(f64::NEG_INFINITY).is_nan());
         assert!(f_y1(f64::NAN).is_nan());
+    }
+
+    #[test]
+    fn test_y1_edge_cases() {
+        assert_eq!(f_y1(2.197142201034536), 4.5568985277260593e-7);
+        assert_eq!(f_y1(1.4000000000000004), -0.4791469742327998);
+        assert_eq!(f_y1(2.0002288794493848), -0.10690337355867671);
     }
 }

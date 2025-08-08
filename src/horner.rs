@@ -256,6 +256,7 @@ pub(crate) fn f_horner_polyeval15<T: PolyevalMla + Copy>(
     T::polyeval_mla(x, acc, a0)
 }
 
+#[inline]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn f_horner_polyeval18<T: PolyevalMla + Copy>(
     x: T,

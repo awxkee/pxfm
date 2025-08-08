@@ -70,6 +70,25 @@ pub fn f_i0(x: f64) -> f64 {
 
 /**
 Computes I0 on interval [-7.5; -3.6], [3.6; 7.5]
+**/
+#[inline]
+fn i3p6_to_7p5(x: f64) -> f64 {
+    let r = i0_0_to_3p6_dd(x);
+
+    const ERR: f64 = f64::from_bits(0x3c3ee8f34dd80440);
+
+    let err = f_fmla(r.hi, f64::from_bits(0x3a08406003b2ae42), ERR);
+
+    let ub = r.hi + (r.lo + err);
+    let lb = r.hi + (r.lo - err);
+    if ub != lb {
+        return eval_small_hard_3p6_to_7p5(x);
+    }
+    r.to_f64()
+}
+
+/**
+Computes I0 on interval [-7.5; -3.6], [3.6; 7.5]
 as rational approximation I0 = 1 + (x/2)^2 * Pn((x/2)^2)/Qm((x/2)^2))
 where n = 16 and m = 0.
 
@@ -108,22 +127,6 @@ See ./notes/bessel_i0.ipynb for generation
 
 Next step is poly generation in Sollya see ./notes/bessel_sollya/bessel_i0_small.sollya for generation
 **/
-#[inline]
-fn i3p6_to_7p5(x: f64) -> f64 {
-    let r = i0_0_to_3p6_dd(x);
-
-    const ERR: f64 = f64::from_bits(0x3c3ee8f34dd80440);
-
-    let err = f_fmla(r.hi, f64::from_bits(0x3a08406003b2ae42), ERR);
-
-    let ub = r.hi + (r.lo + err);
-    let lb = r.hi + (r.lo - err);
-    if ub != lb {
-        return eval_small_hard_3p6_to_7p5(x);
-    }
-    r.to_f64()
-}
-
 #[inline]
 fn i0_0_to_3p6_dd(x: f64) -> DoubleDouble {
     let dx = x;

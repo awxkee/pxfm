@@ -29,6 +29,12 @@
 
 #![allow(clippy::excessive_precision)]
 
+use crate::bessel::alpha1::{
+    bessel_1_asympt_alpha, bessel_1_asympt_alpha_fast, bessel_1_asympt_alpha_hard,
+};
+use crate::bessel::beta1::{
+    bessel_1_asympt_beta, bessel_1_asympt_beta_fast, bessel_1_asympt_beta_hard,
+};
 use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1_ZEROS_VALUE};
 use crate::bessel::j1_coeffs_taylor::J1_COEFFS_TAYLOR;
@@ -38,9 +44,10 @@ use crate::bessel::j1_zeros_dyadic::J1_ZEROS_RATIONAL;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::horner::{f_horner_polyeval12, f_horner_polyeval18};
-use crate::polyeval::{f_polyeval8, f_polyeval9, f_polyeval13, f_polyeval24};
-use crate::sin_helper::{sin_dd_small, sin_f128_small};
+use crate::polyeval::{
+    f_polyeval8, f_polyeval9, f_polyeval12, f_polyeval13, f_polyeval19, f_polyeval24,
+};
+use crate::sin_helper::{sin_dd_small, sin_dd_small_fast, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel J 1st order in f64
@@ -70,14 +77,14 @@ pub fn f_j1(x: f64) -> f64 {
 
     if ax < 0x4052a6784230fcf8u64 {
         // 74.60109
-        if ax < 0x3fd0000000000000u64 {
-            // 0.25
-            return j1_maclaurin_series(x);
+        if ax < 0x3feccccccccccccd {
+            // 0.9
+            return j1_maclaurin_series_fast(x);
         }
-        return j1_small_argument_path(x);
+        return j1_small_argument_fast(x);
     }
 
-    j1_asympt(x)
+    j1_asympt_fast(x)
 }
 
 /*
@@ -91,7 +98,7 @@ pub fn f_j1(x: f64) -> f64 {
    J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
 */
 #[inline]
-fn j1_asympt(x: f64) -> f64 {
+fn j1_asympt_fast(x: f64) -> f64 {
     let origin_x = x;
     static SGN: [f64; 2] = [1., -1.];
     let sign_scale = SGN[x.is_sign_negative() as usize];
@@ -112,8 +119,8 @@ fn j1_asympt(x: f64) -> f64 {
         DoubleDouble::from_recip(x)
     };
 
-    let alpha = j1_asympt_alpha(recip);
-    let beta = j1_asympt_beta(recip);
+    let alpha = bessel_1_asympt_alpha_fast(recip);
+    let beta = bessel_1_asympt_beta_fast(recip);
 
     let AngleReduced { angle } = rem2pi_any(x);
 
@@ -121,18 +128,71 @@ fn j1_asympt(x: f64) -> f64 {
     let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
     let r0 = DoubleDouble::dd_add(angle, x0pi34);
 
+    let m_sin = sin_dd_small_fast(r0);
+    let z0 = DoubleDouble::quick_mult(beta, m_sin);
+    let r_sqrt = DoubleDouble::from_rsqrt_fast(x);
+    let scale = DoubleDouble::quick_mult(SQRT_2_OVER_PI, r_sqrt);
+    let p = DoubleDouble::quick_mult(scale, z0);
+
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3be0000000000000), // 2^-65
+        f64::from_bits(0x3a60000000000000), // 2^-89
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
+
+    if ub == lb {
+        return p.to_f64() * sign_scale;
+    }
+
+    j1_asympt(origin_x, recip, r_sqrt, angle)
+}
+
+/*
+   Evaluates:
+   J1 = sqrt(2/(PI*x)) * beta(x) * cos(x - 3*PI/4 - alpha(x))
+   discarding 1*PI/2 using identities gives:
+   J1 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
+
+   to avoid squashing small (-PI/4 - alpha(x)) into a large x actual expansion is:
+
+   J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
+*/
+fn j1_asympt(x: f64, recip: DoubleDouble, r_sqrt: DoubleDouble, angle: DoubleDouble) -> f64 {
+    let origin_x = x;
+    static SGN: [f64; 2] = [1., -1.];
+    let sign_scale = SGN[x.is_sign_negative() as usize];
+
+    const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
+        f64::from_bits(0xbc8cbc0d30ebfd15),
+        f64::from_bits(0x3fe9884533d43651),
+    );
+    const MPI_OVER_4: DoubleDouble = DoubleDouble::new(
+        f64::from_bits(0xbc81a62633145c07),
+        f64::from_bits(0xbfe921fb54442d18),
+    );
+
+    let alpha = bessel_1_asympt_alpha(recip);
+    let beta = bessel_1_asympt_beta(recip);
+
+    // Without full subtraction cancellation happens sometimes
+    let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
+    let r0 = DoubleDouble::dd_add(angle, x0pi34);
+
     let m_sin = sin_dd_small(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_sin);
-    let r_sqrt = DoubleDouble::from_rsqrt(x);
     let scale = DoubleDouble::quick_mult(SQRT_2_OVER_PI, r_sqrt);
     let r = DoubleDouble::quick_mult(scale, z0);
 
     let p = DoubleDouble::from_exact_add(r.hi, r.lo);
+
     let err = f_fmla(
         p.hi,
         f64::from_bits(0x3bc0000000000000), // 2^-67
         f64::from_bits(0x39c0000000000000), // 2^-99
     );
+
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
 
@@ -144,164 +204,66 @@ fn j1_asympt(x: f64) -> f64 {
 }
 
 /**
-Note expansion generation below: this is negative series expressed in Sage as positive,
-so before any real evaluation `x=1/x` should be applied.
+Generated in Sollya:
+```text
+pretty = proc(u) {
+  return ~(floor(u*1000)/1000);
+};
 
-Generated by SageMath:
-```python
-def binomial_like(n, m):
-    prod = QQ(1)
-    z = QQ(4)*(n**2)
-    for k in range(1,m + 1):
-        prod *= (z - (2*k - 1)**2)
-    return prod / (QQ(2)**(2*m) * (ZZ(m).factorial()))
+bessel_j1 = library("./cmake-build-release/libbessel_sollya.dylib");
 
-R = LaurentSeriesRing(RealField(300), 'x',default_prec=300)
-x = R.gen()
+f = bessel_j1(x)/x;
+d = [0, 0.921];
+w = 1;
+pf = fpminimax(f, [|0,2,4,6,8,10,12,14,16,18,20,22,24|], [|107, 107, 107, 107, 107, D...|], d, absolute, floating);
 
-def Pn_asymptotic(n, y, terms=10):
-    # now y = 1/x
-    return sum( (-1)**m * binomial_like(n, 2*m) / (QQ(2)**(2*m)) * y**(QQ(2)*m) for m in range(terms) )
+w = 1;
+or_f = bessel_j1(x);
+pf1 = pf * x;
+err_p = -log2(dirtyinfnorm(pf1*w-or_f, d));
+print ("relative error:", pretty(err_p));
 
-def Qn_asymptotic(n, y, terms=10):
-    return sum( (-1)**m * binomial_like(n, 2*m + 1) / (QQ(2)**(2*m + 1)) * y**(QQ(2)*m + 1) for m in range(terms) )
-
-P = Pn_asymptotic(1, x, 50)
-Q = Qn_asymptotic(1, x, 50)
-
-R_series = (-Q/P)
-
-# alpha is atan(R_series) so we're doing Taylor series atan expansion on R_series
-
-arctan_series_Z = sum([QQ(-1)**k * x**(QQ(2)*k+1) / RealField(700)(RealField(700)(2)*k+1) for k in range(25)])
-alpha_series = arctan_series_Z(R_series)
-
-# see the series
-print(alpha_series)
+for i from 0 to degree(pf) by 2 do {
+    print("'", coeff(pf, i), "',");
+};
 ```
-
-See notes/bessel_asympt.ipynb for generation
+See ./notes/bessel_sollya/bessel_j1_at_zero_fast.sollya
 **/
 #[inline]
-pub(crate) fn j1_asympt_alpha(recip: DoubleDouble) -> DoubleDouble {
-    const C: [(u64, u64); 12] = [
-        (0x0000000000000000, 0xbfd8000000000000),
-        (0x0000000000000000, 0x3fc5000000000000),
-        (0x3c6999999999999a, 0xbfd7bccccccccccd),
-        (0x3cab6db6db6db6db, 0x4002f486db6db6db),
-        (0x0000000000000000, 0xc03e9fbf40000000),
-        (0x3d21745d1745d174, 0x4084997b55945d17),
-        (0x3d789d89d89d89d9, 0xc0d4a914195269d9),
-        (0xbdb999999999999a, 0x412cd1b53816aec1),
-        (0xbdfe5a5a5a5a5a5a, 0xc18aa4095d419351),
-        (0x3e7e0ca50d79435e, 0x41ef809305f11b9d),
-        (0xbedff8b720000000, 0xc2572e6809ed618b),
-        (0xbf64e5d8ae68b7a7, 0x42c4c5b6057839f9),
-    ];
-
-    // Doing (1/x)*(1/x) instead (1/(x*x)) to avoid spurious overflow/underflow
-    let x2 = DoubleDouble::quick_mult(recip, recip);
-
-    let mut p = DoubleDouble::mul_add(
-        x2,
-        DoubleDouble::from_bit_pair(C[11]),
-        DoubleDouble::from_bit_pair(C[10]),
+pub(crate) fn j1_maclaurin_series_fast(x: f64) -> f64 {
+    const C0: DoubleDouble = DoubleDouble::from_bit_pair((0x3b30e9e087200000, 0x3fe0000000000000));
+    let x2 = DoubleDouble::from_exact_mult(x, x);
+    let p = f_polyeval12(
+        x2.hi,
+        f64::from_bits(0xbfb0000000000000),
+        f64::from_bits(0x3f65555555555555),
+        f64::from_bits(0xbf0c71c71c71c45e),
+        f64::from_bits(0x3ea6c16c16b82b02),
+        f64::from_bits(0xbe3845c87ec0cbef),
+        f64::from_bits(0x3dc27e0313e8534c),
+        f64::from_bits(0xbd4443dd2d0305d0),
+        f64::from_bits(0xbd0985a435fe9aa1),
+        f64::from_bits(0x3d10c82d92c46d30),
+        f64::from_bits(0xbd0aa3684321f219),
+        f64::from_bits(0x3cf8351f29ac345a),
+        f64::from_bits(0xbcd333fe6cd52c9f),
     );
+    let mut z = DoubleDouble::mul_f64_add(x2, p, C0);
+    z = DoubleDouble::quick_mult_f64(z, x);
 
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[9]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[8]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[7]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[6]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[5]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[4]));
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[3].1));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[1].1));
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[0].1));
-
-    let z = DoubleDouble::quick_mult(p, recip);
-
-    DoubleDouble::from_exact_add(z.hi, z.lo)
-}
-
-/**
-Note expansion generation below: this is negative series expressed in Sage as positive,
-so before any real evaluation `x=1/x` should be applied
-
-Generated by SageMath:
-```python
-def binomial_like(n, m):
-    prod = QQ(1)
-    z = QQ(4)*(n**2)
-    for k in range(1,m + 1):
-        prod *= (z - (2*k - 1)**2)
-    return prod / (QQ(2)**(2*m) * (ZZ(m).factorial()))
-
-R = LaurentSeriesRing(RealField(300), 'x',default_prec=300)
-x = R.gen()
-
-def Pn_asymptotic(n, y, terms=10):
-    # now y = 1/x
-    return sum( (-1)**m * binomial_like(n, 2*m) / (QQ(2)**(2*m)) * y**(QQ(2)*m) for m in range(terms) )
-
-def Qn_asymptotic(n, y, terms=10):
-    return sum( (-1)**m * binomial_like(n, 2*m + 1) / (QQ(2)**(2*m + 1)) * y**(QQ(2)*m + 1) for m in range(terms) )
-
-P = Pn_asymptotic(1, x, 50)
-Q = Qn_asymptotic(1, x, 50)
-
-def sqrt_series(s):
-    val = S.valuation()
-    lc = S[val]  # Leading coefficient
-    b = lc.sqrt() * x**(val // 2)
-
-    for _ in range(5):
-        b = (b + S / b) / 2
-        b = b
-    return b
-
-S = (P**2 + Q**2).truncate(50)
-
-b_series = sqrt_series(S).truncate(30)
-# see the beta series
-print(b_series)
-```
-
-See notes/bessel_asympt.ipynb for generation
-**/
-#[inline]
-pub(crate) fn j1_asympt_beta(recip: DoubleDouble) -> DoubleDouble {
-    const C: [(u64, u64); 10] = [
-        (0x0000000000000000, 0x3ff0000000000000), // 1
-        (0x0000000000000000, 0x3fc8000000000000), // 2
-        (0x0000000000000000, 0xbfc8c00000000000), // 3
-        (0x0000000000000000, 0x3fe9c50000000000), // 4
-        (0x0000000000000000, 0xc01ef5b680000000), // 5
-        (0x0000000000000000, 0x40609860dd400000), // 6
-        (0x0000000000000000, 0xc0abae9b7a06e000), // 7
-        (0x0000000000000000, 0x41008711d41c1428), // 8
-        (0xbdf7a00000000000, 0xc15ab70164c8be6e),
-        (0xbe40e1f000000000, 0x41bc1055e24f297f),
-    ];
-
-    // Doing (1/x)*(1/x) instead (1/(x*x)) to avoid spurious overflow/underflow
-    let x2 = DoubleDouble::quick_mult(recip, recip);
-
-    let mut p = DoubleDouble::mul_add(
-        x2,
-        DoubleDouble::from_bit_pair(C[9]),
-        DoubleDouble::from_bit_pair(C[8]),
+    // squaring error (2^-56) + poly error 2^-75
+    let err = f_fmla(
+        x2.hi,
+        f64::from_bits(0x3c70000000000000), // 2^-56
+        f64::from_bits(0x3b40000000000000), // 2^-75
     );
+    let ub = z.hi + (z.lo + err);
+    let lb = z.hi + (z.lo - err);
 
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[7].1)); // 8
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[6].1)); // 7
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[5].1)); // 6
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[4].1)); // 5
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[3].1)); // 4
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[2].1)); // 3
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[1].1)); // 2
-    p = DoubleDouble::mul_add_f64(x2, p, f64::from_bits(C[0].1)); // 1
-    p
+    if ub == lb {
+        return z.to_f64();
+    }
+    j1_maclaurin_series(x)
 }
 
 /**
@@ -330,7 +292,6 @@ for i from 0 to degree(pf) by 2 do {
 ```
 See ./notes/bessel_sollya/bessel_j1_at_zero.sollya
 **/
-#[inline]
 pub(crate) fn j1_maclaurin_series(x: f64) -> f64 {
     let origin_x = x;
     static SGN: [f64; 2] = [1., -1.];
@@ -345,8 +306,10 @@ pub(crate) fn j1_maclaurin_series(x: f64) -> f64 {
         (0xbb3f56b7a43206d4, 0x3ea6c16c16c16c17),
     ];
 
+    let dx2 = DoubleDouble::from_exact_mult(x, x);
+
     let p = f_polyeval8(
-        x * x,
+        dx2.hi,
         f64::from_bits(0xbe3845c8a0ce5129),
         f64::from_bits(0x3dc27e4fb7789ea2),
         f64::from_bits(0xbd4522a43f633af1),
@@ -356,8 +319,6 @@ pub(crate) fn j1_maclaurin_series(x: f64) -> f64 {
         f64::from_bits(0xbb10ac65637413f4),
         f64::from_bits(0xbae4d8336e4f779c),
     );
-
-    let dx2 = DoubleDouble::from_exact_mult(x, x);
 
     let mut p_e = DoubleDouble::mul_f64_add(dx2, p, DoubleDouble::from_bit_pair(CL[4]));
     p_e = DoubleDouble::mul_add(dx2, p_e, DoubleDouble::from_bit_pair(CL[3]));
@@ -489,7 +450,7 @@ fn j1_maclaurin_series_hard(x: f64) -> f64 {
 /// This method on small range searches for nearest zero or extremum.
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
 #[inline]
-pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
+pub(crate) fn j1_small_argument_fast(x: f64) -> f64 {
     static SIGN: [f64; 2] = [1., -1.];
     let sign_scale = SIGN[x.is_sign_negative() as usize];
     let x_abs = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
@@ -517,10 +478,10 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
     };
 
     if idx == 0 {
-        return j1_maclaurin_series(x);
+        return j1_maclaurin_series_fast(x);
     }
 
-    let r = DoubleDouble::full_add_f64(DoubleDouble::new(-found_zero.lo, -found_zero.hi), x_abs);
+    let r = DoubleDouble::full_add_f64(-found_zero, x_abs);
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
@@ -529,13 +490,63 @@ pub(crate) fn j1_small_argument_path(x: f64) -> f64 {
 
     let is_zero_too_close = dist.abs() < 1e-3;
 
-    let j1c = if is_zero_too_close {
+    let c = if is_zero_too_close {
         &J1_COEFFS_TAYLOR[idx - 1]
     } else {
         &J1_COEFFS[idx - 1]
     };
-    let c0 = j1c;
 
+    let p = f_polyeval19(
+        r.hi,
+        f64::from_bits(c[5].1),
+        f64::from_bits(c[6].1),
+        f64::from_bits(c[7].1),
+        f64::from_bits(c[8].1),
+        f64::from_bits(c[9].1),
+        f64::from_bits(c[10].1),
+        f64::from_bits(c[11].1),
+        f64::from_bits(c[12].1),
+        f64::from_bits(c[13].1),
+        f64::from_bits(c[14].1),
+        f64::from_bits(c[15].1),
+        f64::from_bits(c[16].1),
+        f64::from_bits(c[17].1),
+        f64::from_bits(c[18].1),
+        f64::from_bits(c[19].1),
+        f64::from_bits(c[20].1),
+        f64::from_bits(c[21].1),
+        f64::from_bits(c[22].1),
+        f64::from_bits(c[23].1),
+    );
+
+    let mut z = DoubleDouble::mul_f64_add(r, p, DoubleDouble::from_bit_pair(c[4]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[3]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[2]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[1]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[0]));
+    let err = f_fmla(
+        z.hi,
+        f64::from_bits(0x3c70000000000000), // 2^-56
+        f64::from_bits(0x3bf0000000000000), // 2^-64
+    );
+    let ub = z.hi + (z.lo + err);
+    let lb = z.hi + (z.lo - err);
+
+    if ub == lb {
+        return z.to_f64() * sign_scale;
+    }
+
+    j1_small_argument_dd(x_abs, idx, sign_scale, dist, r, c)
+}
+
+fn j1_small_argument_dd(
+    x_abs: f64,
+    idx: usize,
+    sign_scale: f64,
+    dist: f64,
+    r: DoubleDouble,
+    c0: &[(u64, u64); 24],
+) -> f64 {
     let c = &c0[15..];
 
     let p0 = f_polyeval9(
@@ -602,183 +613,6 @@ fn j1_small_argument_path_hard(x: f64, idx: usize, sign_scale: f64, dist: f64) -
     p.fast_as_f64() * sign_scale
 }
 
-/// see [j1_asympt_beta] for more info
-pub(crate) fn j1_asympt_beta_hard(recip: DyadicFloat128) -> DyadicFloat128 {
-    const C: [DyadicFloat128; 12] = [
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -127,
-            mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -130,
-            mantissa: 0xc0000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -130,
-            mantissa: 0xc6000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -128,
-            mantissa: 0xce280000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -125,
-            mantissa: 0xf7adb400_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -120,
-            mantissa: 0x84c306ea_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -116,
-            mantissa: 0xdd74dbd0_37000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -110,
-            mantissa: 0x84388ea0_e0a14000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -105,
-            mantissa: 0xd5b80b26_45f372f4_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -99,
-            mantissa: 0xe082af12_794bf6f1_e1000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -92,
-            mantissa: 0x94a06149_f30146bc_fe8ed000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -86,
-            mantissa: 0xf212edfc_42a62526_4fac2b0c_00000000_u128,
-        },
-    ];
-
-    let x2 = recip * recip;
-
-    f_horner_polyeval12(
-        x2, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11],
-    )
-}
-//
-/// See [j1_asympt_alpha] for the info
-pub(crate) fn j1_asympt_alpha_hard(reciprocal: DyadicFloat128) -> DyadicFloat128 {
-    const C: [DyadicFloat128; 18] = [
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -129,
-            mantissa: 0xc0000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -130,
-            mantissa: 0xa8000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -129,
-            mantissa: 0xbde66666_66666666_66666666_66666666_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -126,
-            mantissa: 0x97a436db_6db6db6d_b6db6db6_db6db6db_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -123,
-            mantissa: 0xf4fdfa00_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -118,
-            mantissa: 0xa4cbdaac_a2e8ba2e_8ba2e8ba_2e8ba2e9_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -113,
-            mantissa: 0xa548a0ca_934ec4ec_4ec4ec4e_c4ec4ec5_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -108,
-            mantissa: 0xe68da9c0_b5760666_66666666_66666666_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -102,
-            mantissa: 0xd5204aea_0c9a8879_69696969_69696969_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -96,
-            mantissa: 0xfc04982f_88dce9e0_ca50d794_35e50d79_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -89,
-            mantissa: 0xb973404f_6b0c58ff_c5b90000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -82,
-            mantissa: 0xa62db02b_c1cfc563_44ea32e9_0b21642d_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -75,
-            mantissa: 0xb220e7ff_443c1584_7e85f4e0_55eb851f_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -68,
-            mantissa: 0xe10a255c_ca5e68cc_00c2d6c0_acdc8000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -60,
-            mantissa: 0xa573790c_5186f23b_5db502ea_d9fa5432_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -52,
-            mantissa: 0x8c0ffedc_407a7015_453df84e_9c3f1d39_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -44,
-            mantissa: 0x874226ed_c298a17a_d8c49a4e_dc9281a5_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -36,
-            mantissa: 0x93cab36c_9ab9495c_310fa9cd_4b065359_u128,
-        },
-    ];
-
-    let x2 = reciprocal * reciprocal;
-
-    let p = f_horner_polyeval18(
-        x2, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11], C[12], C[13],
-        C[14], C[15], C[16], C[17],
-    );
-
-    p * reciprocal
-}
-
 /*
    Evaluates:
    J1 = sqrt(2/(PI*x)) * beta(x) * cos(x - 3*PI/4 - alpha(x))
@@ -813,8 +647,8 @@ fn j1_asympt_hard(x: f64) -> f64 {
     let x_dyadic = DyadicFloat128::new_from_f64(x);
     let recip = DyadicFloat128::accurate_reciprocal(x);
 
-    let alpha = j1_asympt_alpha_hard(recip);
-    let beta = j1_asympt_beta_hard(recip);
+    let alpha = bessel_1_asympt_alpha_hard(recip);
+    let beta = bessel_1_asympt_beta_hard(recip);
 
     let angle = rem2pi_f128(x_dyadic);
 
@@ -836,6 +670,9 @@ mod tests {
 
     #[test]
     fn test_j1() {
+        assert_eq!(f_j1(73.81695991658546), -0.06531447184607607);
+        assert_eq!(f_j1(0.01), 0.004999937500260416);
+        assert_eq!(f_j1(0.9), 0.4059495460788057);
         assert_eq!(
             f_j1(162605674999778540000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
             0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008686943178258183

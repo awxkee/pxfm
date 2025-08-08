@@ -27,6 +27,10 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #![deny(unreachable_pub)]
+mod alpha0;
+mod alpha1;
+mod beta0;
+mod beta1;
 mod i0;
 mod i0f;
 mod i1;

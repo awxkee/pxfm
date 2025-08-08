@@ -26,6 +26,8 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::alpha0::{bessel_0_asympt_alpha, bessel_0_asympt_alpha_hard};
+use crate::bessel::beta0::{bessel_0_asympt_beta, bessel_0_asympt_beta_hard};
 use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::j0::j0_maclaurin_series;
 use crate::bessel::y0_coeffs::Y0_COEFFS;
@@ -37,7 +39,7 @@ use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::logs::log_dd;
+use crate::logs::log_dd_fast;
 use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval28};
 use crate::sin_helper::{sin_dd_small, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
@@ -199,12 +201,12 @@ fn y0_near_zero_fast(x: f64) -> f64 {
     let mut z = DoubleDouble::mul_f64_add(x2, z0, DoubleDouble::from_bit_pair(Z[2]));
     z = DoubleDouble::mul_add(x2, z, DoubleDouble::from_bit_pair(Z[1]));
     z = DoubleDouble::mul_add(x2, z, DoubleDouble::from_bit_pair(Z[0]));
-    let w_log = log_dd(x); // Precision is not enough without full DD log, fail rate about 30%
+    let w_log = log_dd_fast(x);
     let p = DoubleDouble::mul_add(w, w_log, -z);
     let err = f_fmla(
         p.hi,
         f64::from_bits(0x3c50000000000000), // 2^-58
-        f64::from_bits(0x3be0000000000000), // 2^-65
+        f64::from_bits(0x3c10000000000000), // 2^-62
     );
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
@@ -736,8 +738,8 @@ pub(crate) fn y0_asympt(x: f64) -> f64 {
         DoubleDouble::from_recip(x)
     };
 
-    let alpha = crate::bessel::j0::j0_asympt_alpha(recip);
-    let beta = crate::bessel::j0::j0_asympt_beta(recip);
+    let alpha = bessel_0_asympt_alpha(recip);
+    let beta = bessel_0_asympt_beta(recip);
 
     let AngleReduced { angle } = rem2pi_any(x);
 
@@ -787,8 +789,8 @@ fn y0_asympt_hard(x: f64) -> f64 {
     let x_dyadic = DyadicFloat128::new_from_f64(x);
     let recip = DyadicFloat128::accurate_reciprocal(x);
 
-    let alpha = crate::bessel::j0::j0_asympt_alpha_hard(recip);
-    let beta = crate::bessel::j0::j0_asympt_beta_hard(recip);
+    let alpha = bessel_0_asympt_alpha_hard(recip);
+    let beta = bessel_0_asympt_beta_hard(recip);
 
     let angle = rem2pi_f128(x_dyadic);
 
@@ -811,28 +813,34 @@ mod tests {
     #[test]
     fn test_y0() {
         assert_eq!(f_y0(0.906009703874588), 0.01085796448629276);
-        assert_eq!(
-            f_y0(f64::from_bits(0x6e7c1d741dc52512u64)),
-            f64::from_bits(0x2696f860815bc669)
-        );
-        assert_eq!(f_y0(98.1760435789366), 0.0000000000000056889416242533015);
-        assert_eq!(
-            f_y0(91.8929453121571802176),
-            -0.00000000000000007281665706677893
-        );
         assert_eq!(f_y0(80.), -0.05562033908977);
         assert_eq!(f_y0(5.), -0.30851762524903376);
         assert_eq!(
             f_y0(f64::from_bits(0x3fec982eb8d417ea)),
             -0.000000000000000023389279284062102
         );
+        assert!(f_y0(f64::NAN).is_nan());
+        assert_eq!(f_y0(f64::INFINITY), 0.);
+        assert!(f_y0(f64::NEG_INFINITY).is_nan());
+    }
+
+    #[test]
+    fn test_y0_edge_values() {
+        assert_eq!(f_y0(0.8900000000138676), -0.0031519646708080126);
+        assert_eq!(f_y0(0.8900000000409116), -0.0031519646469294936);
+        assert_eq!(f_y0(98.1760435789366), 0.0000000000000056889416242533015);
+        assert_eq!(
+            f_y0(91.8929453121571802176),
+            -0.00000000000000007281665706677893
+        );
+        assert_eq!(
+            f_y0(f64::from_bits(0x6e7c1d741dc52512u64)),
+            f64::from_bits(0x2696f860815bc669)
+        );
         assert_eq!(f_y0(f64::from_bits(0x3e04cdee58a47edd)), -13.58605001628649);
         assert_eq!(
             f_y0(0.89357696627916749),
             -0.000000000000000023389279284062102
         );
-        assert!(f_y0(f64::NAN).is_nan());
-        assert_eq!(f_y0(f64::INFINITY), 0.);
-        assert!(f_y0(f64::NEG_INFINITY).is_nan());
     }
 }
