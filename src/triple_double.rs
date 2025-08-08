@@ -98,11 +98,10 @@ fn mul12(a: f64, b: f64) -> DoubleDouble {
 
 #[inline]
 pub(crate) fn add22(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-    let r = a.hi + b.hi;
-    let s = ((((a.hi) - r) + (b.hi)) + (b.lo)) + (a.lo);
-    let zh = r + s;
-    let zl = (r - (zh)) + s;
-    DoubleDouble::new(zl, zh)
+    let DoubleDouble { hi: v1, lo: v2 } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
+    let v3 = a.lo + b.lo;
+    let v4 = v2 + v3;
+    DoubleDouble::from_full_exact_add(v1, v4)
 }
 
 impl TripleDouble {

@@ -62,7 +62,7 @@ mod logf;
 
 pub(crate) use log::log_dyadic;
 pub use log::{f_log, log};
-pub(crate) use log_dd::log_dd;
+pub(crate) use log_dd::{log_dd, log_dd_fast};
 pub use log1p::f_log1p;
 pub(crate) use log1p::log1p_f64_dyadic;
 pub(crate) use log1p_dd::log1p_f64_dd;

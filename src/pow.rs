@@ -64,7 +64,6 @@ fn pow_exp2_fallback(x: f64) -> f64 {
 /// Power function for given value using FMA
 ///
 /// max found ULP 0.5
-#[inline]
 pub fn f_pow(x: f64, y: f64) -> f64 {
     let mut y = y;
     let x_sign = x.is_sign_negative();

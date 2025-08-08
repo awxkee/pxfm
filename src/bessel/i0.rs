@@ -30,8 +30,8 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, rational128_exp};
-use crate::horner::{f_horner_polyeval11, f_polyeval39};
-use crate::polyeval::{f_horner_polyeval21, f_horner_polyeval30, f_polyeval20, f_polyeval30};
+use crate::horner::f_horner_polyeval11;
+use crate::polyeval::f_polyeval30;
 
 /// Modified Bessel of the first kind of order 0
 ///
@@ -66,6 +66,25 @@ pub fn f_i0(x: f64) -> f64 {
     }
 
     i0_asympt(f64::from_bits(xb))
+}
+
+/**
+Computes I0 on interval [-7.5; -3.6], [3.6; 7.5]
+**/
+#[inline]
+fn i3p6_to_7p5(x: f64) -> f64 {
+    let r = i0_0_to_3p6_dd(x);
+
+    const ERR: f64 = f64::from_bits(0x3c3ee8f34dd80440);
+
+    let err = f_fmla(r.hi, f64::from_bits(0x3a08406003b2ae42), ERR);
+
+    let ub = r.hi + (r.lo + err);
+    let lb = r.hi + (r.lo - err);
+    if ub != lb {
+        return eval_small_hard_3p6_to_7p5(x);
+    }
+    r.to_f64()
 }
 
 /**
@@ -108,22 +127,6 @@ See ./notes/bessel_i0.ipynb for generation
 
 Next step is poly generation in Sollya see ./notes/bessel_sollya/bessel_i0_small.sollya for generation
 **/
-#[inline]
-fn i3p6_to_7p5(x: f64) -> f64 {
-    let r = i0_0_to_3p6_dd(x);
-
-    const ERR: f64 = f64::from_bits(0x3c3ee8f34dd80440);
-
-    let err = f_fmla(r.hi, f64::from_bits(0x3a08406003b2ae42), ERR);
-
-    let ub = r.hi + (r.lo + err);
-    let lb = r.hi + (r.lo - err);
-    if ub != lb {
-        return eval_small_hard_3p6_to_7p5(x);
-    }
-    r.to_f64()
-}
-
 #[inline]
 fn i0_0_to_3p6_dd(x: f64) -> DoubleDouble {
     let dx = x;
@@ -305,10 +308,11 @@ fn eval_small_hard_3p6_to_7p5(x: f64) -> f64 {
     let dx = DyadicFloat128::new_from_f64(x);
     let mut eval_x = dx * dx;
     eval_x.exponent -= 2; // div by 4
-    let p = f_horner_polyeval21(
-        eval_x, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11], C[12],
-        C[13], C[14], C[15], C[16], C[17], C[18], C[19], C[20],
-    );
+
+    let mut p = C[20];
+    for i in (0..20).rev() {
+        p = eval_x * p + C[i];
+    }
     let z = p * eval_x;
     (z + ONES).fast_as_f64()
 }
@@ -336,7 +340,7 @@ fn i0_0_to_3p6_hard(x: f64) -> f64 {
     let mut dx = DyadicFloat128::new_from_f64(x);
     dx = dx * dx;
     dx.exponent -= 2; // * 0.25
-    const P: [DyadicFloat128; 20] = [
+    static P: [DyadicFloat128; 20] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -127,
@@ -443,10 +447,11 @@ fn i0_0_to_3p6_hard(x: f64) -> f64 {
         exponent: -127,
         mantissa: 0x80000000_00000000_00000000_00000000_u128,
     };
-    let p = f_polyeval20(
-        dx, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12], P[13],
-        P[14], P[15], P[16], P[17], P[18], P[19],
-    );
+
+    let mut p = P[19];
+    for i in (0..19).rev() {
+        p = dx * p + P[i];
+    }
     let z = p * dx;
     (z + ONE).fast_as_f64()
 }
@@ -707,11 +712,10 @@ fn i0_7p5_to_9p5_hard(x: f64) -> f64 {
 
     let recip = DyadicFloat128::accurate_reciprocal(x);
 
-    let z = f_horner_polyeval30(
-        recip, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12],
-        P[13], P[14], P[15], P[16], P[17], P[18], P[19], P[20], P[21], P[22], P[23], P[24], P[25],
-        P[26], P[27], P[28], P[29],
-    );
+    let mut z = P[29];
+    for i in (0..29).rev() {
+        z = recip * z + P[i];
+    }
     let r_sqrt = bessel_rsqrt_hard(x, recip);
     let f_exp = rational128_exp(x);
     (z * r_sqrt * f_exp).fast_as_f64()
@@ -1066,11 +1070,11 @@ fn i0_asympt_hard(x: f64) -> f64 {
 
     let recip = DyadicFloat128::accurate_reciprocal(x);
 
-    let z = f_polyeval39(
-        recip, P[0], P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10], P[11], P[12],
-        P[13], P[14], P[15], P[16], P[17], P[18], P[19], P[20], P[21], P[22], P[23], P[24], P[25],
-        P[26], P[27], P[28], P[29], P[30], P[31], P[32], P[33], P[34], P[35], P[36], P[37], P[38],
-    );
+    let mut z = P[38];
+    for i in (0..38).rev() {
+        z = recip * z + P[i];
+    }
+
     let r_sqrt = bessel_rsqrt_hard(x, recip);
     let f_exp = rational128_exp(x);
     (z * r_sqrt * f_exp).fast_as_f64()

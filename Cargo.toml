@@ -13,7 +13,6 @@ repository = "https://github.com/awxkee/pxfm"
 rust-version = "1.85"
 categories = ["mathematics"]
 description = "Fast and accurate math"
-exclude = ["*.jpg", "./assets/*", "*.png", "./notes/*", "notes/", ".github/"]
 
 [dependencies]
 num-traits = "0.2"

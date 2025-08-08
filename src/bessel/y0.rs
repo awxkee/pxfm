@@ -26,6 +26,12 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::alpha0::{
+    bessel_0_asympt_alpha, bessel_0_asympt_alpha_fast, bessel_0_asympt_alpha_hard,
+};
+use crate::bessel::beta0::{
+    bessel_0_asympt_beta, bessel_0_asympt_beta_fast, bessel_0_asympt_beta_hard,
+};
 use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::j0::j0_maclaurin_series;
 use crate::bessel::y0_coeffs::Y0_COEFFS;
@@ -37,9 +43,9 @@ use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::logs::log_dd;
-use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval28};
-use crate::sin_helper::{sin_dd_small, sin_f128_small};
+use crate::logs::log_dd_fast;
+use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval22, f_polyeval24};
+use crate::sin_helper::{sin_dd_small, sin_dd_small_fast, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the second kind of order 0 (Y0)
@@ -83,10 +89,10 @@ pub fn f_y0(x: f64) -> f64 {
 
     if xb <= 0x4052d9999999999au64 {
         // 75.4
-        return y0_small_argument_path(x);
+        return y0_small_argument_fast(x);
     }
 
-    y0_asympt(x)
+    y0_asympt_fast(x)
 }
 
 /**
@@ -199,12 +205,12 @@ fn y0_near_zero_fast(x: f64) -> f64 {
     let mut z = DoubleDouble::mul_f64_add(x2, z0, DoubleDouble::from_bit_pair(Z[2]));
     z = DoubleDouble::mul_add(x2, z, DoubleDouble::from_bit_pair(Z[1]));
     z = DoubleDouble::mul_add(x2, z, DoubleDouble::from_bit_pair(Z[0]));
-    let w_log = log_dd(x); // Precision is not enough without full DD log, fail rate about 30%
+    let w_log = log_dd_fast(x);
     let p = DoubleDouble::mul_add(w, w_log, -z);
     let err = f_fmla(
         p.hi,
         f64::from_bits(0x3c50000000000000), // 2^-58
-        f64::from_bits(0x3be0000000000000), // 2^-65
+        f64::from_bits(0x3c30000000000000), // 2^-60
     );
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
@@ -336,6 +342,104 @@ pub(crate) fn y0_transient_area_fast(x: f64) -> f64 {
     <<FunctionApproximations`
     ClearAll["Global`*"]
     f[x_]:= BesselY[0,x + 2.1971413260310170351490335626990]
+    {approx,error} = MiniMaxApproximation[f[x],{x,{1.35 - 2.1971413260310170351490335626990, 2 - 2.1971413260310170351490335626990 },27,0},WorkingPrecision->120]
+    poly=error[[1]];
+    coeffs=CoefficientList[poly,x];
+    TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+    ```
+    **/
+    const C: [(u64, u64); 28] = [
+        (0xbc689e111675434b, 0x3fe0aa48442f014b),
+        (0x396ffb11562e8c70, 0x3cc1806f07aceb3c),
+        (0xbc6156edff56513d, 0xbfd0aa48442f0030),
+        (0xbc278dbff5ee7db4, 0x3fa439fac165db2d),
+        (0x3c1f9463c2023663, 0x3f80d2af4ebc8fc4),
+        (0xbbee09e5733a1236, 0x3f4f716488aebd9c),
+        (0xbbf261a1f255ddf4, 0xbf5444bd2a7e6254),
+        (0x3bd4f543544f1fe7, 0x3f384c300e8674d8),
+        (0xbb96ef8d95fe049b, 0xbf217a0fc83af41e),
+        (0x3ba2be82573ae98d, 0x3f0dbc664048e495),
+        (0xbb942b15646c85f2, 0xbef8522f83e4a3e3),
+        (0x3b7a127725ba4606, 0x3ee775c010ce4146),
+        (0x3ae4a02f0b2a18e2, 0x3e7d1d7cf40f9697),
+        (0x3b8fcf1a3d27236b, 0x3eea9c226c21712d),
+        (0xbb70b3aa0a1e9ffb, 0x3ef8f237831ec74b),
+        (0x3baa6c24261245f3, 0x3f08ebfea3ea469e),
+        (0x3bb5fa1b8c4587c4, 0x3f1474022b90cbda),
+        (0x3b69545db8d098d1, 0x3f1d153dc04c51c0),
+        (0x3bc68eab6520d21b, 0x3f2198a4578cb6ca),
+        (0xbbc255734bc49c8b, 0x3f2212febf7cecdd),
+        (0x3bb8dd02722339f5, 0x3f1f314deec17049),
+        (0x3bbb6ef8f04b26a2, 0x3f1657d051699088),
+        (0x3b878233fbf501dc, 0x3f0a1a422dafcef6),
+        (0xbb73730138d1dbc2, 0x3ef8423cd021f1dd),
+        (0x3b7e2a0d7009d709, 0x3ee145cae37afe1b),
+        (0x3b6af21aeaba4e57, 0x3ec1bc74380f6d7b),
+        (0xbb3607fb9242657f, 0x3e977341fc10cdc8),
+        (0xbac747923880f651, 0x3e5e30218bc1fee3),
+    ];
+
+    const ZERO: DoubleDouble =
+        DoubleDouble::from_bit_pair((0xbc8bd1e50d219bfd, 0x400193bed4dff243));
+
+    let r = DoubleDouble::full_add_f64(-ZERO, x);
+
+    let p0 = f_polyeval24(
+        r.to_f64(),
+        f64::from_bits(C[4].1),
+        f64::from_bits(C[5].1),
+        f64::from_bits(C[6].1),
+        f64::from_bits(C[7].1),
+        f64::from_bits(C[8].1),
+        f64::from_bits(C[9].1),
+        f64::from_bits(C[10].1),
+        f64::from_bits(C[11].1),
+        f64::from_bits(C[12].1),
+        f64::from_bits(C[13].1),
+        f64::from_bits(C[14].1),
+        f64::from_bits(C[15].1),
+        f64::from_bits(C[16].1),
+        f64::from_bits(C[17].1),
+        f64::from_bits(C[18].1),
+        f64::from_bits(C[19].1),
+        f64::from_bits(C[20].1),
+        f64::from_bits(C[21].1),
+        f64::from_bits(C[22].1),
+        f64::from_bits(C[23].1),
+        f64::from_bits(C[24].1),
+        f64::from_bits(C[25].1),
+        f64::from_bits(C[26].1),
+        f64::from_bits(C[27].1),
+    );
+
+    let mut p = DoubleDouble::mul_f64_add(r, p0, DoubleDouble::from_bit_pair(C[3]));
+    p = DoubleDouble::mul_add(p, r, DoubleDouble::from_bit_pair(C[2]));
+    p = DoubleDouble::mul_add(p, r, DoubleDouble::from_bit_pair(C[1]));
+    p = DoubleDouble::mul_add(p, r, DoubleDouble::from_bit_pair(C[0]));
+
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3c50000000000000), // 2^-58
+        f64::from_bits(0x3b10000000000000), // 2^-78
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
+    if ub != lb {
+        return y0_transient_area_moderate(x);
+    }
+    p.to_f64()
+}
+
+/**
+Path for transient area between 1.35 to 2.
+**/
+fn y0_transient_area_moderate(x: f64) -> f64 {
+    /**
+    Polynomial generated by Wolfram:
+    ```text
+    <<FunctionApproximations`
+    ClearAll["Global`*"]
+    f[x_]:= BesselY[0,x + 2.1971413260310170351490335626990]
     {approx,error} = MiniMaxApproximation[f[x],{x,{1.35 - 2.1971413260310170351490335626990, 2- 2.1971413260310170351490335626990 },27,0},WorkingPrecision->120]
     poly=error[[1]];
     coeffs=CoefficientList[poly,x];
@@ -446,7 +550,7 @@ fn y0_transient_area_hard(x: f64) -> f64 {
     TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
     ```
     */
-    const C: [DyadicFloat128; 28] = [
+    static C: [DyadicFloat128; 28] = [
         DyadicFloat128 {
             sign: DyadicSign::Pos,
             exponent: -128,
@@ -588,18 +692,17 @@ fn y0_transient_area_hard(x: f64) -> f64 {
             mantissa: 0xf1810c5e_0ff717a2_e1b71dfc_26babb9f_u128,
         },
     ];
-    let v = f_polyeval28(
-        r, C[0], C[1], C[2], C[3], C[4], C[5], C[6], C[7], C[8], C[9], C[10], C[11], C[12], C[13],
-        C[14], C[15], C[16], C[17], C[18], C[19], C[20], C[21], C[22], C[23], C[24], C[25], C[26],
-        C[27],
-    );
-    v.fast_as_f64()
+    let mut z = C[27];
+    for i in (0..27).rev() {
+        z = r * z + C[i];
+    }
+    z.fast_as_f64()
 }
 
 /// This method on small range searches for nearest zero or extremum.
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
 #[inline]
-pub(crate) fn y0_small_argument_path(x: f64) -> f64 {
+pub(crate) fn y0_small_argument_fast(x: f64) -> f64 {
     let x_abs = x;
 
     // let avg_step = 74.607799 / 47.0;
@@ -630,12 +733,11 @@ pub(crate) fn y0_small_argument_path(x: f64) -> f64 {
 
     let is_too_close_to_zero = dist.abs() < 1e-3;
 
-    let j1c = if is_too_close_to_zero {
+    let c = if is_too_close_to_zero {
         &Y0_COEFFS_TAYLOR[idx - 1]
     } else {
         &Y0_COEFFS[idx - 1]
     };
-    let c0 = j1c;
 
     let r = DoubleDouble::full_add_f64(-found_zero, x_abs);
 
@@ -644,16 +746,8 @@ pub(crate) fn y0_small_argument_path(x: f64) -> f64 {
         return f64::from_bits(Y0_ZEROS_VALUES[idx]);
     }
 
-    let c = &c0[15..];
-
-    let p0 = f_polyeval13(
-        r.to_f64(),
-        f64::from_bits(c[0].1),
-        f64::from_bits(c[1].1),
-        f64::from_bits(c[2].1),
-        f64::from_bits(c[3].1),
-        f64::from_bits(c[4].1),
-        f64::from_bits(c[5].1),
+    let p = f_polyeval22(
+        r.hi,
         f64::from_bits(c[6].1),
         f64::from_bits(c[7].1),
         f64::from_bits(c[8].1),
@@ -661,9 +755,70 @@ pub(crate) fn y0_small_argument_path(x: f64) -> f64 {
         f64::from_bits(c[10].1),
         f64::from_bits(c[11].1),
         f64::from_bits(c[12].1),
+        f64::from_bits(c[13].1),
+        f64::from_bits(c[14].1),
+        f64::from_bits(c[15].1),
+        f64::from_bits(c[16].1),
+        f64::from_bits(c[17].1),
+        f64::from_bits(c[18].1),
+        f64::from_bits(c[19].1),
+        f64::from_bits(c[20].1),
+        f64::from_bits(c[21].1),
+        f64::from_bits(c[22].1),
+        f64::from_bits(c[23].1),
+        f64::from_bits(c[24].1),
+        f64::from_bits(c[25].1),
+        f64::from_bits(c[26].1),
+        f64::from_bits(c[27].1),
     );
 
-    let c = c0;
+    let mut z = DoubleDouble::mul_f64_add(r, p, DoubleDouble::from_bit_pair(c[5]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[4]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[3]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[2]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[1]));
+    z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[0]));
+    let p = z;
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3c60000000000000), // 2^-57
+        f64::from_bits(0x3c20000000000000), // 2^-61
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
+    if ub != lb {
+        return y0_small_argument_moderate(r, x, c, idx, dist);
+    }
+    z.to_f64()
+}
+
+/// This method on small range searches for nearest zero or extremum.
+/// Then picks stored series expansion at the point end evaluates the poly at the point.
+fn y0_small_argument_moderate(
+    r: DoubleDouble,
+    x: f64,
+    c: &[(u64, u64); 28],
+    idx: usize,
+    dist: f64,
+) -> f64 {
+    let c0 = &c[15..];
+
+    let p0 = f_polyeval13(
+        r.to_f64(),
+        f64::from_bits(c0[0].1),
+        f64::from_bits(c0[1].1),
+        f64::from_bits(c0[2].1),
+        f64::from_bits(c0[3].1),
+        f64::from_bits(c0[4].1),
+        f64::from_bits(c0[5].1),
+        f64::from_bits(c0[6].1),
+        f64::from_bits(c0[7].1),
+        f64::from_bits(c0[8].1),
+        f64::from_bits(c0[9].1),
+        f64::from_bits(c0[10].1),
+        f64::from_bits(c0[11].1),
+        f64::from_bits(c0[12].1),
+    );
 
     let mut p_e = DoubleDouble::mul_f64_add(r, p0, DoubleDouble::from_bit_pair(c[14]));
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[13]));
@@ -690,14 +845,14 @@ pub(crate) fn y0_small_argument_path(x: f64) -> f64 {
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
     if ub != lb {
-        return y0_small_argument_path_hard(x, idx, dist);
+        return y0_small_argument_hard(x, idx, dist);
     }
     p.to_f64()
 }
 
 #[cold]
 #[inline(never)]
-fn y0_small_argument_path_hard(x: f64, idx: usize, dist: f64) -> f64 {
+fn y0_small_argument_hard(x: f64, idx: usize, dist: f64) -> f64 {
     let is_too_close_to_zero = dist.abs() < 1e-3;
     let c = if is_too_close_to_zero {
         &Y0_COEFFS_RATIONAL128[idx - 1]
@@ -707,11 +862,10 @@ fn y0_small_argument_path_hard(x: f64, idx: usize, dist: f64) -> f64 {
     let zero = Y0_ZEROS_RATIONAL128[idx];
     let dx = DyadicFloat128::new_from_f64(x) - zero;
 
-    let p = f_polyeval28(
-        dx, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13],
-        c[14], c[15], c[16], c[17], c[18], c[19], c[20], c[21], c[22], c[23], c[24], c[25], c[26],
-        c[27],
-    );
+    let mut p = c[27];
+    for i in (0..27).rev() {
+        p = dx * p + c[i];
+    }
     p.fast_as_f64()
 }
 
@@ -720,7 +874,7 @@ fn y0_small_argument_path_hard(x: f64, idx: usize, dist: f64) -> f64 {
    Y0 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
 */
 #[inline]
-pub(crate) fn y0_asympt(x: f64) -> f64 {
+pub(crate) fn y0_asympt_fast(x: f64) -> f64 {
     const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0xbc8cbc0d30ebfd15),
         f64::from_bits(0x3fe9884533d43651),
@@ -736,8 +890,8 @@ pub(crate) fn y0_asympt(x: f64) -> f64 {
         DoubleDouble::from_recip(x)
     };
 
-    let alpha = crate::bessel::j0::j0_asympt_alpha(recip);
-    let beta = crate::bessel::j0::j0_asympt_beta(recip);
+    let alpha = bessel_0_asympt_alpha_fast(recip);
+    let beta = bessel_0_asympt_beta_fast(recip);
 
     let AngleReduced { angle } = rem2pi_any(x);
 
@@ -745,9 +899,49 @@ pub(crate) fn y0_asympt(x: f64) -> f64 {
     let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
     let r0 = DoubleDouble::dd_add(angle, x0pi34);
 
+    let m_cos = sin_dd_small_fast(r0);
+    let z0 = DoubleDouble::quick_mult(beta, m_cos);
+    let r_sqrt = DoubleDouble::from_rsqrt_fast(x);
+    let scale = DoubleDouble::quick_mult(SQRT_2_OVER_PI, r_sqrt);
+    let r = DoubleDouble::quick_mult(scale, z0);
+    let p = DoubleDouble::from_exact_add(r.hi, r.lo);
+    let err = f_fmla(
+        p.hi,
+        f64::from_bits(0x3c40000000000000), // 2^-59
+        f64::from_bits(0x3c10000000000000), // 2^-62
+    );
+    let ub = p.hi + (p.lo + err);
+    let lb = p.hi + (p.lo - err);
+
+    if ub == lb {
+        return p.to_f64();
+    }
+    y0_asympt(x, recip, r_sqrt, angle)
+}
+
+/*
+   Evaluates:
+   Y0 = sqrt(2/(PI*x)) * beta(x) * sin(x - PI/4 - alpha(x))
+*/
+fn y0_asympt(x: f64, recip: DoubleDouble, r_sqrt: DoubleDouble, angle: DoubleDouble) -> f64 {
+    const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
+        f64::from_bits(0xbc8cbc0d30ebfd15),
+        f64::from_bits(0x3fe9884533d43651),
+    );
+    const MPI_OVER_4: DoubleDouble = DoubleDouble::new(
+        f64::from_bits(0xbc81a62633145c07),
+        f64::from_bits(0xbfe921fb54442d18),
+    );
+
+    let alpha = bessel_0_asympt_alpha(recip);
+    let beta = bessel_0_asympt_beta(recip);
+
+    // Without full subtraction cancellation happens sometimes
+    let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
+    let r0 = DoubleDouble::dd_add(angle, x0pi34);
+
     let m_cos = sin_dd_small(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_cos);
-    let r_sqrt = DoubleDouble::from_rsqrt(x);
     let scale = DoubleDouble::quick_mult(SQRT_2_OVER_PI, r_sqrt);
     let r = DoubleDouble::quick_mult(scale, z0);
     let p = DoubleDouble::from_exact_add(r.hi, r.lo);
@@ -787,8 +981,8 @@ fn y0_asympt_hard(x: f64) -> f64 {
     let x_dyadic = DyadicFloat128::new_from_f64(x);
     let recip = DyadicFloat128::accurate_reciprocal(x);
 
-    let alpha = crate::bessel::j0::j0_asympt_alpha_hard(recip);
-    let beta = crate::bessel::j0::j0_asympt_beta_hard(recip);
+    let alpha = bessel_0_asympt_alpha_hard(recip);
+    let beta = bessel_0_asympt_beta_hard(recip);
 
     let angle = rem2pi_f128(x_dyadic);
 
@@ -810,29 +1004,37 @@ mod tests {
 
     #[test]
     fn test_y0() {
+        //ULP should be less than 0.5, but it was 1017.1969361449036, on 3 result 0.37685001001284685, using f_y0 and MPFR 0.3768500100127904
+        assert_eq!(f_y0(3.), 0.3768500100127904);
         assert_eq!(f_y0(0.906009703874588), 0.01085796448629276);
-        assert_eq!(
-            f_y0(f64::from_bits(0x6e7c1d741dc52512u64)),
-            f64::from_bits(0x2696f860815bc669)
-        );
-        assert_eq!(f_y0(98.1760435789366), 0.0000000000000056889416242533015);
-        assert_eq!(
-            f_y0(91.8929453121571802176),
-            -0.00000000000000007281665706677893
-        );
         assert_eq!(f_y0(80.), -0.05562033908977);
         assert_eq!(f_y0(5.), -0.30851762524903376);
         assert_eq!(
             f_y0(f64::from_bits(0x3fec982eb8d417ea)),
             -0.000000000000000023389279284062102
         );
+        assert!(f_y0(f64::NAN).is_nan());
+        assert_eq!(f_y0(f64::INFINITY), 0.);
+        assert!(f_y0(f64::NEG_INFINITY).is_nan());
+    }
+
+    #[test]
+    fn test_y0_edge_values() {
+        assert_eq!(f_y0(0.8900000000138676), -0.0031519646708080126);
+        assert_eq!(f_y0(0.8900000000409116), -0.0031519646469294936);
+        assert_eq!(f_y0(98.1760435789366), 0.0000000000000056889416242533015);
+        assert_eq!(
+            f_y0(91.8929453121571802176),
+            -0.00000000000000007281665706677893
+        );
+        assert_eq!(
+            f_y0(f64::from_bits(0x6e7c1d741dc52512u64)),
+            f64::from_bits(0x2696f860815bc669)
+        );
         assert_eq!(f_y0(f64::from_bits(0x3e04cdee58a47edd)), -13.58605001628649);
         assert_eq!(
             f_y0(0.89357696627916749),
             -0.000000000000000023389279284062102
         );
-        assert!(f_y0(f64::NAN).is_nan());
-        assert_eq!(f_y0(f64::INFINITY), 0.);
-        assert!(f_y0(f64::NEG_INFINITY).is_nan());
     }
 }

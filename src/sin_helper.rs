@@ -83,6 +83,34 @@ pub(crate) fn sin_dd_small(z: DoubleDouble) -> DoubleDouble {
     rr
 }
 
+pub(crate) fn sin_dd_small_fast(z: DoubleDouble) -> DoubleDouble {
+    let x_e = (z.hi.to_bits() >> 52) & 0x7ff;
+    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
+
+    if x_e < E_BIAS - 8 {
+        return sin_eval_dd(z);
+    }
+
+    let (u_f128, k) = range_reduction_small_dd(z);
+
+    let sin_cos = sincos_eval(u_f128);
+
+    // Fast look up version, but needs 256-entry table.
+    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    let sk = SIN_K_PI_OVER_128[(k & 255) as usize];
+    let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
+
+    let sin_k = DoubleDouble::from_bit_pair(sk);
+    let cos_k = DoubleDouble::from_bit_pair(ck);
+
+    let sin_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, sin_k);
+    let cos_k_sin_y = DoubleDouble::quick_mult(sin_cos.v_sin, cos_k);
+
+    let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+    rr
+}
+
 #[inline]
 fn cos_eval_dd(z: DoubleDouble) -> DoubleDouble {
     let x2 = DoubleDouble::quick_mult(z, z);
@@ -118,6 +146,33 @@ pub(crate) fn cos_dd_small(z: DoubleDouble) -> DoubleDouble {
     let (u_f128, k) = range_reduction_small_dd(z);
 
     let sin_cos = sincos_eval_dd(u_f128);
+
+    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    let sk = SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
+    let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
+    let msin_k = DoubleDouble::from_bit_pair(sk);
+    let cos_k = DoubleDouble::from_bit_pair(ck);
+
+    let sin_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, cos_k);
+    let cos_k_sin_y = DoubleDouble::quick_mult(sin_cos.v_sin, msin_k);
+
+    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+
+    rr
+}
+
+pub(crate) fn cos_dd_small_fast(z: DoubleDouble) -> DoubleDouble {
+    let x_e = (z.hi.to_bits() >> 52) & 0x7ff;
+    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
+
+    if x_e < E_BIAS - 8 {
+        return cos_eval_dd(z);
+    }
+
+    let (u_f128, k) = range_reduction_small_dd(z);
+
+    let sin_cos = sincos_eval(u_f128);
 
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
     let sk = SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
