@@ -28,7 +28,6 @@
  */
 use crate::common::f_fmla;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::polyeval::f_polyeval8;
 
 #[inline]
 fn poly_exp_f128(x: DyadicFloat128) -> DyadicFloat128 {
@@ -75,17 +74,11 @@ fn poly_exp_f128(x: DyadicFloat128) -> DyadicFloat128 {
         }, // 1/5040
     ];
 
-    f_polyeval8(
-        x,
-        COEFFS_128[0],
-        COEFFS_128[1],
-        COEFFS_128[2],
-        COEFFS_128[3],
-        COEFFS_128[4],
-        COEFFS_128[5],
-        COEFFS_128[6],
-        COEFFS_128[7],
-    )
+    let mut z = COEFFS_128[7];
+    for i in (0..7).rev() {
+        z = x * z + COEFFS_128[i];
+    }
+    z
 }
 
 #[cold]

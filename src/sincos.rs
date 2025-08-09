@@ -85,8 +85,8 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
     let sk = SIN_K_PI_OVER_128[(k & 255) as usize];
     let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
-    let sin_k = DoubleDouble::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
-    let cos_k = DoubleDouble::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
+    let sin_k = DoubleDouble::from_bit_pair(sk);
+    let cos_k = DoubleDouble::from_bit_pair(ck);
 
     let msin_k = -sin_k;
 
