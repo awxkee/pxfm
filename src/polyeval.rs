@@ -1044,7 +1044,7 @@ pub(crate) fn f_polyeval19<T: PolyevalMla + Copy + Mul<T, Output = T>>(
 //     // Level 4: final
 //     let i0 = T::polyeval_mla(x16, f4, a20);   // (e9 x + a20) * x² → then into x¹⁶
 //     T::polyeval_mla(x8, i0, h0)
-// 
+//
 // }
 
 #[inline(always)]

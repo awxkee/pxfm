@@ -28,9 +28,9 @@
  */
 use crate::common::*;
 use crate::double_double::DoubleDouble;
-use crate::sin::{get_sin_k_rational, range_reduction_small, sincos_eval};
+use crate::sin::{range_reduction_small, sincos_eval};
+use crate::sin_helper::sincos_eval_dd;
 use crate::sin_table::SIN_K_PI_OVER_128;
-use crate::sincos_dyadic::{range_reduction_small_f128, sincos_eval_dyadic};
 use crate::sincos_reduce::LargeArgumentReduction;
 use std::hint::black_box;
 
@@ -88,7 +88,7 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
     let sin_k = DoubleDouble::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
     let cos_k = DoubleDouble::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
 
-    let msin_k = DoubleDouble::new(-sin_k.lo, -sin_k.hi);
+    let msin_k = -sin_k;
 
     // After range reduction, k = round(x * 128 / pi) and y = x - k * (pi / 128).
     // So k is an integer and -pi / 256 <= y <= pi / 256.
@@ -121,44 +121,56 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
         return (sin_upper, cos_upper);
     }
 
-    sincos_hard(
-        x,
-        x_e,
-        k,
-        &mut argument_reduction,
-        sin_upper,
-        sin_lower,
-        cos_upper,
-        cos_lower,
-    )
+    sincos_hard(y, sin_k, cos_k, sin_upper, sin_lower, cos_upper, cos_lower)
 }
 
 #[cold]
 #[inline(never)]
 #[allow(clippy::too_many_arguments)]
 fn sincos_hard(
-    x: f64,
-    x_e: u64,
-    k: u64,
-    argument_reduction: &mut LargeArgumentReduction,
+    y: DoubleDouble,
+    sin_k: DoubleDouble,
+    cos_k: DoubleDouble,
     sin_upper: f64,
     sin_lower: f64,
     cos_upper: f64,
     cos_lower: f64,
 ) -> (f64, f64) {
-    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-    let u_f128 = if x_e < E_BIAS + 16 {
-        range_reduction_small_f128(x)
-    } else {
-        argument_reduction.accurate()
-    };
+    // const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
+    // let u_f128 = if x_e < E_BIAS + 16 {
+    //     range_reduction_small_f128(x)
+    // } else {
+    //     argument_reduction.accurate()
+    // };
+    //
+    // let r_sincos = sincos_eval_dyadic(&u_f128);
+    //
+    // // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    // let sin_k_f128 = get_sin_k_rational(k);
+    // let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
+    // let msin_k_f128 = get_sin_k_rational(k.wrapping_add(128));
+    //
+    // let sin_x = if sin_upper == sin_lower {
+    //     sin_upper
+    // } else {
+    //     // sin(x) = sin((k * pi/128 + u)
+    //     //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
+    //
+    //     ((sin_k_f128 * r_sincos.v_cos) + (cos_k_f128 * r_sincos.v_sin)).fast_as_f64()
+    // };
+    //
+    // let cos_x = if cos_upper == cos_lower {
+    //     cos_upper
+    // } else {
+    //     // cos(x) = cos((k * pi/128 + u)
+    //     //        = cos(u) * cos(k*pi/128) - sin(u) * sin(k*pi/128)
+    //     ((cos_k_f128 * r_sincos.v_cos) + (msin_k_f128 * r_sincos.v_sin)).fast_as_f64()
+    // };
+    // (sin_x, cos_x)
 
-    let r_sincos = sincos_eval_dyadic(&u_f128);
+    let r_sincos = sincos_eval_dd(y);
 
-    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    let sin_k_f128 = get_sin_k_rational(k);
-    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
-    let msin_k_f128 = get_sin_k_rational(k.wrapping_add(128));
+    let msin_k = -sin_k;
 
     let sin_x = if sin_upper == sin_lower {
         sin_upper
@@ -166,7 +178,7 @@ fn sincos_hard(
         // sin(x) = sin((k * pi/128 + u)
         //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
 
-        ((sin_k_f128 * r_sincos.v_cos) + (cos_k_f128 * r_sincos.v_sin)).fast_as_f64()
+        DoubleDouble::dd_add(sin_k * r_sincos.v_cos, cos_k * r_sincos.v_sin).to_f64()
     };
 
     let cos_x = if cos_upper == cos_lower {
@@ -174,7 +186,7 @@ fn sincos_hard(
     } else {
         // cos(x) = cos((k * pi/128 + u)
         //        = cos(u) * cos(k*pi/128) - sin(u) * sin(k*pi/128)
-        ((cos_k_f128 * r_sincos.v_cos) + (msin_k_f128 * r_sincos.v_sin)).fast_as_f64()
+        DoubleDouble::dd_add(cos_k * r_sincos.v_cos, msin_k * r_sincos.v_sin).to_f64()
     };
     (sin_x, cos_x)
 }
@@ -184,7 +196,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sincos_test() {
+    fn f_sincos_test() {
         let subnormal = f_sincos(0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015708065354637772);
         assert_eq!(subnormal.0, 1.5708065354637772e-307);
         assert_eq!(subnormal.1, 1.0);

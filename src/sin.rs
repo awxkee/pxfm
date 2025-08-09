@@ -29,10 +29,9 @@
 use crate::common::{dyad_fmla, f_fmla, min_normal_f64};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::sin_helper::sincos_eval_dd;
 use crate::sin_table::SIN_K_PI_OVER_128;
-use crate::sincos_dyadic::{
-    SIN_K_PI_OVER_128_F128, range_reduction_small_f128, sincos_eval_dyadic,
-};
+use crate::sincos_dyadic::SIN_K_PI_OVER_128_F128;
 use crate::sincos_reduce::LargeArgumentReduction;
 
 // For 2^-7 < |x| < 2^16, return k and u such that:
@@ -199,24 +198,37 @@ pub(crate) fn sincos_eval(u: DoubleDouble) -> SinCos {
 
 #[cold]
 #[inline(never)]
-fn sin_accurate(x: f64, argument_reduction: &mut LargeArgumentReduction, x_e: u64, k: u64) -> f64 {
-    const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-    let u_f128 = if x_e < EXP_BIAS + 16 {
-        range_reduction_small_f128(x)
-    } else {
-        argument_reduction.accurate()
-    };
+fn sin_accurate(y: DoubleDouble, sin_k: DoubleDouble, cos_k: DoubleDouble) -> f64 {
+    // const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
+    // let u_f128 = if x_e < EXP_BIAS + 16 {
+    //     range_reduction_small_f128(x)
+    // } else {
+    //     argument_reduction.accurate()
+    // };
+    //
+    // let sin_cos = sincos_eval_dyadic(&u_f128);
+    //
+    // // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    // let sin_k_f128 = get_sin_k_rational(k);
+    // let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
+    //
+    // // sin(x) = sin(k * pi/128 + u)
+    // //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
+    // let r = (sin_k_f128 * sin_cos.v_cos) + (cos_k_f128 * sin_cos.v_sin);
+    // r.fast_as_f64()
 
-    let sin_cos = sincos_eval_dyadic(&u_f128);
+    let r_sincos = sincos_eval_dd(y);
 
-    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    let sin_k_f128 = get_sin_k_rational(k);
-    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
+    // k is an integer and -pi / 256 <= y <= pi / 256.
+    // Then sin(x) = sin((k * pi/128 + y)
+    //             = sin(y) * cos(k*pi/128) + cos(y) * sin(k*pi/128)
 
-    // sin(x) = sin(k * pi/128 + u)
-    //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
-    let r = (sin_k_f128 * sin_cos.v_cos) + (cos_k_f128 * sin_cos.v_sin);
-    r.fast_as_f64()
+    let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, sin_k);
+    let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, cos_k);
+
+    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+    rr.to_f64()
 }
 
 /// Sine for double precision
@@ -260,7 +272,6 @@ pub fn f_sin(x: f64) -> f64 {
 
     let r_sincos = sincos_eval(y);
 
-    // Fast look up version, but needs 256-entry table.
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
     let sk = SIN_K_PI_OVER_128[(k & 255) as usize];
     let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
@@ -284,30 +295,45 @@ pub fn f_sin(x: f64) -> f64 {
     if r_upper == r_lower {
         return rr.to_f64();
     }
-    sin_accurate(x, &mut argument_reduction, x_e, k)
+
+    sin_accurate(y, sin_k, cos_k)
 }
 
 #[cold]
 #[inline(never)]
-fn cos_accurate(x: f64, argument_reduction: &mut LargeArgumentReduction, x_e: u64, k: u64) -> f64 {
-    const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-    let u_f128 = if x_e < EXP_BIAS + 16 {
-        range_reduction_small_f128(x)
-    } else {
-        argument_reduction.accurate()
-    };
+fn cos_accurate(y: DoubleDouble, msin_k: DoubleDouble, cos_k: DoubleDouble) -> f64 {
+    // const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
+    // let u_f128 = if x_e < EXP_BIAS + 16 {
+    //     range_reduction_small_f128(x)
+    // } else {
+    //     argument_reduction.accurate()
+    // };
+    //
+    // let sin_cos = sincos_eval_dyadic(&u_f128);
+    //
+    // // -sin(k * pi/128) = sin((k + 128) * pi/128)
+    // // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    // let msin_k_f128 = get_sin_k_rational(k.wrapping_add(128));
+    // let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
+    //
+    // // cos(x) = cos((k * pi/128 + u)
+    // //        = cos(u) * cos(k*pi/128) - sin(u) * sin(k*pi/128)
+    // let r = (cos_k_f128 * sin_cos.v_cos) + (msin_k_f128 * sin_cos.v_sin);
+    // r.fast_as_f64()
 
-    let sin_cos = sincos_eval_dyadic(&u_f128);
+    let r_sincos = sincos_eval_dd(y);
 
-    // -sin(k * pi/128) = sin((k + 128) * pi/128)
-    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    let msin_k_f128 = get_sin_k_rational(k.wrapping_add(128));
-    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
+    // After range reduction, k = round(x * 128 / pi) and y = x - k * (pi / 128).
+    // So k is an integer and -pi / 256 <= y <= pi / 256.
+    // Then sin(x) = sin((k * pi/128 + y)
+    //             = sin(y) * cos(k*pi/128) + cos(y) * sin(k*pi/128)
 
-    // cos(x) = cos((k * pi/128 + u)
-    //        = cos(u) * cos(k*pi/128) - sin(u) * sin(k*pi/128)
-    let r = (cos_k_f128 * sin_cos.v_cos) + (msin_k_f128 * sin_cos.v_sin);
-    r.fast_as_f64()
+    let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, cos_k);
+    let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, msin_k);
+
+    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+    rr.to_f64()
 }
 
 /// Cosine for double precision
@@ -355,12 +381,14 @@ pub fn f_cos(x: f64) -> f64 {
     }
     let r_sincos = sincos_eval(y);
 
-    // Fast look up version, but needs 256-entry table.
-    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
+    // After range reduction, k = round(x * 128 / pi) and y = x - k * (pi / 128).
+    // So k is an integer and -pi / 256 <= y <= pi / 256.
+    // Then sin(x) = sin((k * pi/128 + y)
+    //             = sin(y) * cos(k*pi/128) + cos(y) * sin(k*pi/128)
     let sk = SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
     let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
-    let msin_k = DoubleDouble::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
-    let cos_k = DoubleDouble::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
+    let msin_k = DoubleDouble::from_bit_pair(sk);
+    let cos_k = DoubleDouble::from_bit_pair(ck);
 
     let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, cos_k);
     let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, msin_k);
@@ -377,7 +405,7 @@ pub fn f_cos(x: f64) -> f64 {
     if r_upper == r_lower {
         return rr.to_f64();
     }
-    cos_accurate(x, &mut argument_reduction, x_e, k)
+    cos_accurate(y, msin_k, cos_k)
 }
 
 #[cfg(test)]
