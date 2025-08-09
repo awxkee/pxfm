@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 8/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::*;
-use crate::compoundf::{
+use crate::compound::compoundf::{
     COMPOUNDF_EXP2_T, COMPOUNDF_EXP2_U, compoundf_exp2_poly2, compoundf_log2p1_accurate,
     compoundf_log2p1_fast,
 };
@@ -416,9 +416,9 @@ pub fn f_compound_m1f(x: f32, y: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::compound_m1f::{compoundf_exp2m1_accurate, exp2m1_fast};
+    use super::*;
+    use crate::compound::compound_m1f::{compoundf_exp2m1_accurate, exp2m1_fast};
     use crate::double_double::DoubleDouble;
-    use crate::f_compound_m1f;
 
     #[test]
     fn test_compoundf() {

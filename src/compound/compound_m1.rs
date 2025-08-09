@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 8/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:

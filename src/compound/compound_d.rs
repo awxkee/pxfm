@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 8/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -367,8 +367,7 @@ fn compound_accurate(x: f64, y: f64, s: f64) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use crate::f_compound;
-
+    use super::*;
     #[test]
     fn test_compound() {
         assert_eq!(
