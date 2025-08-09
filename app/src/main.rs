@@ -212,8 +212,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = Float::with_val(90, x).sin_pi();
-        let actual = f_sinpi(x);
+        let expected = Float::with_val(90, x).cos_pi();
+        let actual = f_cospi(x);
 
         let diff = count_ulp_f64(actual, &expected);
 

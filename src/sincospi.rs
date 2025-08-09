@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, dyad_fmla, f_fmla};
+use crate::common::{dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::shared_eval::poly_dd_3;
 use crate::sincospi_tables::{
@@ -103,9 +103,9 @@ fn sincosn2(s: i32) -> (DoubleDouble, DoubleDouble) {
     let sc = DoubleDouble::quick_mult(sl, cb);
 
     let tc = DoubleDouble::add(ss, cc);
-    let ts = DoubleDouble::add(DoubleDouble::new(-sc.lo, -sc.hi), cs);
-    let mut tc2 = DoubleDouble::add(cb, DoubleDouble::new(-tc.lo, -tc.hi));
-    let mut ts2 = DoubleDouble::add(sb, DoubleDouble::new(-ts.lo, -ts.hi));
+    let ts = DoubleDouble::add(-sc, cs);
+    let mut tc2 = DoubleDouble::add(cb, -tc);
+    let mut ts2 = DoubleDouble::add(sb, -ts);
 
     let sgb_c = if asc == 1 { -0.0 } else { 0.0 };
     tc2.hi *= f64::copysign(1.0, sgb_c);
@@ -205,8 +205,7 @@ fn as_sinpi_zero(x: f64) -> f64 {
 #[cold]
 fn as_sinpi_refine(iq: i32, z: f64) -> f64 {
     let x = z * f64::from_bits(0x3c00000000000000);
-    let x2 = x * x;
-    let dx2 = dd_fmla(x, x, -x2);
+    let zx2 = DoubleDouble::from_exact_mult(x, x);
     const SH: [(u64, u64); 3] = [
         (0x400921fb54442d18, 0x3ca1a62633145c06),
         (0xbe94abbce625be53, 0x3b305511cbc65743),
@@ -216,23 +215,19 @@ fn as_sinpi_refine(iq: i32, z: f64) -> f64 {
         (0xbe93bd3cc9be45de, 0xbb3692b71366cc04),
         (0x3d103c1f081b5ac4, 0xb9b32b33fda9113c),
     ];
-    let mut sl = poly_dd_3(
-        DoubleDouble::new(dx2, x2),
-        SH,
-        f64::from_bits(0xbb632d2cc920dcb4) * x2,
-    );
-    sl = DoubleDouble::mult_f64(sl, x * f64::from_bits(0x3f30000000000000));
-    let cll0 = x2
+    let mut sl = poly_dd_3(zx2, SH, f64::from_bits(0xbb632d2cc920dcb4) * zx2.hi);
+    sl = DoubleDouble::quick_mult_f64(sl, x * f64::from_bits(0x3f30000000000000));
+    let cll0 = zx2.hi
         * f_fmla(
             f64::from_bits(0x39ce1f50604fa0ff),
-            x2,
+            zx2.hi,
             f64::from_bits(0xbb755d3c7e3cbff9),
         );
-    let mut cl = poly_dd_2(DoubleDouble::new(dx2, x2), CH, cll0);
-    cl = DoubleDouble::mult(cl, DoubleDouble::new(dx2, x2));
+    let mut cl = poly_dd_2(zx2, CH, cll0);
+    cl = DoubleDouble::quick_mult(cl, zx2);
     let (sb, cb) = sincosn2(iq);
-    let cs = DoubleDouble::mult(cl, sb);
-    let sc = DoubleDouble::mult(sl, cb);
+    let cs = DoubleDouble::quick_mult(cl, sb);
+    let sc = DoubleDouble::quick_mult(sl, cb);
     let mut ts = DoubleDouble::add(sc, cs);
     ts = DoubleDouble::add(sb, ts);
     ts.to_f64()
