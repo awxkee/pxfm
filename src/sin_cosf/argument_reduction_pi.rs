@@ -42,4 +42,22 @@ impl ArgumentReducerPi {
         let y = f_fmla(self.x, 32.0, -kd);
         (y, kd as i64)
     }
+
+    // Return k and y, where
+    // k = round(x * 2 / pi) and y = (x * 2 / pi) - k.
+    #[inline]
+    pub(crate) fn reduce_0p25(self) -> (f64, i64) {
+        let kd = (self.x + self.x).round();
+        let y = f_fmla(kd, -0.5, self.x);
+        (y, kd as i64)
+    }
+    //
+    // // Return k and y, where
+    // // k = round(x * 2 / pi) and y = (x * 2 / pi) - k.
+    // #[inline]
+    // pub(crate) fn reduce_0p10(self) -> (f64, i64) {
+    //     let kd = (self.x * 4.).round();
+    //     let y = f_fmla(kd, -0.25, self.x);
+    //     (y, kd as i64)
+    // }
 }

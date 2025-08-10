@@ -126,9 +126,9 @@ fn test_f32_against_mpfr_multithreaded() {
     });
 
     let mut exceptions = Arc::new(Mutex::new(Vec::<f64>::new()));
-    //
-    // let start_bits = 0f32.to_bits();
-    // let end_bits = (1f32).to_bits();
+
+    // let start_bits = 0.3f32.to_bits();
+    // let end_bits = (2f32).to_bits();
     // println!("amount {}", end_bits - start_bits);
     //
     // // Exhaustive: 0..=u32::MAX
@@ -154,7 +154,7 @@ fn test_f32_against_mpfr_multithreaded() {
     //
     //     let expected_sin_pi = Float::with_val(90, x).sin_pi();
     //     let expected_cos_pi = Float::with_val(90, x).cos_pi();
-    //     let actual = f_sincospif(x);
+    //     let actual = (f_sinpif(x), f_cospif(x));
     //
     //     executions.fetch_add(1, Ordering::Relaxed);
     //
@@ -187,7 +187,7 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (0.9f64).to_bits();
+    let start_bits = (0.5f64).to_bits();
     let end_bits = (start_bits + 2500000);
 
     //

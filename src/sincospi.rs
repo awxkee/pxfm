@@ -26,111 +26,11 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dyad_fmla, f_fmla};
+use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
-use crate::shared_eval::poly_dd_3;
-use crate::sincospi_tables::{
-    SINCOS_PI_CM2, SINCOS_PI_SM2, SINCOS_PI_SN2, SINPI_CM1, SINPI_SM1, SINPI_SN1,
-};
-
-#[inline]
-fn sincosn(s: i32) -> (DoubleDouble, DoubleDouble) {
-    let mut j: i32 = s & 0x3ff;
-    let it: i32 = -((s >> 10) & 1);
-    j = (!it & j).wrapping_sub(it << 10).wrapping_sub(it & j);
-    let is = j >> 5;
-    let ic = 0x20 - is;
-    let jm = j & 0x1f;
-    let ss = (s >> 11) & 1;
-    let sc = ((s.wrapping_add(1024)) >> 11) & 1;
-
-    let dsb = DoubleDouble::from_bit_pair(SINPI_SN1[is as usize]);
-    let dcb = DoubleDouble::from_bit_pair(SINPI_SN1[ic as usize]);
-    let dsl = DoubleDouble::from_bit_pair(SINPI_SM1[jm as usize]);
-    let dcl = DoubleDouble::from_bit_pair(SINPI_CM1[jm as usize]);
-
-    let sb = dsb.to_f64();
-    let cb = dcb.to_f64();
-    let mut ch = f_fmla(dcb.hi, dcl.hi, -dsb.hi * dsl.hi);
-    let mut cl = f_fmla(
-        dcl.hi,
-        dcb.lo,
-        f_fmla(-dsl.hi, dsb.lo, cb * dcl.lo - sb * dsl.lo),
-    );
-    let mut sh = f_fmla(dsb.hi, dcl.hi, dcb.hi * dsl.hi);
-    let mut sl = f_fmla(
-        dsl.hi,
-        dcb.lo,
-        f_fmla(dcl.hi, dsb.lo, cb * dsl.lo + sb * dcl.lo),
-    );
-
-    let tch = ch + cl;
-    let tcl = (ch - tch) + cl;
-    let tsh = sh + sl;
-    let tsl = (sh - tsh) + sl;
-
-    let sign_c = if sc == 1 { -0.0 } else { 0.0 };
-    let sign_s = if ss == 1 { -0.0 } else { 0.0 };
-    ch = f64::copysign(1.0, sign_c) * tch;
-    cl = f64::copysign(1.0, sign_c) * tcl;
-
-    sh = f64::copysign(1.0, sign_s) * tsh;
-    sl = f64::copysign(1.0, sign_s) * tsl;
-    let t_sin = DoubleDouble::new(sl, sh);
-    let t_cos = DoubleDouble::new(cl, ch);
-    (t_sin, t_cos)
-}
-
-#[inline]
-fn sincosn2(s: i32) -> (DoubleDouble, DoubleDouble) {
-    let mut j: i32 = s & 0x3ff;
-    let it: i32 = -((s >> 10) & 1);
-    j = (!it & j).wrapping_sub(it << 10).wrapping_sub(it & j);
-    let is = j >> 5;
-    let ic = 0x20 - is;
-    let jm = j & 0x1f;
-    let ass = (s >> 11) & 1;
-    let asc = ((s.wrapping_add(1024)) >> 11) & 1;
-
-    let sb = DoubleDouble::from_bit_pair(SINCOS_PI_SN2[is as usize]);
-    let cb = DoubleDouble::from_bit_pair(SINCOS_PI_SN2[ic as usize]);
-    let sl = DoubleDouble::from_bit_pair(SINCOS_PI_SM2[jm as usize]);
-    let cl = DoubleDouble::from_bit_pair(SINCOS_PI_CM2[jm as usize]);
-
-    let cc = DoubleDouble::quick_mult(cl, cb);
-    let ss = DoubleDouble::quick_mult(sl, sb);
-    let cs = DoubleDouble::quick_mult(cl, sb);
-    let sc = DoubleDouble::quick_mult(sl, cb);
-
-    let tc = DoubleDouble::add(ss, cc);
-    let ts = DoubleDouble::add(-sc, cs);
-    let mut tc2 = DoubleDouble::add(cb, -tc);
-    let mut ts2 = DoubleDouble::add(sb, -ts);
-
-    let sgb_c = if asc == 1 { -0.0 } else { 0.0 };
-    tc2.hi *= f64::copysign(1.0, sgb_c);
-    tc2.lo *= f64::copysign(1.0, sgb_c);
-    let sgb_s = if ass == 1 { -0.0 } else { 0.0 };
-    ts2.hi *= f64::copysign(1.0, sgb_s);
-    ts2.lo *= f64::copysign(1.0, sgb_s);
-    (ts2, tc2)
-}
-
-#[inline]
-pub(crate) fn poly_dd_2(x: DoubleDouble, poly: [(u64, u64); 2], l: f64) -> DoubleDouble {
-    let zch = poly[1];
-    let ach = f64::from_bits(zch.0) + l;
-    let acl = (f64::from_bits(zch.0) - ach) + l + f64::from_bits(zch.1);
-    let mut ch = DoubleDouble::new(acl, ach);
-
-    let zch = poly[0];
-    ch = DoubleDouble::quick_mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-    ch
-}
+use crate::polyeval::f_polyeval3;
+use crate::sin::SinCos;
+use crate::sincospi_tables::SINPI_K_PI_OVER_64;
 
 /**
 Cospi(x) on [0; 0.000244140625]
@@ -202,39 +102,129 @@ fn as_sinpi_zero(x: f64) -> f64 {
     p.to_f64()
 }
 
-#[cold]
-fn as_sinpi_refine(iq: i32, z: f64) -> f64 {
-    let x = z * f64::from_bits(0x3c00000000000000);
-    let zx2 = DoubleDouble::from_exact_mult(x, x);
-    const SH: [(u64, u64); 3] = [
-        (0x400921fb54442d18, 0x3ca1a62633145c06),
-        (0xbe94abbce625be53, 0x3b305511cbc65743),
-        (0x3d0466bc6775aae1, 0xb8d9c3c168d990a0),
-    ];
-    const CH: [(u64, u64); 2] = [
-        (0xbe93bd3cc9be45de, 0xbb3692b71366cc04),
-        (0x3d103c1f081b5ac4, 0xb9b32b33fda9113c),
-    ];
-    let mut sl = poly_dd_3(zx2, SH, f64::from_bits(0xbb632d2cc920dcb4) * zx2.hi);
-    sl = DoubleDouble::quick_mult_f64(sl, x * f64::from_bits(0x3f30000000000000));
-    let cll0 = zx2.hi
-        * f_fmla(
-            f64::from_bits(0x39ce1f50604fa0ff),
-            zx2.hi,
-            f64::from_bits(0xbb755d3c7e3cbff9),
-        );
-    let mut cl = poly_dd_2(zx2, CH, cll0);
-    cl = DoubleDouble::quick_mult(cl, zx2);
-    let (sb, cb) = sincosn2(iq);
-    let cs = DoubleDouble::quick_mult(cl, sb);
-    let sc = DoubleDouble::quick_mult(sl, cb);
-    let mut ts = DoubleDouble::add(sc, cs);
-    ts = DoubleDouble::add(sb, ts);
-    ts.to_f64()
+// Return k and y, where
+// k = round(x * 128 / pi) and y = (x * 128 / pi) - k.
+#[inline]
+pub(crate) fn reduce_pi_64(x: f64) -> (f64, i64) {
+    let kd = (x * 64.).round();
+    let y = dd_fmla(kd, -1. / 64., x);
+    (y, kd as i64)
 }
 
-const SIN_COEFFS: [u64; 3] = [0x3b5921fb54442d18, 0xb204abbce625be51, 0x289466bc6044ba16];
-const COS_COEFFS: [u64; 2] = [0xb6b3bd3cc9be45db, 0x2d503c1f00186416];
+#[inline]
+fn sincospi_eval(x: f64) -> SinCos {
+    let x2 = x * x;
+    /*
+        sinpi(pi*x) poly generated by Sollya:
+        d = [0, 0.0078128];
+        f_sin = sin(y*pi)/y;
+        Q = fpminimax(f_sin, [|0, 2, 4, 6|], [|107, D...|], d, relative, floating);
+        See ./notes/sinpi.sollya
+    */
+    let sin_lo = f_polyeval3(
+        x2,
+        f64::from_bits(0xc014abbce625be4d),
+        f64::from_bits(0x400466bc6767f259),
+        f64::from_bits(0xbfe32d176b0b3baf),
+    ) * x2;
+    // We're splitting polynomial in two parts, since first term dominates
+    // we compute: (a0_lo + a0_hi) * x + x * (a1 * x^2 + a2 + x^4) ...
+    let sin_lo = dd_fmla(f64::from_bits(0x3ca1a5c04563817a), x, sin_lo * x);
+    let sin_hi = x * f64::from_bits(0x400921fb54442d18);
+
+    /*
+       cospi(pi*x) poly generated by Sollya:
+       d = [0, 0.015625];
+       f_cos = cos(y*pi);
+       Q = fpminimax(f_cos, [|0, 2, 4, 6, 8|], [|107, D...|], d, relative, floating);
+       See ./notes/cospi.sollya
+    */
+    let p = f_polyeval3(
+        x2,
+        f64::from_bits(0xc013bd3cc9be45cf),
+        f64::from_bits(0x40103c1f08085ad1),
+        f64::from_bits(0xbff55d1e43463fc3),
+    );
+
+    // We're splitting polynomial in two parts, since first term dominates
+    // we compute: (a0_lo + a0_hi) + (a1 * x^2 + a2 + x^4)...
+    let cos_lo = dd_fmla(p, x2, f64::from_bits(0xbbdf72adefec0800));
+    let cos_hi = f64::from_bits(0x3ff0000000000000);
+
+    let err = f_fmla(
+        x2,
+        f64::from_bits(0x3cb0000000000000), // 2^-52
+        f64::from_bits(0x3c40000000000000), // 2^-59
+    );
+    SinCos {
+        v_sin: DoubleDouble::from_exact_add(sin_hi, sin_lo),
+        v_cos: DoubleDouble::from_exact_add(cos_hi, cos_lo),
+        err,
+    }
+}
+
+#[inline]
+fn sincospi_eval_dd(x: f64) -> SinCos {
+    let x2 = DoubleDouble::from_exact_mult(x, x);
+    // Sin coeffs
+    // poly sin(pi*x) generated by Sollya:
+    // d = [0, 0.0078128];
+    // f_sin = sin(y*pi)/y;
+    // Q = fpminimax(f_sin, [|0, 2, 4, 6, 8|], [|107...|], d, relative, floating);
+    // see ./notes/sinpi_dd.sollya
+    const SC: [(u64, u64); 5] = [
+        (0x3ca1a626330ccf19, 0x400921fb54442d18),
+        (0x3cb05540f6323de9, 0xc014abbce625be53),
+        (0xbc9050fdd1229756, 0x400466bc6775aadf),
+        (0xbc780d406f3472e8, 0xbfe32d2cce5a7bf1),
+        (0x3c4cfcf8b6b817f2, 0x3fb5077069d8a182),
+    ];
+
+    let mut sin_y = DoubleDouble::mul_add(
+        x2,
+        DoubleDouble::from_bit_pair(SC[4]),
+        DoubleDouble::from_bit_pair(SC[3]),
+    );
+    sin_y = DoubleDouble::mul_add(x2, sin_y, DoubleDouble::from_bit_pair(SC[2]));
+    sin_y = DoubleDouble::mul_add(x2, sin_y, DoubleDouble::from_bit_pair(SC[1]));
+    sin_y = DoubleDouble::mul_add(x2, sin_y, DoubleDouble::from_bit_pair(SC[0]));
+    sin_y = DoubleDouble::quick_mult_f64(sin_y, x);
+
+    // Cos coeffs
+    // d = [0, 0.0078128];
+    // f_cos = cos(y*pi);
+    // Q = fpminimax(f_cos, [|0, 2, 4, 6, 8|], [|107...|], d, relative, floating);
+    // See ./notes/cospi_dd.sollya
+    const CC: [(u64, u64); 5] = [
+        (0xbaaa70a580000000, 0x3ff0000000000000),
+        (0xbcb69211d8dd1237, 0xc013bd3cc9be45de),
+        (0xbcbd96cfd637eeb7, 0x40103c1f081b5abf),
+        (0x3c994d75c577f029, 0xbff55d3c7e2e4ba5),
+        (0xbc5c542d998a4e48, 0x3fce1f2f5f747411),
+    ];
+
+    let mut cos_y = DoubleDouble::mul_add(
+        x2,
+        DoubleDouble::from_bit_pair(CC[4]),
+        DoubleDouble::from_bit_pair(CC[3]),
+    );
+    cos_y = DoubleDouble::mul_add(x2, cos_y, DoubleDouble::from_bit_pair(CC[2]));
+    cos_y = DoubleDouble::mul_add(x2, cos_y, DoubleDouble::from_bit_pair(CC[1]));
+    cos_y = DoubleDouble::mul_add(x2, cos_y, DoubleDouble::from_bit_pair(CC[0]));
+    SinCos {
+        v_sin: sin_y,
+        v_cos: cos_y,
+        err: 0.,
+    }
+}
+
+#[cold]
+fn sinpi_dd(x: f64, sin_k: DoubleDouble, cos_k: DoubleDouble) -> f64 {
+    let r_sincos = sincospi_eval_dd(x);
+    let cos_k_sin_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_sin);
+    let rr = DoubleDouble::mul_add(sin_k, r_sincos.v_cos, cos_k_sin_y);
+    rr.to_f64()
+}
 
 /// Computes sin(PI*x)
 ///
@@ -266,8 +256,6 @@ pub fn f_sinpi(x: f64) -> f64 {
         if (iq & 2047) == 0 {
             return f64::copysign(0.0, x);
         }
-        let (t_sin, _) = sincosn(m.wrapping_shl(s as u32) as i32);
-        return t_sin.to_f64();
     }
 
     if ax <= 0x3fa2000000000000u64 {
@@ -302,7 +290,7 @@ pub fn f_sinpi(x: f64) -> f64 {
            f_sin = sin(y*pi)/y;
            Q = fpminimax(f_sin, [|0, 2, 4, 6, 8, 10|], [|107, D...|], d, relative, floating);
 
-           See ./notes/sinpi.sollya
+           See ./notes/sinpi_zero.sollya
         */
 
         const C_PI: DoubleDouble =
@@ -313,11 +301,13 @@ pub fn f_sinpi(x: f64) -> f64 {
         let x2 = x * x;
         let x3 = x2 * x;
         let x4 = x2 * x2;
+
         let eps = x * f_fmla(
             x2,
-            f64::from_bits(0x3d00000000000000),
-            f64::from_bits(0x3990000000000000),
+            f64::from_bits(0x3d00000000000000), // 2^-47
+            f64::from_bits(0x3bc0000000000000), // 2^-67
         );
+
         const C: [u64; 4] = [
             0xc014abbce625be51,
             0x400466bc67754b46,
@@ -338,9 +328,9 @@ pub fn f_sinpi(x: f64) -> f64 {
     }
 
     let si = e - 1011;
-    if si >= 0 && (m0 << (si.wrapping_add(1))) == 0 {
+    if si >= 0 && (m0.wrapping_shl(si.wrapping_add(1) as u32)) == 0 {
         // x is integer or half-integer
-        if (m0 << si) == 0 {
+        if (m0.wrapping_shl(si as u32)) == 0 {
             return f64::copysign(0.0, x); // x is integer
         }
         let t = (m0.wrapping_shl((si - 1) as u32)) >> 63;
@@ -352,37 +342,29 @@ pub fn f_sinpi(x: f64) -> f64 {
         };
     }
 
-    let mut iq: u64 = ((m >> s) & 8191) as u64;
-    iq = (iq.wrapping_add(1)) >> 1;
-    let k: i64 = (m as u64).wrapping_shl(e.wrapping_sub(1000) as u32) as i64;
-    let z = k as f64;
-    let z2 = z * z;
+    let (y, k) = reduce_pi_64(x);
 
-    let fs0 = f_fmla(
-        z2,
-        f64::from_bits(SIN_COEFFS[2]),
-        f64::from_bits(SIN_COEFFS[1]),
+    // cos(k * pi/64) = sin(k * pi/64 + pi/2) = sin((k + 32) * pi/64).
+    let sin_k = DoubleDouble::from_bit_pair(SINPI_K_PI_OVER_64[((k as u64) & 127) as usize]);
+    let cos_k = DoubleDouble::from_bit_pair(
+        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(32) & 127) as usize],
     );
 
-    let fc = f_fmla(
-        z2,
-        f64::from_bits(COS_COEFFS[1]),
-        f64::from_bits(COS_COEFFS[0]),
-    );
+    let r_sincos = sincospi_eval(y);
 
-    let fs = f_fmla(z2, fs0, f64::from_bits(SIN_COEFFS[0]));
-    let (t_sin, t_cos) = sincosn(iq as i32);
-    const ERR: f64 = f64::from_bits(0x3c244a9a66cdb0d6);
+    let sin_k_cos_y = DoubleDouble::quick_mult(sin_k, r_sincos.v_cos);
+    let cos_k_sin_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_sin);
 
-    let r0 = f_fmla(t_sin.hi, z2 * fc, t_sin.lo);
+    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
 
-    let r = f_fmla(t_cos.hi, z * fs, r0);
-    let lb = (r - ERR) + t_sin.hi;
-    let ub = (r + ERR) + t_sin.hi;
-    if lb == ub {
-        return lb;
+    let ub = rr.hi + (rr.lo + r_sincos.err); // (rr.lo + ERR);
+    let lb = rr.hi + (rr.lo - r_sincos.err); // (rr.lo - ERR);
+
+    if ub == lb {
+        return rr.to_f64();
     }
-    as_sinpi_refine(iq as i32, z)
+    sinpi_dd(y, sin_k, cos_k)
 }
 
 /// Computes cos(PI*x)
@@ -416,8 +398,6 @@ pub fn f_cospi(x: f64) -> f64 {
         if (iq & 2047) == 0 {
             return 0.0;
         }
-        let (sin, _) = sincosn(iq as i32);
-        return sin.hi + sin.lo;
     }
     if ax <= 0x3f30000000000000u64 {
         // |x| <= 2^-12, |x| <= 0.000244140625
@@ -461,33 +441,31 @@ pub fn f_cospi(x: f64) -> f64 {
         return 0.0;
     }
 
-    let mut iq = ((m >> s).wrapping_add(2048)) & 8191;
-    iq = (iq.wrapping_add(1)) >> 1;
-    let k: i64 = (m as u64).wrapping_shl((e - 1000) as u32) as i64;
-    let z = k as f64;
-    let z2 = z * z;
+    let (y, k) = reduce_pi_64(x);
 
-    let fs0 = f_fmla(
-        z2,
-        f64::from_bits(SIN_COEFFS[2]),
-        f64::from_bits(SIN_COEFFS[1]),
+    // cos(k * pi/64) = sin(k * pi/64 + pi/2) = sin((k + 32) * pi/64).
+    let msin_k = DoubleDouble::from_bit_pair(
+        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(64) & 127) as usize],
+    );
+    let cos_k = DoubleDouble::from_bit_pair(
+        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(32) & 127) as usize],
     );
 
-    let fs = f_fmla(z2, fs0, f64::from_bits(SIN_COEFFS[0]));
-    let fc = f_fmla(
-        z2,
-        f64::from_bits(COS_COEFFS[1]),
-        f64::from_bits(COS_COEFFS[0]),
-    );
-    let (t_sin, t_cos) = sincosn(iq as i32);
-    let err = z * f64::from_bits(0x3840000000000000);
-    let r = f_fmla(t_cos.hi, z * fs, f_fmla(t_sin.hi, z2 * fc, t_sin.lo));
-    let lb = (r - err) + t_sin.hi;
-    let ub = (r + err) + t_sin.hi;
-    if lb == ub {
-        return lb;
+    let r_sincos = sincospi_eval(y);
+
+    let sin_k_cos_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_cos);
+    let cos_k_sin_y = DoubleDouble::quick_mult(msin_k, r_sincos.v_sin);
+
+    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+
+    let ub = rr.hi + (rr.lo + r_sincos.err); // (rr.lo + ERR);
+    let lb = rr.hi + (rr.lo - r_sincos.err); // (rr.lo - ERR);
+
+    if ub == lb {
+        return rr.to_f64();
     }
-    as_sinpi_refine(iq as i32, z)
+    sinpi_dd(y, cos_k, msin_k)
 }
 
 #[cfg(test)]
@@ -496,6 +474,19 @@ mod tests {
 
     #[test]
     fn test_sinpi() {
+        assert_eq!(f_sinpi(262143.50006870925), -0.9999999767029883);
+        assert_eq!(f_sinpi(7124076477593855.), 0.);
+        assert_eq!(f_sinpi(-11235582092889474000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.), -0.);
+        assert_eq!(f_sinpi(-2.7430620343968443e303), -0.0);
+        assert_eq!(f_sinpi(0.00003195557007273919), 0.00010039138401316004);
+        assert_eq!(f_sinpi(-0.038357843137253766), -0.12021328061499763);
+        assert_eq!(f_sinpi(1.0156097449358867), -0.04901980680173724);
+        assert_eq!(f_sinpi(74.8593852519989), 0.42752597787896457);
+        assert_eq!(f_sinpi(0.500091552734375), 0.9999999586369661);
+        assert_eq!(f_sinpi(0.5307886532952182), 0.9953257438106751);
+        assert_eq!(f_sinpi(3.1415926535897936), -0.43030121700009316);
+        assert_eq!(f_sinpi(-0.5305172747685276), -0.9954077178320563);
+        assert_eq!(f_sinpi(-0.03723630312089732), -0.1167146713267927);
         assert_eq!(
             f_sinpi(0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022946074000077123),
             0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007208721750737005
@@ -508,6 +499,8 @@ mod tests {
         assert_eq!(f_sinpi(0.11909245901270445), 0.36547215190661003);
         assert_eq!(f_sinpi(0.99909245901270445), 0.0028511202357662186);
         assert!(f_sinpi(f64::INFINITY).is_nan());
+        assert!(f_sinpi(f64::NEG_INFINITY).is_nan());
+        assert!(f_sinpi(f64::NAN).is_nan());
     }
 
     #[test]
@@ -516,5 +509,7 @@ mod tests {
         assert_eq!(0.9308216542079669, f_cospi(0.11909299901270445));
         assert_eq!(-0.1536194873288318, f_cospi(0.54909299901270445));
         assert!(f_cospi(f64::INFINITY).is_nan());
+        assert!(f_cospi(f64::NEG_INFINITY).is_nan());
+        assert!(f_cospi(f64::NAN).is_nan());
     }
 }

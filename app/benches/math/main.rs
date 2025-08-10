@@ -15,8 +15,8 @@ use pxfm::{
     f_exp10, f_exp10f, f_exp10m1, f_exp10m1f, f_expf, f_expm1, f_expm1f, f_hypot, f_j0, f_j0f,
     f_j1, f_j1f, f_log, f_log1p, f_log1pf, f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f,
     f_log10p1, f_log10p1f, f_logf, f_pow, f_powf, f_secf, f_sin, f_sincf, f_sincos, f_sincosf,
-    f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanh, f_tanhf, f_tanpi, f_tanpif,
-    f_y0, f_y0f, f_y1, f_y1f, powf,
+    f_sincospif, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanh, f_tanhf,
+    f_tanpi, f_tanpif, f_y0, f_y0f, f_y1, f_y1f, powf,
 };
 use std::hint::black_box;
 use std::time::Duration;
@@ -26,7 +26,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.warm_up_time(Duration::new(1, 100));
     c.sample_size(15);
 
-    /*c.bench_function("pxfm: i1f", |b| {
+    c.bench_function("pxfm: i1f", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(pxfm::f_i1f(i as f32 / 50.0));
@@ -632,7 +632,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 black_box(f_tanpi(i as f64 / 1000.0));
             }
         })
-    });*/
+    });
 
     c.bench_function("pxfm: f_cospi", |b| {
         b.iter(|| {
@@ -650,7 +650,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    /*   c.bench_function("pxfm: f_tanpif", |b| {
+    c.bench_function("pxfm: f_tanpif", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_tanpif(i as f32 / 1000.0));
@@ -880,7 +880,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 black_box(f_acos(i as f64 / 1000.0));
             }
         })
-    });*/
+    });
 
     c.bench_function("libm::sin_cos", |b| {
         b.iter(|| {
@@ -1010,10 +1010,18 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("pxfm: FMA sincosf", |b| {
+    c.bench_function("pxfm: sincosf", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_sincosf(i as f32));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: sincospif", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_sincospif(i as f32));
             }
         })
     });

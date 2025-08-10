@@ -383,8 +383,8 @@ pub fn f_cos(x: f64) -> f64 {
 
     // After range reduction, k = round(x * 128 / pi) and y = x - k * (pi / 128).
     // So k is an integer and -pi / 256 <= y <= pi / 256.
-    // Then sin(x) = sin((k * pi/128 + y)
-    //             = sin(y) * cos(k*pi/128) + cos(y) * sin(k*pi/128)
+    // Then cos(x) = cos((k * pi/128 + y)
+    //             = cos(y) * cos(k*pi/128) - sin(y) * sin(k*pi/128)
     let sk = SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
     let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
     let msin_k = DoubleDouble::from_bit_pair(sk);
