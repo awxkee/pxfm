@@ -110,7 +110,7 @@ pub(crate) fn exp_b_range_reduc(x: f32) -> ExpBReduc {
     ExpBReduc { lo: dx, hi: mh }
 }
 
-/// Computes exp10 with FMA
+/// Computes exp10
 ///
 /// Max found ULP 0.49999508
 #[inline]

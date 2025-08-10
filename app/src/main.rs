@@ -1,5 +1,9 @@
 use bessel::bessel_i0;
-use pxfm::{f_cosf, f_cospi, f_cospif, f_cotf, f_cscf, f_exp10f, f_exp2f, f_i0, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k1, f_log, f_secf, f_sincf, f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tanf, f_y0, f_y0f, f_y1, f_y1f};
+use pxfm::{
+    f_cosf, f_cospi, f_cospif, f_cotf, f_cscf, f_exp2f, f_exp10f, f_i0, f_j0, f_j0f, f_j1, f_j1f,
+    f_k0, f_k1, f_log, f_secf, f_sincf, f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tanf, f_y0,
+    f_y0f, f_y1, f_y1f,
+};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};

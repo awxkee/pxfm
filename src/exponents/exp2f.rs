@@ -141,7 +141,7 @@ static EXP2F_TABLE: [u64; 64] = [
   f_fmlaf(u, z0, z0) * i2
 */
 
-/// Computing exp2f using FMA
+/// Computing exp2f
 /// ULP 0.4999994
 #[inline]
 pub fn f_exp2f(x: f32) -> f32 {
@@ -300,7 +300,7 @@ mod tests {
 
     #[test]
     fn test_exp2f() {
-        assert_eq!(f_exp2f(1./64.), 1.0108893);
+        assert_eq!(f_exp2f(1. / 64.), 1.0108893);
         assert_eq!(f_exp2f(2.0), 4.0);
         assert_eq!(f_exp2f(3.0), 8.0);
         assert_eq!(f_exp2f(4.0), 16.0);
