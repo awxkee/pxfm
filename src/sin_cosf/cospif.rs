@@ -62,6 +62,7 @@ pub fn f_cospif(x: f32) -> f32 {
                 all(target_arch = "aarch64", target_feature = "neon")
             )))]
             {
+                use crate::common::f_fmla;
                 return f_fmla(xd, f64::from_bits(0xbe60000000000000), 1.) as f32;
             }
         }

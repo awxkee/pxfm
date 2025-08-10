@@ -121,7 +121,7 @@ fn sincospi_eval(x: f64) -> SinCos {
         Q = fpminimax(f_sin, [|0, 2, 4, 6|], [|107, D...|], d, relative, floating);
         See ./notes/sinpi.sollya
     */
-    let sin_lo = f_polyeval3(
+    let sin_lop = f_polyeval3(
         x2,
         f64::from_bits(0xc014abbce625be4d),
         f64::from_bits(0x400466bc6767f259),
@@ -129,7 +129,7 @@ fn sincospi_eval(x: f64) -> SinCos {
     ) * x2;
     // We're splitting polynomial in two parts, since first term dominates
     // we compute: (a0_lo + a0_hi) * x + x * (a1 * x^2 + a2 + x^4) ...
-    let sin_lo = dd_fmla(f64::from_bits(0x3ca1a5c04563817a), x, sin_lo * x);
+    let sin_lo = dd_fmla(f64::from_bits(0x3ca1a5c04563817a), x, sin_lop * x);
     let sin_hi = x * f64::from_bits(0x400921fb54442d18);
 
     /*

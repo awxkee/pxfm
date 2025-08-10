@@ -16,7 +16,6 @@ description = "Fast and accurate math"
 
 [dependencies]
 num-traits = "0.2"
-log = "0.4.27"
 
 [profile.dev.package]
 bessel.opt-level = 3
