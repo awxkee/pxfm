@@ -516,16 +516,15 @@ pub fn f_sincospi(x: f64) -> (f64, f64) {
             let cos_x = CF[is_odd as usize];
             return (0.0, cos_x); // sin = 0, cos = ±1
         } else if cos_zero {
-            let k = (f64::from_bits(ax) * 2.0) as i64; // multiply by 2 since π/2 = 0.5 π in sinpi terms
-            static SIGN_S: [f64; 2] = [-1., 1.];
-            let sign = SIGN_S[x.is_sign_positive() as usize];
-            let value = match k & 3 {
-                0 => 0.0,
-                1 => 1.0,
-                2 => 0.0,
-                _ => -1.0,
-            } * sign;
-            return (value, 0.0); // sin = ±1, cos = 0
+            // x = k / 2 * PI
+            let si = e.wrapping_sub(1011);
+            let t = (m0.wrapping_shl((si - 1) as u32)) >> 63;
+            // making sin decision based on quadrant
+            return if t == 0 {
+                (f64::copysign(1.0, x), 0.0)
+            } else {
+                (-f64::copysign(1.0, x), 0.0)
+            }; // sin = ±1, cos = 0
         }
     }
 
