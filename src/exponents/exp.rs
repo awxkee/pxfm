@@ -396,5 +396,8 @@ mod tests {
     fn f_exp_test() {
         assert_eq!(f_exp(0.), 1.);
         assert_eq!(f_exp(5f64), 148.4131591025766034211155800405522796f64);
+        assert_eq!(f_exp(f64::INFINITY), f64::INFINITY);
+        assert_eq!(f_exp(f64::NEG_INFINITY), 0.);
+        assert!(f_exp(f64::NAN).is_nan());
     }
 }

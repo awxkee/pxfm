@@ -261,5 +261,8 @@ mod tests {
         assert_eq!(f_exp10(5.), 100000.0);
         assert_eq!(f_exp10(6.), 1000000.0);
         assert_eq!(f_exp10(7.), 10000000.0);
+        assert_eq!(f_exp10(f64::INFINITY), f64::INFINITY);
+        assert_eq!(f_exp10(f64::NEG_INFINITY), 0.);
+        assert!(f_exp10(f64::NAN).is_nan());
     }
 }

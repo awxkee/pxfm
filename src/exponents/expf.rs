@@ -251,5 +251,8 @@ mod tests {
             "Invalid result {}",
             f_expf(5f32)
         );
+        assert_eq!(f_expf(f32::INFINITY), f32::INFINITY);
+        assert_eq!(f_expf(f32::NEG_INFINITY), 0.);
+        assert!(f_expf(f32::NAN).is_nan());
     }
 }
