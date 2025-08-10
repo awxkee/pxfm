@@ -114,18 +114,20 @@ fn test_method_2_outputs(
     let ulp = count_ulp_f64(xr, mpfr_value0);
     assert!(
         ulp <= max_ulp,
-        "SIN ULP should be less than {max_ulp}, but it was {}, on {} using {method_name} and MPFR {}",
+        "SIN ULP should be less than {max_ulp}, but it was {}, on {}, value {}, using {method_name} and MPFR {}",
         ulp,
         value,
+        xr,
         mpfr_value0.to_f64(),
     );
 
     let ulp = count_ulp_f64(yr, mpfr_value1);
     assert!(
         ulp <= max_ulp,
-        "COS ULP should be less than {max_ulp}, but it was {}, on {} using {method_name} and MPFR {}",
+        "COS ULP should be less than {max_ulp}, but it was {}, on {}, value {}, using {method_name} and MPFR {}",
         ulp,
         value,
+        yr,
         mpfr_value1.to_f64(),
     );
 }
@@ -524,6 +526,15 @@ fuzz_target!(|data: (f64, f64)| {
         "f_sincos".to_string(),
         0.5,
     );
+    test_method_2_outputs(
+        x0,
+        f_sincospi,
+        &mpfr_x0.clone().sin_pi(),
+        &mpfr_x0.clone().cos_pi(),
+        "f_sincospi".to_string(),
+        0.5,
+    );
+
     test_method(x0, f_tan, &mpfr_x0.clone().tan(), "f_tan".to_string(), 0.5);
     test_method(
         x0,

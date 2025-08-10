@@ -15,8 +15,8 @@ use pxfm::{
     f_exp10, f_exp10f, f_exp10m1, f_exp10m1f, f_expf, f_expm1, f_expm1f, f_hypot, f_j0, f_j0f,
     f_j1, f_j1f, f_log, f_log1p, f_log1pf, f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f,
     f_log10p1, f_log10p1f, f_logf, f_pow, f_powf, f_secf, f_sin, f_sincf, f_sincos, f_sincosf,
-    f_sincospif, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanh, f_tanhf,
-    f_tanpi, f_tanpif, f_y0, f_y0f, f_y1, f_y1f, powf,
+    f_sincospi, f_sincospif, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tan, f_tanf, f_tanh,
+    f_tanhf, f_tanpi, f_tanpif, f_y0, f_y0f, f_y1, f_y1f, powf,
 };
 use std::hint::black_box;
 use std::time::Duration;
@@ -898,7 +898,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("pxfm: FMA sin_cosf", |b| {
+    c.bench_function("pxfm: sin_cos", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_sincos(i as f64 / 1000.0));
@@ -906,7 +906,15 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    /*c.bench_function("pxfm: f_cot", |b| {
+    c.bench_function("pxfm: sincospi", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_sincospi(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_cot", |b| {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_cot(i as f64 * 1000.0));
@@ -952,7 +960,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 black_box(f64::sin(i as f64 * 1000.0));
             }
         })
-    });*/
+    });
 
     c.bench_function("pxfm: f_sin", |b| {
         b.iter(|| {

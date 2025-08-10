@@ -139,7 +139,7 @@ pub use sin_cosf::{
 };
 pub use sinc::f_sinc;
 pub use sincos::f_sincos;
-pub use sincospi::{f_cospi, f_sinpi};
+pub use sincospi::{f_cospi, f_sincospi, f_sinpi};
 pub use sqrtf::sqrtf;
 pub use tangent::{
     f_atan, f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf, f_atanpi, f_atanpif, f_cot, f_cotf,

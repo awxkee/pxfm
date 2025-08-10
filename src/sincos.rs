@@ -178,7 +178,7 @@ fn sincos_hard(
         // sin(x) = sin((k * pi/128 + u)
         //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
 
-        DoubleDouble::dd_add(sin_k * r_sincos.v_cos, cos_k * r_sincos.v_sin).to_f64()
+        DoubleDouble::mul_add(sin_k, r_sincos.v_cos, cos_k * r_sincos.v_sin).to_f64()
     };
 
     let cos_x = if cos_upper == cos_lower {
@@ -186,7 +186,7 @@ fn sincos_hard(
     } else {
         // cos(x) = cos((k * pi/128 + u)
         //        = cos(u) * cos(k*pi/128) - sin(u) * sin(k*pi/128)
-        DoubleDouble::dd_add(cos_k * r_sincos.v_cos, msin_k * r_sincos.v_sin).to_f64()
+        DoubleDouble::mul_add(cos_k, r_sincos.v_cos, msin_k * r_sincos.v_sin).to_f64()
     };
     (sin_x, cos_x)
 }
