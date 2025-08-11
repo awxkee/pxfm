@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::bits::{EXP_MASK, get_exponent_f64};
-use crate::common::dd_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::exp;
@@ -317,8 +317,8 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
     let r = DoubleDouble::quick_mult_f64(l, y);
     let res = pow_exp_1(r, s);
     static ERR: [u64; 2] = [0x3bf2700000000000, 0x3c55700000000000];
-    let res_min = res.hi + dd_fmla(f64::from_bits(ERR[cancel as usize]), -res.hi, res.lo);
-    let res_max = res.hi + dd_fmla(f64::from_bits(ERR[cancel as usize]), res.hi, res.lo);
+    let res_min = res.hi + f_fmla(f64::from_bits(ERR[cancel as usize]), -res.hi, res.lo);
+    let res_max = res.hi + f_fmla(f64::from_bits(ERR[cancel as usize]), res.hi, res.lo);
     if res_min == res_max {
         return res_max;
     }

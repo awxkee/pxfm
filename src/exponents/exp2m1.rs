@@ -207,8 +207,8 @@ fn exp1(x: DoubleDouble) -> DoubleDouble {
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
-    let mut zk = DoubleDouble::from_exact_mult(LOG2H, k);
-    zk.lo = f_fmla(k, LOG2L, zk.lo);
+    const LOG2DD: DoubleDouble = DoubleDouble::new(LOG2L, LOG2H);
+    let zk = DoubleDouble::quick_mult_f64(LOG2DD, k);
 
     let mut yz = DoubleDouble::from_exact_add(x.hi - zk.hi, x.lo);
     yz.lo -= zk.lo;
@@ -601,8 +601,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
             }
             // scale x by 2^106
             x *= f64::from_bits(0x4690000000000000);
-            let mut z = DoubleDouble::from_exact_mult(LN2H, x);
-            z.lo = dd_fmla(LN2L, x, z.lo);
+            let z = DoubleDouble::quick_mult_f64(DoubleDouble::new(LN2L, LN2H), x);
             let mut h2 = z.to_f64(); // round to 53-bit precision
             // scale back, hoping to avoid double rounding
             h2 *= f64::from_bits(0x3950000000000000);
@@ -657,6 +656,7 @@ mod tests {
 
     #[test]
     fn test_exp2m1() {
+        assert_eq!(f_exp2m1(5.4172231599824623E-312), 3.75493295981e-312);
         assert_eq!(f_exp2m1( 0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000017800593653177087), 0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012338431302992956);
         assert_eq!(3., f_exp2m1(2.0));
         assert_eq!(4.656854249492381, f_exp2m1(2.5));

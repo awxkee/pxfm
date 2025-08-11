@@ -364,8 +364,7 @@ pub(crate) fn pow_exp_dd(r: DoubleDouble, s: f64) -> DoubleDouble {
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
 
-    let zh = dd_fmla(LOG2H, -k, r.hi);
-    let zl = dd_fmla(LOG2L, -k, r.lo);
+    let z = DoubleDouble::mul_f64_add(DoubleDouble::new(LOG2L, LOG2H), -k, r);
 
     let bk = k as i64; /* Note: k is an integer, this is just a conversion. */
     let mk = (bk >> 12) + 0x3ff;
@@ -375,7 +374,7 @@ pub(crate) fn pow_exp_dd(r: DoubleDouble, s: f64) -> DoubleDouble {
     let t0 = DoubleDouble::from_bit_pair(EXP_REDUCE_T0[i2 as usize]);
     let t1 = DoubleDouble::from_bit_pair(EXP_REDUCE_T1[i1 as usize]);
     let mut de = DoubleDouble::quick_mult(t1, t0);
-    let q = exp_poly_dd(DoubleDouble::new(zl, zh));
+    let q = exp_poly_dd(z);
     de = DoubleDouble::quick_mult(de, q);
     /* we should have 1 < M < 2047 here, since we filtered out
     potential underflow/overflow cases at the beginning of this function */
@@ -535,7 +534,7 @@ pub(crate) fn pow_expm1_1(r: DoubleDouble, s: f64) -> DoubleDouble {
     }
 
     if r.hi < RHO1 {
-        return if r.hi < RHO0 {
+        if r.hi < RHO0 {
             /* For s=1, we have eh=el=+0 except for rounding up,
                thus res_min=+0 or -0, res_max=+0 in the main code,
                the rounding test succeeds, and we return res_max which is the
@@ -549,17 +548,23 @@ pub(crate) fn pow_expm1_1(r: DoubleDouble, s: f64) -> DoubleDouble {
                For s=-1 and rounding down, we have eh=-0, el=-2^-1074,
                thus res_min = res_max = -2^-1074, which is the expected result too.
             */
-            DoubleDouble::new(f64::from_bits(0x0000000000000001) * (0.5 * s), 0.0 * s)
+            return DoubleDouble::full_add_f64(
+                DoubleDouble::new(f64::from_bits(0x0000000000000001) * (0.5 * s), 0.0 * s),
+                -1.0,
+            );
         } else {
-            /* RHO0 <= rh < RHO1 or s < 0: we defer to the 2nd phase */
-            DoubleDouble::new(f64::NAN, f64::NAN)
+            /* RHO0 <= rh < RHO1 or s < 0: we return -1 */
+            return DoubleDouble::new(0., -1.);
         };
     }
 
-    if r.hi.abs() < 0.125 {
-        let mut d = expm1_poly_dd_tiny(r);
-        d.hi *= s;
-        d.lo *= s;
+    let ax = r.hi.to_bits() & 0x7fffffffffffffffu64;
+
+    const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
+    const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
+
+    if f64::from_bits(ax) < 0.125 {
+        let d = expm1_poly_dd_tiny(r);
         return d;
     }
 
@@ -567,11 +572,7 @@ pub(crate) fn pow_expm1_1(r: DoubleDouble, s: f64) -> DoubleDouble {
 
     let k = (r.hi * INVLOG2).round_ties_even();
 
-    const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
-    const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
-
-    let zh = dd_fmla(LOG2H, -k, r.hi);
-    let zl = dd_fmla(LOG2L, -k, r.lo);
+    let z = DoubleDouble::mul_f64_add(DoubleDouble::new(LOG2L, LOG2H), -k, r);
 
     let bk = k as i64; /* Note: k is an integer, this is just a conversion. */
     let mk = (bk >> 12) + 0x3ff;
@@ -583,7 +584,7 @@ pub(crate) fn pow_expm1_1(r: DoubleDouble, s: f64) -> DoubleDouble {
     let tbh = DoubleDouble::quick_mult(t1, t0);
     let mut de = tbh;
     // exp(k)=2^k*exp(r) + (2^k - 1)
-    let q = expm1_poly_dd(DoubleDouble::new(zl, zh));
+    let q = expm1_poly_dd(z);
     de = DoubleDouble::quick_mult(de, q);
     de = DoubleDouble::add(tbh, de);
 

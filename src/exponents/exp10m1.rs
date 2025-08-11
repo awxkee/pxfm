@@ -106,8 +106,7 @@ fn exp10m1_fast(x: f64, tiny: bool) -> Exp10m1 {
     }
     /* now -54 < x < -0.125 or 0.125 < x < 1024: we approximate exp(x*log(2))
     and subtract 1 */
-    let mut v = DoubleDouble::from_exact_mult(LN10H, x);
-    v.lo = f_fmla(x, LN10L, v.lo);
+    let v = DoubleDouble::quick_mult_f64(DoubleDouble::new(LN10L, LN10H), x);
     /*
     The a_mul() call is exact, and the error of the fma() is bounded by
      ulp(l).
@@ -226,8 +225,7 @@ fn exp_2(x: f64) -> DoubleDouble {
     /* now x = k + yh, thus 2^x = 2^k * 2^yh, and we multiply yh by log(10)
     to use the accurate path of exp() */
 
-    let mut ky = DoubleDouble::f64_mult(ky0.hi, DoubleDouble::new(LN10L, LN10H));
-    ky.lo = dd_fmla(ky0.lo, LN10H, ky.lo);
+    let ky = DoubleDouble::quick_mult(ky0, DoubleDouble::new(LN10L, LN10H));
 
     let ik = k as i64;
     let im = (ik >> 12).wrapping_add(0x3ff);
@@ -533,8 +531,7 @@ pub fn f_exp10m1(d: f64) -> f64 {
             dyad_fmla(h, f64::from_bits(0x3950000000000000), h2)
         } else {
             const C2: f64 = f64::from_bits(0x40053524c73cea69); // log(2)^2/2
-            let mut z = DoubleDouble::from_exact_mult(LN10H, x);
-            z.lo = dd_fmla(LN10L, x, z.lo);
+            let mut z = DoubleDouble::quick_mult_f64(DoubleDouble::new(LN10L, LN10H), x);
             /* h+l approximates the first term x*log(2) */
             /* we add C2*x^2 last, so that in case there is a cancellation in
             LN10L*x+l, it will contribute more bits */

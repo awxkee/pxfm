@@ -404,7 +404,7 @@ pub fn f_expm1(x: f64) -> f64 {
         let eps = z2 * e0 + f64::from_bits(0x3970000000000000);
         let mut r = DoubleDouble::from_exact_add(t.hi, f.hi);
         r.lo += t.lo + f.lo;
-        f = DoubleDouble::mult(t, f);
+        f = DoubleDouble::quick_mult(t, f);
         f = DoubleDouble::add(r, f);
         let ub = f.hi + (f.lo + eps);
         let lb = f.hi + (f.lo - eps);
@@ -443,7 +443,7 @@ pub fn f_expm1(x: f64) -> f64 {
         let t0 = DoubleDouble::from_bit_pair(EXPM1_T0[i0 as usize]);
         let t1 = DoubleDouble::from_bit_pair(EXPM1_T1[i1 as usize]);
 
-        let bt = DoubleDouble::mult(t0, t1);
+        let bt = DoubleDouble::quick_mult(t0, t1);
 
         const L2H: f64 = f64::from_bits(0x3f262e42ff000000);
         const L2L: f64 = f64::from_bits(0x3d0718432a1b0e26);

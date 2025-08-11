@@ -26,7 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
+use std::ops::Neg;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct TripleDouble {
@@ -152,46 +154,42 @@ impl TripleDouble {
         TripleDouble::new(rl, rm, rh)
     }
 
-    // #[inline]
-    // pub(crate) fn quick_mult(b: TripleDouble, a: TripleDouble) -> TripleDouble {
-    //     /* Mul12((resh),&_t1,(ah),(bh));
-    //     Mul12(&_t2,&_t3,(ah),(bm));
-    //     Mul12(&_t4,&_t5,(am),(bh));
-    //     Mul12(&_t6,&_t7,(am),(bm));
-    //     _t8 = (ah) * (bl);
-    //     _t9 = (al) * (bh);
-    //     _t10 = (am) * (bl);
-    //     _t11 = (al) * (bm);
-    //     _t12 = _t8 + _t9;
-    //     _t13 = _t10 + _t11;
-    //     Add12Cond(_t14,_t15,_t1,_t6);
-    //     _t16 = _t7 + _t15;
-    //     _t17 = _t12 + _t13;
-    //     _t18 = _t16 + _t17;
-    //     Add12Cond(_t19,_t20,_t14,_t18);
-    //     Add22Cond(&_t21,&_t22,_t2,_t3,_t4,_t5);
-    //     Add22Cond((resm),(resl),_t21,_t22,_t19,_t20);   */
-    //     let DoubleDouble { hi: rh, lo: t1 } = DoubleDouble::from_exact_mult(a.hi, b.hi);
-    //     let DoubleDouble { hi: t2, lo: t3 } = DoubleDouble::from_exact_mult(a.hi, b.mid);
-    //     let DoubleDouble { hi: t4, lo: t5 } = DoubleDouble::from_exact_mult(a.mid, b.hi);
-    //     let DoubleDouble { hi: t6, lo: t7 } = DoubleDouble::from_exact_mult(a.mid, b.mid);
-    //     let t8 = a.hi * b.lo;
-    //     let t9 = a.lo * b.hi;
-    //     let t10 = a.mid * b.lo;
-    //     let t11 = a.lo * b.mid;
-    //     let t12 = t8 + t9;
-    //     let t13 = t10 + t11;
-    //     let DoubleDouble { hi: t14, lo: t15 } = add12(t1, t6);
-    //     let t16 = t7 + t15;
-    //     let t17 = t12 + t13;
-    //     let t18 = t16 + t17;
-    //     let DoubleDouble { hi: t19, lo: t20 } = add12(t14, t18);
-    //     let DoubleDouble { hi: t21, lo: t22 } =
-    //         add22(DoubleDouble::new(t3, t2), DoubleDouble::new(t4, t5));
-    //     let DoubleDouble { hi: rm, lo: rl } =
-    //         add22(DoubleDouble::new(t22, t21), DoubleDouble::new(t20, t19));
-    //     TripleDouble::new(rl, rm, rh)
-    // }
+    #[inline]
+    pub(crate) fn quick_mult(b: TripleDouble, a: TripleDouble) -> TripleDouble {
+        /* Mul12((resh),&_t1,(ah),(bh));
+        Mul12(&_t2,&_t3,(ah),(bm));
+        Mul12(&_t4,&_t5,(am),(bh));
+        Mul12(&_t6,&_t7,(am),(bm));
+        _t8 = (ah) * (bl);
+        _t9 = (al) * (bh);
+        _t10 = (am) * (bl);
+        _t11 = (al) * (bm);
+        _t12 = _t8 + _t9;
+        _t13 = _t10 + _t11;
+        Add12Cond(_t14,_t15,_t1,_t6);
+        _t16 = _t7 + _t15;
+        _t17 = _t12 + _t13;
+        _t18 = _t16 + _t17;
+        Add12Cond(_t19,_t20,_t14,_t18);
+        Add22Cond(&_t21,&_t22,_t2,_t3,_t4,_t5);
+        Add22Cond((resm),(resl),_t21,_t22,_t19,_t20);   */
+        let DoubleDouble { hi: rh, lo: t1 } = DoubleDouble::from_exact_mult(a.hi, b.hi);
+        let DoubleDouble { hi: t2, lo: t3 } = DoubleDouble::from_exact_mult(a.hi, b.mid);
+        let DoubleDouble { hi: t4, lo: t5 } = DoubleDouble::from_exact_mult(a.mid, b.hi);
+        let DoubleDouble { hi: t6, lo: t7 } = DoubleDouble::from_exact_mult(a.mid, b.mid);
+        let t12 = f_fmla(a.hi, b.lo, a.lo * b.hi);
+        let t13 = f_fmla(a.mid, b.lo, a.lo * b.mid);
+        let DoubleDouble { hi: t14, lo: t15 } = add12(t1, t6);
+        let t16 = t7 + t15;
+        let t17 = t12 + t13;
+        let t18 = t16 + t17;
+        let DoubleDouble { hi: t19, lo: t20 } = add12(t14, t18);
+        let DoubleDouble { hi: t21, lo: t22 } =
+            add22(DoubleDouble::new(t3, t2), DoubleDouble::new(t4, t5));
+        let DoubleDouble { hi: rm, lo: rl } =
+            add22(DoubleDouble::new(t22, t21), DoubleDouble::new(t20, t19));
+        TripleDouble::new(rl, rm, rh)
+    }
 
     #[inline]
     pub(crate) fn quick_mult_dd(b: TripleDouble, a: DoubleDouble) -> TripleDouble {
@@ -286,7 +284,7 @@ impl TripleDouble {
     // pub(crate) fn to_dd(self) -> DoubleDouble {
     //     let DoubleDouble { hi: t1, lo: t2 } = add12(self.hi, self.mid);
     //     let t3 = t2 + self.lo;
-    //     DoubleDouble::new(t1, t3)
+    //     DoubleDouble::new(t3, t1)
     // }
 
     #[inline]
@@ -299,5 +297,94 @@ impl TripleDouble {
         let DoubleDouble { hi: t1, lo: t2 } = add12(self.hi, self.mid);
         let t3 = t2 + self.lo;
         t1 + t3
+    }
+
+    #[inline]
+    pub(crate) fn from_full_exact_add(a: f64, b: f64) -> Self {
+        let DoubleDouble { hi: rh, lo: t1 } = add12(a, b);
+        TripleDouble::new(0., t1, rh).renormalize()
+    }
+
+    #[inline]
+    pub(crate) fn renormalize(self) -> Self {
+        /*
+           double _t1h, _t1l, _t2l;                           \
+                                                       \
+        Add12(_t1h, _t1l, (am), (al));                     \
+        Add12((*(resh)), _t2l, (ah), (_t1h));              \
+        Add12((*(resm)), (*(resl)), _t2l, _t1l);           \
+         */
+        let DoubleDouble { hi: t1h, lo: t1l } = DoubleDouble::from_exact_add(self.mid, self.lo);
+        let DoubleDouble { hi: rh, lo: t2l } = DoubleDouble::from_exact_add(self.hi, t1h);
+        let zml = DoubleDouble::from_exact_add(t2l, t1l);
+        TripleDouble::new(zml.lo, zml.hi, rh)
+    }
+
+    #[inline]
+    pub(crate) fn recip(self) -> Self {
+        /*
+              _rec_r1 = 1.0 / (dh);                                                                         \
+        Mul12(&_rec_t1,&_rec_t2,_rec_r1,(dh));                                                                \
+        _rec_t3 = _rec_t1 - 1.0;                                                                          \
+        Add12Cond(_rec_t4,_rec_t5,_rec_t3,_rec_t2);                                                               \
+        Mul12(&_rec_t6,&_rec_t7,_rec_r1,(dm));                                                                \
+        Add12(_rec_t8,_rec_t9,-1.0,_rec_t6);                                                                  \
+        _rec_t10 = _rec_t9 + _rec_t7;                                                                         \
+        Add12(_rec_t11,_rec_t12,_rec_t8,_rec_t10);                                                                \
+        _rec_r1 = -_rec_r1;                                                                               \
+        Add22Cond(&_rec_t13,&_rec_t14,_rec_t4,_rec_t5,_rec_t11,_rec_t12);                                                 \
+        Mul122(&_rec_r2h,&_rec_r2l,_rec_r1,_rec_t13,_rec_t14);                                                        \
+        Mul233(&_rec_t15,&_rec_t16,&_rec_t17,_rec_r2h,_rec_r2l,(dh),(dm),(dl));                                       \
+        Renormalize3(&_rec_t18,&_rec_t19,&_rec_t20,_rec_t15,_rec_t16,_rec_t17);                                           \
+        _rec_t18 = -1.0;                                                                              \
+        Mul233(&_rec_t21,&_rec_t22,&_rec_t23,_rec_r2h,_rec_r2l,_rec_t18,_rec_t19,_rec_t20);                                       \
+        _rec_t21 = -_rec_t21; _rec_t22 = -_rec_t22; _rec_t23 = -_rec_t23;                                                 \
+        Renormalize3((resh),(resm),(resl),_rec_t21,_rec_t22,_rec_t23);
+             */
+        let mut r1 = 1. / self.hi;
+        let DoubleDouble {
+            hi: rec_t1,
+            lo: rec_t2,
+        } = DoubleDouble::from_exact_mult(r1, self.hi);
+        let rec_t3 = rec_t1 - 1.0;
+        let DoubleDouble {
+            hi: rec_t4,
+            lo: rec_t5,
+        } = add12(rec_t3, rec_t2);
+        let DoubleDouble {
+            hi: rec_t6,
+            lo: rec_t7,
+        } = mul12(r1, self.mid);
+        let DoubleDouble {
+            hi: rec_t8,
+            lo: rec_t9,
+        } = add12(-1.0, rec_t6);
+        let rec_t10 = rec_t9 + rec_t7;
+        r1 = -r1;
+        let DoubleDouble {
+            hi: rec_t11,
+            lo: rec_t12,
+        } = add12(rec_t8, rec_t10);
+        let z0 = add22(
+            DoubleDouble::new(rec_t5, rec_t4),
+            DoubleDouble::new(rec_t12, rec_t11),
+        );
+        let r2hl = DoubleDouble::quick_mult_f64(z0, r1);
+        let rec15_16_17 = TripleDouble::quick_mult_dd(self, r2hl);
+        let rec18_19_20 = rec15_16_17.renormalize();
+        let rec_t18 = -1.0;
+        let rec_21_22_23 = -TripleDouble::quick_mult_dd(
+            TripleDouble::new(rec18_19_20.lo, rec18_19_20.mid, rec_t18),
+            r2hl,
+        );
+        rec_21_22_23.renormalize()
+    }
+}
+
+impl Neg for TripleDouble {
+    type Output = Self;
+    #[inline]
+    fn neg(self) -> Self::Output {
+        TripleDouble::new(-self.lo, -self.mid, -self.hi)
     }
 }

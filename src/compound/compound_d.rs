@@ -26,17 +26,16 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::dd_fmla;
+use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::logs::{log1p_f64_dd, log1p_f64_dyadic};
+use crate::logs::{log1p_dd, log1p_f64_dyadic};
 use crate::pow::{is_integer, is_odd_integer};
 use crate::pow_exec::{exp_dyadic, pow_exp_dd};
+use crate::triple_double::TripleDouble;
 
 /// Computes (1+x)^y
 ///
-//TODO: still many bad behaviours with ULP 0.501+- for some subnormals, too slow
-#[inline]
 pub fn f_compound(x: f64, y: f64) -> f64 {
     /*
        Rules from IEEE 754-2019 for compound (x, n) with n integer:
@@ -307,30 +306,27 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
             p = DoubleDouble::mult(p, s);
         }
 
-        return if y.is_sign_negative() {
-            p.recip().to_f64()
-        } else {
-            p.to_f64()
-        };
+        let dz = if y.is_sign_negative() { p.recip() } else { p };
+        let ub = dz.hi + f_fmla(f64::from_bits(0x3c40000000000000), -dz.hi, dz.lo); // 2^-59
+        let lb = dz.hi + f_fmla(f64::from_bits(0x3c40000000000000), dz.hi, dz.lo); // 2^-59
+        if ub == lb {
+            return dz.to_f64();
+        }
+        return mul_fixed_power_hard(x, y);
     }
 
-    let (l, cancel) = log1p_f64_dd(x);
-    if cancel {
-        return compound_accurate(x, y, s);
-    }
+    let l = log1p_dd(x);
     let ey = ((y.to_bits() >> 52) & 0x7ff) as i32;
     if ey < 0x36 || ey >= 0x7f5 {
         return compound_accurate(x, y, s);
     }
 
     let r = DoubleDouble::quick_mult_f64(l, y);
-    if r.hi.abs() > 1e-250 && r.hi.abs() < 100. {
-        let res = pow_exp_dd(r, s);
-        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c99400000000000), -res.hi, res.lo);
-        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c99400000000000), res.hi, res.lo);
-        if res_min == res_max {
-            return res_max;
-        }
+    let res = pow_exp_dd(r, s);
+    let res_min = res.hi + f_fmla(f64::from_bits(0x3bf0000000000000), -res.hi, res.lo);
+    let res_max = res.hi + f_fmla(f64::from_bits(0x3bf0000000000000), res.hi, res.lo);
+    if res_min == res_max {
+        return res_max;
     }
 
     compound_accurate(x, y, s)
@@ -365,11 +361,30 @@ fn compound_accurate(x: f64, y: f64, s: f64) -> f64 {
     result.fast_as_f64()
 }
 
+#[cold]
+#[inline(never)]
+fn mul_fixed_power_hard(x: f64, y: f64) -> f64 {
+    let s = TripleDouble::from_full_exact_add(1.0, x);
+    let iter_count = y.abs() as usize;
+
+    let mut p = s;
+    for _ in 0..iter_count - 1 {
+        p = TripleDouble::quick_mult(p, s);
+    }
+
+    if y.is_sign_negative() {
+        p.recip().to_f64()
+    } else {
+        p.to_f64()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn test_compound() {
+        assert_eq!(f_compound(4831835136., -13.),0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012780345669344118 );
         assert_eq!(
             f_compound(11468322278342656., 2.9995136260713475),
             1481455956234813000000000000000000000000000000000.

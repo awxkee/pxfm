@@ -29,16 +29,14 @@
 use crate::common::*;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::logs::{log1p_f64_dd, log1p_f64_dyadic};
+use crate::logs::log1p_dd;
 use crate::pow::{is_integer, is_odd_integer};
 use crate::pow_exec::pow_expm1_1;
-use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC};
+use crate::triple_double::TripleDouble;
 
 /// Computes (1+x)^y - 1
 ///
-/// max found ULP 0.50013
-//TODO: still many bad behaviours with ULP 0.501+- for some subnormals, too slow
-#[inline]
+/// max found ULP 0.56
 pub fn f_compound_m1(x: f64, y: f64) -> f64 {
     /*
        Rules from IEEE 754-2019 for compound (x, n) with n integer:
@@ -327,34 +325,26 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
         && ax <= 0x43e0_0000_0000_0000u64
         && ax > 0x3cc0_0000_0000_0000
     {
+        let s = DoubleDouble::from_full_exact_add(1.0, x);
         let iter_count = y.abs() as usize;
-        const ONES: DyadicFloat128 = DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -127,
-            mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        };
-        const M_ONES: DyadicFloat128 = DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -127,
-            mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        };
-        let s = DyadicFloat128::new_from_f64(x) + ONES;
+
         let mut p = s;
         for _ in 0..iter_count - 1 {
-            p = p * s;
+            p = DoubleDouble::mult(p, s);
         }
-        return if y.is_sign_negative() {
-            (p.reciprocal() + M_ONES).fast_as_f64()
-        } else {
-            (p + M_ONES).fast_as_f64()
-        };
+
+        let mut dz = if y.is_sign_negative() { p.recip() } else { p };
+        dz = DoubleDouble::full_add_f64(dz, -1.);
+        let ub = dz.hi + f_fmla(f64::from_bits(0x3c40000000000000), -dz.hi, dz.lo); // 2^-59
+        let lb = dz.hi + f_fmla(f64::from_bits(0x3c40000000000000), dz.hi, dz.lo); // 2^-59
+        if ub == lb {
+            return dz.to_f64();
+        }
+        return mul_fixed_power_hard(x, y);
     }
 
     // approximate log(x)
-    let (l, cancel) = log1p_f64_dd(x);
-    if cancel {
-        return compound_m1_accurate(x, y);
-    }
+    let l = log1p_dd(x);
 
     let ey = ((y.to_bits() >> 52) & 0x7ff) as i32;
     if ey < 0x36 || ey >= 0x7f5 {
@@ -362,314 +352,27 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
     }
 
     let r = DoubleDouble::quick_mult_f64(l, y);
-    if r.hi.abs() > 1e-250 && r.hi.abs() < 70. && ey.abs() < 1050 {
-        let res = pow_expm1_1(r, s);
+    let res = pow_expm1_1(r, s);
 
-        let res_min = res.hi + dd_fmla(f64::from_bits(0x3c9f066666666666), -res.hi, res.lo);
-        let res_max = res.hi + dd_fmla(f64::from_bits(0x3c9f066666666666), res.hi, res.lo);
-        if res_min == res_max {
-            return res_max;
-        }
-    }
-
-    compound_m1_accurate(x, y)
-}
-
-fn expm1_dyadic_poly(x: DyadicFloat128) -> DyadicFloat128 {
-    // compound_m1_expm1.sollya
-    // Sollya:
-    // pretty = proc(u) {
-    //   return ~(floor(u*1000)/1000);
-    // };
-    //
-    // // display = hexadecimal;
-    //
-    // n = 9;
-    // P = 128;
-    // N = 1;
-    //
-    // n = 7;
-    // d = [-0.00016923,0.00016923];
-    // f = 1;
-    // w = 1/expm1(x);
-    // p = remez(f, n, d, w);
-    // Q = horner(fpminimax(expm1(x), [|1,2,3,4,5,6,7,8|], [|0,P...|], d, relative, floating));
-    // e = -log2(dirtyinfnorm(Q * w - f, d));
-    // print ("exp(x) :\n  Q(x) =", Q);
-    //
-    // for i from 1 to degree(Q) do print(coeff(Q, i));
-    //
-    // print ("  precision:", pretty(e));
-
-    // Print in Sage:
-    // from sage.all import *
-    // # Sin coeffs
-    // def format_hex(value):
-    //     l = hex(value)[2:]
-    //     n = 8
-    //     x = [l[i:i + n] for i in range(0, len(l), n)]
-    //     return "0x" + "_".join(x) + "_u128"
-    //
-    // def print_dyadic(value):
-    //     (s, m, e) = RealField(128)(value).sign_mantissa_exponent();
-    //     print("DyadicFloat128 {")
-    //     print(f"    sign: DyadicSign::{'Pos' if s >= 0 else 'Neg'},")
-    //     print(f"    exponent: {e},")
-    //     print(f"    mantissa: {format_hex(m)},")
-    //     print("},")
-    //
-    // arr = [1,
-    // 0.50000000000000000000000000000000000005583598166406,
-    // 0.166666666666666666666666666678803415539971886586616,
-    // 4.1666666666666666666666666652567805725779758247843e-2,
-    // 8.3333333333333333307906111754404186695749965214285e-3,
-    // 1.38888888888888888969592305807840282305676282703644e-3,
-    // 1.98412698564902881841609894942365238668102733754495e-4,
-    // 2.4801587295717097909900971900592787228179147973606e-5]
-    //
-    // for num in arr:
-    //     print_dyadic(num)
-    const Q_2: [DyadicFloat128; 8] = [
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -127,
-            mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -128,
-            mantissa: 0x80000000_00000000_00000000_00000012_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -130,
-            mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaae_8351142d_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -132,
-            mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaa99_591f3615_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -134,
-            mantissa: 0x88888888_88888885_880aef72_fd782d3b_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -137,
-            mantissa: 0xb60b60b6_0b60b612_d0d4a4da_9e3f0bbd_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -140,
-            mantissa: 0xd00d00d2_ba789e46_9bf951aa_87eb4ed7_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -143,
-            mantissa: 0xd00d00cf_43459a92_1f8b060c_0584c599_u128,
-        },
-    ];
-    let mut z = Q_2[7];
-    for i in (0..7).rev() {
-        z = z * x + Q_2[i];
-    }
-    z * x
-}
-
-// |x| < 0.125
-#[cold]
-fn expm1_dyadic_tiny(x: DyadicFloat128) -> DyadicFloat128 {
-    const Q_2: [DyadicFloat128; 18] = [
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -127,
-            mantissa: 0x80000000_00000000_00000000_00000000_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -129,
-            mantissa: 0xffffffff_ffffffff_ffffffff_ffffffec_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -130,
-            mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaaa_aaaa23cf_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -132,
-            mantissa: 0xaaaaaaaa_aaaaaaaa_aaaaaaaa_aab21d4c_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -134,
-            mantissa: 0x88888888_88888888_88888888_cbfc5fc3_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -137,
-            mantissa: 0xb60b60b6_0b60b60b_60b60b5d_8078803c_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -140,
-            mantissa: 0xd00d00d0_0d00d00d_00cfde9d_ccec5afa_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -143,
-            mantissa: 0xd00d00d0_0d00d00d_00d14863_bae41ecd_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -146,
-            mantissa: 0xb8ef1d2a_b6399c7d_65858919_0c26f5ee_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -149,
-            mantissa: 0x93f27dbb_c4fae397_3894d69f_d6034859_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -153,
-            mantissa: 0xd7322b3f_aa2716c8_b5e3ab07_194b120e_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -156,
-            mantissa: 0x8f76c77f_c6c4cbda_eca94b44_23795040_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -160,
-            mantissa: 0xb092309d_44a35a14_a638af0e_1067db7d_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -164,
-            mantissa: 0xc9cba546_0070b9c7_ca2388ad_c9f3fc80_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -168,
-            mantissa: 0xd73f9eea_d77e61bc_a59dd899_27a84c8b_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -172,
-            mantissa: 0xd73f9f9c_fd658e0d_28f98933_ae7d0637_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -176,
-            mantissa: 0xcaa0d334_a00ffa28_beb527a8_c05f021b_u128,
-        },
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -180,
-            mantissa: 0xb412ae1e_c8fd4452_f35db8f0_4304ad4b_u128,
-        },
-    ];
-    let mut z = Q_2[17];
-    for i in (0..17).rev() {
-        z = z * x + Q_2[i];
-    }
-    z * x
-}
-
-// /* put in r an approximation of exp(x), for |x| < 744.45,
-// with relative error < 2^-121.70 */
-#[inline]
-fn compound_expm1_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
-    // x < 0.125
-    if x.exponent <= -130 {
-        return expm1_dyadic_tiny(x);
-    }
-
-    const LOG2_INV: DyadicFloat128 = DyadicFloat128 {
-        sign: DyadicSign::Pos,
-        exponent: -115,
-        mantissa: 0xb8aa_3b29_5c17_f0bc_0000_0000_0000_0000_u128,
-    };
-
-    const LOG2: DyadicFloat128 = DyadicFloat128 {
-        sign: DyadicSign::Pos,
-        exponent: -128,
-        mantissa: 0xb172_17f7_d1cf_79ab_c9e3_b398_03f2_f6af_u128,
-    };
-
-    let mut bk = x * LOG2_INV;
-
-    let unbiased = bk.biased_exponent();
-    if unbiased >= 21 {
-        return if x.sign == DyadicSign::Pos {
-            DyadicFloat128 {
-                sign: DyadicSign::Pos,
-                exponent: 1270,
-                mantissa: u128::MAX,
-            }
-        } else {
-            DyadicFloat128 {
-                sign: DyadicSign::Neg,
-                exponent: -127,
-                mantissa: 0x8000_0000_0000_0000_0000_0000_0000_0000_u128,
-            }
-        };
-    }
-
-    let k = bk.trunc_to_i64(); /* k = trunc(K) [rounded towards zero, exact] */
-    /* The rounding error of mul_dint_int64() is bounded by 6 ulps, thus since
-    |K| <= 4399162*log(2) < 3049267, the error on K is bounded by 2^-103.41.
-    This error is divided by 2^12 below, thus yields < 2^-115.41. */
-    bk = LOG2.mul_int64(k);
-    bk.exponent -= 12;
-    bk.sign = bk.sign.negate();
-    let y = x + bk;
-
-    let bm = k >> 12;
-    let i2 = (k >> 6) & 0x3f;
-    let i1 = k & 0x3f;
-
-    let mut r = expm1_dyadic_poly(y);
-    let di20 = EXP_T1_2_DYADIC[i2 as usize];
-    let di21 = EXP_T2_2_DYADIC[i1 as usize];
-
-    let m_ones = DyadicFloat128 {
-        sign: DyadicSign::Neg,
-        exponent: -127,
-        mantissa: 0x80000000_00000000_00000000_00000000_u128,
-    };
-    // exp(x) = 2^k*(exp(r) - 1) + (2^k - 1) = 2^k*exp(r) - 2^k + 2^k - 1
-    let mut pz = di20 * di21;
-    pz.exponent += bm as i16;
-    pz = pz + m_ones;
-
-    r = di20 * r;
-    r = di21 * r;
-
-    r.exponent += bm as i16; /* exact */
-    r = r + pz;
-    r
+    res.to_f64()
 }
 
 #[cold]
-fn compound_m1_accurate(x: f64, y: f64) -> f64 {
-    /* the idea of returning res_max instead of res_min is due to Laurent
-    Théry: it is better in case of underflow since res_max = +0 always. */
+#[inline(never)]
+fn mul_fixed_power_hard(x: f64, y: f64) -> f64 {
+    let s = TripleDouble::from_full_exact_add(1.0, x);
+    let iter_count = y.abs() as usize;
 
-    let f_y = DyadicFloat128::new_from_f64(y);
+    let mut p = s;
+    for _ in 0..iter_count - 1 {
+        p = TripleDouble::quick_mult(p, s);
+    }
 
-    let log_dyad = log1p_f64_dyadic(x);
-
-    let r = log_dyad * f_y;
-
-    let result = compound_expm1_dyadic(r);
-    // 2^R.ex <= R < 2^(R.ex+1)
-
-    result.fast_as_f64()
+    if y.is_sign_negative() {
+        TripleDouble::add_f64(-1., p.recip()).to_f64()
+    } else {
+        TripleDouble::add_f64(-1., p).to_f64()
+    }
 }
 
 #[cfg(test)]
@@ -679,13 +382,18 @@ mod tests {
     #[test]
     fn test_compound_exotic() {
         assert_eq!(f_compound_m1(
-11944758478933760000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.,
-            -1242262631503757300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.,
-        ), -1.);
+    11944758478933760000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.,
+                -1242262631503757300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.,
+            ), -1.);
     }
 
     #[test]
     fn test_compound_m1() {
+        assert_eq!(
+            f_compound_m1(0.0000000000000009991998751296936, -4.),
+            -0.000000000000003996799500518764
+        );
+        assert_eq!(f_compound_m1(-0.003173828125, 25.), -0.0763960132649781);
         assert_eq!(f_compound_m1(3., 2.8927001953125), 54.154259038961406);
         assert_eq!(
             f_compound_m1(-0.43750000000000044, 19.),
@@ -744,7 +452,7 @@ mod tests {
         assert_eq!(f_compound_m1(10., -308.25471555814863), -1.0);
         assert_eq!(
             f_compound_m1(5.4172231599824623E-312, 9.4591068440831498E+164),
-            -1.0
+            5.124209266851586e-147
         );
         assert_eq!(
             f_compound_m1(5.8776567263633397E-39, 3.4223548116804511E-310),
@@ -762,7 +470,7 @@ mod tests {
         assert_eq!(
             f_compound_m1(0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006952247559980936,
                           5069789834563405000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
-            -1.
+            3.524643400695958e-163
         );
         assert_eq!(
             f_compound_m1(1.000000000000341,
@@ -794,17 +502,5 @@ mod tests {
         assert_eq!(f_compound_m1(f64::INFINITY, -1. / 2.), -1.0);
         assert_eq!(f_compound_m1(f64::INFINITY, 1. / 2.), f64::INFINITY);
         assert_eq!(f_compound_m1(46.3828125, 46.3828125), 5.248159634773675e77);
-    }
-
-    #[test]
-    fn test_expm1_dyadic() {
-        let z = DyadicFloat128::new_from_f64(2.5);
-        assert_eq!(compound_expm1_dyadic(z).fast_as_f64(), 11.182493960703473);
-    }
-
-    #[test]
-    fn test_expm1_tiny_dyadic() {
-        let z = DyadicFloat128::new_from_f64(0.1);
-        assert_eq!(expm1_dyadic_tiny(z).fast_as_f64(), 0.10517091807564763);
     }
 }
