@@ -26,67 +26,36 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, f_fmla};
+use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::exponents::auxiliary::fast_ldexp;
 use crate::exponents::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
 use std::hint::black_box;
 
 #[inline]
-pub(crate) fn poly_dd_6(x: DoubleDouble, poly: [(u64, u64); 6], l: f64) -> DoubleDouble {
-    let zch = poly[5];
-    let ach = f64::from_bits(zch.0) + l;
-    let acl = (f64::from_bits(zch.0) - ach) + l + f64::from_bits(zch.1);
-    let mut ch = DoubleDouble::new(acl, ach);
+fn exp10_poly_dd(z: DoubleDouble) -> DoubleDouble {
+    const C: [(u64, u64); 6] = [
+        (0xbcaf48ad494ea102, 0x40026bb1bbb55516),
+        (0xbcae2bfab318d399, 0x40053524c73cea69),
+        (0x3ca81f50779e162b, 0x4000470591de2ca4),
+        (0x3c931a5cc5d3d313, 0x3ff2bd7609fd98c4),
+        (0x3c8910de8c68a0c2, 0x3fe1429ffd336aa3),
+        (0xbc605e703d496537, 0x3fca7ed7086882b4),
+    ];
 
-    let zch = poly[4];
-    ch = DoubleDouble::mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    let zch = poly[3];
-    ch = DoubleDouble::mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    let zch = poly[2];
-    ch = DoubleDouble::mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    let zch = poly[1];
-    ch = DoubleDouble::mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    let zch = poly[0];
-    ch = DoubleDouble::mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    ch
+    let mut r = DoubleDouble::quick_mul_add(
+        DoubleDouble::from_bit_pair(C[5]),
+        z,
+        DoubleDouble::from_bit_pair(C[4]),
+    );
+    r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[3]));
+    r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[2]));
+    r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[1]));
+    DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[0]))
 }
 
 #[cold]
 fn as_exp10_accurate(x: f64) -> f64 {
-    const EXP10_POLY_DD: [(u64, u64); 6] = [
-        (0x40026bb1bbb55516, 0xbcaf48ad494ea102),
-        (0x40053524c73cea69, 0xbcae2bfab318d399),
-        (0x4000470591de2ca4, 0x3ca81f50779e162b),
-        (0x3ff2bd7609fd98c4, 0x3c931a5cc5d3d313),
-        (0x3fe1429ffd336aa3, 0x3c8910de8c68a0c2),
-        (0x3fca7ed7086882b4, 0xbc605e703d496537),
-    ];
     let mut ix = x.to_bits();
     let t = (f64::from_bits(0x40ca934f0979a371) * x).round_ties_even();
     let jt: i64 = t as i64;
@@ -95,19 +64,17 @@ fn as_exp10_accurate(x: f64) -> f64 {
     let ie = jt >> 12;
     let t0 = DoubleDouble::from_bit_pair(EXP_REDUCE_T0[i0 as usize]);
     let t1 = DoubleDouble::from_bit_pair(EXP_REDUCE_T1[i1 as usize]);
-    let dt = DoubleDouble::mult(t0, t1);
+    let dt = DoubleDouble::quick_mult(t0, t1);
 
     const L0: f64 = f64::from_bits(0x3f13441350800000);
     const L1: f64 = f64::from_bits(0xbd1f79fef311f12b);
     const L2: f64 = f64::from_bits(0xb9aac0b7c917826b);
 
     let dx = x - L0 * t;
-    let mut dxl = L1 * t;
-    let dxll = f_fmla(L2, t, dd_fmla(L1, t, -dxl));
-    let dxh = dx + dxl;
-    dxl = ((dx - dxh) + dxl) + dxll;
-    let mut f = poly_dd_6(DoubleDouble::new(dxl, dxh), EXP10_POLY_DD, 0.);
-    f = DoubleDouble::mult(DoubleDouble::new(dxl, dxh), f);
+    let dx_dd = DoubleDouble::quick_mult_f64(DoubleDouble::new(L2, L1), t);
+    let dz = DoubleDouble::full_add_f64(dx_dd, dx);
+    let mut f = exp10_poly_dd(dz);
+    f = DoubleDouble::quick_mult(dz, f);
 
     let mut zfh: f64;
 
@@ -125,7 +92,7 @@ fn as_exp10_accurate(x: f64) -> f64 {
             }
             zfh = zt.hi + f64::from_bits(ix);
         } else {
-            f = DoubleDouble::mult(f, dt);
+            f = DoubleDouble::quick_mult(f, dt);
             f = DoubleDouble::add(dt, f);
             f = DoubleDouble::from_exact_add(f.hi, f.lo);
             zfh = f.hi;
@@ -133,7 +100,7 @@ fn as_exp10_accurate(x: f64) -> f64 {
         zfh = fast_ldexp(zfh, ie as i32);
     } else {
         ix = (1u64.wrapping_sub(ie as u64)) << 52;
-        f = DoubleDouble::mult(f, dt);
+        f = DoubleDouble::quick_mult(f, dt);
         f = DoubleDouble::add(dt, f);
 
         let zt = DoubleDouble::from_exact_add(f64::from_bits(ix), f.hi);
@@ -147,7 +114,7 @@ fn as_exp10_accurate(x: f64) -> f64 {
 
 /// Computes exp10
 ///
-/// Max found ULP 0.5000.
+/// Max found ULP 0.5.
 #[inline]
 pub fn f_exp10(x: f64) -> f64 {
     let mut ix = x.to_bits();
@@ -254,6 +221,7 @@ mod tests {
 
     #[test]
     fn test_exp10f() {
+        assert_eq!(f_exp10(-3.370739843267434), 0.00042585343701025656);
         assert_eq!(f_exp10(1.), 10.0);
         assert_eq!(f_exp10(2.), 100.0);
         assert_eq!(f_exp10(3.), 1000.0);

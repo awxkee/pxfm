@@ -226,7 +226,7 @@ impl DoubleDouble {
 
     /// Accurate reciprocal: 1 / self
     #[inline]
-    pub(crate) fn recip_rapshon(self) -> DoubleDouble {
+    pub(crate) fn recip_raphson(self) -> DoubleDouble {
         let y0 = DoubleDouble::recip(self);
         let z = DoubleDouble::mul_add_f64(-self, y0, 1.0);
         DoubleDouble::mul_add(y0, z, y0)
@@ -517,6 +517,33 @@ impl DoubleDouble {
         DoubleDouble::new(r + q, p)
     }
 
+    /// Computes `a * b + c`
+    /// `b` is an `f64`, `a` and `c` are `DoubleDouble`.
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    ///
+    /// *Correctness*
+    /// |c.hi| > |a.hi * b.hi|
+    #[inline]
+    pub(crate) fn quick_mul_f64_add(a: DoubleDouble, b: f64, c: DoubleDouble) -> Self {
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_f64(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::add_f64(c, h);
+        DoubleDouble::new(r + q, p)
+    }
+
+    /// Computes `a * b + c`
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    ///
+    /// *Correctness*
+    /// |c.hi| > |a.hi * b.hi|
+    #[inline]
+    pub(crate) fn quick_mul_f64_add_f64(a: DoubleDouble, b: f64, c: f64) -> Self {
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_f64(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_exact_add(c, h);
+        DoubleDouble::new(r + q, p)
+    }
+
     // #[inline]
     // pub(crate) fn mul_f64_add_full(a: DoubleDouble, b: f64, c: DoubleDouble) -> Self {
     //     /*
@@ -579,6 +606,19 @@ impl DoubleDouble {
     pub(crate) fn mul_add(a: DoubleDouble, b: DoubleDouble, c: DoubleDouble) -> Self {
         let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult(a, b);
         let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
+        DoubleDouble::new(r + q, p)
+    }
+
+    /// `a*b+c`
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    ///
+    /// *Correctness*
+    /// |c.hi| > |a.hi * b.hi|
+    #[inline]
+    pub(crate) fn quick_mul_add(a: DoubleDouble, b: DoubleDouble, c: DoubleDouble) -> Self {
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::add_f64(c, h);
         DoubleDouble::new(r + q, p)
     }
 

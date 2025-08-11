@@ -2,9 +2,9 @@ pretty = proc(u) {
   return ~(floor(u*1000)/1000);
 };
 
-d = [0, 0.0078128];
+d = [0, pi/256];
 f_sin = sin(y)/y;
-Q = fpminimax(f_sin, [|0, 2, 4, 6, 8|], [|1, D...|], d, relative, floating);
+Q = fpminimax(f_sin, [|0, 2, 4, 6|], [|1, D...|], d, relative, floating);
 
 err_p = -log2(dirtyinfnorm(Q-f_sin, d));
 display = decimal;

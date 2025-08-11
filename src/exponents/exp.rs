@@ -26,10 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, f_fmla, fmla, pow2i, rintk};
+use crate::common::{f_fmla, fmla, pow2i, rintk};
 use crate::double_double::DoubleDouble;
 use crate::exponents::auxiliary::fast_ldexp;
-use crate::shared_eval::poly_dekker_generic;
 
 /// Exp for given value for const context.
 /// This is simplified version just to make a good approximation on const context.
@@ -214,17 +213,31 @@ pub(crate) fn to_denormal(x: f64) -> f64 {
     f64::from_bits(ix)
 }
 
+#[inline]
+fn exp_poly_dd(z: DoubleDouble) -> DoubleDouble {
+    const C: [(u64, u64); 7] = [
+        (0x0000000000000000, 0x3ff0000000000000),
+        (0x39c712f72ecec2cf, 0x3fe0000000000000),
+        (0x3c65555555554d07, 0x3fc5555555555555),
+        (0x3c455194d28275da, 0x3fa5555555555555),
+        (0x3c012faa0e1c0f7b, 0x3f81111111111111),
+        (0xbbf4ba45ab25d2a3, 0x3f56c16c16da6973),
+        (0xbbc9091d845ecd36, 0x3f2a01a019eb7f31),
+    ];
+    let mut r = DoubleDouble::quick_mul_add(
+        DoubleDouble::from_bit_pair(C[6]),
+        z,
+        DoubleDouble::from_bit_pair(C[5]),
+    );
+    r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[4]));
+    r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[3]));
+    r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[2]));
+    r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[1]));
+    DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[0]))
+}
+
 #[cold]
 fn as_exp_accurate(x: f64, t: f64, tz: DoubleDouble, ie: i64) -> f64 {
-    const COEFFS: [(u64, u64); 7] = [
-        (0x3ff0000000000000, 0x0000000000000000),
-        (0x3fe0000000000000, 0x39c712f72ecec2cf),
-        (0x3fc5555555555555, 0x3c65555555554d07),
-        (0x3fa5555555555555, 0x3c455194d28275da),
-        (0x3f81111111111111, 0x3c012faa0e1c0f7b),
-        (0x3f56c16c16da6973, 0xbbf4ba45ab25d2a3),
-        (0x3f2a01a019eb7f31, 0xbbc9091d845ecd36),
-    ];
     let mut ix = x.to_bits();
     if ((ix >> 52) & 0x7ff) < 0x3c9 {
         return 1. + x;
@@ -238,13 +251,10 @@ fn as_exp_accurate(x: f64, t: f64, tz: DoubleDouble, ie: i64) -> f64 {
     );
     const L2LL: f64 = f64::from_bits(0x3999ff0342542fc3);
     let dx = f_fmla(-L2.hi, t, x);
-    let mut dxl = L2.lo * t;
-    let dxll = f_fmla(L2LL, t, dd_fmla(L2.lo, t, -dxl));
-    let dxh = dx + dxl;
-    dxl = (dx - dxh) + dxl + dxll;
-    let dx = DoubleDouble::new(dxl, dxh);
-    let mut f = poly_dekker_generic(dx, COEFFS);
-    f = DoubleDouble::quick_mult(dx, f);
+    let dx_dd = DoubleDouble::quick_mult_f64(DoubleDouble::new(L2LL, L2.lo), t);
+    let dz = DoubleDouble::full_add_f64(dx_dd, dx);
+    let mut f = exp_poly_dd(dz);
+    f = DoubleDouble::quick_mult(dz, f);
     if ix > 0xc086232bdd7abcd2u64 {
         // x < -708.396
         ix = 1i64.wrapping_sub(ie).wrapping_shl(52) as u64;
@@ -320,15 +330,10 @@ pub fn f_exp(x: f64) -> f64 {
     let i0: i64 = (jt >> 6) & 0x3f;
     let i1 = jt & 0x3f;
     let ie: i64 = jt >> 12;
-    let t0 = DoubleDouble::new(
-        f64::from_bits(EXP_REDUCE_T0[i0 as usize].0),
-        f64::from_bits(EXP_REDUCE_T0[i0 as usize].1),
-    );
-    let t1 = DoubleDouble::new(
-        f64::from_bits(EXP_REDUCE_T1[i1 as usize].0),
-        f64::from_bits(EXP_REDUCE_T1[i1 as usize].1),
-    );
+    let t0 = DoubleDouble::from_bit_pair(EXP_REDUCE_T0[i0 as usize]);
+    let t1 = DoubleDouble::from_bit_pair(EXP_REDUCE_T1[i1 as usize]);
     let tz = DoubleDouble::quick_mult(t0, t1);
+
     const L2: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3d0718432a1b0e26),
         f64::from_bits(0x3f262e42ff000000),
@@ -394,6 +399,7 @@ mod tests {
 
     #[test]
     fn f_exp_test() {
+        assert_eq!(f_exp(0.000000014901161193847656), 1.0000000149011614);
         assert_eq!(f_exp(0.), 1.);
         assert_eq!(f_exp(5f64), 148.4131591025766034211155800405522796f64);
         assert_eq!(f_exp(f64::INFINITY), f64::INFINITY);

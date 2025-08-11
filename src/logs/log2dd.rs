@@ -48,15 +48,15 @@ fn log2_poly(z: f64) -> DoubleDouble {
         (0xbc6b16c93b93c1e3, 0xbfc2779d6a07c6b3),
     ];
     let mut t = DoubleDouble::from_bit_pair(P[9]);
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[8]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[7]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[6]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[5]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[4]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[3]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[2]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[1]));
-    t = DoubleDouble::mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[0]));
+    t = DoubleDouble::quick_mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[8]));
+    t = DoubleDouble::quick_mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[7]));
+    t = DoubleDouble::quick_mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[6]));
+    t = DoubleDouble::quick_mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[5]));
+    t = DoubleDouble::quick_mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[4]));
+    t = DoubleDouble::quick_mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[3]));
+    t = DoubleDouble::quick_mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[2]));
+    t = DoubleDouble::quick_mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[1]));
+    t = DoubleDouble::quick_mul_f64_add(t, z, DoubleDouble::from_bit_pair(P[0]));
     DoubleDouble::quick_mult_f64(t, z)
 }
 

@@ -181,14 +181,14 @@ fn sincospi_eval_dd(x: f64) -> SinCos {
         (0x3c4cfcf8b6b817f2, 0x3fb5077069d8a182),
     ];
 
-    let mut sin_y = DoubleDouble::mul_add(
+    let mut sin_y = DoubleDouble::quick_mul_add(
         x2,
         DoubleDouble::from_bit_pair(SC[4]),
         DoubleDouble::from_bit_pair(SC[3]),
     );
-    sin_y = DoubleDouble::mul_add(x2, sin_y, DoubleDouble::from_bit_pair(SC[2]));
-    sin_y = DoubleDouble::mul_add(x2, sin_y, DoubleDouble::from_bit_pair(SC[1]));
-    sin_y = DoubleDouble::mul_add(x2, sin_y, DoubleDouble::from_bit_pair(SC[0]));
+    sin_y = DoubleDouble::quick_mul_add(x2, sin_y, DoubleDouble::from_bit_pair(SC[2]));
+    sin_y = DoubleDouble::quick_mul_add(x2, sin_y, DoubleDouble::from_bit_pair(SC[1]));
+    sin_y = DoubleDouble::quick_mul_add(x2, sin_y, DoubleDouble::from_bit_pair(SC[0]));
     sin_y = DoubleDouble::quick_mult_f64(sin_y, x);
 
     // Cos coeffs
@@ -204,14 +204,14 @@ fn sincospi_eval_dd(x: f64) -> SinCos {
         (0xbc5c542d998a4e48, 0x3fce1f2f5f747411),
     ];
 
-    let mut cos_y = DoubleDouble::mul_add(
+    let mut cos_y = DoubleDouble::quick_mul_add(
         x2,
         DoubleDouble::from_bit_pair(CC[4]),
         DoubleDouble::from_bit_pair(CC[3]),
     );
-    cos_y = DoubleDouble::mul_add(x2, cos_y, DoubleDouble::from_bit_pair(CC[2]));
-    cos_y = DoubleDouble::mul_add(x2, cos_y, DoubleDouble::from_bit_pair(CC[1]));
-    cos_y = DoubleDouble::mul_add(x2, cos_y, DoubleDouble::from_bit_pair(CC[0]));
+    cos_y = DoubleDouble::quick_mul_add(x2, cos_y, DoubleDouble::from_bit_pair(CC[2]));
+    cos_y = DoubleDouble::quick_mul_add(x2, cos_y, DoubleDouble::from_bit_pair(CC[1]));
+    cos_y = DoubleDouble::quick_mul_add(x2, cos_y, DoubleDouble::from_bit_pair(CC[0]));
     SinCos {
         v_sin: sin_y,
         v_cos: cos_y,
@@ -225,6 +225,25 @@ fn sinpi_dd(x: f64, sin_k: DoubleDouble, cos_k: DoubleDouble) -> f64 {
     let cos_k_sin_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_sin);
     let rr = DoubleDouble::mul_add(sin_k, r_sincos.v_cos, cos_k_sin_y);
     rr.to_f64()
+}
+
+#[cold]
+fn sincospi_dd(
+    x: f64,
+    sin_sin_k: DoubleDouble,
+    sin_cos_k: DoubleDouble,
+    cos_sin_k: DoubleDouble,
+    cos_cos_k: DoubleDouble,
+) -> (f64, f64) {
+    let r_sincos = sincospi_eval_dd(x);
+
+    let cos_k_sin_y = DoubleDouble::quick_mult(sin_cos_k, r_sincos.v_sin);
+    let rr_sin = DoubleDouble::mul_add(sin_sin_k, r_sincos.v_cos, cos_k_sin_y);
+
+    let cos_k_sin_y = DoubleDouble::quick_mult(cos_cos_k, r_sincos.v_sin);
+    let rr_cos = DoubleDouble::mul_add(cos_sin_k, r_sincos.v_cos, cos_k_sin_y);
+
+    (rr_sin.to_f64(), rr_cos.to_f64())
 }
 
 /// Computes sin(PI*x)
@@ -664,12 +683,6 @@ pub fn f_sincospi(x: f64) -> (f64, f64) {
     let sin_ub = rr_sin.hi + (rr_sin.lo + r_sincos.err); // (rr.lo + ERR);
     let sin_lb = rr_sin.hi + (rr_sin.lo - r_sincos.err); // (rr.lo - ERR);
 
-    let sin_x = if sin_ub == sin_lb {
-        rr_sin.to_f64()
-    } else {
-        sinpi_dd(y, sin_k, cos_k)
-    };
-
     let sin_k_cos_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_cos);
     let cos_k_sin_y = DoubleDouble::quick_mult(msin_k, r_sincos.v_sin);
 
@@ -679,12 +692,11 @@ pub fn f_sincospi(x: f64) -> (f64, f64) {
     let cos_ub = rr_cos.hi + (rr_cos.lo + r_sincos.err); // (rr.lo + ERR);
     let cos_lb = rr_cos.hi + (rr_cos.lo - r_sincos.err); // (rr.lo - ERR);
 
-    let cos_x = if cos_ub == cos_lb {
-        rr_cos.to_f64()
-    } else {
-        sinpi_dd(y, cos_k, msin_k)
-    };
-    (sin_x, cos_x)
+    if sin_ub == sin_lb && cos_lb == cos_ub {
+        return (rr_sin.to_f64(), rr_cos.to_f64());
+    }
+
+    sincospi_dd(y, sin_k, cos_k, cos_k, msin_k)
 }
 
 #[cfg(test)]

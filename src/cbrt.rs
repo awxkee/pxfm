@@ -26,7 +26,8 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, f_fmla};
+use crate::common::f_fmla;
+use crate::double_double::DoubleDouble;
 
 /// Computes cube root
 ///
@@ -91,7 +92,7 @@ pub fn f_cbrt(x: f64) -> f64 {
         f64::from_bits(0xbfc4dc30b1a1ddba),
     );
     let mut y = f_fmla(z2, c2, c0);
-    let mut y2 = y * y;
+    let y2 = y * y;
 
     let mut h = f_fmla(y2, y * r, -1.0);
     /* h determines the error between y and z^(1/3) */
@@ -102,13 +103,9 @@ pub fn f_cbrt(x: f64) -> f64 {
     /* Now y is an approximation of zz^(1/3),
     and rr an approximation of 1/zz. We now perform another iteration of
     Newton-Raphson, this time with a linear approximation only. */
-    y2 = y * y;
-    let y2l = dd_fmla(y, y, -y2);
-    /* y2 + y2l = y^2 exactly */
-    let y3 = y2 * y;
-    let y3l = f_fmla(y, y2l, dd_fmla(y, y2, -y3));
-    /* y3 + y3l approximates y^3 with about 106 bits of accuracy */
-    h = ((y3 - f64::from_bits(zz)) + y3l) * rr;
+    let d2y = DoubleDouble::from_exact_mult(y, y); // exact y^2
+    let d3y = DoubleDouble::quick_mult_f64(d2y, y); // exact y^3
+    h = ((d3y.hi - f64::from_bits(zz)) + d3y.lo) * rr;
     /* the approximation of zz^(1/3) is y - dy */
     let y1 = f_fmla(-h, y * U0, y);
     let mut cvt3 = y1.to_bits();
@@ -123,7 +120,6 @@ pub fn f_cbrt(x: f64) -> f64 {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

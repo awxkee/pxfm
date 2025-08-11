@@ -113,7 +113,7 @@ pub fn f_sec(x: f64) -> f64 {
     let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
 
-    rr = rr.recip_rapshon();
+    rr = rr.recip_raphson();
 
     let rlp = rr.lo + r_sincos.err;
     let rlm = rr.lo - r_sincos.err;

@@ -32,7 +32,6 @@ use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::logs::log2p1_dyadic_tables::{LOG2P1_F128_POLY, LOG2P1_INVERSE_2, LOG2P1_LOG_INV_2};
 use crate::logs::log2p1_tables::{LOG2P1_EXACT, LOG2P1_INVERSE, LOG2P1_LOG_DD_INVERSE};
-use crate::polyeval::f_polyeval13;
 
 /* put in h+l a double-double approximation of log(z)-z for
 |z| < 0.03125, with absolute error bounded by 2^-67.14
@@ -343,16 +342,7 @@ fn log2p1_fast(x: f64, e: i32) -> (DoubleDouble, f64) {
     }
 
     /* (xh,xl) <- 1+x */
-    let zx = if x > 1.0 {
-        if x < f64::from_bits(0x7fefffffffffffff) {
-            DoubleDouble::from_exact_add(x, 1.0)
-        } else {
-            // avoid spurious overflow for RNDU
-            DoubleDouble::new(1.0, x)
-        }
-    } else {
-        DoubleDouble::from_exact_add(1.0, x)
-    };
+    let zx = DoubleDouble::from_full_exact_add(1.0, x);
     let mut v_u = zx.hi.to_bits();
     let e = ((v_u >> 52) as i32).wrapping_sub(0x3ff);
     v_u = (0x3ffu64 << 52) | (v_u & 0xfffffffffffff);
@@ -405,23 +395,11 @@ fn log2p1_fast(x: f64, e: i32) -> (DoubleDouble, f64) {
 }
 
 fn log_dyadic_taylor_poly(x: DyadicFloat128) -> DyadicFloat128 {
-    f_polyeval13(
-        x,
-        LOG2P1_F128_POLY[0],
-        LOG2P1_F128_POLY[1],
-        LOG2P1_F128_POLY[2],
-        LOG2P1_F128_POLY[3],
-        LOG2P1_F128_POLY[4],
-        LOG2P1_F128_POLY[5],
-        LOG2P1_F128_POLY[6],
-        LOG2P1_F128_POLY[7],
-        LOG2P1_F128_POLY[8],
-        LOG2P1_F128_POLY[9],
-        LOG2P1_F128_POLY[10],
-        LOG2P1_F128_POLY[11],
-        LOG2P1_F128_POLY[12],
-    )
-    .quick_mul(&x)
+    let mut r = LOG2P1_F128_POLY[12];
+    for i in (0..12).rev() {
+        r = x * r + LOG2P1_F128_POLY[i];
+    }
+    r * x
 }
 
 pub(crate) fn log2_dyadic(d: DyadicFloat128, x: f64) -> DyadicFloat128 {

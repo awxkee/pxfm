@@ -32,18 +32,25 @@ use crate::exponents::auxiliary::fast_ldexp;
 use crate::exponents::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
 
 #[inline]
-pub(crate) fn poly_xd_generic<const N: usize>(x: f64, poly: [(u64, u64); N]) -> DoubleDouble {
-    let zch = poly.last().unwrap();
+fn exp2_poly_dd(z: f64) -> DoubleDouble {
+    const C: [(u64, u64); 6] = [
+        (0x3bbabc9e3b39873e, 0x3f262e42fefa39ef),
+        (0xbae5e43a53e44950, 0x3e4ebfbdff82c58f),
+        (0xba0d3a15710d3d83, 0x3d6c6b08d704a0c0),
+        (0x3914dd5d2a5e025a, 0x3c83b2ab6fba4e77),
+        (0xb83dc47e47beb9dd, 0x3b95d87fe7a66459),
+        (0xb744fcd51fcb7640, 0x3aa430912f9fb79d),
+    ];
 
-    let mut ch = DoubleDouble::new(f64::from_bits(zch.0), f64::from_bits(zch.1));
-
-    for zch in poly.iter().rev().skip(1) {
-        ch = DoubleDouble::quick_mult_f64(ch, x);
-        let z0 = DoubleDouble::from_bit_pair(*zch);
-        ch = DoubleDouble::add(z0, ch);
-    }
-
-    ch
+    let mut r = DoubleDouble::quick_mul_f64_add(
+        DoubleDouble::from_bit_pair(C[5]),
+        z,
+        DoubleDouble::from_bit_pair(C[4]),
+    );
+    r = DoubleDouble::quick_mul_f64_add(r, z, DoubleDouble::from_bit_pair(C[3]));
+    r = DoubleDouble::quick_mul_f64_add(r, z, DoubleDouble::from_bit_pair(C[2]));
+    r = DoubleDouble::quick_mul_f64_add(r, z, DoubleDouble::from_bit_pair(C[1]));
+    DoubleDouble::quick_mul_f64_add(r, z, DoubleDouble::from_bit_pair(C[0]))
 }
 
 #[cold]
@@ -59,19 +66,10 @@ fn exp2_accurate(x: f64) -> f64 {
 
     let t0 = DoubleDouble::from_bit_pair(EXP_REDUCE_T0[i0 as usize]);
     let t1 = DoubleDouble::from_bit_pair(EXP_REDUCE_T1[i1 as usize]);
-    let dt = DoubleDouble::mult(t0, t1);
+    let dt = DoubleDouble::quick_mult(t0, t1);
 
-    const EXP2_POLY_DD: [(u64, u64); 6] = [
-        (0x3bbabc9e3b39873e, 0x3f262e42fefa39ef),
-        (0xbae5e43a53e44950, 0x3e4ebfbdff82c58f),
-        (0xba0d3a15710d3d83, 0x3d6c6b08d704a0c0),
-        (0x3914dd5d2a5e025a, 0x3c83b2ab6fba4e77),
-        (0xb83dc47e47beb9dd, 0x3b95d87fe7a66459),
-        (0xb744fcd51fcb7640, 0x3aa430912f9fb79d),
-    ];
-
-    let mut f = poly_xd_generic(z, EXP2_POLY_DD);
-    f = DoubleDouble::f64_mult(z, f);
+    let mut f = exp2_poly_dd(z);
+    f = DoubleDouble::quick_mult_f64(f, z);
     if ix <= 0xc08ff00000000000u64 {
         // x >= -1022
         // for -0x1.71547652b82fep-54 <= x <= 0x1.71547652b82fdp-53,
@@ -98,7 +96,7 @@ fn exp2_accurate(x: f64) -> f64 {
                 }
             }
         } else {
-            f = DoubleDouble::mult(f, dt);
+            f = DoubleDouble::quick_mult(f, dt);
             f = DoubleDouble::add(dt, f);
         }
         let hf = DoubleDouble::from_exact_add(f.hi, f.lo);
@@ -106,7 +104,7 @@ fn exp2_accurate(x: f64) -> f64 {
         fast_ldexp(hf.hi, ie as i32)
     } else {
         ix = 1u64.wrapping_sub(ie as u64).wrapping_shl(52);
-        f = DoubleDouble::mult(f, dt);
+        f = DoubleDouble::quick_mult(f, dt);
         f = DoubleDouble::add(dt, f);
         let zve = DoubleDouble::from_exact_add(f64::from_bits(ix), f.hi);
         f.hi = zve.hi;
@@ -165,10 +163,8 @@ pub fn f_exp2(x: f64) -> f64 {
     let i1 = k & 0x3f;
     let i0 = (k >> 6) & 0x3f;
     let ie = k >> 12;
-    let t00 = EXP_REDUCE_T0[i0 as usize];
-    let t01 = EXP_REDUCE_T1[i1 as usize];
-    let t0 = DoubleDouble::new(f64::from_bits(t00.0), f64::from_bits(t00.1));
-    let t1 = DoubleDouble::new(f64::from_bits(t01.0), f64::from_bits(t01.1));
+    let t0 = DoubleDouble::from_bit_pair(EXP_REDUCE_T0[i0 as usize]);
+    let t1 = DoubleDouble::from_bit_pair(EXP_REDUCE_T1[i1 as usize]);
     let ti0 = DoubleDouble::quick_mult(t0, t1);
     const C: [u64; 4] = [
         0x3f262e42fefa39ef,

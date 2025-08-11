@@ -30,7 +30,6 @@ use crate::common::*;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::logs::{log1p_f64_dd, log1p_f64_dyadic};
-use crate::polyeval::{f_polyeval8, f_polyeval18};
 use crate::pow::{is_integer, is_odd_integer};
 use crate::pow_exec::pow_expm1_1;
 use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC};
@@ -472,9 +471,11 @@ fn expm1_dyadic_poly(x: DyadicFloat128) -> DyadicFloat128 {
             mantissa: 0xd00d00cf_43459a92_1f8b060c_0584c599_u128,
         },
     ];
-    f_polyeval8(
-        x, Q_2[0], Q_2[1], Q_2[2], Q_2[3], Q_2[4], Q_2[5], Q_2[6], Q_2[7],
-    ) * x
+    let mut z = Q_2[7];
+    for i in (0..7).rev() {
+        z = z * x + Q_2[i];
+    }
+    z * x
 }
 
 // |x| < 0.125
@@ -572,10 +573,11 @@ fn expm1_dyadic_tiny(x: DyadicFloat128) -> DyadicFloat128 {
             mantissa: 0xb412ae1e_c8fd4452_f35db8f0_4304ad4b_u128,
         },
     ];
-    f_polyeval18(
-        x, Q_2[0], Q_2[1], Q_2[2], Q_2[3], Q_2[4], Q_2[5], Q_2[6], Q_2[7], Q_2[8], Q_2[9], Q_2[10],
-        Q_2[11], Q_2[12], Q_2[13], Q_2[14], Q_2[15], Q_2[16], Q_2[17],
-    ) * x
+    let mut z = Q_2[17];
+    for i in (0..17).rev() {
+        z = z * x + Q_2[i];
+    }
+    z * x
 }
 
 // /* put in r an approximation of exp(x), for |x| < 744.45,

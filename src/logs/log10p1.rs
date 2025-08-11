@@ -221,16 +221,7 @@ fn log10p1_fast(x: f64, e: i32) -> (DoubleDouble, f64) {
     }
 
     /* (xh,xl) <- 1+x */
-    let zx = if x > 1.0 {
-        if x < f64::from_bits(0x7fefffffffffffff) {
-            DoubleDouble::from_exact_add(x, 1.0)
-        } else {
-            // avoid spurious overflow for RNDU
-            DoubleDouble::new(1.0, x)
-        }
-    } else {
-        DoubleDouble::from_exact_add(1.0, x)
-    };
+    let zx = DoubleDouble::from_full_exact_add(x, 1.0);
 
     let mut v_u = zx.hi.to_bits();
     let e = ((v_u >> 52) as i32).wrapping_sub(0x3ff);

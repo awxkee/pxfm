@@ -287,15 +287,15 @@ pub(crate) fn sincos_eval_dd(u: DoubleDouble) -> SinCos {
         (0xbb6c154f8ddc6c00, 0x3ec71de3a556c734),
     ];
     let x2 = DoubleDouble::quick_mult(u, u);
-    let mut p = DoubleDouble::mul_add(
+    let mut p = DoubleDouble::quick_mul_add(
         x2,
         DoubleDouble::from_bit_pair(SIN_C[4]),
         DoubleDouble::from_bit_pair(SIN_C[3]),
     );
 
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(SIN_C[2]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(SIN_C[1]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(SIN_C[0]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(SIN_C[2]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(SIN_C[1]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(SIN_C[0]));
     let sin_u = DoubleDouble::quick_mult(p, u);
 
     const COS_C: [(u64, u64); 5] = [
@@ -306,15 +306,15 @@ pub(crate) fn sincos_eval_dd(u: DoubleDouble) -> SinCos {
         (0x3b3a01a01a01a01a, 0x3efa01a01a01a01a),
     ];
 
-    let mut p = DoubleDouble::mul_add(
+    let mut p = DoubleDouble::quick_mul_add(
         x2,
         DoubleDouble::from_bit_pair(COS_C[4]),
         DoubleDouble::from_bit_pair(COS_C[3]),
     );
 
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(COS_C[2]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(COS_C[1]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(COS_C[0]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(COS_C[2]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(COS_C[1]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(COS_C[0]));
 
     let cos_u = p;
     SinCos {
