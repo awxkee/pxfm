@@ -210,7 +210,11 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
                         all(target_arch = "aarch64", target_feature = "neon")
                     )))]
                     {
-                        DoubleDouble::from_rsqrt_fast(x).to_f64()
+                        let r = x.sqrt() / x;
+                        let dx2 = DoubleDouble::from_exact_mult(r, x);
+                        let h = f_fmla(r, dx2.hi, -1.0) + r * dx2.lo;
+                        let dr = (r * 0.5) * h;
+                        r - dr
                     }
                 } else {
                     x.sqrt()
