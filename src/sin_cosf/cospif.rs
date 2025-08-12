@@ -118,7 +118,6 @@ mod tests {
 
     #[test]
     fn test_f_cospif() {
-        println!("{}", f32::from_bits(0x33cd_01d7u32));
         assert_eq!(f_cospif(115.30706), -0.5696978);
         assert!(f_cospif(f32::INFINITY).is_nan());
     }

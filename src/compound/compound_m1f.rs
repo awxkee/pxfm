@@ -267,12 +267,7 @@ fn compoundf_exp2m1_accurate(x_dd: DoubleDouble, x: f32, y: f32) -> f32 {
     q.hi *= scale;
     q.lo *= scale;
 
-    let zf: DoubleDouble = if x >= 0. {
-        // implies h >= 1 and the fast_two_sum pre-condition holds
-        DoubleDouble::from_exact_add(q.hi, -1.0)
-    } else {
-        DoubleDouble::from_exact_add(-1.0, q.hi)
-    };
+    let zf: DoubleDouble = DoubleDouble::from_full_exact_add(q.hi, -1.0);
     q.lo += zf.lo;
     q.hi = zf.hi;
 

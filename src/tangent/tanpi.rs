@@ -26,9 +26,8 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, dyad_fmla, f_fmla};
+use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
-use crate::shared_eval::poly_dd_3;
 
 static TANPI_REDUCE: [(u64, u64); 32] = [
     (0x0000000000000000, 0x0000000000000000),
@@ -66,63 +65,33 @@ static TANPI_REDUCE: [(u64, u64); 32] = [
 ];
 
 #[inline]
-pub(crate) fn poly_dd_5(x: DoubleDouble, poly: [(u64, u64); 5], l: f64) -> DoubleDouble {
-    let zch = poly[4];
-    let ach = f64::from_bits(zch.0) + l;
-    let acl = (f64::from_bits(zch.0) - ach) + l + f64::from_bits(zch.1);
-    let mut ch = DoubleDouble::new(acl, ach);
-
-    let zch = poly[3];
-    ch = DoubleDouble::mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    let zch = poly[2];
-    ch = DoubleDouble::mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    let zch = poly[1];
-    ch = DoubleDouble::mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    let zch = poly[0];
-    ch = DoubleDouble::mult(ch, x);
-    let th = ch.hi + f64::from_bits(zch.0);
-    let tl = (f64::from_bits(zch.0) - th) + ch.hi;
-    ch.hi = th;
-    ch.lo += tl + f64::from_bits(zch.1);
-
-    ch
+pub(crate) fn tanpi_poly(x: DoubleDouble, l: f64) -> DoubleDouble {
+    const CH: [(u64, u64); 3] = [
+        (0xbcc05511c68476a8, 0x4024abbce625be53),
+        (0xbcd6dc0cbddc0e69, 0x404466bc6775aae2),
+        (0x3cea5047910ae0ef, 0x40645fff9b48e95e),
+    ];
+    let z = DoubleDouble::quick_mul_add(
+        x,
+        DoubleDouble::add_f64(DoubleDouble::from_bit_pair(CH[2]), l),
+        DoubleDouble::from_bit_pair(CH[1]),
+    );
+    DoubleDouble::quick_mul_add(x, z, DoubleDouble::from_bit_pair(CH[0]))
 }
 
 #[cold]
 fn tanpi_accurate(px: DoubleDouble, x: f64) -> f64 {
-    const CH: [(u64, u64); 3] = [
-        (0x4024abbce625be53, 0xbcc05511c68476a8),
-        (0x404466bc6775aae2, 0xbcd6dc0cbddc0e69),
-        (0x40645fff9b48e95e, 0x3cea5047910ae0ef),
-    ];
-
-    let x2 = x * x;
-    let x3 = x * x2;
     const CL: [u64; 2] = [0x40845f472e3aed7d, 0x40a45f33be0e9598];
 
-    let dx2 = dd_fmla(x, x, -x2);
-    let dx3 = dd_fmla(x2, x, -x3) + dx2 * x;
+    let dx2 = DoubleDouble::from_exact_mult(x, x);
+    let dx3 = DoubleDouble::quick_mult_f64(dx2, x);
+
     let mut t = DoubleDouble {
         hi: 0.,
-        lo: x2 * f_fmla(x2, f64::from_bits(CL[1]), f64::from_bits(CL[0])),
+        lo: dx2.hi * f_fmla(dx2.hi, f64::from_bits(CL[1]), f64::from_bits(CL[0])),
     };
-    t = poly_dd_3(DoubleDouble::new(dx2, x2), CH, t.lo);
-    t = DoubleDouble::mult(DoubleDouble::new(dx3, x3), t);
+    t = tanpi_poly(dx2, t.lo);
+    t = DoubleDouble::quick_mult(dx3, t);
     let z0 = DoubleDouble::from_exact_add(px.hi, t.hi);
     t.hi = z0.hi;
     t.lo = t.lo + px.lo + z0.lo;
@@ -130,37 +99,46 @@ fn tanpi_accurate(px: DoubleDouble, x: f64) -> f64 {
     t.hi
 }
 
+#[inline]
+pub(crate) fn tanpi_poly0(x: DoubleDouble, l: f64) -> DoubleDouble {
+    const CH: [(u64, u64); 5] = [
+        (0x3c31a62633145c07, 0x3f9921fb54442d18),
+        (0xbb705511c6842515, 0x3ed4abbce625be53),
+        (0xbaa6dc0d93fb2ece, 0x3e1466bc6775aae2),
+        (0x39db226b250d2cc3, 0x3d545fff9b48e95e),
+        (0x39190612a0755449, 0x3c945f472e3af011),
+    ];
+    let mut z = DoubleDouble::quick_mul_add(
+        x,
+        DoubleDouble::add_f64(DoubleDouble::from_bit_pair(CH[4]), l),
+        DoubleDouble::from_bit_pair(CH[3]),
+    );
+    z = DoubleDouble::quick_mul_add(x, z, DoubleDouble::from_bit_pair(CH[2]));
+    z = DoubleDouble::quick_mul_add(x, z, DoubleDouble::from_bit_pair(CH[1]));
+    DoubleDouble::quick_mul_add(x, z, DoubleDouble::from_bit_pair(CH[0]))
+}
+
 #[cold]
 fn tanpi_accurate0(z: f64, iq: u64, ms: i64) -> f64 {
     let z = z * f64::from_bits(0x3c00000000000000);
-
-    const CH: [(u64, u64); 5] = [
-        (0x3f9921fb54442d18, 0x3c31a62633145c07),
-        (0x3ed4abbce625be53, 0xbb705511c6842515),
-        (0x3e1466bc6775aae2, 0xbaa6dc0d93fb2ece),
-        (0x3d545fff9b48e95e, 0x39db226b250d2cc3),
-        (0x3c945f472e3af011, 0x39190612a0755449),
-    ];
     const CL: [u64; 3] = [0x3bd45f32f25dab7f, 0x3b145f3030c82af4, 0x3a5464490600a978];
-    let z2 = z * z;
-    let dz2 = dyad_fmla(z, z, -z2);
 
-    let tlo0 = f_fmla(z2, f64::from_bits(CL[2]), f64::from_bits(CL[1]));
+    let dz2 = DoubleDouble::from_exact_mult(z, z);
 
-    let t_lo = z2 * f_fmla(z2, tlo0, f64::from_bits(CL[0]));
-    let mut t = poly_dd_5(DoubleDouble::new(dz2, z2), CH, t_lo);
-    t = DoubleDouble::mult_f64(t, z);
+    let tlo0 = f_fmla(dz2.hi, f64::from_bits(CL[2]), f64::from_bits(CL[1]));
+
+    let t_lo = dz2.hi * f_fmla(dz2.hi, tlo0, f64::from_bits(CL[0]));
+    let mut t = tanpi_poly0(dz2, t_lo);
+    t = DoubleDouble::quick_mult_f64(t, z);
     if iq == 32 {
-        let ith = -1.0 / t.hi;
-        t.lo = (dd_fmla(ith, t.hi, 1.) + t.lo * ith) * ith;
-        t.hi = ith;
+        t = (-t).recip();
     } else {
         let mut n = DoubleDouble::from_bit_pair(TANPI_REDUCE[iq as usize]);
         static S2: [f64; 2] = [-1., 1.];
         let sgn = S2[(ms + 1) as usize];
         n.hi *= sgn;
         n.lo *= sgn;
-        let mut m = DoubleDouble::mult(t, n);
+        let mut m = DoubleDouble::quick_mult(t, n);
         let z0 = DoubleDouble::from_exact_sub(1.0, m.hi);
         m.hi = z0.hi;
         m.lo = z0.lo - m.lo;
@@ -169,10 +147,7 @@ fn tanpi_accurate0(z: f64, iq: u64, ms: i64) -> f64 {
         n.hi = z1.hi;
         n.lo += z1.lo + t.lo;
 
-        let imh = 1.0 / m.hi;
-        t.hi = n.hi * imh;
-        t.lo = dd_fmla(n.hi, imh, -t.hi)
-            + (n.lo + n.hi * (dd_fmla(-m.hi, imh, 1.) - m.lo * imh)) * imh;
+        t = DoubleDouble::div(n, m);
     }
     t = DoubleDouble::from_exact_add(t.hi, t.lo);
     t.hi
@@ -245,6 +220,8 @@ pub fn f_tanpi(x: f64) -> f64 {
         // 0 <= s1 <= 57 is a biased exponent, with s1=0 for 2^-12 <= |x| < 2^-11
         // 0 <= s <= 57 is another biased exponent, with s=0 for 2^45 <= |x| < 2^46
         // ms is the bit of weight 1/2 in x
+
+        // quadrant
         let mut iq: u64 = (((m ^ ms) >> s) & 63) as u64;
         iq = (iq.wrapping_add(1)) >> 1;
         ms ^= sgn;
@@ -306,19 +283,17 @@ pub fn f_tanpi(x: f64) -> f64 {
             f64::from_bits(0x3ba921fb54442d18),
         );
 
-        t = DoubleDouble::mult_f64(P, z);
+        t = DoubleDouble::quick_mult_f64(P, z);
         t = DoubleDouble::add_f64(t, f);
 
         if iq == 32 {
-            let ith = -1.0 / t.hi;
-            t.lo = (dd_fmla(ith, t.hi, 1.) + t.lo * ith) * ith;
-            t.hi = ith;
+            t = (-t).recip();
         } else {
             let mut n = DoubleDouble::from_bit_pair(TANPI_REDUCE[iq as usize]);
             static S2: [f64; 2] = [-1., 1.];
             n.hi *= S2[(ms + 1) as usize];
             n.lo *= S2[(ms + 1) as usize];
-            let mut m = DoubleDouble::mult(t, n);
+            let mut m = DoubleDouble::quick_mult(t, n);
             let z0 = DoubleDouble::from_exact_sub(1.0, m.hi);
             m.hi = z0.hi;
             m.lo = z0.lo - m.lo;
@@ -327,10 +302,7 @@ pub fn f_tanpi(x: f64) -> f64 {
             n.hi = z1.hi;
             n.lo += z1.lo + t.lo;
 
-            let imh = 1.0 / m.hi;
-            t.hi = n.hi * imh;
-            t.lo = dd_fmla(n.hi, imh, -t.hi)
-                + (n.lo + n.hi * (dd_fmla(-m.hi, imh, 1.) - m.lo * imh)) * imh;
+            t = DoubleDouble::div(n, m);
         }
         eps += eps * (t.hi * t.hi);
         let lb = t.hi + (t.lo - eps);
@@ -380,7 +352,7 @@ pub fn f_tanpi(x: f64) -> f64 {
             let f0 = f_fmla(x2, f64::from_bits(C2[2]), f64::from_bits(C2[1]));
 
             let f = x3 * f_fmla(x2, f0, f64::from_bits(C2[0]));
-            let px = DoubleDouble::mult_f64(P2, x);
+            let px = DoubleDouble::quick_mult_f64(P2, x);
             t = DoubleDouble::add_f64(px, f);
             let eps =
                 x * (x2 * f64::from_bits(0x3d01000000000000) + f64::from_bits(0x39a0000000000000));
@@ -398,13 +370,17 @@ pub fn f_tanpi(x: f64) -> f64 {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
     fn test_tanpi() {
+        assert_eq!(f_tanpi(3.3821122649309461E-306), 1.0625219045122997E-305);
+        assert_eq!(f_tanpi(1.8010707049867402E-255), 5.6582304953821333E-255);
         assert_eq!(f_tanpi(-0.5000000000000226), 14054316517702.594);
-        assert_eq!(-2867080569611329.5, f_tanpi(0.5000000000000001));
-        assert_eq!(0.06704753721009375, f_tanpi(0.02131));
+        assert_eq!(f_tanpi(0.5000000000000001), -2867080569611329.5);
+        assert_eq!(f_tanpi(0.02131), 0.06704753721009375);
+        assert!(f_tanpi(f64::INFINITY).is_nan());
+        assert!(f_tanpi(f64::NAN).is_nan());
+        assert!(f_tanpi(f64::NEG_INFINITY).is_nan());
     }
 }

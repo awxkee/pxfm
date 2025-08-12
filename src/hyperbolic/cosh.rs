@@ -46,16 +46,16 @@ fn as_cosh_zero(x: f64) -> f64 {
         0x3da939749ce13dad,
         0x3d2ae9891efb6691,
     ];
-    let x2 = x * x;
-    let x2l = dd_fmla(x, x, -x2);
 
-    let yw0 = f_fmla(x2, f64::from_bits(CL[3]), f64::from_bits(CL[2]));
-    let yw1 = f_fmla(x2, yw0, f64::from_bits(CL[1]));
+    let dx2 = DoubleDouble::from_exact_mult(x, x);
 
-    let y2 = x2 * f_fmla(x2, yw1, f64::from_bits(CL[0]));
+    let yw0 = f_fmla(dx2.hi, f64::from_bits(CL[3]), f64::from_bits(CL[2]));
+    let yw1 = f_fmla(dx2.hi, yw0, f64::from_bits(CL[1]));
 
-    let mut y1 = lpoly_xd_generic(DoubleDouble::new(x2l, x2), CH, y2);
-    y1 = DoubleDouble::mult(y1, DoubleDouble::new(x2l, x2)); // y2 = y1.l
+    let y2 = dx2.hi * f_fmla(dx2.hi, yw1, f64::from_bits(CL[0]));
+
+    let mut y1 = lpoly_xd_generic(dx2, CH, y2);
+    y1 = DoubleDouble::quick_mult(y1, dx2); // y2 = y1.l
     let y0 = DoubleDouble::from_exact_add(1.0, y1.hi); // y0 = y0.hi
     let mut p = DoubleDouble::from_exact_add(y0.lo, y1.lo);
     let mut t = p.hi.to_bits();

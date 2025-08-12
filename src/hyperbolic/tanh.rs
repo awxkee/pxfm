@@ -46,8 +46,7 @@ fn as_tanh_zero(x: f64) -> f64 {
         (0x3b9da22861b4ca80, 0xbf2f57d7734c821d),
         (0xbbb0831108273a74, 0x3f1967e18ad3facf),
     ];
-    let x2 = x * x;
-    let x2l = dd_fmla(x, x, -x2);
+    let dx2 = DoubleDouble::from_exact_mult(x, x);
     const CL: [u64; 6] = [
         0xbf0497d8e6462927,
         0x3ef0b1318c243bd7,
@@ -57,17 +56,17 @@ fn as_tanh_zero(x: f64) -> f64 {
         0x3e9749698c8d338d,
     ];
 
-    let yw0 = f_fmla(x2, f64::from_bits(CL[5]), f64::from_bits(CL[4]));
-    let yw1 = f_fmla(x2, yw0, f64::from_bits(CL[3]));
-    let yw2 = f_fmla(x2, yw1, f64::from_bits(CL[2]));
-    let yw3 = f_fmla(x2, yw2, f64::from_bits(CL[1]));
-    let yw4 = f_fmla(x2, yw3, f64::from_bits(CL[0]));
+    let yw0 = f_fmla(dx2.hi, f64::from_bits(CL[5]), f64::from_bits(CL[4]));
+    let yw1 = f_fmla(dx2.hi, yw0, f64::from_bits(CL[3]));
+    let yw2 = f_fmla(dx2.hi, yw1, f64::from_bits(CL[2]));
+    let yw3 = f_fmla(dx2.hi, yw2, f64::from_bits(CL[1]));
+    let yw4 = f_fmla(dx2.hi, yw3, f64::from_bits(CL[0]));
 
-    let y2 = x2 * yw4;
+    let y2 = dx2.hi * yw4;
 
-    let mut y1 = lpoly_xd_generic(DoubleDouble::new(x2l, x2), CH, y2);
-    y1 = DoubleDouble::mult_f64(y1, x);
-    y1 = DoubleDouble::mult(y1, DoubleDouble::new(x2l, x2)); // y2 = y1.l
+    let mut y1 = lpoly_xd_generic(dx2, CH, y2);
+    y1 = DoubleDouble::quick_mult_f64(y1, x);
+    y1 = DoubleDouble::quick_mult(y1, dx2); // y2 = y1.l
     let y0 = DoubleDouble::from_exact_add(x, y1.hi); // y0 = y0.hi
     let mut p = DoubleDouble::from_exact_add(y0.lo, y1.lo);
     let mut t = p.hi.to_bits();

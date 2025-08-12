@@ -190,9 +190,8 @@ fn acosh_refine(x: f64, a: f64) -> f64 {
     let ix = x.to_bits();
 
     let z: DoubleDouble = if ix < 0x4190000000000000u64 {
-        let x2h = x * x;
-        let x2l = dd_fmla(x, x, -x2h);
-        let w = DoubleDouble::from_exact_add(x2h - 1., x2l);
+        let dx2 = DoubleDouble::from_exact_mult(x, x);
+        let w = DoubleDouble::from_exact_add(dx2.hi - 1., dx2.lo);
         let sh = w.hi.sqrt();
         let ish = 0.5 / w.hi;
         let sl = (ish * sh) * (w.lo - dd_fmla(sh, sh, -w.hi));
@@ -267,7 +266,7 @@ fn acosh_refine(x: f64, a: f64) -> f64 {
         (0x3c655540c15cf91f, 0x3fc5555555555555),
     ];
     let mut s = lpoly_xd_generic(dx, CH, sl);
-    s = DoubleDouble::mult(dx, s);
+    s = DoubleDouble::quick_mult(dx, s);
     s = DoubleDouble::add(s, DoubleDouble::new(el2, el1));
     s = DoubleDouble::add(s, DoubleDouble::new(dl2, dl1));
     let mut v02 = DoubleDouble::from_exact_add(dl0, s.hi);

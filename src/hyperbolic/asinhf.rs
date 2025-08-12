@@ -392,16 +392,7 @@ mod tests {
 
     #[test]
     fn test_asinhf() {
-        /*
-                Mismatch: x = -0.24319594, expected = -0.2408603, got = -0.24086031, ULP diff = 0.50076437
-        Mismatch: x = -0.24319752, expected = -0.24086183, got = -0.24086185, ULP diff = 0.5028982
-        Mismatch: x = -0.2431991, expected = -0.24086337, got = -0.24086338, ULP diff = 0.50506943
-        Mismatch: x = -0.24320278, expected = -0.24086694, got = -0.24086696, ULP diff = 0.5008397
-        Mismatch: x = -0.24320436, expected = -0.24086848, got = -0.2408685, ULP diff = 0.50313526
-        Mismatch: x = -0.24320593, expected = -0.24087001, got = -0.24087003, ULP diff = 0.50546825
-                 */
         assert_eq!(f_asinhf(-0.24319594), -0.2408603);
-
         assert_eq!(f_asinhf(2.0), 1.4436355);
         assert_eq!(f_asinhf(-2.0), -1.4436355);
         assert_eq!(f_asinhf(1.054234), 0.9192077);

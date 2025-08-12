@@ -475,12 +475,7 @@ fn exp2m1_accurate(x: f64) -> f64 {
 
     let mut p = exp_2(x);
 
-    let zf: DoubleDouble = if x >= 0. {
-        // implies h >= 1 and the fast_two_sum pre-condition holds
-        DoubleDouble::from_exact_add(p.hi, -1.0)
-    } else {
-        DoubleDouble::from_exact_add(-1.0, p.hi)
-    };
+    let zf: DoubleDouble = DoubleDouble::from_full_exact_add(p.hi, -1.0);
     p.lo += zf.lo;
     p.hi = zf.hi;
     p.to_f64()

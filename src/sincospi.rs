@@ -55,14 +55,14 @@ fn as_cospi_zero(x: f64) -> f64 {
         (0x3c1a5d47937787d2, 0xbf8a9b062a36ba1c),
     ];
     let x2 = DoubleDouble::from_exact_mult(x, x);
-    let mut p = DoubleDouble::mul_add(
+    let mut p = DoubleDouble::quick_mul_add(
         x2,
         DoubleDouble::from_bit_pair(C[3]),
         DoubleDouble::from_bit_pair(C[3]),
     );
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
     p = DoubleDouble::mul_add_f64(x2, p, 1.);
     p.to_f64()
 }
@@ -90,15 +90,15 @@ fn as_sinpi_zero(x: f64) -> f64 {
         (0x3bf180c9d4af2894, 0xbf7e2ea4e143707e),
     ];
     let x2 = DoubleDouble::from_exact_mult(x, x);
-    let mut p = DoubleDouble::mul_add(
+    let mut p = DoubleDouble::quick_mul_add(
         x2,
         DoubleDouble::from_bit_pair(C[5]),
         DoubleDouble::from_bit_pair(C[4]),
     );
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[3]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
-    p = DoubleDouble::mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[3]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
+    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
     p = DoubleDouble::quick_mult_f64(p, x);
     p.to_f64()
 }

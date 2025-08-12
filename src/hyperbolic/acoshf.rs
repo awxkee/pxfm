@@ -56,7 +56,6 @@ mod tests {
 
     #[test]
     fn test_f_acoshf() {
-        println!("{:?}", f_acoshf(2.0));
         assert_eq!(f_acoshf(2.0), 1.316958);
         assert!(f_acoshf(0.5).is_nan());
     }

@@ -296,17 +296,38 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         }
     }
 
-    // evaluate (1+x)^y explicitly for integer y in [-16,16] range and |x|<2^64
-    if y.floor() == y && ay <= 0x4030_0000_0000_0000u64 && ax <= 0x43e0_0000_0000_0000u64 {
-        let s = DoubleDouble::from_full_exact_add(1.0, x);
-        let iter_count = y.abs() as usize;
+    // y is integer and in [-102;102] and |x|<2^10
+    if y.floor() == y
+        && y_a <= 0x4059800000000000u64
+        && x_a <= 0x4090000000000000u64
+        && x_a > 0x3cc0_0000_0000_0000
+    {
+        let mut s = DoubleDouble::from_full_exact_add(1.0, x);
+        let mut iter_count = y.abs() as usize;
 
-        let mut p = s;
-        for _ in 0..iter_count - 1 {
-            p = DoubleDouble::mult(p, s);
+        // exponentiation by squaring: O(log(y)) complexity
+        let mut acc = if iter_count % 2 != 0 {
+            s
+        } else {
+            DoubleDouble::new(0., 1.)
+        };
+
+        while {
+            iter_count >>= 1;
+            iter_count
+        } != 0
+        {
+            s = DoubleDouble::mult(s, s);
+            if iter_count % 2 != 0 {
+                acc = DoubleDouble::mult(acc, s);
+            }
         }
 
-        let dz = if y.is_sign_negative() { p.recip() } else { p };
+        let dz = if y.is_sign_negative() {
+            acc.recip()
+        } else {
+            acc
+        };
         let ub = dz.hi + f_fmla(f64::from_bits(0x3c40000000000000), -dz.hi, dz.lo); // 2^-59
         let lb = dz.hi + f_fmla(f64::from_bits(0x3c40000000000000), dz.hi, dz.lo); // 2^-59
         if ub == lb {
@@ -364,18 +385,31 @@ fn compound_accurate(x: f64, y: f64, s: f64) -> f64 {
 #[cold]
 #[inline(never)]
 fn mul_fixed_power_hard(x: f64, y: f64) -> f64 {
-    let s = TripleDouble::from_full_exact_add(1.0, x);
-    let iter_count = y.abs() as usize;
+    let mut s = TripleDouble::from_full_exact_add(1.0, x);
+    let mut iter_count = y.abs() as usize;
 
-    let mut p = s;
-    for _ in 0..iter_count - 1 {
-        p = TripleDouble::quick_mult(p, s);
+    // exponentiation by squaring: O(log(y)) complexity
+    let mut acc = if iter_count % 2 != 0 {
+        s
+    } else {
+        TripleDouble::new(0., 0., 1.)
+    };
+
+    while {
+        iter_count >>= 1;
+        iter_count
+    } != 0
+    {
+        s = TripleDouble::quick_mult(s, s);
+        if iter_count % 2 != 0 {
+            acc = TripleDouble::quick_mult(acc, s);
+        }
     }
 
     if y.is_sign_negative() {
-        p.recip().to_f64()
+        acc.recip().to_f64()
     } else {
-        p.to_f64()
+        acc.to_f64()
     }
 }
 

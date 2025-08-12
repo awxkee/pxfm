@@ -55,8 +55,8 @@ pub(crate) fn hyperbolic_exp_accurate(x: f64, t: f64, zt: DoubleDouble) -> Doubl
 
     let fl = dxh * f_fmla(dxh, fl0, f64::from_bits(0x3fa5555555555555));
     let mut f = lpoly_xd_generic(DoubleDouble::new(dxl, dxh), CH, fl);
-    f = DoubleDouble::mult(DoubleDouble::new(dxl, dxh), f);
-    f = DoubleDouble::mult(zt, f);
+    f = DoubleDouble::quick_mult(DoubleDouble::new(dxl, dxh), f);
+    f = DoubleDouble::quick_mult(zt, f);
     let zh = zt.hi + f.hi;
     let zl = (zt.hi - zh) + f.hi;
     let uh = zh + zt.lo;
@@ -75,19 +75,18 @@ fn as_sinh_zero(x: f64) -> f64 {
         (0xbb6b4e2835532bcd, 0x3ec71de3a556c734),
         (0xbaedefcf17a6ab79, 0x3e5ae64567f54482),
     ];
-    let x2 = x * x;
-    let x2l = dd_fmla(x, x, -x2);
+    let d2x = DoubleDouble::from_exact_mult(x, x);
 
     let yw0 = f_fmla(
-        x2,
+        d2x.hi,
         f64::from_bits(0x3ce95785063cd974),
         f64::from_bits(0x3d6ae7f36beea815),
     );
 
-    let y2 = x2 * f_fmla(x2, yw0, f64::from_bits(0x3de6124613aef206));
-    let mut y1 = lpoly_xd_generic(DoubleDouble::new(x2l, x2), CH, y2);
-    y1 = DoubleDouble::mult_f64(y1, x);
-    y1 = DoubleDouble::mult(y1, DoubleDouble::new(x2l, x2)); // y2 = y1.l
+    let y2 = d2x.hi * f_fmla(d2x.hi, yw0, f64::from_bits(0x3de6124613aef206));
+    let mut y1 = lpoly_xd_generic(d2x, CH, y2);
+    y1 = DoubleDouble::quick_mult_f64(y1, x);
+    y1 = DoubleDouble::quick_mult(y1, d2x); // y2 = y1.l
     let y0 = DoubleDouble::from_exact_add(x, y1.hi); // y0 = y0.hi
     let mut p = DoubleDouble::from_exact_add(y0.lo, y1.lo);
     let mut t = p.hi.to_bits();

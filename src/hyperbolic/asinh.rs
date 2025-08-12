@@ -101,7 +101,7 @@ fn asinh_refine(x: f64, a: f64, z: DoubleDouble) -> f64 {
         (0x3c655540c15cf91f, 0x3fc5555555555555),
     ];
     let mut s = lpoly_xd_generic(dx, CH, sl);
-    s = DoubleDouble::mult(dx, s);
+    s = DoubleDouble::quick_mult(dx, s);
     s = DoubleDouble::add(s, DoubleDouble::new(el2, el1));
     s = DoubleDouble::add(s, DoubleDouble::new(dl2, dl1));
     let mut v02 = DoubleDouble::from_exact_add(dl0, s.hi);
@@ -154,8 +154,8 @@ fn as_asinh_zero(x: f64, x2h: f64, x2l: f64) -> f64 {
 
     let y2 = x2h * f_fmla(x2h, yw2, f64::from_bits(CL[0]));
     let mut y1 = lpoly_xd_generic(DoubleDouble::new(x2l, x2h), CH, y2);
-    y1 = DoubleDouble::mult(y1, DoubleDouble::new(x2l, x2h));
-    y1 = DoubleDouble::mult_f64(y1, x);
+    y1 = DoubleDouble::quick_mult(y1, DoubleDouble::new(x2l, x2h));
+    y1 = DoubleDouble::quick_mult_f64(y1, x);
 
     let y0 = DoubleDouble::from_exact_add(x, y1.hi);
     let mut p = DoubleDouble::from_exact_add(y0.lo, y1.lo);

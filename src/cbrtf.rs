@@ -120,6 +120,8 @@ mod tests {
         assert_eq!(f_cbrtf(0.0), 0.0);
         assert_eq!(f_cbrtf(-27.0), -3.0);
         assert_eq!(f_cbrtf(27.0), 3.0);
+        assert_eq!(f_cbrtf(64.0), 4.0);
+        assert_eq!(f_cbrtf(-64.0), -4.0);
         assert_eq!(f_cbrtf(f32::NEG_INFINITY), f32::NEG_INFINITY);
         assert_eq!(f_cbrtf(f32::INFINITY), f32::INFINITY);
         assert!(f_cbrtf(f32::NAN).is_nan());

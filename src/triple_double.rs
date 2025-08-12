@@ -146,9 +146,8 @@ impl TripleDouble {
     pub(crate) fn quick_mult_f64(a: TripleDouble, b: f64) -> TripleDouble {
         let DoubleDouble { hi: rh, lo: t2 } = mul12(a.hi, b);
         let DoubleDouble { hi: t3, lo: t4 } = mul12(a.mid, b);
-        let t5 = a.lo * b;
         let DoubleDouble { hi: t9, lo: t7 } = add12(t2, t3);
-        let t8 = t4 + t5;
+        let t8 = f_fmla(a.lo, b, t4);
         let t10 = t7 + t8;
         let DoubleDouble { hi: rm, lo: rl } = add12(t9, t10);
         TripleDouble::new(rl, rm, rh)
@@ -308,11 +307,11 @@ impl TripleDouble {
     #[inline]
     pub(crate) fn renormalize(self) -> Self {
         /*
-           double _t1h, _t1l, _t2l;                           \
-                                                       \
-        Add12(_t1h, _t1l, (am), (al));                     \
-        Add12((*(resh)), _t2l, (ah), (_t1h));              \
-        Add12((*(resm)), (*(resl)), _t2l, _t1l);           \
+           double _t1h, _t1l, _t2l;
+
+        Add12(_t1h, _t1l, (am), (al));
+        Add12((*(resh)), _t2l, (ah), (_t1h));
+        Add12((*(resm)), (*(resl)), _t2l, _t1l);
          */
         let DoubleDouble { hi: t1h, lo: t1l } = DoubleDouble::from_exact_add(self.mid, self.lo);
         let DoubleDouble { hi: rh, lo: t2l } = DoubleDouble::from_exact_add(self.hi, t1h);
@@ -323,22 +322,22 @@ impl TripleDouble {
     #[inline]
     pub(crate) fn recip(self) -> Self {
         /*
-              _rec_r1 = 1.0 / (dh);                                                                         \
-        Mul12(&_rec_t1,&_rec_t2,_rec_r1,(dh));                                                                \
-        _rec_t3 = _rec_t1 - 1.0;                                                                          \
-        Add12Cond(_rec_t4,_rec_t5,_rec_t3,_rec_t2);                                                               \
-        Mul12(&_rec_t6,&_rec_t7,_rec_r1,(dm));                                                                \
-        Add12(_rec_t8,_rec_t9,-1.0,_rec_t6);                                                                  \
-        _rec_t10 = _rec_t9 + _rec_t7;                                                                         \
-        Add12(_rec_t11,_rec_t12,_rec_t8,_rec_t10);                                                                \
-        _rec_r1 = -_rec_r1;                                                                               \
-        Add22Cond(&_rec_t13,&_rec_t14,_rec_t4,_rec_t5,_rec_t11,_rec_t12);                                                 \
-        Mul122(&_rec_r2h,&_rec_r2l,_rec_r1,_rec_t13,_rec_t14);                                                        \
-        Mul233(&_rec_t15,&_rec_t16,&_rec_t17,_rec_r2h,_rec_r2l,(dh),(dm),(dl));                                       \
-        Renormalize3(&_rec_t18,&_rec_t19,&_rec_t20,_rec_t15,_rec_t16,_rec_t17);                                           \
-        _rec_t18 = -1.0;                                                                              \
-        Mul233(&_rec_t21,&_rec_t22,&_rec_t23,_rec_r2h,_rec_r2l,_rec_t18,_rec_t19,_rec_t20);                                       \
-        _rec_t21 = -_rec_t21; _rec_t22 = -_rec_t22; _rec_t23 = -_rec_t23;                                                 \
+              _rec_r1 = 1.0 / (dh);
+        Mul12(&_rec_t1,&_rec_t2,_rec_r1,(dh));
+        _rec_t3 = _rec_t1 - 1.0;
+        Add12Cond(_rec_t4,_rec_t5,_rec_t3,_rec_t2);
+        Mul12(&_rec_t6,&_rec_t7,_rec_r1,(dm));
+        Add12(_rec_t8,_rec_t9,-1.0,_rec_t6);
+        _rec_t10 = _rec_t9 + _rec_t7;
+        Add12(_rec_t11,_rec_t12,_rec_t8,_rec_t10);
+        _rec_r1 = -_rec_r1;
+        Add22Cond(&_rec_t13,&_rec_t14,_rec_t4,_rec_t5,_rec_t11,_rec_t12);
+        Mul122(&_rec_r2h,&_rec_r2l,_rec_r1,_rec_t13,_rec_t14);
+        Mul233(&_rec_t15,&_rec_t16,&_rec_t17,_rec_r2h,_rec_r2l,(dh),(dm),(dl));
+        Renormalize3(&_rec_t18,&_rec_t19,&_rec_t20,_rec_t15,_rec_t16,_rec_t17);
+        _rec_t18 = -1.0;
+        Mul233(&_rec_t21,&_rec_t22,&_rec_t23,_rec_r2h,_rec_r2l,_rec_t18,_rec_t19,_rec_t20);
+        _rec_t21 = -_rec_t21; _rec_t22 = -_rec_t22; _rec_t23 = -_rec_t23;
         Renormalize3((resh),(resm),(resl),_rec_t21,_rec_t22,_rec_t23);
              */
         let mut r1 = 1. / self.hi;

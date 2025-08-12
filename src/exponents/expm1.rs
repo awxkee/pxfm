@@ -302,9 +302,8 @@ fn as_expm1_accurate(x: f64) -> f64 {
         f = DoubleDouble::quick_mult_f64(f, x);
         f = DoubleDouble::quick_mult_f64(f, x);
         let hx = 0.5 * x;
-        let x2h = x * hx;
-        let x2l = dd_fmla(x, hx, -x2h);
-        f = DoubleDouble::add(DoubleDouble::new(x2l, x2h), f);
+        let dx2dd = DoubleDouble::from_exact_mult(x, hx);
+        f = DoubleDouble::add(dx2dd, f);
         let v0 = DoubleDouble::from_exact_add(x, f.hi);
         let v1 = DoubleDouble::from_exact_add(v0.lo, f.lo);
         let v2 = DoubleDouble::from_exact_add(v0.hi, v1.hi);
@@ -329,7 +328,7 @@ fn as_expm1_accurate(x: f64) -> f64 {
         let t0 = DoubleDouble::from_bit_pair(EXPM1_T0[i0 as usize]);
         let t1 = DoubleDouble::from_bit_pair(EXPM1_T1[i1 as usize]);
 
-        let bt = DoubleDouble::mult(t0, t1);
+        let bt = DoubleDouble::quick_mult(t0, t1);
 
         const L2H: f64 = f64::from_bits(0x3f262e42ff000000);
         const L2L: f64 = f64::from_bits(0x3d0718432a1b0e26);
@@ -341,8 +340,8 @@ fn as_expm1_accurate(x: f64) -> f64 {
         let dxh = dx + dxl;
         let dxl = (dx - dxh) + dxl + dxll;
         let mut f = poly_dekker_generic(DoubleDouble::new(dxl, dxh), EXPM1_DD2);
-        f = DoubleDouble::mult(DoubleDouble::new(dxl, dxh), f);
-        f = DoubleDouble::mult(f, bt);
+        f = DoubleDouble::quick_mult(DoubleDouble::new(dxl, dxh), f);
+        f = DoubleDouble::quick_mult(f, bt);
         f = DoubleDouble::add(bt, f);
         let off: u64 = (2048i64 + 1023i64).wrapping_sub(ie).wrapping_shl(52) as u64;
         let e: f64;

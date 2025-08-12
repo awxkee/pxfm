@@ -27,12 +27,13 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::bits::{EXP_MASK, get_exponent_f64};
-use crate::common::{dd_fmla, f_fmla};
+use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::exp;
 use crate::logs::log_dyadic;
 use crate::pow_exec::{exp_dyadic, pow_exp_1, pow_log_1};
+use crate::triple_double::TripleDouble;
 use crate::{f_exp2, f_exp10, log};
 
 #[inline]
@@ -59,6 +60,77 @@ fn pow_exp10_fallback(x: f64) -> f64 {
 #[cold]
 fn pow_exp2_fallback(x: f64) -> f64 {
     f_exp2(x)
+}
+
+#[cold]
+#[inline(never)]
+fn f_powi(x: f64, y: f64) -> f64 {
+    let mut iter_count = y.abs() as usize;
+
+    let mut s = DoubleDouble::new(0., x);
+
+    // exponentiation by squaring: O(log(y)) complexity
+    let mut acc = if iter_count % 2 != 0 {
+        s
+    } else {
+        DoubleDouble::new(0., 1.)
+    };
+
+    while {
+        iter_count >>= 1;
+        iter_count
+    } != 0
+    {
+        s = DoubleDouble::mult(s, s);
+        if iter_count % 2 != 0 {
+            acc = DoubleDouble::mult(acc, s);
+        }
+    }
+
+    let dz = if y.is_sign_negative() {
+        acc.recip()
+    } else {
+        acc
+    };
+    let ub = dz.hi + f_fmla(f64::from_bits(0x3c40000000000000), -dz.hi, dz.lo); // 2^-59
+    let lb = dz.hi + f_fmla(f64::from_bits(0x3c40000000000000), dz.hi, dz.lo); // 2^-59
+    if ub == lb {
+        return dz.to_f64();
+    }
+    f_powi_hard(x, y)
+}
+
+#[cold]
+#[inline(never)]
+fn f_powi_hard(x: f64, y: f64) -> f64 {
+    let mut iter_count = y.abs() as usize;
+
+    let mut s = TripleDouble::new(0., 0., x);
+
+    // exponentiation by squaring: O(log(y)) complexity
+    let mut acc = if iter_count % 2 != 0 {
+        s
+    } else {
+        TripleDouble::new(0., 0., 1.)
+    };
+
+    while {
+        iter_count >>= 1;
+        iter_count
+    } != 0
+    {
+        s = TripleDouble::quick_mult(s, s);
+        if iter_count % 2 != 0 {
+            acc = TripleDouble::quick_mult(acc, s);
+        }
+    }
+
+    let dz = if y.is_sign_negative() {
+        acc.recip()
+    } else {
+        acc
+    };
+    dz.to_f64()
 }
 
 /// Power function for given value using FMA
@@ -115,12 +187,31 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
                     if x.is_infinite() {
                         return if x.is_sign_positive() { 0. } else { f64::NAN };
                     }
-                    let r = x.sqrt() / x;
-                    let rx = r * x;
-                    let drx = dd_fmla(r, x, -rx);
-                    let h = dd_fmla(r, rx, -1.0) + r * drx;
-                    let dr = (r * 0.5) * h;
-                    r - dr
+                    #[cfg(any(
+                        all(
+                            any(target_arch = "x86", target_arch = "x86_64"),
+                            target_feature = "fma"
+                        ),
+                        all(target_arch = "aarch64", target_feature = "neon")
+                    ))]
+                    {
+                        let r = x.sqrt() / x;
+                        let rx = r * x;
+                        let drx = f_fmla(r, x, -rx);
+                        let h = f_fmla(r, rx, -1.0) + r * drx;
+                        let dr = (r * 0.5) * h;
+                        r - dr
+                    }
+                    #[cfg(not(any(
+                        all(
+                            any(target_arch = "x86", target_arch = "x86_64"),
+                            target_feature = "fma"
+                        ),
+                        all(target_arch = "aarch64", target_feature = "neon")
+                    )))]
+                    {
+                        DoubleDouble::from_rsqrt_fast(x).to_f64()
+                    }
                 } else {
                     x.sqrt()
                 };
@@ -133,7 +224,7 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
                 if x_e > 511 {
                     return if y_sign { 0. } else { f64::INFINITY };
                 }
-                // not enough precision to make 0.5 ULP for huge subnormals
+                // not enough precision to make 0.5 ULP for subnormals
                 if x_e.abs() < 70 {
                     let x_sqr = DoubleDouble::from_exact_mult(x, x);
                     return if y_sign {
@@ -237,8 +328,19 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
         }
 
         // x is finite and negative, and y is a finite integer.
+
+        let is_y_integer = is_integer(y);
+        // y is integer and in [-102;102] and |x|<2^10
+        if is_y_integer
+            && y_a <= 0x4059800000000000u64
+            && x_a <= 0x4090000000000000u64
+            && x_a > 0x3cc0_0000_0000_0000
+        {
+            return f_powi(x, y);
+        }
+
         if x_sign {
-            if is_integer(y) {
+            if is_y_integer {
                 x = -x;
                 if is_odd_integer(y) {
                     // sign = -1.0;
@@ -434,5 +536,15 @@ mod tests {
             f_pow(0.5f64, 2f64)
         );
         assert_eq!(f_pow(2.1f64, 2.7f64), 7.412967494768546);
+        assert_eq!(f_pow(27., 1. / 3.), 3.);
+    }
+
+    #[test]
+    fn powi_test() {
+        assert_eq!(f_pow(f64::from_bits(0x3cc0_0000_0000_0000), 102.), 0.0);
+        assert_eq!(f_pow(3., 3.), 27.);
+        assert_eq!(f_pow(3., -3.), 1. / 27.);
+        assert_eq!(f_pow(3., 102.), 4.638397686588102e48);
+        assert_eq!(f_pow(0.000000000000011074474670636028, -22.), 10589880229528372000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.);
     }
 }

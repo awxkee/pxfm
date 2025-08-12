@@ -346,14 +346,39 @@ impl DoubleDouble {
 
     #[inline]
     pub(crate) fn from_sqrt(x: f64) -> Self {
-        let h = x.sqrt();
-        /* h = sqrt(x) * (1 + e1) with |e1| < 2^-52
-        thus h^2 = x * (1 + e2) with |e2| < 2^-50.999 */
-        let e = -f64::mul_add(h, h, -x); // exact
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let h = x.sqrt();
+            /* h = sqrt(x) * (1 + e1) with |e1| < 2^-52
+            thus h^2 = x * (1 + e2) with |e2| < 2^-50.999 */
+            let e = -f_fmla(h, h, -x); // exact
 
-        /* e = x - h^2 */
-        let l = e / (h + h);
-        DoubleDouble::new(l, h)
+            /* e = x - h^2 */
+            let l = e / (h + h);
+            DoubleDouble::new(l, h)
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let h = x.sqrt();
+            let prod_hh = DoubleDouble::from_exact_mult(h, h);
+            let e = (x - prod_hh.hi) - prod_hh.lo; // exact
+
+            /* e = x - h^2 */
+            let l = e / (h + h);
+            DoubleDouble::new(l, h)
+        }
     }
 
     #[inline]
