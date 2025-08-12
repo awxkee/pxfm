@@ -335,10 +335,35 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
 
         let is_y_integer = is_integer(y);
         // y is integer and in [-102;102] and |x|<2^10
+
+        // this is correct only for positive exponent number without FMA,
+        // otherwise reciprocal may overflow.
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
         if is_y_integer
             && y_a <= 0x4059800000000000u64
             && x_a <= 0x4090000000000000u64
             && x_a > 0x3cc0_0000_0000_0000
+        {
+            return f_powi(x, y);
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        if is_y_integer
+            && y_a <= 0x4059800000000000u64
+            && x_a <= 0x4090000000000000u64
+            && x_a > 0x3cc0_0000_0000_0000
+            && y.is_sign_positive()
         {
             return f_powi(x, y);
         }
@@ -549,13 +574,6 @@ mod tests {
         assert_eq!(f_pow(3., 3.), 27.);
         assert_eq!(f_pow(3., -3.), 1. / 27.);
         assert_eq!(f_pow(3., 102.), 4.638397686588102e48);
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
         assert_eq!(f_pow(0.000000000000011074474670636028, -22.), 10589880229528372000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.);
     }
 }

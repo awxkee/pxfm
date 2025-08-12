@@ -296,11 +296,30 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         }
     }
 
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    let straight_path_precondition: bool = true;
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    let straight_path_precondition: bool = y.is_sign_positive();
+    // this is correct only for positive exponent number without FMA,
+    // otherwise reciprocal may overflow.
     // y is integer and in [-102;102] and |x|<2^10
     if y.floor() == y
         && y_a <= 0x4059800000000000u64
         && x_a <= 0x4090000000000000u64
         && x_a > 0x3cc0_0000_0000_0000
+        && straight_path_precondition
     {
         let mut s = DoubleDouble::from_full_exact_add(1.0, x);
         let mut iter_count = y.abs() as usize;
