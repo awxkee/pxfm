@@ -301,7 +301,15 @@ fuzz_target!(|data: (f64, f64)| {
     //         0.50013,
     //     );
     // }
-
+    if !x0.is_subnormal() {
+        test_method(
+            x0,
+            f_rcbrt,
+            &mpfr_x0.clone().cbrt().recip(),
+            "f_rcbrt".to_string(),
+            0.50000001,
+        );
+    }
     // Only search for regression MPFR takes too long
     if x0.abs() < 15. && x0.abs() > 0.01 {
         test_method(x0, f_i0, &bessel_i0(x0, 70), "f_i0".to_string(), 0.5003);

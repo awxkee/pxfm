@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 8/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -28,52 +28,36 @@
  */
 use crate::common::f_fmla;
 
-#[inline(always)]
-fn halley_refine_d(x: f64, a: f64) -> f64 {
-    let tx = x * x * x;
-    x * f_fmla(2., a, tx) / f_fmla(2., tx, a)
-}
+// // y1 = y0 * (2+x*y0^3)/(1+2*x*y0^3)
+// #[inline(always)]
+// fn halley_refine_d(x: f64, a: f64) -> f64 {
+//     let tx = x * x * x;
+//     x * f_fmla(tx, a, 2.0) / f_fmla(2. * a, tx, 1.0)
+// }
 
 #[inline(always)]
-const fn halley_refine(x: f32, a: f32) -> f32 {
-    let tx = x * x * x;
-    x * (tx + 2f32 * a) / (2f32 * tx + a)
+fn rapshon_refine_inv_cbrt(x: f64, a: f64) -> f64 {
+    x * f_fmla(-1. / 3. * a, x * x * x, 4. / 3.)
 }
 
-/// Cbrt for given value for const context.
-/// This is simplified version just to make a good approximation on const context.
-#[inline]
-pub const fn cbrtf(x: f32) -> f32 {
-    let u = x.to_bits();
-    let au = u.wrapping_shl(1);
-    if au < (1u32 << 24) || au >= (0xffu32 << 24) {
-        if au >= (0xffu32 << 24) {
-            return x + x; /* inf, nan */
-        }
-        if au == 0 {
-            return x; /* +-0 */
-        }
-    }
-
-    const B1: u32 = 709958130;
-    let mut t: f32;
-    let mut ui: u32 = x.to_bits();
-    let mut hx: u32 = ui & 0x7fffffff;
-
-    hx = (hx / 3).wrapping_add(B1);
-    ui &= 0x80000000;
-    ui |= hx;
-
-    t = f32::from_bits(ui);
-    t = halley_refine(t, x);
-    halley_refine(t, x)
+// y1 = y0(k1 − c(k2 − k3c), c = x*y0*y0*y0
+// k1 = 14/9 , k2 = 7/9 , k3 = 2/9
+#[inline(always)]
+fn halleys_div_free(x: f64, a: f64) -> f64 {
+    const K3: f64 = 2. / 9.;
+    const K2: f64 = 7. / 9.;
+    const K1: f64 = 14. / 9.;
+    let c = a * x * x * x;
+    let mut y = f_fmla(-K3, c, K2);
+    y = f_fmla(-c, y, K1);
+    y * x
 }
 
-/// Computes Cube Root using FMA
+/// Computes 1/cbrt(x)
 ///
-/// Peak ULP on 64 bit = 0.49999577
+/// ULP 0.5
 #[inline]
-pub fn f_cbrtf(x: f32) -> f32 {
+pub fn f_rcbrtf(x: f32) -> f32 {
     let u = x.to_bits();
     let au = u.wrapping_shl(1);
     if au < (1u32 << 24) || au >= (0xffu32 << 24) {
@@ -81,7 +65,11 @@ pub fn f_cbrtf(x: f32) -> f32 {
             return x + x; /* inf, nan */
         }
         if au == 0 {
-            return x; /* +-0 */
+            return if x.is_sign_positive() {
+                f32::INFINITY
+            } else {
+                f32::NEG_INFINITY
+            }; /* +-inf */
         }
     }
 
@@ -96,19 +84,20 @@ pub fn f_cbrtf(x: f32) -> f32 {
         const X1P24: f32 = f32::from_bits(0x4b800000);
         ui = (x * X1P24).to_bits();
         hx = ui & 0x7fffffff;
-        const B2: u32 = 642849266;
-        hx = hx / 3 + B2;
+        const B: u32 = 0x54a21d2au32 + (8u32 << 23);
+        hx = B.wrapping_sub(hx / 3);
     } else {
-        const B1: u32 = 709958130;
-
-        hx = hx / 3 + B1;
+        hx = 0x54a21d2au32.wrapping_sub(hx / 3);
     }
     ui &= 0x80000000;
     ui |= hx;
 
-    let mut t = f32::from_bits(ui) as f64;
-    t = halley_refine_d(t, x as f64);
-    halley_refine_d(t, x as f64) as f32
+    let t = f32::from_bits(ui) as f64;
+    let dx = x as f64;
+    let mut t = halleys_div_free(t, dx);
+    t = halleys_div_free(t, dx);
+    t = rapshon_refine_inv_cbrt(t, dx);
+    t as f32
 }
 
 #[cfg(test)]
@@ -117,13 +106,14 @@ mod tests {
 
     #[test]
     fn test_fcbrtf() {
-        assert_eq!(f_cbrtf(0.0), 0.0);
-        assert_eq!(f_cbrtf(-27.0), -3.0);
-        assert_eq!(f_cbrtf(27.0), 3.0);
-        assert_eq!(f_cbrtf(64.0), 4.0);
-        assert_eq!(f_cbrtf(-64.0), -4.0);
-        assert_eq!(f_cbrtf(f32::NEG_INFINITY), f32::NEG_INFINITY);
-        assert_eq!(f_cbrtf(f32::INFINITY), f32::INFINITY);
-        assert!(f_cbrtf(f32::NAN).is_nan());
+        assert_eq!(f_rcbrtf(0.0), f32::INFINITY);
+        assert_eq!(f_rcbrtf(-0.0), f32::NEG_INFINITY);
+        assert_eq!(f_rcbrtf(-27.0), -1. / 3.);
+        assert_eq!(f_rcbrtf(27.0), 1. / 3.);
+        assert_eq!(f_rcbrtf(64.0), 0.25);
+        assert_eq!(f_rcbrtf(-64.0), -0.25);
+        assert_eq!(f_rcbrtf(f32::NEG_INFINITY), f32::NEG_INFINITY);
+        assert_eq!(f_rcbrtf(f32::INFINITY), f32::INFINITY);
+        assert!(f_rcbrtf(f32::NAN).is_nan());
     }
 }

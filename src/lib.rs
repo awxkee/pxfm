@@ -50,12 +50,11 @@ mod asinpi;
 mod asinpif;
 mod bessel;
 mod bits;
-mod cbrt;
-mod cbrtf;
 mod ceil;
 mod common;
 mod compound;
 mod csc;
+mod cube_roots;
 mod double_double;
 mod dyadic_float;
 mod dyadic_float256;
@@ -106,12 +105,11 @@ pub use bessel::{
     f_i0, f_i0f, f_i1, f_i1f, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k0f, f_k1, f_k1f, f_y0, f_y0f,
     f_y1, f_y1f,
 };
-pub use cbrt::f_cbrt;
-pub use cbrtf::{cbrtf, f_cbrtf};
 pub use ceil::{ceil, ceilf};
 pub use common::{copysignfk, copysignk};
 pub use compound::{f_compound, f_compound_m1, f_compound_m1f, f_compoundf};
 pub use csc::f_csc;
+pub use cube_roots::{cbrtf, f_cbrt, f_cbrtf, f_rcbrt, f_rcbrtf};
 pub use err::{f_erf, f_erfc, f_erfcf, f_erff};
 pub use exponents::{
     exp, expf, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
