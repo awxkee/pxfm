@@ -61,10 +61,13 @@ pub fn f_rcbrtf(x: f32) -> f32 {
     let u = x.to_bits();
     let au = u.wrapping_shl(1);
     if au < (1u32 << 24) || au >= (0xffu32 << 24) {
+        if x.is_infinite() {
+            return if x.is_sign_negative() { -0.0 } else { 0.0 };
+        }
         if au >= (0xffu32 << 24) {
             return x + x; /* inf, nan */
         }
-        if au == 0 {
+        if x == 0. {
             return if x.is_sign_positive() {
                 f32::INFINITY
             } else {
@@ -81,8 +84,8 @@ pub fn f_rcbrtf(x: f32) -> f32 {
         if hx == 0 {
             return x; /* cbrt(+-0) is itself */
         }
-        const X1P24: f32 = f32::from_bits(0x4b800000);
-        ui = (x * X1P24).to_bits();
+        const TWO_EXP_24: f32 = f32::from_bits(0x4b800000);
+        ui = (x * TWO_EXP_24).to_bits();
         hx = ui & 0x7fffffff;
         const B: u32 = 0x54a21d2au32 + (8u32 << 23);
         hx = B.wrapping_sub(hx / 3);
@@ -112,8 +115,8 @@ mod tests {
         assert_eq!(f_rcbrtf(27.0), 1. / 3.);
         assert_eq!(f_rcbrtf(64.0), 0.25);
         assert_eq!(f_rcbrtf(-64.0), -0.25);
-        assert_eq!(f_rcbrtf(f32::NEG_INFINITY), f32::NEG_INFINITY);
-        assert_eq!(f_rcbrtf(f32::INFINITY), f32::INFINITY);
+        assert_eq!(f_rcbrtf(f32::NEG_INFINITY), -0.0);
+        assert_eq!(f_rcbrtf(f32::INFINITY), 0.0);
         assert!(f_rcbrtf(f32::NAN).is_nan());
     }
 }

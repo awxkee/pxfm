@@ -518,6 +518,7 @@ fn atan_eval_hard(x: DyadicFloat128) -> DyadicFloat128 {
 }
 
 #[cold]
+#[inline(never)]
 pub(crate) fn atan2_hard(y: f64, x: f64) -> DyadicFloat128 {
     /*
        Sage math:

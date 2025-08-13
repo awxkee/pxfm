@@ -53,7 +53,7 @@ fn csc_accurate(x: f64, argument_reduction: &mut LargeArgumentReduction, x_e: u6
     r.reciprocal().fast_as_f64()
 }
 
-/// Sine for double precision
+/// Cosecant for double precision
 ///
 /// ULP 0.5
 #[inline]

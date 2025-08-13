@@ -149,5 +149,8 @@ mod tests {
         assert_eq!(f_sinc(0.9), 0.870363232919426);
         assert_eq!(f_sinc(-0.1), 0.9983341664682815);
         assert_eq!(f_sinc(-0.9), 0.870363232919426);
+        assert!(f_sinc(f64::INFINITY).is_nan());
+        assert!(f_sinc(f64::NEG_INFINITY).is_nan());
+        assert!(f_sinc(f64::NAN).is_nan());
     }
 }

@@ -58,9 +58,6 @@ fn halleys_div_free(x: f64, a: f64) -> f64 {
 #[inline]
 pub fn f_rcbrt(a: f64) -> f64 {
     // Decompose a = m * 2^e, with m in [0.5, 1)
-    static SIGN: [f64; 2] = [1.0, -1.0];
-    let signum = SIGN[a.is_sign_negative() as usize];
-    let a = a.abs();
     let xu = a.to_bits();
     let exp = ((xu >> 52) & 0x7ff) as i32;
     let mut e = ((xu >> 52) & 0x7ff) as i32;
@@ -119,22 +116,45 @@ pub fn f_rcbrt(a: f64) -> f64 {
 
     let z = p * f64::from_bits(ESCALE[rem_scale as usize]);
 
-    let zz = fast_ldexp(m, rem_scale); // bring mantissa into [1;8]
+    let mm = fast_ldexp(m, rem_scale); // bring domain into [1;8]
 
-    // One Householders's method step
+    // One Halley's method step
     // then refine in partial double-double precision with Newton-Raphson iteration
-    let y0 = halleys_div_free(z, zz);
+    let y0 = halleys_div_free(z, mm);
 
     let d2y = DoubleDouble::from_exact_mult(y0, y0);
     let d3y = DoubleDouble::quick_mult_f64(d2y, y0);
-    let hb = DoubleDouble::quick_mult_f64(d3y, zz);
-    // decompose double-double in linear FMA sums
-    // r = (1.0 - hb.hi - hb.lo) * y0 = y0 - hb.hi * y0 - hb.lo * y0 = fma(-hb.lo, y0, fma(-hb.hi, y0, y0))
-    let r = f_fmla(-hb.lo, y0, f_fmla(hb.hi, -y0, y0));
-    // // y1 = y0 + 1/3 * y0 * (1 - a * y0 * y0 * y0) = y0 + 1/3 * r
-    let y = f_fmla(1. / 3., r, y0);
+    let hb = DoubleDouble::quick_mult_f64(d3y, mm);
 
-    fast_ldexp(y, -q) * signum
+    let y: f64;
+
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        // decompose double-double in linear FMA sums
+        // r = (1.0 - hb.hi - hb.lo) * y0 = y0 - hb.hi * y0 - hb.lo * y0 = fma(-hb.lo, y0, fma(-hb.hi, y0, y0))
+        let r = f_fmla(-hb.lo, y0, f_fmla(hb.hi, -y0, y0));
+        // // y1 = y0 + 1/3 * y0 * (1 - a * y0 * y0 * y0) = y0 + 1/3 * r
+        y = f_fmla(1. / 3., r, y0);
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        let m_hb = DoubleDouble::full_add_f64(-hb, 1.0);
+        let r = DoubleDouble::quick_mult_f64(m_hb, y0);
+        y = f_fmla(1. / 3., r.to_f64(), y0);
+    }
+    f64::copysign(fast_ldexp(y, -q), a)
 }
 
 #[cfg(test)]
@@ -142,7 +162,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_fcbrt() {
+    fn test_rcbrt() {
+        assert_eq!(f_rcbrt(-68355745214719140000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
+                   -0.000000000000000000000000000000000000000002445728958868668);
         assert_eq!(f_rcbrt(-96105972807656840000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.),
                    -0.0000000000000000000000000000000000000000000000000000000002183148143573148);
         assert_eq!(f_rcbrt(0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000139491540182158),
