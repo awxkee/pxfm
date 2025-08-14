@@ -29,7 +29,7 @@
 use crate::common::f_fmla;
 
 #[inline(always)]
-fn halley_refine_d(x: f64, a: f64) -> f64 {
+pub(crate) fn halley_refine_d(x: f64, a: f64) -> f64 {
     let tx = x * x * x;
     x * f_fmla(2., a, tx) / f_fmla(2., tx, a)
 }
@@ -93,8 +93,8 @@ pub fn f_cbrtf(x: f32) -> f32 {
         if hx == 0 {
             return x; /* cbrt(+-0) is itself */
         }
-        const X1P24: f32 = f32::from_bits(0x4b800000);
-        ui = (x * X1P24).to_bits();
+        const TWO_EXP_24: f32 = f32::from_bits(0x4b800000);
+        ui = (x * TWO_EXP_24).to_bits();
         hx = ui & 0x7fffffff;
         const B2: u32 = 642849266;
         hx = (hx / 3).wrapping_add(B2);

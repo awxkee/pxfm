@@ -4,7 +4,7 @@ pretty = proc(u) {
 
 d = [1.0, 2.0];
 f_cbrt = x^(1/3);
-Q = fpminimax(f_cbrt, 4, [|D...|], d, relative, floating);
+Q = fpminimax(f_cbrt, 3, [|D...|], d, relative, floating);
 
 err_p = -log2(dirtyinfnorm(Q-f_cbrt, d));
 display = decimal;
