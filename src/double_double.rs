@@ -147,14 +147,16 @@ impl DoubleDouble {
         let l = ((b.hi - d) + (a.hi + (d - s))) + (a.lo + b.lo);
         DoubleDouble::new(l, s)
     }
-
-    #[inline]
-    pub(crate) fn quick_dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-        let DoubleDouble { hi: sh, lo: sl } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
-        let v = a.lo + b.lo;
-        let w = sl + v;
-        DoubleDouble::from_exact_add(sh, w)
-    }
+    //
+    // /// correct only when sign the same, with unknown error bounds
+    // /// what is we usually can't guarantee
+    // #[inline]
+    // pub(crate) fn quick_dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+    //     let DoubleDouble { hi: sh, lo: sl } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
+    //     let v = a.lo + b.lo;
+    //     let w = sl + v;
+    //     DoubleDouble::from_exact_add(sh, w)
+    // }
 
     #[inline]
     pub(crate) fn full_dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
@@ -166,10 +168,10 @@ impl DoubleDouble {
         DoubleDouble::from_exact_add(v.hi, w)
     }
 
-    #[inline]
-    pub(crate) fn quick_dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-        DoubleDouble::quick_dd_add(a, -b)
-    }
+    // #[inline]
+    // pub(crate) fn quick_dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+    //     DoubleDouble::quick_dd_add(a, -b)
+    // }
 
     #[inline]
     pub(crate) fn full_dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
@@ -428,14 +430,51 @@ impl DoubleDouble {
         }
     }
 
+    /// Safe to overflow underflow division using mandatory FMA.
     #[inline]
-    pub(crate) fn div_dd_f64(a: DoubleDouble, b: f64) -> Self {
+    #[allow(dead_code)]
+    pub(crate) fn div_safe_dd_f64(a: DoubleDouble, b: f64) -> Self {
         let q1 = a.hi / b;
         let r = f64::mul_add(-q1, b, a.hi);
         let r = r + a.lo;
         let q2 = r / b;
 
         DoubleDouble::new(q2, q1)
+    }
+
+    #[inline]
+    pub(crate) fn div_dd_f64(a: DoubleDouble, b: f64) -> Self {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let q1 = a.hi / b;
+            let r = f_fmla(-q1, b, a.hi);
+            let r = r + a.lo;
+            let q2 = r / b;
+
+            DoubleDouble::new(q2, q1)
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let th = a.hi / b;
+            let prod = DoubleDouble::from_exact_mult(th, b);
+            let beta_h = a.hi - prod.hi;
+            let beta_l = beta_h - prod.lo;
+            let beta = beta_l + a.lo;
+            let tl = beta / b;
+            DoubleDouble::new(tl, th)
+        }
     }
 
     /// Dekker division with one refinement step
@@ -728,7 +767,12 @@ impl DoubleDouble {
             all(target_arch = "aarch64", target_feature = "neon")
         )))]
         {
-            DoubleDouble::mult(a, b)
+            let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b.hi);
+            let tl1 = a.hi * b.lo;
+            let tl2 = a.lo * b.hi;
+            let cl2 = tl1 + tl2;
+            let cl3 = cl1 + cl2;
+            DoubleDouble::new(cl3, ch)
         }
     }
 
@@ -742,14 +786,12 @@ impl DoubleDouble {
             all(target_arch = "aarch64", target_feature = "neon")
         ))]
         {
-            let ahlh = b.hi * a.lo;
-            let alhh = b.lo * a.hi;
-            let ahhh = b.hi * a.hi;
-            let mut ahhl = f_fmla(b.hi, a.hi, -ahhh);
-            ahhl += alhh + ahlh;
-            let ch = ahhh + ahhl;
-            let l = (ahhh - ch) + ahhl;
-            Self { lo: l, hi: ch }
+            let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b.hi);
+            let tl0 = a.lo * b.lo;
+            let tl1 = f_fmla(a.hi, b.lo, tl0);
+            let cl2 = f_fmla(a.lo, b.hi, tl1);
+            let cl3 = cl1 + cl2;
+            DoubleDouble::from_exact_add(ch, cl3)
         }
         #[cfg(not(any(
             all(
@@ -759,18 +801,12 @@ impl DoubleDouble {
             all(target_arch = "aarch64", target_feature = "neon")
         )))]
         {
-            let zp = DoubleDouble::from_exact_mult(a.hi, b.hi);
-
-            let p2 = a.hi * b.lo;
-            let p3 = a.lo * b.hi;
-
-            let e1 = DoubleDouble::from_exact_add(zp.lo, p2);
-            let e2 = DoubleDouble::from_exact_add(e1.hi, p3);
-
-            let hi = zp.hi + e2.hi;
-            let lo = (zp.hi - hi) + e2.hi + e1.lo + e2.lo;
-
-            Self { lo, hi }
+            let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b.hi);
+            let tl1 = a.hi * b.lo;
+            let tl2 = a.lo * b.hi;
+            let cl2 = tl1 + tl2;
+            let cl3 = cl1 + cl2;
+            DoubleDouble::from_exact_add(ch, cl3)
         }
     }
 
@@ -866,18 +902,10 @@ impl DoubleDouble {
             all(target_arch = "aarch64", target_feature = "neon")
         )))]
         {
-            let h = a.hi * b;
-
-            let a_split = DoubleDouble::split(a.hi);
-            let b_split = DoubleDouble::split(b);
-
-            let err = (((a_split.hi * b_split.hi - h) + a_split.hi * b_split.lo)
-                + a_split.lo * b_split.hi)
-                + a_split.lo * b_split.lo;
-
-            let l = a.lo * b + err;
-
-            Self { lo: l, hi: h }
+            let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b);
+            let cl2 = a.lo * b;
+            let cl3 = cl1 + cl2;
+            DoubleDouble::new(cl3, ch)
         }
     }
 
@@ -948,7 +976,7 @@ impl Mul<DoubleDouble> for DoubleDouble {
 #[inline]
 pub(crate) fn two_product_compatible(x: f64) -> bool {
     let exp = get_exponent_f64(x);
-    !(exp >= 970 || exp <= -1050)
+    !(exp >= 970 || exp <= -970)
 }
 
 #[cfg(test)]
