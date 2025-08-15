@@ -26,9 +26,11 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bits::get_exponent_f64;
 #[allow(unused_imports)]
 use crate::common::*;
 use std::ops::{Mul, Neg};
+// https://hal.science/hal-01351529v3/document
 
 #[derive(Copy, Clone, Default, Debug)]
 pub(crate) struct DoubleDouble {
@@ -147,16 +149,31 @@ impl DoubleDouble {
     }
 
     #[inline]
-    pub(crate) fn dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-        let DoubleDouble { hi: v1, lo: v2 } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
-        let v3 = a.lo + b.lo;
-        let v4 = v2 + v3;
-        DoubleDouble::from_full_exact_add(v1, v4)
+    pub(crate) fn quick_dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+        let DoubleDouble { hi: sh, lo: sl } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
+        let v = a.lo + b.lo;
+        let w = sl + v;
+        DoubleDouble::from_exact_add(sh, w)
     }
 
     #[inline]
-    pub(crate) fn dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-        DoubleDouble::dd_add(a, -b)
+    pub(crate) fn full_dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+        let DoubleDouble { hi: sh, lo: sl } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
+        let DoubleDouble { hi: th, lo: tl } = DoubleDouble::from_full_exact_add(a.lo, b.lo);
+        let c = sl + th;
+        let v = DoubleDouble::from_exact_add(sh, c);
+        let w = tl + v.lo;
+        DoubleDouble::from_exact_add(v.hi, w)
+    }
+
+    #[inline]
+    pub(crate) fn quick_dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+        DoubleDouble::quick_dd_add(a, -b)
+    }
+
+    #[inline]
+    pub(crate) fn full_dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+        DoubleDouble::full_dd_add(a, -b)
     }
 
     #[inline]
@@ -210,7 +227,7 @@ impl DoubleDouble {
     #[inline]
     pub(crate) fn mul_add_f64(a: DoubleDouble, b: DoubleDouble, c: f64) -> DoubleDouble {
         let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult(a, b);
-        let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_exact_add(c, h);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_full_exact_add(c, h);
         DoubleDouble::new(r + q, p)
     }
 
@@ -220,7 +237,7 @@ impl DoubleDouble {
     #[inline]
     pub(crate) fn mul_f64_add_f64(a: DoubleDouble, b: f64, c: f64) -> DoubleDouble {
         let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_f64(a, b);
-        let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_exact_add(c, h);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_full_exact_add(c, h);
         DoubleDouble::new(r + q, p)
     }
 
@@ -297,6 +314,36 @@ impl DoubleDouble {
             let err = (1.0 - prod.hi) - prod.lo;
             let x_lo = err / b;
             Self::new(x_lo, x_hi)
+        }
+    }
+
+    #[inline]
+    pub(crate) fn from_quick_recip(b: f64) -> Self {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        ))]
+        {
+            let h = 1.0 / b;
+            let hl = f_fmla(h, -b, 1.) * h;
+            DoubleDouble::new(hl, h)
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            all(target_arch = "aarch64", target_feature = "neon")
+        )))]
+        {
+            let h = 1.0 / b;
+            let pr = DoubleDouble::from_exact_mult(h, b);
+            let err = (1.0 - pr.hi) - pr.lo;
+            let hl = err * h;
+            DoubleDouble::new(hl, h)
         }
     }
 
@@ -896,6 +943,14 @@ impl Mul<DoubleDouble> for DoubleDouble {
     }
 }
 
+/// check if number is valid for Exact mult
+#[allow(dead_code)]
+#[inline]
+pub(crate) fn two_product_compatible(x: f64) -> bool {
+    let exp = get_exponent_f64(x);
+    !(exp >= 970 || exp <= -1050)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -929,6 +984,14 @@ mod tests {
     fn from_recip_test() {
         let d1 = 1.54352432142;
         let recip = DoubleDouble::from_recip(d1);
+        assert_eq!(recip.hi, d1.recip());
+        assert_ne!(recip.lo, 0.);
+    }
+
+    #[test]
+    fn from_quick_recip_test() {
+        let d1 = 1.54352432142;
+        let recip = DoubleDouble::from_quick_recip(d1);
         assert_eq!(recip.hi, d1.recip());
         assert_ne!(recip.lo, 0.);
     }

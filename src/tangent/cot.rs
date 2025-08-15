@@ -102,7 +102,7 @@ pub fn f_cot(x: f64) -> f64 {
                     return 1. / x;
                 }
 
-                let dx = DoubleDouble::from_recip(x);
+                let dx = DoubleDouble::from_quick_recip(x);
                 // taylor order 3
                 return DoubleDouble::f64_mul_f64_add(x, f64::from_bits(0xbfd5555555555555), dx)
                     .to_f64();
@@ -135,8 +135,8 @@ pub fn f_cot(x: f64) -> f64 {
     let sk = SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
     let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
 
-    let msin_k = DoubleDouble::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
-    let cos_k = DoubleDouble::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
+    let msin_k = DoubleDouble::from_bit_pair(sk);
+    let cos_k = DoubleDouble::from_bit_pair(ck);
 
     let cos_k_tan_y = DoubleDouble::quick_mult(tan_y, cos_k);
     let msin_k_tan_y = DoubleDouble::quick_mult(tan_y, msin_k);

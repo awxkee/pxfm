@@ -366,7 +366,7 @@ fn y1_near_zero(x: f64, w_log: DoubleDouble) -> f64 {
     }
 
     let zvp = DoubleDouble::mul_add(w, w_log, -z);
-    DoubleDouble::dd_add(m_two_over_pi_div_x, zvp).to_f64()
+    DoubleDouble::quick_dd_add(m_two_over_pi_div_x, zvp).to_f64()
 }
 
 #[inline]
@@ -935,8 +935,8 @@ pub(crate) fn y1_asympt_fast(x: f64) -> f64 {
     let AngleReduced { angle } = rem2pi_any(x);
 
     // Without full subtraction cancellation happens sometimes
-    let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
-    let r0 = DoubleDouble::dd_add(angle, x0pi34);
+    let x0pi34 = DoubleDouble::quick_dd_sub(MPI_OVER_4, alpha);
+    let r0 = DoubleDouble::quick_dd_add(angle, x0pi34);
 
     let m_cos = -cos_dd_small_fast(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_cos);
@@ -978,8 +978,8 @@ fn y1_asympt(x: f64, recip: DoubleDouble, r_sqrt: DoubleDouble, angle: DoubleDou
     let beta = bessel_1_asympt_beta(recip);
 
     // Without full subtraction cancellation happens sometimes
-    let x0pi34 = DoubleDouble::dd_sub(MPI_OVER_4, alpha);
-    let r0 = DoubleDouble::dd_add(angle, x0pi34);
+    let x0pi34 = DoubleDouble::full_dd_sub(MPI_OVER_4, alpha);
+    let r0 = DoubleDouble::full_dd_add(angle, x0pi34);
 
     let m_cos = -cos_dd_small(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_cos);

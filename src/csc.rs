@@ -84,7 +84,7 @@ pub fn f_csc(x: f64) -> f64 {
             }
 
             // For |x| < 2^-26, |sin(x) - x| < ulp(x)/2.
-            let rcp = DoubleDouble::from_recip(x);
+            let rcp = DoubleDouble::from_quick_recip(x);
             return DoubleDouble::f64_mul_f64_add(x, f64::from_bits(0x3fc5555555555555), rcp)
                 .to_f64();
         }

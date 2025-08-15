@@ -106,13 +106,11 @@ when |x| > 0x1.bep20. */
 fn atanpi_asympt(x: f64) -> f64 {
     let h = f64::copysign(0.5, x);
     // approximate 1/x as yh + yl
-    let yh = 1.0 / x;
-    // Newton's iteration for the inverse is y = y + y*(1-x*y)
-    let yl = yh * dd_fmla(yh, -x, 1.0);
-    let mut m = DoubleDouble::mult(DoubleDouble::new(yl, yh), ONE_OVER_PI_DD);
+    let rcy = DoubleDouble::from_quick_recip(x);
+    let mut m = DoubleDouble::quick_mult(rcy, ONE_OVER_PI_DD);
     // m + l ~ 1/pi * 1/x
     m.hi = -m.hi;
-    m.lo = dd_fmla(ONE_OVER_3PI * yh, yh * yh, -m.lo);
+    m.lo = dd_fmla(ONE_OVER_3PI * rcy.hi, rcy.hi * rcy.hi, -m.lo);
     // m + l ~ - 1/pi * 1/x + 1/(3pi) * 1/x^3
     let vh = DoubleDouble::from_exact_add(h, m.hi);
     m.hi = vh.hi;
@@ -125,20 +123,18 @@ fn atanpi_asympt(x: f64) -> f64 {
             f64::copysign(f64::from_bits(0x3c7fffffffffffff), m.hi)
         };
     }
-    h + m.hi
+    vh.hi + m.hi
 }
 
 #[inline]
 fn atanpi_tiny(x: f64) -> f64 {
-    let h = x * ONE_OVER_PI_DD.hi;
-    let mut l = dd_fmla(x, ONE_OVER_PI_DD.hi, -h);
-    l = dd_fmla(x, ONE_OVER_PI_DD.lo, l);
-    l = dd_fmla(-ONE_OVER_3PI * x, x * x, l);
-    h + l
+    let mut dx = DoubleDouble::quick_mult_f64(ONE_OVER_PI_DD, x);
+    dx.lo = dd_fmla(-ONE_OVER_3PI * x, x * x, dx.lo);
+    dx.to_f64()
 }
 
 #[cold]
-fn as_atan_refine2(x: f64, a: f64) -> f64 {
+fn as_atanpi_refine2(x: f64, a: f64) -> f64 {
     if x.abs() > f64::from_bits(0x413be00000000000) {
         return atanpi_asympt(x);
     }
@@ -158,36 +154,32 @@ fn as_atan_refine2(x: f64, a: f64) -> f64 {
     ];
     let phi = ((a.abs()) * f64::from_bits(0x40545f306dc9c883) + 256.5).to_bits();
     let i: i64 = ((phi >> (52 - 8)) & 0xff) as i64;
-    let (h, hl);
-    if i == 128 {
-        h = -1.0 / x;
-        hl = dd_fmla(h, x, 1.) * h;
+    let dh: DoubleDouble = if i == 128 {
+        DoubleDouble::from_quick_recip(-x)
     } else {
         let ta = f64::copysign(f64::from_bits(ATAN_REDUCE[i as usize].0), x);
-        let zta = x * ta;
-        let ztal = dd_fmla(x, ta, -zta);
+        let dzta = DoubleDouble::from_exact_mult(x, ta);
         let zmta = x - ta;
-        let v = 1. + zta;
+        let v = 1. + dzta.hi;
         let d = 1. - v;
-        let ev = (d + zta) - ((d + v) - 1.) + ztal;
+        let ev = (d + dzta.hi) - ((d + v) - 1.) + dzta.lo;
         let r = 1.0 / v;
         let rl = f_fmla(-ev, r, dd_fmla(r, -v, 1.0)) * r;
-        h = r * zmta;
-        hl = f_fmla(rl, zmta, dd_fmla(r, zmta, -h));
-    }
-    let d2 = DoubleDouble::mult(DoubleDouble::new(hl, h), DoubleDouble::new(hl, h));
+        DoubleDouble::quick_mult_f64(DoubleDouble::new(rl, r), zmta)
+    };
+    let d2 = DoubleDouble::quick_mult(dh, dh);
     let h4 = d2.hi * d2.hi;
-    let h3 = DoubleDouble::mult(DoubleDouble::new(hl, h), d2);
+    let h3 = DoubleDouble::quick_mult(dh, d2);
 
     let fl0 = f_fmla(d2.hi, f64::from_bits(CL[1]), f64::from_bits(CL[0]));
     let fl1 = f_fmla(d2.hi, f64::from_bits(CL[3]), f64::from_bits(CL[2]));
 
     let fl = d2.hi * f_fmla(h4, fl1, fl0);
     let mut f = poly_dd_3(d2, CH, fl);
-    f = DoubleDouble::mult(h3, f);
+    f = DoubleDouble::quick_mult(h3, f);
     let (ah, mut al, mut at);
     if i == 0 {
-        ah = h;
+        ah = dh.hi;
         al = f.hi;
         at = f.lo;
     } else {
@@ -200,7 +192,7 @@ fn as_atan_refine2(x: f64, a: f64) -> f64 {
         al = f64::from_bits(0x3c88469898cc5180) * id;
         at = f64::from_bits(0xb97fc8f8cbb5bf80) * id;
         let v0 = DoubleDouble::add(DoubleDouble::new(at, al), DoubleDouble::new(0., df));
-        let v1 = DoubleDouble::add(v0, DoubleDouble::new(hl, h));
+        let v1 = DoubleDouble::add(v0, dh);
         let v2 = DoubleDouble::add(v1, f);
         al = v2.hi;
         at = v2.lo;
@@ -268,8 +260,8 @@ pub fn f_atanpi(x: f64) -> f64 {
             return ub;
         }
         // end_atanpi
-        ub = (f + f * f64::from_bits(0x3cd2000000000000)) + x; // atanpi_specific, original value in atan.c
-        return as_atan_refine2(x, ub);
+        ub = (f + f * f64::from_bits(0x3cd2000000000000)) + x; // atanpi_specific, original value in atan
+        return as_atanpi_refine2(x, ub);
     }
     // now |x| >= 0x1.b21c475e6362ap-8
     let h;
@@ -343,7 +335,7 @@ pub fn f_atanpi(x: f64) -> f64 {
     if ub == lb {
         return ub;
     }
-    as_atan_refine2(x, ub0)
+    as_atanpi_refine2(x, ub0)
 }
 
 #[cfg(test)]
@@ -353,6 +345,7 @@ mod tests {
 
     #[test]
     fn atanpi_test() {
+        assert_eq!(f_atanpi(119895888825197.97), 0.49999999999999734);
         assert_eq!(f_atanpi(1.5610674235815122E-307), 4.969031939254545e-308);
         assert_eq!(f_atanpi(0.00004577636903266291), 0.000014571070806516354);
         assert_eq!(f_atanpi(-0.00004577636903266291), -0.000014571070806516354);

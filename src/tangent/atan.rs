@@ -212,24 +212,20 @@ fn atan_refine(x: f64, a: f64) -> f64 {
     let phi = f_fmla(a.abs(), f64::from_bits(0x40545f306dc9c883), 256.5).to_bits();
     let i = ((phi >> (52 - 8)) & 0xff) as i64;
     let h: DoubleDouble = if i == 128 {
-        let hz = -1.0 / x;
-        DoubleDouble::new(dd_fmla(hz, x, 1.) * hz, -1.0 / x)
+        DoubleDouble::from_quick_recip(-x)
     } else {
         let ta = f64::copysign(f64::from_bits(ATAN_REDUCE[i as usize].0), x);
-        let zta = x * ta;
-        let ztal = dd_fmla(x, ta, -zta);
+        let dzt = DoubleDouble::from_exact_mult(x, ta);
         let zmta = x - ta;
-        let v = 1.0 + zta;
+        let v = 1.0 + dzt.hi;
         let d = 1.0 - v;
-        let ev = (d + zta) - ((d + v) - 1.0) + ztal;
+        let ev = (d + dzt.hi) - ((d + v) - 1.0) + dzt.lo;
         let r = 1.0 / v;
         let rl = f_fmla(-ev, r, dd_fmla(r, -v, 1.0)) * r;
-        let hz = r * zmta;
-        let hl = f_fmla(rl, zmta, dd_fmla(r, zmta, -hz));
-        DoubleDouble::new(hl, hz)
+        DoubleDouble::quick_mult_f64(DoubleDouble::new(rl, r), zmta)
     };
-    let h2 = DoubleDouble::mult(h, h);
-    let h3 = DoubleDouble::mult(h, h2);
+    let h2 = DoubleDouble::quick_mult(h, h);
+    let h3 = DoubleDouble::quick_mult(h, h2);
     let h4 = h2.hi * h2.hi;
 
     let zw0 = f_fmla(h2.hi, f64::from_bits(CL[3]), f64::from_bits(CL[2]));
@@ -237,7 +233,7 @@ fn atan_refine(x: f64, a: f64) -> f64 {
     let zfl = f_fmla(h2.hi, zw1, h4 * zw0);
 
     let mut f = poly_dd_3(h2, CH, zfl);
-    f = DoubleDouble::mult(h3, f);
+    f = DoubleDouble::quick_mult(h3, f);
     let (ah, mut az);
     if i == 0 {
         ah = h.hi;
