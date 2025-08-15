@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 8/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -27,60 +27,41 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/// Computes Square root.
-/// Most of CPU have built-in instruction with higher precision,
-/// prefer use this only for const contexts.
+/// Computes 1/sqrt(x)
+///
+/// Max ULP 0.5
 #[inline]
-pub const fn sqrtf(d: f32) -> f32 {
-    let mut q = 0.5f32;
+pub fn f_rsqrtf(x: f32) -> f32 {
+    let ix = x.to_bits();
 
-    let mut d = if d < 0f32 { f32::NAN } else { d };
-
-    if d < 5.2939559203393770e-23f32 {
-        d *= 1.8889465931478580e+22f32;
-        q = 7.2759576141834260e-12f32;
+    // filter out exceptional cases
+    if ix >= 0xffu32 << 23 || ix == 0 {
+        if ix.wrapping_shl(1) == 0 {
+            return 1.0 / x; // +/-0
+        }
+        if (ix >> 31) != 0 {
+            return f32::NAN;
+        }
+        if ix.wrapping_shl(9) == 0 {
+            return 0.;
+        }
+        return x + x; // nan
     }
 
-    if d > 1.8446744073709552e+19f32 {
-        d *= 5.4210108624275220e-20f32;
-        q = 4294967296.0f32;
-    }
-
-    // http://en.wikipedia.org/wiki/Fast_inverse_square_root
-    let mut x = f32::from_bits(0x5f375a86 - ((d + 1e-45).to_bits() >> 1)) as f64;
-
-    x = x * (1.5 - 0.5 * (d as f64) * x * x);
-    x = x * (1.5 - 0.5 * (d as f64) * x * x);
-    x = x * (1.5 - 0.5 * (d as f64) * x * x) * (d as f64);
-
-    let d2 = ((d as f64) + x * x) * (1. / x);
-
-    if d.is_infinite() {
-        return f32::INFINITY;
-    }
-    (d2 * q as f64) as f32
+    let dx = x as f64;
+    ((1. / dx) * dx.sqrt()) as f32
 }
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
-    fn sqrtf_test() {
-        assert!(
-            (sqrtf(4f32) - 2f32).abs() < 1e-6,
-            "Invalid result {}",
-            sqrtf(4f32)
-        );
-        assert!(
-            (sqrtf(9f32) - 3f32).abs() < 1e-6,
-            "Invalid result {}",
-            sqrtf(9f32)
-        );
-        println!("{}", sqrtf(4f32));
-        println!("{}", sqrtf(9f32));
-        println!("{}", sqrtf(12f32));
-        println!("{}", sqrtf(25f32));
+    fn test_rsqrtf() {
+        assert_eq!(f_rsqrtf(0.0), f32::INFINITY);
+        assert_eq!(f_rsqrtf(4.0), 0.5);
+        assert_eq!(f_rsqrtf(9.0), 1. / 3.);
+        assert_eq!(f_rsqrtf(-0.0), f32::NEG_INFINITY);
+        assert!(f_rsqrtf(f32::NAN).is_nan());
     }
 }

@@ -256,8 +256,8 @@ pub fn f_tan(x: f64) -> f64 {
     // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
     let sk = SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
     let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
-    let msin_k = DoubleDouble::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
-    let cos_k = DoubleDouble::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
+    let msin_k = DoubleDouble::from_bit_pair(sk);
+    let cos_k = DoubleDouble::from_bit_pair(ck);
 
     let cos_k_tan_y = DoubleDouble::quick_mult(tan_y, cos_k);
     let msin_k_tan_y = DoubleDouble::quick_mult(tan_y, msin_k);

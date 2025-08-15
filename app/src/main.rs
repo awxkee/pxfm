@@ -1,8 +1,8 @@
 use bessel::bessel_i0;
 use pxfm::{
     f_cbrtf, f_cosf, f_cospi, f_cospif, f_cotf, f_cscf, f_exp2f, f_exp10f, f_i0, f_j0, f_j0f, f_j1,
-    f_j1f, f_k0, f_k1, f_log, f_rcbrtf, f_secf, f_sincf, f_sincospif, f_sinf, f_sinpi, f_sinpif,
-    f_tanf, f_y0, f_y0f, f_y1, f_y1f,
+    f_j1f, f_k0, f_k1, f_log, f_rcbrtf, f_rsqrtf, f_secf, f_sincf, f_sincospif, f_sinf, f_sinpi,
+    f_sinpif, f_tanf, f_y0, f_y0f, f_y1, f_y1f,
 };
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -153,8 +153,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected_sin_pi = Float::with_val(53, x).cbrt().recip();
-        let actual = f_rcbrtf(x);
+        let expected_sin_pi = Float::with_val(53, x).recip_sqrt();
+        let actual = f_rsqrtf(x);
 
         executions.fetch_add(1, Ordering::Relaxed);
 
