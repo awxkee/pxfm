@@ -123,8 +123,8 @@ fn j1_asympt_fast(x: f64) -> f64 {
     let AngleReduced { angle } = rem2pi_any(x);
 
     // Without full subtraction cancellation happens sometimes
-    let x0pi34 = DoubleDouble::quick_dd_sub(MPI_OVER_4, alpha);
-    let r0 = DoubleDouble::quick_dd_add(angle, x0pi34);
+    let x0pi34 = DoubleDouble::full_dd_sub(MPI_OVER_4, alpha);
+    let r0 = DoubleDouble::full_dd_add(angle, x0pi34);
 
     let m_sin = sin_dd_small_fast(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_sin);

@@ -218,7 +218,32 @@ fn y1_near_zero_fast(x: f64) -> f64 {
     const MINUS_TWO_OVER_PI: DoubleDouble =
         DoubleDouble::from_bit_pair((0x3c86b01ec5417056, 0xbfe45f306dc9c883));
 
-    let m_two_over_pi_div_x = DoubleDouble::div_dd_f64(MINUS_TWO_OVER_PI, x);
+    let m_two_over_pi_div_x: DoubleDouble;
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        m_two_over_pi_div_x = DoubleDouble::div_dd_f64(MINUS_TWO_OVER_PI, x)
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        use crate::double_double::two_product_compatible;
+        m_two_over_pi_div_x = if two_product_compatible(x) {
+            DoubleDouble::div_dd_f64(MINUS_TWO_OVER_PI, x)
+        } else {
+            DoubleDouble::div_safe_dd_f64(MINUS_TWO_OVER_PI, x)
+        };
+    }
     if m_two_over_pi_div_x.hi.is_infinite() {
         return f64::NEG_INFINITY;
     }
@@ -360,13 +385,38 @@ fn y1_near_zero(x: f64, w_log: DoubleDouble) -> f64 {
     const MINUS_TWO_OVER_PI: DoubleDouble =
         DoubleDouble::from_bit_pair((0x3c86b01ec5417056, 0xbfe45f306dc9c883));
 
-    let m_two_over_pi_div_x = DoubleDouble::div_dd_f64(MINUS_TWO_OVER_PI, x);
+    let m_two_over_pi_div_x: DoubleDouble;
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        m_two_over_pi_div_x = DoubleDouble::div_dd_f64(MINUS_TWO_OVER_PI, x)
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        use crate::double_double::two_product_compatible;
+        m_two_over_pi_div_x = if two_product_compatible(x) {
+            DoubleDouble::div_dd_f64(MINUS_TWO_OVER_PI, x)
+        } else {
+            DoubleDouble::div_safe_dd_f64(MINUS_TWO_OVER_PI, x)
+        };
+    }
     if m_two_over_pi_div_x.hi.is_infinite() {
         return f64::NEG_INFINITY;
     }
 
     let zvp = DoubleDouble::mul_add(w, w_log, -z);
-    DoubleDouble::quick_dd_add(m_two_over_pi_div_x, zvp).to_f64()
+    DoubleDouble::full_dd_add(m_two_over_pi_div_x, zvp).to_f64()
 }
 
 #[inline]
@@ -935,8 +985,8 @@ pub(crate) fn y1_asympt_fast(x: f64) -> f64 {
     let AngleReduced { angle } = rem2pi_any(x);
 
     // Without full subtraction cancellation happens sometimes
-    let x0pi34 = DoubleDouble::quick_dd_sub(MPI_OVER_4, alpha);
-    let r0 = DoubleDouble::quick_dd_add(angle, x0pi34);
+    let x0pi34 = DoubleDouble::full_dd_sub(MPI_OVER_4, alpha);
+    let r0 = DoubleDouble::full_dd_add(angle, x0pi34);
 
     let m_cos = -cos_dd_small_fast(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_cos);
@@ -1048,6 +1098,8 @@ mod tests {
     #[test]
     fn test_y1() {
         // ULP should be less than 0.500001, but it was 0.5089558379720955, on 2.1957931471395398 result -0.0007023285780874727, using f_y1 and MPFR -0.0007023285780874729
+        assert_eq!(f_y1(0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007291282546733975),
+                   -873124540555277200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.);
         assert_eq!(f_y1(2.1957931471395398), -0.0007023285780874729);
         assert_eq!(
             f_y1(f64::from_bits(0x571a31ffe2ff7e9fu64)),
