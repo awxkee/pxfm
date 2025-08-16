@@ -479,7 +479,7 @@ fn exp_1(x: DoubleDouble) -> DoubleDouble {
         f64::from_bits(0x3bbabc9e3b39803f),
         f64::from_bits(0x3f262e42fefa39ef),
     );
-    let k_dd = DoubleDouble::f64_mult(k, LOG2_DD);
+    let k_dd = DoubleDouble::quick_f64_mult(k, LOG2_DD);
     let mut y_dd = DoubleDouble::from_exact_add(x.hi - k_dd.hi, x.lo);
     y_dd.lo -= k_dd.lo;
 
@@ -761,7 +761,7 @@ fn erfc_asympt_fast(x: f64) -> Erf {
     zh = dd_fmla(zh, u.hi, f64::from_bits(p[10])); // degree 19
 
     /* degree 17: zh*(uh+ul)+p[i] */
-    let mut v = DoubleDouble::f64_mult(zh, u);
+    let mut v = DoubleDouble::quick_f64_mult(zh, u);
     let mut z_dd = DoubleDouble::from_exact_add(f64::from_bits(p[9]), v.hi);
     z_dd.lo += v.lo;
 

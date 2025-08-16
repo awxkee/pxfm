@@ -354,7 +354,7 @@ fn exp_2(x: f64) -> DoubleDouble {
 
     /* now x = k + yh, thus 2^x = 2^k * 2^yh, and we multiply yh by log(2)
     to use the accurate path of exp() */
-    let ky = DoubleDouble::f64_mult(yhh, DoubleDouble::new(LN2L, LN2H));
+    let ky = DoubleDouble::quick_f64_mult(yhh, DoubleDouble::new(LN2L, LN2H));
 
     let ik = k as i64;
     let im = (ik >> 12).wrapping_add(0x3ff);
@@ -417,48 +417,48 @@ pub(crate) fn exp2m1_accurate_tiny(x: f64) -> f64 {
         f_fmla(f64::from_bits(Q[16]), x, f_fmla(c11, x2, c13 * x4)),
     );
     // multiply h+l by x and add Q[14] (degree 8)
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
     let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[14]), p.hi);
     p.lo += p0.lo;
     p.hi = p0.hi;
 
     // multiply h+l by x and add Q[12]+Q[13] (degree 7)
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
     let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[12]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[13]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[10]+Q[11] (degree 6)
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
     let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[10]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[11]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[8]+Q[9] (degree 5)
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
     let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[8]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[9]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[6]+Q[7] (degree 4)
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
     let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[6]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[7]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[4]+Q[5] (degree 3)
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
     let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[4]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[5]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[2]+Q[3] (degree 2)
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
     let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[2]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[3]);
     p.hi = p0.hi;
     // multiply h+l by x and add Q[0]+Q[1] (degree 2)
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
     let p0 = DoubleDouble::from_exact_add(f64::from_bits(Q[0]), p.hi);
     p.lo += p0.lo + f64::from_bits(Q[1]);
     p.hi = p0.hi;
     // multiply h+l by x
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
     p.to_f64()
 }
 
@@ -524,18 +524,18 @@ fn exp2m1_fast_tiny(x: f64) -> Exp2m1 {
     p.lo += p0.lo;
     p.hi = p0.hi;
 
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
 
     let p1 = DoubleDouble::from_exact_add(f64::from_bits(P[2]), p.hi);
     p.lo += p1.lo + f64::from_bits(P[3]);
     p.hi = p1.hi;
 
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
     let p2 = DoubleDouble::from_exact_add(f64::from_bits(P[0]), p.hi);
     p.lo += p2.lo + f64::from_bits(P[1]);
     p.hi = p2.hi;
 
-    p = DoubleDouble::f64_mult(x, p);
+    p = DoubleDouble::quick_f64_mult(x, p);
 
     Exp2m1 {
         exp: p,
