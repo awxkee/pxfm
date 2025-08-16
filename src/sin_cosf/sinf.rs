@@ -30,7 +30,7 @@ use crate::common::f_fmla;
 use crate::polyeval::f_polyeval5;
 use crate::sin_cosf::sincosf_eval::sincosf_eval;
 
-/// Sine function using FMA
+/// Sine function
 ///
 /// Max found ULP 0.4999996
 #[inline]

@@ -69,7 +69,7 @@ pub const fn cbrtf(x: f32) -> f32 {
     halley_refine(t, x)
 }
 
-/// Computes Cube Root using FMA
+/// Computes cube root
 ///
 /// Peak ULP on 64 bit = 0.49999577
 #[inline]

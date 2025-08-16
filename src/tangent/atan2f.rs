@@ -139,7 +139,7 @@ fn atan2f_refine(ay: u32, ax: u32, y: f32, x: f32, zy: f64, zx: f64, gt: usize, 
     r as f32
 }
 
-/// Computes Atan2 using FMA
+/// Computes atan2
 ///
 /// Max found ULP 0.49999842
 #[inline]
