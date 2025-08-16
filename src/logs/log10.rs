@@ -164,7 +164,7 @@ pub(crate) static LOG_R_DD: [(u64, u64); 128] = [
     (0x0000000000000000, 0x0000000000000000),
 ];
 
-/// Natural logarithm using FMA
+/// Logarithm of base 10
 ///
 /// Max found ULP 0.5
 #[inline]

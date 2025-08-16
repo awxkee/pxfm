@@ -71,7 +71,7 @@ fn as_cosh_zero(x: f64) -> f64 {
     y0.hi + p.hi
 }
 
-/// Huperbolic cosine function
+/// Hyperbolic cosine function
 ///
 /// Max ULP 0.5
 #[inline]

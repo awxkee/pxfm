@@ -192,7 +192,7 @@ fn powf_dd(idx_x: i32, dx: f64, y6: f64, lo6_hi: f64, exp2_hi_mid: DoubleDouble)
     f64::from_bits(r_bits)
 }
 
-/// Power function for given value using FMA
+/// Power function
 ///
 /// Max found ULP 0.5
 #[inline]

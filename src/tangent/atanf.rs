@@ -28,7 +28,7 @@
  */
 use crate::common::{f_fmla, f_fmlaf};
 
-/// Computes atan using FMA
+/// Computes atan
 ///
 /// Max found ULP 0.49999973
 #[inline]

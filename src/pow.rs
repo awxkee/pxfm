@@ -133,7 +133,7 @@ fn f_powi_hard(x: f64, y: f64) -> f64 {
     dz.to_f64()
 }
 
-/// Power function for given value using FMA
+/// Power function
 ///
 /// max found ULP 0.5
 pub fn f_pow(x: f64, y: f64) -> f64 {

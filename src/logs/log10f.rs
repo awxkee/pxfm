@@ -160,7 +160,7 @@ static LOG10_R: [u64; 128] = [
     0x3fd34413509f79ff,
 ];
 
-/// Natural logarithm using FMA
+/// Logarithm of base 10
 ///
 /// Max found ULP 0.49999943
 #[inline]

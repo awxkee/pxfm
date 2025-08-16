@@ -160,7 +160,7 @@ pub(crate) static LOG2_R: [u64; 128] = [
     0x3ff0000000000000,
 ];
 
-/// Natural logarithm using FMA
+/// Logarithm of base 2
 ///
 /// Max found ULP 0.4999996
 #[inline]
