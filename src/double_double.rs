@@ -820,13 +820,9 @@ impl DoubleDouble {
             all(target_arch = "aarch64", target_feature = "neon")
         ))]
         {
-            let ahlh = b * a.lo;
-            let ahhh = b * a.hi;
-            let mut ahhl = f_fmla(b, a.hi, -ahhh);
-            ahhl += ahlh;
-            let ch = ahhh + ahhl;
-            let l = (ahhh - ch) + ahhl;
-            DoubleDouble::new(l, ch)
+            let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b);
+            let cl3 = f_fmla(a.lo, b, cl1);
+            DoubleDouble::from_exact_add(ch, cl3)
         }
         #[cfg(not(any(
             all(
@@ -836,48 +832,17 @@ impl DoubleDouble {
             all(target_arch = "aarch64", target_feature = "neon")
         )))]
         {
-            let z = DoubleDouble::from_exact_mult(a.hi, b);
-            let lo_mul = a.lo * b;
-            let s = z.lo + lo_mul;
-            let r_hi = z.hi + s;
-            let r_lo = s - (r_hi - z.hi);
-
-            DoubleDouble { hi: r_hi, lo: r_lo }
+            let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b);
+            let cl2 = a.lo * b;
+            let t = DoubleDouble::from_exact_add(ch, cl2);
+            let tl2 = t.lo + cl1;
+            DoubleDouble::from_exact_add(t.hi, tl2)
         }
     }
 
     #[inline]
-    pub(crate) fn f64_mult(a: f64, b: DoubleDouble) -> DoubleDouble {
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            let mut p = DoubleDouble::from_exact_mult(a, b.hi);
-            p.lo = f_fmla(a, b.lo, p.lo);
-            p
-        }
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            let z = DoubleDouble::from_exact_mult(a, b.hi);
-            let lo_mul = a * b.lo;
-
-            let s = z.lo + lo_mul;
-
-            let r_hi = z.hi + s;
-            let r_lo = s - (r_hi - z.hi);
-
-            DoubleDouble { hi: r_hi, lo: r_lo }
-        }
+    pub(crate) fn quick_f64_mult(a: f64, b: DoubleDouble) -> DoubleDouble {
+        DoubleDouble::quick_mult_f64(b, a)
     }
 
     #[inline]
@@ -986,7 +951,7 @@ mod tests {
     fn test_f64_mult() {
         let d1 = 1.1231;
         let d2 = DoubleDouble::new(1e-22, 3.2341);
-        let p = DoubleDouble::f64_mult(d1, d2);
+        let p = DoubleDouble::quick_f64_mult(d1, d2);
         assert_eq!(p.hi, 3.6322177100000004);
         assert_eq!(p.lo, -1.971941841373783e-16);
     }

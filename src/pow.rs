@@ -211,10 +211,13 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
                     )))]
                     {
                         let r = x.sqrt() / x;
-                        let dx2 = DoubleDouble::from_exact_mult(r, x);
-                        let h = f_fmla(r, dx2.hi, -1.0) + r * dx2.lo;
-                        let dr = (r * 0.5) * h;
-                        r - dr
+                        let d2x = DoubleDouble::from_exact_mult(r, x);
+                        let DoubleDouble { hi: h, lo: pr } = DoubleDouble::quick_mult_f64(d2x, r);
+                        let DoubleDouble { hi: p, lo: q } =
+                            DoubleDouble::from_full_exact_add(-1.0, h);
+                        let h = DoubleDouble::from_exact_add(p, pr + q);
+                        let dr = DoubleDouble::quick_mult_f64(h, r * 0.5);
+                        r - dr.hi - dr.lo
                     }
                 } else {
                     x.sqrt()

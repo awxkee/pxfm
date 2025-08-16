@@ -222,20 +222,20 @@ fn log2p1_accurate_small(x: f64) -> f64 {
     }
     let mut l = 0.;
     for i in (8..=10).rev() {
-        let mut p = DoubleDouble::f64_mult(x, DoubleDouble::new(l, h));
+        let mut p = DoubleDouble::quick_f64_mult(x, DoubleDouble::new(l, h));
         l = p.lo;
         p = DoubleDouble::from_exact_add(f64::from_bits(P_ACC[(i + 6) as usize]), p.hi);
         h = p.hi;
         l += p.lo;
     }
     for i in (1..=7).rev() {
-        let mut p = DoubleDouble::f64_mult(x, DoubleDouble::new(l, h));
+        let mut p = DoubleDouble::quick_f64_mult(x, DoubleDouble::new(l, h));
         l = p.lo;
         p = DoubleDouble::from_exact_add(f64::from_bits(P_ACC[(2 * i - 2) as usize]), p.hi);
         h = p.hi;
         l += p.lo + f64::from_bits(P_ACC[(2 * i - 1) as usize]);
     }
-    let pz = DoubleDouble::f64_mult(x, DoubleDouble::new(l, h));
+    let pz = DoubleDouble::quick_f64_mult(x, DoubleDouble::new(l, h));
     pz.to_f64()
 }
 
@@ -261,7 +261,7 @@ fn log2p1_accurate_tiny(x: f64) -> f64 {
 
     /* first scale x to avoid truncation of l in the underflow region */
     let sx = x * f64::from_bits(0x4690000000000000);
-    let mut zh = DoubleDouble::f64_mult(sx, INV_LOG2_DD);
+    let mut zh = DoubleDouble::quick_f64_mult(sx, INV_LOG2_DD);
 
     let res = zh.to_f64() * f64::from_bits(0x3950000000000000); // expected result
     zh.lo += dd_fmla(-res, f64::from_bits(0x4690000000000000), zh.hi);
