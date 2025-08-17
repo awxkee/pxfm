@@ -32,10 +32,13 @@ mod erf_poly;
 mod erfc;
 mod erff;
 mod erffc;
+mod rerf;
+mod rerf_poly;
 mod rerff;
 
 pub use erf::f_erf;
 pub use erfc::f_erfc;
 pub use erff::f_erff;
 pub use erffc::f_erfcf;
+pub use rerf::f_rerf;
 pub use rerff::f_rerff;

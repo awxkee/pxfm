@@ -110,7 +110,7 @@ pub use common::{copysignfk, copysignk};
 pub use compound::{f_compound, f_compound_m1, f_compound_m1f, f_compoundf};
 pub use csc::f_csc;
 pub use cube_roots::{cbrtf, f_cbrt, f_cbrtf, f_rcbrt, f_rcbrtf};
-pub use err::{f_erf, f_erfc, f_erfcf, f_erff, f_rerff};
+pub use err::{f_erf, f_erfc, f_erfcf, f_erff, f_rerf, f_rerff};
 pub use exponents::{
     exp, expf, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
     f_exp10m1f, f_expf, f_expm1, f_expm1f,

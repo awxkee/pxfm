@@ -303,6 +303,13 @@ fuzz_target!(|data: (f64, f64)| {
     // }
     test_method(
         x0,
+        f_rerf,
+        &mpfr_x0.clone().erf().recip(),
+        "f_rerf".to_string(),
+        0.50001,
+    );
+    test_method(
+        x0,
         f_rsqrt,
         &mpfr_x0.clone().recip_sqrt(),
         "f_rsqrt".to_string(),
