@@ -876,7 +876,8 @@ fn erfc_fast(x: f64) -> Erf {
 }
 
 /// Complementary error function
-#[inline]
+///
+/// Max ulp 0.5
 pub fn f_erfc(x: f64) -> f64 {
     let t: u64 = x.to_bits();
     let at: u64 = t & 0x7fff_ffff_ffff_ffff;

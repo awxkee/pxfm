@@ -95,6 +95,7 @@ fn cr_erf_accurate_tiny(x: f64) -> DoubleDouble {
 approximation of erf(z).
 Assumes z >= 2^-61, thus no underflow can occur. */
 #[cold]
+#[inline(never)]
 pub(crate) fn erf_accurate(x: f64) -> DoubleDouble {
     if x < 0.125
     /* z < 1/8 */
@@ -238,7 +239,6 @@ pub(crate) fn erf_fast(x: f64) -> Erf {
 /// Error function
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_erf(x: f64) -> f64 {
     let z = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
     let mut t = z.to_bits();
@@ -269,8 +269,7 @@ pub fn f_erf(x: f64) -> f64 {
         let y = TWO_OVER_SQRT_PI.hi * x; /* tentative result */
         /* scale x by 2^106 to get out the subnormal range */
         let sx = x * f64::from_bits(0x4690000000000000);
-        let mut p = DoubleDouble::from_exact_mult(TWO_OVER_SQRT_PI.hi, sx);
-        p.lo = dd_fmla(TWO_OVER_SQRT_PI.lo, sx, p.lo);
+        let mut p = DoubleDouble::quick_mult_f64(TWO_OVER_SQRT_PI, sx);
         /* now compute the residual h + l - y */
         p.lo += f_fmla(-y, f64::from_bits(0x4690000000000000), p.hi); /* h-y*2^106 is exact since h and y are very close */
         let res = dyad_fmla(p.lo, f64::from_bits(0x3950000000000000), y);
@@ -286,8 +285,8 @@ pub fn f_erf(x: f64) -> f64 {
     u ^= t & SIGN_MASK;
     v ^= t & SIGN_MASK;
 
-    let left = f64::from_bits(u) + dd_fmla(result.err, -f64::from_bits(u), f64::from_bits(v));
-    let right = f64::from_bits(u) + dd_fmla(result.err, f64::from_bits(u), f64::from_bits(v));
+    let left = f64::from_bits(u) + f_fmla(result.err, -f64::from_bits(u), f64::from_bits(v));
+    let right = f64::from_bits(u) + f_fmla(result.err, f64::from_bits(u), f64::from_bits(v));
 
     if left == right {
         return left;

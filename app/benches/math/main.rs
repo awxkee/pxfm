@@ -170,6 +170,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("pxfm: rerf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_rerf(i as f64 / 1000.0));
+            }
+        })
+    });
+
     // c.bench_function("system: erff", |b| {
     //     b.iter(|| {
     //         for i in 1..1000 {
