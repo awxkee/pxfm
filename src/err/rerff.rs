@@ -401,7 +401,7 @@ static COEFFS: [[u64; 8]; 32] = [
     ],
 ];
 
-/// Computes inverse of error function ( 1/erf(x) )
+/// Computes 1/erf(x)
 ///
 /// Max ulp 0.5
 #[inline]
