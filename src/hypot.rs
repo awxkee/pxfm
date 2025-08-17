@@ -189,7 +189,6 @@ fn hypot_hard(x: f64, y: f64) -> f64 {
 /// Computes hypot
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_hypot(x: f64, y: f64) -> f64 {
     let xi = x.to_bits();
     let yi = y.to_bits();

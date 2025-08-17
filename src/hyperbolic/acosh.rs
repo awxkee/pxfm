@@ -533,7 +533,6 @@ fn as_acosh_one(x: f64, sh: f64, sl: f64) -> f64 {
 /// Huperbolic acos
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_acosh(x: f64) -> f64 {
     let ix = x.to_bits();
     if ix >= 0x7ff0000000000000u64 {

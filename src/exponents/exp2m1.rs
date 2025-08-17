@@ -546,7 +546,6 @@ fn exp2m1_fast_tiny(x: f64) -> Exp2m1 {
 /// Computes 2^x - 1
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_exp2m1(d: f64) -> f64 {
     let mut x = d;
     let t = x.to_bits();

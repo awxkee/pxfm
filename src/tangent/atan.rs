@@ -262,7 +262,6 @@ fn atan_refine(x: f64, a: f64) -> f64 {
 /// Computes atan in double precision
 ///
 /// ULP 0.5
-#[inline]
 pub fn f_atan(x: f64) -> f64 {
     const CH: [u64; 4] = [
         0x3ff0000000000000,

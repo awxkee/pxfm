@@ -58,7 +58,6 @@ fn sec_accurate(x: f64, argument_reduction: &mut LargeArgumentReduction, x_e: u6
 /// Secant for double precision
 ///
 /// ULP 0.5
-#[inline]
 pub fn f_sec(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;

@@ -61,7 +61,6 @@ pub(crate) const PI_OVER_TWO_F128: DyadicFloat128 = DyadicFloat128 {
 /// Computes acos(x)/PI
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_acospi(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;

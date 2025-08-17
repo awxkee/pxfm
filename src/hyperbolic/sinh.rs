@@ -105,7 +105,6 @@ fn as_sinh_zero(x: f64) -> f64 {
 /// Hyperbolic sine function
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_sinh(x: f64) -> f64 {
     /*
      The function sinh(x) is approximated by a minimax polynomial for

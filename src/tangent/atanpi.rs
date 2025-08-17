@@ -209,7 +209,6 @@ fn as_atanpi_refine2(x: f64, a: f64) -> f64 {
 /// Computes atan(x) / pi
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_atanpi(x: f64) -> f64 {
     const CH: [u64; 4] = [
         0x3ff0000000000000,

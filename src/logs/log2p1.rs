@@ -513,7 +513,6 @@ fn log2p1_accurate(x: f64) -> f64 {
 /// Computes log2(x+1)
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_log2p1(x: f64) -> f64 {
     let x_u = x.to_bits();
     let e = (((x_u >> 52) & 0x7ff) as i32).wrapping_sub(0x3ff);

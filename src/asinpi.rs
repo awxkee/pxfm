@@ -33,7 +33,6 @@ use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
-#[inline]
 /// Computes asin(x)/PI
 ///
 /// Max found ULP 0.5

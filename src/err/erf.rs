@@ -137,6 +137,7 @@ pub(crate) fn erf_accurate(x: f64) -> DoubleDouble {
 /* Assuming 0 <= z <= 5.9215871957945065, put in h+l an approximation
 of erf(z). Return err the maximal relative error:
 |(h + l)/erf(z) - 1| < err*|h+l| */
+#[inline]
 pub(crate) fn erf_fast(x: f64) -> Erf {
     /* we split [0,5.9215871957945065] into intervals i/16 <= z < (i+1)/16,
        and for each interval, we use a minimax polynomial:
@@ -178,9 +179,7 @@ pub(crate) fn erf_fast(x: f64) -> Erf {
         t.lo += dd_fmla(z2.hi, v.lo, f64::from_bits(C[1]));
         v = DoubleDouble::from_exact_add(f64::from_bits(C[0]), t.hi);
         v.lo += dd_fmla(z2.lo, h_c, t.lo);
-        let p = DoubleDouble::from_exact_mult(v.hi, x);
-        v.hi = p.hi;
-        v.lo = dd_fmla(v.lo, x, p.lo);
+        v = DoubleDouble::quick_mult_f64(v, x);
         return Erf {
             result: v,
             err: f64::from_bits(0x3ba7800000000000),

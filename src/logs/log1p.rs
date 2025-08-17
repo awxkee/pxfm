@@ -552,7 +552,6 @@ pub(crate) fn log1p_f64_dyadic(x: f64) -> DyadicFloat128 {
 /// Computes log(x+1)
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_log1p(x: f64) -> f64 {
     let mut x_u = x.to_bits();
 

@@ -31,7 +31,6 @@ use crate::double_double::DoubleDouble;
 /// Computes 1/sqrt(x)
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_rsqrt(x: f64) -> f64 {
     let ix = x.to_bits();
     let r: f64 = if ix < 1u64 << 52 {

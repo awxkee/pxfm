@@ -460,7 +460,6 @@ pub(crate) const LOG_COEFFS: [u64; 6] = [
 /// Log2(x)
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_log2(x: f64) -> f64 {
     let mut x_u = x.to_bits();
 

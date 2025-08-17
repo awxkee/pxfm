@@ -114,8 +114,7 @@ fn as_exp10_accurate(x: f64) -> f64 {
 
 /// Computes exp10
 ///
-/// Max found ULP 0.5.
-#[inline]
+/// Max found ULP 0.5
 pub fn f_exp10(x: f64) -> f64 {
     let mut ix = x.to_bits();
     let aix = ix & 0x7fff_ffff_ffff_ffff;

@@ -252,7 +252,6 @@ fn atanh_refine(x: f64, a: f64, z: DoubleDouble) -> f64 {
 /// Hyperbolic tangent
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_atanh(x: f64) -> f64 {
     let ax = x.abs();
     let ix = ax.to_bits();
