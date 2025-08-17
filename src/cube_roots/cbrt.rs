@@ -34,8 +34,7 @@ use crate::polyeval::f_polyeval4;
 
 /// Computes cube root
 ///
-/// Max found ULP 0.4999999373385222
-#[inline]
+/// Max found ULP 0.5
 pub fn f_cbrt(x: f64) -> f64 {
     // 1; 2^{1/3}; 2^{2/3}
     static ESCALE: [f64; 3] = [

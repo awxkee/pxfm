@@ -33,7 +33,6 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 
-#[inline]
 /// Computes acos(x)
 ///
 /// Max found ULP 0.5

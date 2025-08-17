@@ -156,7 +156,6 @@ fn tanpi_accurate0(z: f64, iq: u64, ms: i64) -> f64 {
 /// Computes tan(PI*x)
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_tanpi(x: f64) -> f64 {
     let ix = x.to_bits();
     let ax: u64 = ix & 0x7fff_ffff_ffff_ffff;

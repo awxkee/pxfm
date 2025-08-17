@@ -85,7 +85,6 @@ fn as_tanh_zero(x: f64) -> f64 {
 /// Hyperbolic tan
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_tanh(x: f64) -> f64 {
     /*
       The function tanh(x) is approximated by minimax polynomial for

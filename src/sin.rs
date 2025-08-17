@@ -234,7 +234,6 @@ fn sin_accurate(y: DoubleDouble, sin_k: DoubleDouble, cos_k: DoubleDouble) -> f6
 /// Sine for double precision
 ///
 /// ULP 0.5
-#[inline]
 pub fn f_sin(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
@@ -339,7 +338,6 @@ fn cos_accurate(y: DoubleDouble, msin_k: DoubleDouble, cos_k: DoubleDouble) -> f
 /// Cosine for double precision
 ///
 /// ULP 0.5
-#[inline]
 pub fn f_cos(x: f64) -> f64 {
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;

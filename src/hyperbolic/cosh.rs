@@ -74,7 +74,6 @@ fn as_cosh_zero(x: f64) -> f64 {
 /// Hyperbolic cosine function
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_cosh(x: f64) -> f64 {
     /*
      The function sinh(x) is approximated by a minimax polynomial

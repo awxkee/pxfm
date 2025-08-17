@@ -292,7 +292,6 @@ fn as_exp_accurate(x: f64, t: f64, tz: DoubleDouble, ie: i64) -> f64 {
 /// Computes exponent
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_exp(x: f64) -> f64 {
     let mut ix = x.to_bits();
     let aix = ix & 0x7fffffffffffffff;

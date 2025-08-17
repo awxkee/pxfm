@@ -176,7 +176,6 @@ fn as_asinh_zero(x: f64, x2h: f64, x2l: f64) -> f64 {
 /// Huperbolic sine function
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_asinh(x: f64) -> f64 {
     let ax = x.abs();
     let ix = ax.to_bits();

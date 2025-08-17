@@ -55,7 +55,6 @@ fn halleys_div_free(x: f64, a: f64) -> f64 {
 /// Computes 1/cbrt(x)
 ///
 /// ULP 0.5
-#[inline]
 pub fn f_rcbrt(a: f64) -> f64 {
     // Decompose a = m * 2^e, with m in [0.5, 1)
     let xu = a.to_bits();

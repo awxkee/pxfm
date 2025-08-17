@@ -161,7 +161,6 @@ fn log_accurate(e_x: i32, index: i32, m_x: f64) -> DyadicFloat128 {
 /// Natural logarithm using FMA
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_log(x: f64) -> f64 {
     let mut x_u = x.to_bits();
 

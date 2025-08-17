@@ -278,7 +278,6 @@ fn log10p1_fast(x: f64, e: i32) -> (DoubleDouble, f64) {
 /// Computes log10(x+1)
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_log10p1(x: f64) -> f64 {
     let x_u = x.to_bits();
     let e = (((x_u >> 52) & 0x7ff) as i32).wrapping_sub(0x3ff);

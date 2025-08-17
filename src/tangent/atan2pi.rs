@@ -67,7 +67,6 @@ fn atan2pi_big_exp_difference_hard(
 /// Computes atan(x)/PI
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_atan2pi(y: f64, x: f64) -> f64 {
     static IS_NEG: [f64; 2] = [1.0, -1.0];
     const ZERO: DoubleDouble = DoubleDouble::new(0.0, 0.0);

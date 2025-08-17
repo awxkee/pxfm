@@ -61,7 +61,6 @@ fn sinc_refine(argument_reduction: &mut LargeArgumentReduction, x: f64, x_e: u64
 /// Computes sinc(x)
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_sinc(x: f64) -> f64 {
     if !x.is_finite() {
         return f64::NAN;

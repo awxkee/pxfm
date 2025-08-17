@@ -249,7 +249,6 @@ fn sincospi_dd(
 /// Computes sin(PI*x)
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_sinpi(x: f64) -> f64 {
     let ix = x.to_bits();
     let ax = ix & 0x7fff_ffff_ffff_ffff;
@@ -390,7 +389,6 @@ pub fn f_sinpi(x: f64) -> f64 {
 /// Computes cos(PI*x)
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_cospi(x: f64) -> f64 {
     let ix = x.to_bits();
     let ax = ix & 0x7fff_ffff_ffff_ffff;
@@ -491,7 +489,6 @@ pub fn f_cospi(x: f64) -> f64 {
 /// Computes sin(PI*x) and cos(PI*x)
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_sincospi(x: f64) -> (f64, f64) {
     let ix = x.to_bits();
     let ax = ix & 0x7fff_ffff_ffff_ffff;

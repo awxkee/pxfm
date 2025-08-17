@@ -365,7 +365,6 @@ fn as_expm1_accurate(x: f64) -> f64 {
 /// Computes e^x - 1
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_expm1(x: f64) -> f64 {
     let ix = x.to_bits();
     let aix: u64 = ix & 0x7fff_ffff_ffff_ffff;

@@ -194,7 +194,6 @@ pub(crate) fn asin_eval(u: DoubleDouble, err: f64) -> (DoubleDouble, f64) {
     (r, err)
 }
 
-#[inline]
 /// Computes asin(x)
 ///
 /// Max found ULP 0.5

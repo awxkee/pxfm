@@ -654,7 +654,6 @@ pub(crate) fn atan2_hard(y: f64, x: f64) -> DyadicFloat128 {
 /// Computes atan(x)
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_atan2(y: f64, x: f64) -> f64 {
     static IS_NEG: [f64; 2] = [1.0, -1.0];
     const ZERO: DoubleDouble = DoubleDouble::new(0.0, 0.0);
