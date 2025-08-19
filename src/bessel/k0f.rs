@@ -27,9 +27,9 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::bessel::i0f::i0f_small;
-use crate::bessel::y0f::bessel_fast_log;
 use crate::common::f_fmla;
 use crate::f_exp;
+use crate::logs::simple_fast_log;
 use crate::polyeval::{f_polyeval8, f_polyeval16};
 
 /// Modified Bessel of the second kind order 0
@@ -94,7 +94,7 @@ k0f_small = -euler_gamma + lg + 1/4 * z**2 * (R(1) - euler_gamma + lg) + ( \
 **/
 #[inline]
 fn k0f_small(x: f32) -> f32 {
-    let v_log = bessel_fast_log(x as f64);
+    let v_log = simple_fast_log(x as f64);
     let i0 = i0f_small(x);
 
     let dx = x as f64;
