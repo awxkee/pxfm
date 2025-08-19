@@ -27,9 +27,9 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::bessel::i1f::i1f_small;
-use crate::bessel::y0f::bessel_fast_log;
 use crate::common::f_fmla;
 use crate::f_exp;
+use crate::logs::simple_fast_log;
 use crate::polyeval::{f_polyeval8, f_polyeval16};
 
 /// Modified Bessel of the second kind order 1
@@ -98,7 +98,7 @@ fn k1f_small(x: f32) -> f32 {
         f64::from_bits(0xbd5d49398f1e78b6),
     );
 
-    let lg = bessel_fast_log(dx);
+    let lg = simple_fast_log(dx);
     let v_i = i1f_small(x, 1.);
     let z = f_fmla(lg, v_i, rcp);
     let z0 = f_fmla(p, dx, z);

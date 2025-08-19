@@ -186,7 +186,7 @@ impl DoubleDouble {
         DoubleDouble::new(l, s)
     }
 
-    /// Dekker-style square root for a double-double number
+    /// DoubleDouble-style square root for a double-double number
     #[inline]
     pub(crate) fn sqrt(self) -> DoubleDouble {
         let a = self.hi + self.lo;
@@ -207,6 +207,26 @@ impl DoubleDouble {
             };
         }
 
+        let x = a.sqrt();
+
+        let x2 = DoubleDouble::from_exact_mult(x, x);
+
+        // Residual = self - x²
+        let mut r = self.hi - x2.hi;
+        r += self.lo;
+        r -= x2.lo;
+
+        let dx = r / (2.0 * x);
+        let hi = x + dx;
+        let lo = (x - hi) + dx;
+
+        DoubleDouble { hi, lo }
+    }
+
+    /// DoubleDouble-style square root for a double-double number
+    #[inline]
+    pub(crate) fn fast_sqrt(self) -> DoubleDouble {
+        let a = self.hi + self.lo;
         let x = a.sqrt();
 
         let x2 = DoubleDouble::from_exact_mult(x, x);
@@ -685,6 +705,17 @@ impl DoubleDouble {
     pub(crate) fn f64_mul_f64_add(a: f64, b: f64, c: DoubleDouble) -> Self {
         let DoubleDouble { hi: h, lo: r } = DoubleDouble::from_exact_mult(a, b);
         let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
+        DoubleDouble::new(r + q, p)
+    }
+
+    /// Computes `a * b + c`
+    /// `b` is an `f64`, `a` and `c` are `DoubleDouble`.
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    #[inline]
+    pub(crate) fn f64_mul_f64_add_f64(a: f64, b: f64, c: f64) -> Self {
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::from_exact_mult(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_full_exact_add(c, h);
         DoubleDouble::new(r + q, p)
     }
 

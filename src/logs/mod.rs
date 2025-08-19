@@ -27,6 +27,8 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #![deny(unreachable_pub)]
+mod fast_log;
+mod fast_log_dd;
 mod log;
 mod log10;
 mod log10dd;
@@ -60,6 +62,8 @@ mod log_td;
 mod log_td_table;
 mod logf;
 
+pub(crate) use fast_log::simple_fast_log;
+pub(crate) use fast_log_dd::fast_log_dd;
 pub(crate) use log::log_dyadic;
 pub use log::{f_log, log};
 pub(crate) use log_dd::{log_dd, log_dd_fast};
