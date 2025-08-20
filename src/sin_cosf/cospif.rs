@@ -104,12 +104,12 @@ pub fn f_cospif(x: f32) -> f32 {
     let reducer = ArgumentReducerPi { x: x as f64 };
     let (y, k) = reducer.reduce_0p25();
     // Decide based on quadrant what kernel function to use
-    match k & 3 {
+    (match k & 3 {
         0 => cospif_eval(y),
         1 => sinpif_eval(-y),
         2 => -cospif_eval(y),
         _ => sinpif_eval(y),
-    }
+    }) as f32
 }
 
 #[cfg(test)]

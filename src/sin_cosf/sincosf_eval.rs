@@ -228,9 +228,9 @@ Q = fpminimax(f_sin, [|0, 2, 4, 6, 8, 10|], [|D...|], d, relative, floating);
 See ./notes/sinpif_0p25.sollya
 **/
 #[inline]
-pub(crate) fn sinpif_eval(y: f64) -> f32 {
+pub(crate) fn sinpif_eval(y: f64) -> f64 {
     let y2 = y * y;
-    (f_polyeval6(
+    f_polyeval6(
         y2,
         f64::from_bits(0x400921fb54442cf8),
         f64::from_bits(0xc014abbce6257778),
@@ -238,7 +238,7 @@ pub(crate) fn sinpif_eval(y: f64) -> f32 {
         f64::from_bits(0xbfe32d2c627f47da),
         f64::from_bits(0x3fb5071be0a2d3da),
         f64::from_bits(0xbf7dd4e0ae5b9fcd),
-    ) * y) as f32
+    ) * y
 }
 
 /**
@@ -252,7 +252,7 @@ Q = fpminimax(f_cos, [|0, 2, 4, 6, 8, 10|], [|1, D...|], d, relative, floating);
 See ./notes/cospif_0p25.sollya
 **/
 #[inline]
-pub(crate) fn cospif_eval(y: f64) -> f32 {
+pub(crate) fn cospif_eval(y: f64) -> f64 {
     let y2 = y * y;
     f_polyeval6(
         y2,
@@ -262,5 +262,5 @@ pub(crate) fn cospif_eval(y: f64) -> f32 {
         f64::from_bits(0xbff55d3ba7af2e4f),
         f64::from_bits(0x3fce1e7e2bd15808),
         f64::from_bits(0xbf9a0efd57edfdb2),
-    ) as f32
+    )
 }

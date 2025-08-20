@@ -26,27 +26,6 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-mod argument_reduction;
-mod argument_reduction_pi;
-mod cosf;
-mod cospif;
-mod cscf;
-mod secf;
-mod sincf;
-mod sincosf;
-mod sincosf_eval;
-mod sincospif;
-mod sinf;
-mod sinpif;
+mod tgammaf;
 
-pub use cosf::f_cosf;
-pub use cospif::f_cospif;
-pub use cscf::f_cscf;
-pub use secf::f_secf;
-pub use sincf::f_sincf;
-pub use sincosf::f_sincosf;
-pub(crate) use sincosf_eval::sincosf_eval;
-pub use sincospif::f_sincospif;
-pub use sinf::f_sinf;
-pub use sinpif::f_sinpif;
-pub(crate) use sinpif::fast_sinpif;
+pub use tgammaf::f_tgammaf;
