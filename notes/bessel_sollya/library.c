@@ -514,3 +514,22 @@ int bessel_k0_asympt(mpfi_t result, mpfi_t x, int n)
     mpfr_clear(b);
     return 0;
 }
+
+__attribute__((visibility("default")))
+int pxfm_gamma(mpfi_t result, mpfi_t x, int n)
+{
+    mpfr_t a, b;
+    mpfr_init2(a, mpfi_get_prec(result));
+    mpfr_init2(b, mpfi_get_prec(result));
+
+    mpfi_get_left(a, x);
+    mpfr_gamma(a, a, MPFR_RNDN);
+
+    mpfi_get_right(b, x);
+    mpfr_gamma(b, b, MPFR_RNDN);
+    mpfi_interv_fr(result, a, b);
+
+    mpfr_clear(a);
+    mpfr_clear(b);
+    return 0;
+}

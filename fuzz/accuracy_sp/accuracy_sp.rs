@@ -8,7 +8,8 @@ use pxfm::{
     f_atanpif, f_cbrtf, f_cosf, f_coshf, f_cospif, f_cotf, f_cscf, f_erfcf, f_erff, f_exp2f,
     f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_i0f, f_i1f, f_j0f, f_j1f, f_k0f,
     f_k1f, f_log1pf, f_log2f, f_log2p1f, f_log10f, f_log10p1f, f_logf, f_powf, f_rcbrtf, f_rerff,
-    f_rsqrtf, f_secf, f_sincf, f_sinf, f_sinhf, f_sinpif, f_tanf, f_tanhf, f_tanpif, f_y0f, f_y1f,
+    f_rsqrtf, f_secf, f_sincf, f_sinf, f_sinhf, f_sinpif, f_tanf, f_tanhf, f_tanpif, f_tgammaf,
+    f_y0f, f_y1f,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
@@ -173,6 +174,13 @@ fuzz_target!(|data: (f32, f32)| {
     //     &compound_mpfr.clone(),
     //     "f_compoundf".to_string(),
     // );
+
+    test_method(
+        x0,
+        f_tgammaf,
+        &mpfr_x0.clone().gamma(),
+        "f_tgammaf".to_string(),
+    );
 
     if x0 < 92. && x0.abs() > 0.01 {
         test_method(x0, f_i0f, &bessel_i0(x0 as f64, 100), "f_i0f".to_string());

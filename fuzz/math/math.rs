@@ -5,13 +5,13 @@ use pxfm::{
     f_acos, f_acosf, f_acosh, f_acoshf, f_acospi, f_acospif, f_asin, f_asinf, f_asinhf, f_asinpi,
     f_asinpif, f_atan, f_atan2, f_atan2f, f_atan2pif, f_atanf, f_atanh, f_atanhf, f_atanpi,
     f_atanpif, f_cbrt, f_cbrtf, f_compound, f_compound_m1, f_compound_m1f, f_compoundf, f_cos,
-    f_cosf, f_cosh, f_coshf, f_cospi, f_cospif, f_cot, f_cotf, f_csc, f_cscf, f_erff, f_exp,
-    f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1, f_exp10m1f, f_expf,
-    f_expm1, f_expm1f, f_hypot, f_i0, f_i0f, f_i1f, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k0f, f_k1,
-    f_k1f, f_log, f_log1p, f_log1pf, f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f,
-    f_log10p1, f_log10p1f, f_logf, f_rcbrt, f_rcbrtf, f_rerf, f_rerff, f_sec, f_secf, f_sin,
-    f_sincos, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tanf, f_tanh, f_tanpi, f_tanpif, f_y0,
-    f_y0f, f_y1, f_y1f,
+    f_cosf, f_cosh, f_coshf, f_cospi, f_cospif, f_cot, f_cotf, f_csc, f_cscf, f_erff, f_erfinv,
+    f_erfinvf, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
+    f_exp10m1f, f_expf, f_expm1, f_expm1f, f_hypot, f_i0, f_i0f, f_i1f, f_j0, f_j0f, f_j1, f_j1f,
+    f_k0, f_k0f, f_k1, f_k1f, f_log, f_log1p, f_log1pf, f_log2, f_log2f, f_log2p1, f_log2p1f,
+    f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_rcbrt, f_rcbrtf, f_rerf, f_rerff, f_sec,
+    f_secf, f_sin, f_sincos, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tanf, f_tanh, f_tanpi,
+    f_tanpif, f_tgammaf, f_y0, f_y0f, f_y1, f_y1f,
 };
 
 fuzz_target!(|data: (f64, f32, f32, f64)| {
@@ -118,4 +118,7 @@ fuzz_target!(|data: (f64, f32, f32, f64)| {
     _ = f_rcbrt(z_f64);
     _ = f_rerf(z_f64);
     _ = f_rerff(z_f32);
+    _ = f_tgammaf(z_f32);
+    _ = f_erfinvf(z_f32);
+    _ = f_erfinv(z_f64);
 });

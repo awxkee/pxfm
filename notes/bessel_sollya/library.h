@@ -14,5 +14,6 @@ int bessel_y0(mpfi_t result, mpfi_t x, int n);
 int bessel_k0(mpfi_t result, mpfi_t x, int n);
 int bessel_k0_approximant(mpfi_t result, mpfi_t x, int n);
 int bessel_k0_asympt(mpfi_t result, mpfi_t x, int n);
+int pxfm_gamma(mpfi_t result, mpfi_t x, int n);
 
 #endif //BESSEL_SOLLYA_LIBRARY_H
