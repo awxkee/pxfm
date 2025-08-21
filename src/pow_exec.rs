@@ -190,12 +190,12 @@ fn exp_poly_dd(z: DoubleDouble) -> DoubleDouble {
         (0xbbd53d924ae90c8c, 0x3f56c16c16ffeecc),
     ];
     let mut p = DoubleDouble::mult(z, DoubleDouble::from_bit_pair(Q_1[6]));
-    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[5]));
-    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[4]));
-    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[3]));
-    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[2]));
-    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[1]));
-    p = DoubleDouble::full_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[0]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[5]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[4]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[3]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[2]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[1]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[0]));
     p
 }
 
@@ -288,6 +288,42 @@ pub(crate) fn pow_exp_1(r: DoubleDouble, s: f64) -> DoubleDouble {
 
     let mut du = (mk as u64).wrapping_shl(52);
     du = (f64::from_bits(du) * s).to_bits();
+    de.hi *= f64::from_bits(du);
+    de.lo *= f64::from_bits(du);
+    de
+}
+
+pub(crate) fn exp_dd_fast(r: DoubleDouble) -> DoubleDouble {
+    const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
+
+    /* Note: if the rounding mode is to nearest, we can save about 2 cycles
+       (on an i7-8700) by replacing the computation of k by the following
+       classical trick:
+       const double magic = 0x1.8p+52;
+       double k = __builtin_fma (rh, INVLOG2, magic) - magic;
+    */
+    let k = (r.hi * INVLOG2).round();
+
+    const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
+    const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
+
+    let zh = dd_fmla(LOG2H, -k, r.hi);
+    let zl = dd_fmla(LOG2L, -k, r.lo);
+
+    let bk = k as i64; /* Note: k is an integer, this is just a conversion. */
+    let mk = (bk >> 12) + 0x3ff;
+    let i2 = (bk >> 6) & 0x3f;
+    let i1 = bk & 0x3f;
+
+    let t0 = DoubleDouble::from_bit_pair(EXP_REDUCE_T0[i2 as usize]);
+    let t1 = DoubleDouble::from_bit_pair(EXP_REDUCE_T1[i1 as usize]);
+    let mut de = DoubleDouble::quick_mult(t1, t0);
+    let q = exp_poly_1(zh + zl);
+    de = DoubleDouble::quick_mult(de, q);
+    /* we should have 1 < M < 2047 here, since we filtered out
+    potential underflow/overflow cases at the beginning of this function */
+
+    let du = (mk as u64).wrapping_shl(52);
     de.hi *= f64::from_bits(du);
     de.lo *= f64::from_bits(du);
     de

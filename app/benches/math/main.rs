@@ -26,6 +26,46 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.warm_up_time(Duration::new(1, 100));
     c.sample_size(15);
 
+    c.bench_function("libm: tgamma", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::tgamma(black_box(i as f64 / 1000.0 * 36.0)));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_tgamma", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_tgamma(black_box(i as f64 / 1000.0 * 36.0)));
+            }
+        })
+    });
+
+    c.bench_function("libm: lgammaf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::lgammaf(black_box(i as f32 / 1000.0 * 36.0)));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_lgammaf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_lgammaf(black_box(i as f32 / 1000.0 * 36.0)));
+            }
+        })
+    });
+
+    c.bench_function("libm: tgammaf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::tgammaf(black_box(i as f32 / 1000.0 * 36.0)));
+            }
+        })
+    });
+
     c.bench_function("pxfm: f_tgammaf", |b| {
         b.iter(|| {
             for i in 1..1000 {

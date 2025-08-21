@@ -144,7 +144,7 @@ fn rerf_poly_hard(x: f64, z2: DoubleDouble, idx: usize) -> f64 {
 
 /// Computes 1/erf(x)
 ///
-/// Max ulp 0.5
+/// Max ulp 0.5001
 pub fn f_rerf(x: f64) -> f64 {
     let z = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
     let t = z.to_bits();
