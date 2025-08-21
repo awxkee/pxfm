@@ -1,10 +1,5 @@
 use bessel::bessel_i0;
-use pxfm::{
-    f_cbrtf, f_cosf, f_cospi, f_cospif, f_cotf, f_cscf, f_erfinv, f_erfinvf, f_exp2f, f_exp10f,
-    f_i0, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k1, f_lgammaf, f_log, f_rcbrtf, f_rerf, f_rerff,
-    f_rsqrtf, f_secf, f_sincf, f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tanf, f_tgamma, f_tgammaf,
-    f_y0, f_y0f, f_y1, f_y1f,
-};
+use pxfm::{f_cbrtf, f_cosf, f_cospi, f_cospif, f_cotf, f_cscf, f_erfinv, f_erfinvf, f_exp2f, f_exp10f, f_i0, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k1, f_lgammaf, f_log, f_rcbrtf, f_rerf, f_rerff, f_rsqrtf, f_secf, f_sincf, f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tanf, f_tgamma, f_tgammaf, f_y0, f_y0f, f_y1, f_y1f, f_i0f};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -14,6 +9,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+use num_complex::Complex;
+use zbessel_rs::{bessel_i, bessel_k};
 
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
     let output = Command::new("python3")
@@ -129,52 +126,52 @@ fn test_f32_against_mpfr_multithreaded() {
 
     let mut exceptions = Arc::new(Mutex::new(Vec::<f64>::new()));
 
-    let start_bits = (-1f32).to_bits();
-    let end_bits = (-3f32).to_bits() - 1;
+    /*let start_bits = (6f32).to_bits();
+    let end_bits = (105f32).to_bits() - 1;
     println!("amount {}", end_bits - start_bits);
 
-    // // Exhaustive: 0..=u32::MAX
-    // (0..=u32::MAX).into_par_iter().for_each(|bits| {
-    //     let x = f32::from_bits(bits);
-    //
-    //     if !x.is_finite() {
-    //         return; // skip NaNs and infinities
-    //     }
-    //
-    //     // let v = match bessel_k(
-    //     //     Complex {
-    //     //         re: x as f64,
-    //     //         im: 0.,
-    //     //     },
-    //     //     0.,
-    //     //     1,
-    //     //     1,
-    //     // ) {
-    //     //     Ok(v) => v,
-    //     //     Err(_) => return,
-    //     // };
-    //
-    //     let expected_sin_pi = Float::with_val(53, x).ln_abs_gamma().0; //compute_besselk(x as f64).unwrap(); //Float::with_val(90, statrs::function::erf::erf_inv(x as f64));
-    //     let actual = f_lgammaf(x);
-    //
-    //     executions.fetch_add(1, Ordering::Relaxed);
-    //
-    //     let diff = count_ulp(actual, &Float::with_val(90, expected_sin_pi.clone()));
-    //     // if diff.is_nan() || diff.is_infinite() {
-    //     //     return;
-    //     // }
-    //
-    //     if diff > 0.5 {
-    //         failures.fetch_add(1, Ordering::Relaxed);
-    //         exceptions.lock().unwrap().push(x);
-    //         eprintln!(
-    //             "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
-    //             expected_sin_pi.to_f32(),
-    //         );
-    //     }
-    // });
+    // Exhaustive: 0..=u32::MAX
+    (start_bits..=end_bits).into_par_iter().for_each(|bits| {
+        let x = f32::from_bits(bits);
 
-    let start_bits = (-1.7f64).to_bits();
+        if !x.is_finite() {
+            return; // skip NaNs and infinities
+        }
+
+        let v = match bessel_i(
+            Complex {
+                re: x as f64,
+                im: 0.,
+            },
+            0.,
+            1,
+            1,
+        ) {
+            Ok(v) => v,
+            Err(_) => return,
+        };
+
+        let expected_sin_pi = Float::with_val(53, v.values[0].re); //compute_besselk(x as f64).unwrap(); //Float::with_val(90, statrs::function::erf::erf_inv(x as f64));
+        let actual = f_i0f(x);
+
+        executions.fetch_add(1, Ordering::Relaxed);
+
+        let diff = count_ulp(actual, &Float::with_val(90, expected_sin_pi.clone()));
+        // if diff.is_nan() || diff.is_infinite() {
+        //     return;
+        // }
+
+        if diff > 0.5 {
+            failures.fetch_add(1, Ordering::Relaxed);
+            exceptions.lock().unwrap().push(x);
+            eprintln!(
+                "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
+                expected_sin_pi.to_f32(),
+            );
+        }
+    });*/
+
+    let start_bits = (7.5f64).to_bits();
     let end_bits = (start_bits + 2500000);
     //
     // //
@@ -199,8 +196,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = Float::with_val(90, x).gamma();
-        let actual =  f_tgamma(x);
+        let expected = bessel_i0(x, 100); //Float::with_val(90, x).gamma();
+        let actual =  f_i0(x);
 
         let diff = count_ulp_f64(actual, &expected);
 
@@ -217,18 +214,18 @@ fn test_f32_against_mpfr_multithreaded() {
             );
         }
     });
-
+    //
     let ex = exceptions.lock().unwrap();
     println!("exceptions count {}: {:?}", ex.len(), ex);
-    //
-    // let total_failures = failures.load(Ordering::Relaxed);
-    // println!(
-    //     "Done in {:.2?}, total {}, failures: {}",
-    //     start.elapsed(),
-    //     end_bits - start_bits,
-    //     total_failures
-    // );
-    // assert_eq!(total_failures, 0, "ULP failures found");
+
+    let total_failures = failures.load(Ordering::Relaxed);
+    println!(
+        "Done in {:.2?}, total {}, failures: {}",
+        start.elapsed(),
+        end_bits - start_bits,
+        total_failures
+    );
+    assert_eq!(total_failures, 0, "ULP failures found");
 }
 
 fn main() {
