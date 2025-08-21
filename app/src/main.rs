@@ -171,7 +171,7 @@ fn test_f32_against_mpfr_multithreaded() {
         }
     });*/
 
-    let start_bits = (7.5f64).to_bits();
+    let start_bits = (1.35f64).to_bits();
     let end_bits = (start_bits + 2500000);
     //
     // //
@@ -196,8 +196,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = bessel_i0(x, 100); //Float::with_val(90, x).gamma();
-        let actual =  f_i0(x);
+        let expected = Float::with_val(90, x).y0();
+        let actual =  f_y0(x);
 
         let diff = count_ulp_f64(actual, &expected);
 
