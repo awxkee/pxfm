@@ -29,7 +29,7 @@
 use crate::common::f_fmla;
 use crate::polyeval::f_polyeval5;
 use crate::sin_cosf::argument_reduction_pi::ArgumentReducerPi;
-use crate::sin_cosf::sincosf_eval::{cospif_eval, sinpif_eval};
+use crate::sin_cosf::sincosf_eval::{cospif_eval, sinpif_eval, sinpif_eval2};
 
 /// Computes sin(PI*x)
 ///
@@ -146,9 +146,9 @@ pub(crate) fn fast_sinpif(x: f32) -> f64 {
     let (y, k) = reducer.reduce_0p25();
     // Decide based on quadrant what kernel function to use
     match k & 3 {
-        0 => sinpif_eval(y),
+        0 => sinpif_eval2(y),
         1 => cospif_eval(y),
-        2 => sinpif_eval(-y),
+        2 => sinpif_eval2(-y),
         _ => -cospif_eval(y),
     }
 }

@@ -769,7 +769,7 @@ impl DoubleDouble {
     /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
     #[inline]
     pub(crate) fn full_mul_add(a: DoubleDouble, b: DoubleDouble, c: DoubleDouble) -> Self {
-        let DoubleDouble { hi: h, lo: r } = DoubleDouble::mult(a, b);
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult(a, b);
         let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
         DoubleDouble::new(r + q, p)
     }

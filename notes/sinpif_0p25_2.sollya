@@ -3,10 +3,10 @@ pretty = proc(u) {
 };
 
 d = [0, 0.25];
-f_cos = cos(y*pi);
-Q = fpminimax(f_cos, [|0, 2, 4, 6, 8, 10, 12|], [|1, D...|], d, relative, floating);
+f_sin = sin(y*pi)/y;
+Q = fpminimax(f_sin, [|0, 2, 4, 6, 8, 10, 12|], [|D...|], d, relative, floating);
 
-err_p = -log2(dirtyinfnorm(Q-f_cos, d));
+err_p = -log2(dirtyinfnorm(Q-f_sin, d));
 display = decimal;
 print (Q);
 display = decimal;

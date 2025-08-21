@@ -15,7 +15,6 @@ bessel = {path = "../bessel"}
 criterion = { version = "0.7.0", features = ["html_reports"] }
 libm = "0.2"
 
-
 [[bench]]
 name = "math"
 harness = false
