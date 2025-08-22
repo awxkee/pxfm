@@ -304,3 +304,66 @@ pub(crate) fn fast_log_dd(ddx: DoubleDouble) -> DoubleDouble {
 
     v
 }
+
+#[inline]
+pub(crate) fn fast_log_d_to_dd(ddx: f64) -> DoubleDouble {
+    // We'll compute log((z+1)+1) as log(xh+xl) = log(xh) + log(1+xl/xh).
+    // since xl/xh < ulp(xh) we'll use for log(1+xl/xh)
+    // one taylor term what means that log(1+xl/xh) = log_lo + O(x^2)
+
+    let x_u = ddx.to_bits();
+    let mut m = x_u & 0xfffffffffffff;
+    let mut e: i64 = ((x_u >> 52) & 0x7ff) as i64;
+
+    let t;
+    if e != 0 {
+        t = m | (0x3ffu64 << 52);
+        m = m.wrapping_add(1u64 << 52);
+        e -= 0x3ff;
+    } else {
+        /* x is a subnormal double  */
+        let k = m.leading_zeros() - 11;
+
+        e = -0x3fei64 - k as i64;
+        m = m.wrapping_shl(k);
+        t = m | (0x3ffu64 << 52);
+    }
+
+    /* now |x| = 2^_e*_t = 2^(_e-52)*m with 1 <= _t < 2,
+    and 2^52 <= _m < 2^53 */
+
+    //   log(x) = log(t) + E · log(2)
+    let mut t = f64::from_bits(t);
+
+    // If m > sqrt(2) we divide it by 2 so ensure 1/sqrt(2) < t < sqrt(2)
+    let c: usize = (m >= 0x16a09e667f3bcd) as usize;
+    static CY: [f64; 2] = [1.0, 0.5];
+    static CM: [u64; 2] = [44, 45];
+
+    e = e.wrapping_add(c as i64);
+    let be = e;
+    let i = m >> CM[c]; /* i/2^8 <= t < (i+1)/2^8 */
+    /* when c=1, we have 0x16a09e667f3bcd <= m < 2^53, thus 90 <= i <= 127;
+    when c=0, we have 2^52 <= m < 0x16a09e667f3bcd, thus 128 <= i <= 181 */
+    t *= CY[c];
+    /* now 0x1.6a09e667f3bcdp-1 <= t < 0x1.6a09e667f3bcdp+0,
+    and log(x) = E * log(2) + log(t) */
+
+    let r = f64::from_bits(POW_INVERSE[(i - 181) as usize]);
+    let log_r = DoubleDouble::from_bit_pair(FAST_LOG_DD_INV[(i - 181) as usize]);
+
+    let z = dd_fmla(r, t, -1.0);
+
+    const LOG2_DD: DoubleDouble = DoubleDouble::new(
+        f64::from_bits(0x3c7abc9e3b39803f),
+        f64::from_bits(0x3fe62e42fefa39ef),
+    );
+
+    let dt = DoubleDouble::mul_f64_add(LOG2_DD, be as f64, log_r);
+
+    let mut v = DoubleDouble::f64_add(dt.hi, DoubleDouble::new(dt.lo, z));
+    let p = log_poly_1(z);
+    v = DoubleDouble::f64_add(v.hi, DoubleDouble::new(v.lo + p.lo, p.hi));
+
+    DoubleDouble::from_exact_add(v.hi, v.lo)
+}

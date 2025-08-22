@@ -26,6 +26,22 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.warm_up_time(Duration::new(1, 100));
     c.sample_size(15);
 
+    c.bench_function("libm: lgamma", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(libm::lgamma(black_box(i as f64 / 1000.0)));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_lgamma", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_lgamma(black_box(i as f64 / 1000.0 * 8.0 + 4.)));
+            }
+        })
+    });
+
     c.bench_function("libm: tgamma", |b| {
         b.iter(|| {
             for i in 1..1000 {

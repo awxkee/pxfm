@@ -26,10 +26,12 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+mod lgamma;
 mod lgammaf;
 mod tgamma;
 mod tgammaf;
 
+pub use lgamma::f_lgamma;
 pub use lgammaf::f_lgammaf;
 pub use tgamma::f_tgamma;
 pub use tgammaf::f_tgammaf;

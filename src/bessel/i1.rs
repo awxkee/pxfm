@@ -381,7 +381,7 @@ See ./notes/bessel_sollya/bessel_i1_big.sollya
 #[inline]
 fn i1_asympt(x: f64, sign_scale: f64) -> f64 {
     let dx = x;
-    let recip = DoubleDouble::from_recip(x);
+    let recip = DoubleDouble::from_quick_recip(x);
     let z = f_polyeval30(
         recip,
         DoubleDouble::from_bit_pair((0xbc79892019caa6d3, 0x3fd9884533d43651)),
@@ -417,7 +417,7 @@ fn i1_asympt(x: f64, sign_scale: f64) -> f64 {
     );
 
     let e = i0_exp(dx * 0.5);
-    let r_sqrt = DoubleDouble::from_rsqrt(dx);
+    let r_sqrt = DoubleDouble::from_rsqrt_fast(dx);
 
     let r = DoubleDouble::quick_mult(z * r_sqrt * e, e);
 
