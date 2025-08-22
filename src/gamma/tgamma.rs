@@ -150,7 +150,7 @@ pub fn f_tgamma(x: f64) -> f64 {
         }
         dy.hi = f64::from_bits(dy.hi.to_bits() & 0x7fff_ffff_ffff_ffff);
         let y1 = x_a.trunc();
-        let fraction = x_a.fract();
+        let fraction = x_a - y1;
         if fraction != 0.0
         // is it an integer?
         {
