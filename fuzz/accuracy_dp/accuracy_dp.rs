@@ -301,6 +301,15 @@ fuzz_target!(|data: (f64, f64)| {
     //         0.50013,
     //     );
     // }
+    if x0 < 1e+50 {
+        test_method(
+            x0,
+            f_lgamma,
+            &mpfr_x0.clone().ln_abs_gamma().0,
+            "f_lgamma".to_string(),
+            3.6,
+        );
+    }
     test_method(
         x0,
         f_tgamma,

@@ -31,7 +31,7 @@ use crate::double_double::DoubleDouble;
 use crate::logs::fast_log_dd;
 use crate::polyeval::{f_polyeval6, f_polyeval7, f_polyeval8};
 use crate::pow_exec::exp_dd_fast;
-use crate::sincospi::f_fast_sinpi;
+use crate::sincospi::f_fast_sinpi_dd;
 
 /// Computes gamma(x)
 ///
@@ -149,7 +149,7 @@ pub fn f_tgamma(x: f64) -> f64 {
             return f64::NAN;
         }
         dy.hi = f64::from_bits(dy.hi.to_bits() & 0x7fff_ffff_ffff_ffff);
-        let y1 = x_a.trunc();
+        let y1 = x_a.floor();
         let fraction = x_a - y1;
         if fraction != 0.0
         // is it an integer?
@@ -158,7 +158,7 @@ pub fn f_tgamma(x: f64) -> f64 {
             if y1 != (y1 * 0.5).trunc() * 2.0 {
                 parity = -1.0;
             }
-            fact = DoubleDouble::div(-PI, f_fast_sinpi(fraction));
+            fact = DoubleDouble::div(-PI, f_fast_sinpi_dd(fraction));
             fact = DoubleDouble::from_exact_add(fact.hi, fact.lo);
             dy = DoubleDouble::from_full_exact_add(dy.hi, 1.0);
         }

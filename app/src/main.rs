@@ -1,5 +1,11 @@
 use bessel::bessel_i0;
-use pxfm::{f_cbrtf, f_cosf, f_cospi, f_cospif, f_cotf, f_cscf, f_erfinv, f_erfinvf, f_exp2f, f_exp10f, f_i0, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k1, f_lgammaf, f_log, f_rcbrtf, f_rerf, f_rerff, f_rsqrtf, f_secf, f_sincf, f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tanf, f_tgamma, f_tgammaf, f_y0, f_y0f, f_y1, f_y1f, f_i0f};
+use num_complex::Complex;
+use pxfm::{
+    f_cbrtf, f_cosf, f_cospi, f_cospif, f_cotf, f_cscf, f_erfinv, f_erfinvf, f_exp2f, f_exp10f,
+    f_i0, f_i0f, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k1, f_lgamma, f_lgammaf, f_log, f_rcbrtf,
+    f_rerf, f_rerff, f_rsqrtf, f_secf, f_sincf, f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tanf,
+    f_tgamma, f_tgammaf, f_y0, f_y0f, f_y1, f_y1f,
+};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -9,7 +15,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use num_complex::Complex;
 use zbessel_rs::{bessel_i, bessel_k};
 
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
@@ -171,7 +176,7 @@ fn test_f32_against_mpfr_multithreaded() {
         }
     });*/
 
-    let start_bits = (1.35f64).to_bits();
+    let start_bits = (-12.0f64).to_bits();
     let end_bits = (start_bits + 2500000);
     //
     // //
@@ -196,8 +201,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = Float::with_val(90, x).y0();
-        let actual =  f_y0(x);
+        let expected = Float::with_val(90, x).ln_abs_gamma().0;
+        let actual = f_lgamma(x);
 
         let diff = count_ulp_f64(actual, &expected);
 

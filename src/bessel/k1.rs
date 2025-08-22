@@ -430,7 +430,7 @@ den_expr = R('1') + R('8.8656713459366445640627099502526076307634900011454201') 
 **/
 #[inline]
 fn k1_asympt(x: f64) -> f64 {
-    let recip = DoubleDouble::from_recip(x);
+    let recip = DoubleDouble::from_quick_recip(x);
     let e = i0_exp(x * 0.5);
     let r_sqrt = DoubleDouble::from_sqrt(x);
 

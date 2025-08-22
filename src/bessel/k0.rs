@@ -471,7 +471,7 @@ r = MiniMaxApproximation[g[z], {z, {0.0000000000001, 1}, 21, 2}, WorkingPrecisio
 **/
 #[inline]
 fn k0_asympt(x: f64) -> f64 {
-    let recip = DoubleDouble::from_recip(x);
+    let recip = DoubleDouble::from_quick_recip(x);
     let e = i0_exp(x * 0.5);
     let r_sqrt = DoubleDouble::from_sqrt(x);
 

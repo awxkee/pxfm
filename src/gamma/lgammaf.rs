@@ -79,8 +79,8 @@ pub fn f_lgammaf(x: f32) -> f32 {
         let a = fast_sinpif(fraction);
 
         sum_parity = -1.;
-        const PI: f64 = f64::from_bits(0x400921fb54442d18);
-        f_res = simple_fast_log(PI / (a * dx).abs());
+        const LOG_PI: f64 = f64::from_bits(0x3ff250d048e7a1bd);
+        f_res = LOG_PI - simple_fast_log(a * dx);
     }
 
     if ax <= 0.007 {

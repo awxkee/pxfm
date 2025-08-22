@@ -303,7 +303,7 @@ fn sincospi_eval_extended(x: f64) -> SinCos {
     }
 }
 
-pub(crate) fn f_fast_sinpi(x: f64) -> DoubleDouble {
+pub(crate) fn f_fast_sinpi_dd(x: f64) -> DoubleDouble {
     let ix = x.to_bits();
     let ax = ix & 0x7fff_ffff_ffff_ffff;
     if ax == 0 {
@@ -363,16 +363,16 @@ pub(crate) fn f_fast_sinpi(x: f64) -> DoubleDouble {
            See ./notes/sinpi_zero_fast_dd.sollya
         */
         const C: [u64; 4] = [
-            0x400466bc6775aae1,
-            0xbfe32d2cce628d5f,
-            0x3fb507833ed1f126,
-            0xbf7e2eb186bf6664,
+            0xbfe32d2cce62bd85,
+            0x3fb50783487eb73d,
+            0xbf7e3074f120ad1f,
+            0x3f3e8d9011340e5a,
         ];
 
         let x2 = DoubleDouble::from_exact_mult(x, x);
 
         const C_PI: DoubleDouble =
-            DoubleDouble::from_bit_pair((0x3ca1a626321ac168, 0x400921fb54442d18));
+            DoubleDouble::from_bit_pair((0x3ca1a626331457a4, 0x400921fb54442d18));
 
         let p = f_polyeval4(
             x2.hi,
@@ -384,7 +384,12 @@ pub(crate) fn f_fast_sinpi(x: f64) -> DoubleDouble {
         let mut r = DoubleDouble::mul_f64_add(
             x2,
             p,
-            DoubleDouble::from_bit_pair((0x3cb055af1b11657c, 0xc014abbce625be53)),
+            DoubleDouble::from_bit_pair((0xbc96dd7ae221e58c, 0x400466bc6775aae2)),
+        );
+        r = DoubleDouble::mul_add(
+            x2,
+            r,
+            DoubleDouble::from_bit_pair((0x3cb05511c8a6c478, 0xc014abbce625be53)),
         );
         r = DoubleDouble::mul_add(r, x2, C_PI);
         r = DoubleDouble::quick_mult_f64(r, x);

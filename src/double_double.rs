@@ -129,16 +129,16 @@ impl DoubleDouble {
         zv.to_f64()
     }
 
-    // #[inline]
-    // pub(crate) const fn from_full_exact_sub(a: f64, b: f64) -> Self {
-    //     let r_hi = a - b;
-    //     let t1 = r_hi - a;
-    //     let t2 = r_hi - t1;
-    //     let t3 = -b - t1;
-    //     let t4 = a - t2;
-    //     let r_lo = t3 + t4;
-    //     DoubleDouble::new(r_lo, r_hi)
-    // }
+    #[inline]
+    pub(crate) const fn from_full_exact_sub(a: f64, b: f64) -> Self {
+        let r_hi = a - b;
+        let t1 = r_hi - a;
+        let t2 = r_hi - t1;
+        let t3 = -b - t1;
+        let t4 = a - t2;
+        let r_lo = t3 + t4;
+        DoubleDouble::new(r_lo, r_hi)
+    }
 
     #[inline]
     pub(crate) fn add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
@@ -147,16 +147,22 @@ impl DoubleDouble {
         let l = ((b.hi - d) + (a.hi + (d - s))) + (a.lo + b.lo);
         DoubleDouble::new(l, s)
     }
-    //
-    // /// correct only when sign the same, with unknown error bounds
-    // /// what is we usually can't guarantee
-    // #[inline]
-    // pub(crate) fn quick_dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-    //     let DoubleDouble { hi: sh, lo: sl } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
-    //     let v = a.lo + b.lo;
-    //     let w = sl + v;
-    //     DoubleDouble::from_exact_add(sh, w)
-    // }
+
+    #[inline]
+    pub(crate) fn quick_dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+        let DoubleDouble { hi: sh, lo: sl } = DoubleDouble::from_full_exact_add(a.hi, b.hi);
+        let v = a.lo + b.lo;
+        let w = sl + v;
+        DoubleDouble::from_exact_add(sh, w)
+    }
+
+    #[inline]
+    pub(crate) fn quick_dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+        let DoubleDouble { hi: sh, lo: sl } = DoubleDouble::from_full_exact_sub(a.hi, b.hi);
+        let v = a.lo - b.lo;
+        let w = sl + v;
+        DoubleDouble::from_exact_add(sh, w)
+    }
 
     #[inline]
     pub(crate) fn full_dd_add(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
@@ -167,11 +173,6 @@ impl DoubleDouble {
         let w = tl + v.lo;
         DoubleDouble::from_exact_add(v.hi, w)
     }
-
-    // #[inline]
-    // pub(crate) fn quick_dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
-    //     DoubleDouble::quick_dd_add(a, -b)
-    // }
 
     #[inline]
     pub(crate) fn full_dd_sub(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
@@ -730,16 +731,16 @@ impl DoubleDouble {
     //     DoubleDouble::new(r + q, p)
     // }
 
-    /// Computes `a * b + c` safe to overflow without FMA
-    /// `b` is an `f64`, `a` and `c` are `DoubleDouble`.
-    ///
-    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
-    #[inline]
-    pub(crate) fn mul_f64_safe_add(a: DoubleDouble, b: f64, c: DoubleDouble) -> Self {
-        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_safe_f64(a, b);
-        let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
-        DoubleDouble::new(r + q, p)
-    }
+    // /// Computes `a * b + c` safe to overflow without FMA
+    // /// `b` is an `f64`, `a` and `c` are `DoubleDouble`.
+    // ///
+    // /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    // #[inline]
+    // pub(crate) fn mul_f64_safe_add(a: DoubleDouble, b: f64, c: DoubleDouble) -> Self {
+    //     let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_safe_f64(a, b);
+    //     let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
+    //     DoubleDouble::new(r + q, p)
+    // }
 
     /// `a*b+c`
     ///
@@ -905,13 +906,13 @@ impl DoubleDouble {
         }
     }
 
-    /// Double-double multiplication safe to overflow without FMA
-    #[inline]
-    pub(crate) fn quick_mult_safe_f64(a: DoubleDouble, b: f64) -> Self {
-        let h = b * a.hi;
-        let l = f64::mul_add(b, a.lo, f64::mul_add(b, a.hi, -h));
-        Self { lo: l, hi: h }
-    }
+    // /// Double-double multiplication safe to overflow without FMA
+    // #[inline]
+    // pub(crate) fn quick_mult_safe_f64(a: DoubleDouble, b: f64) -> Self {
+    //     let h = b * a.hi;
+    //     let l = f64::mul_add(b, a.lo, f64::mul_add(b, a.hi, -h));
+    //     Self { lo: l, hi: h }
+    // }
 
     /// Valid only |a.hi| > |b|
     #[inline]
@@ -941,15 +942,15 @@ impl DoubleDouble {
         self.lo + self.hi
     }
 
-    #[inline]
-    pub(crate) fn from_rsqrt(x: f64) -> DoubleDouble {
-        let r = DoubleDouble::div_dd_f64(DoubleDouble::from_sqrt(x), x);
-        let rx = DoubleDouble::quick_mult_safe_f64(r, x);
-        let drx = DoubleDouble::mul_f64_safe_add(r, x, -rx);
-        let h = DoubleDouble::mul_add(r, drx, DoubleDouble::mul_add_f64(r, rx, -1.0));
-        let dr = DoubleDouble::quick_mult(DoubleDouble::quick_mult_f64(r, 0.5), h);
-        DoubleDouble::add(r, dr)
-    }
+    // #[inline]
+    // pub(crate) fn from_rsqrt(x: f64) -> DoubleDouble {
+    //     let r = DoubleDouble::div_dd_f64(DoubleDouble::from_sqrt(x), x);
+    //     let rx = DoubleDouble::quick_mult_safe_f64(r, x);
+    //     let drx = DoubleDouble::mul_f64_safe_add(r, x, -rx);
+    //     let h = DoubleDouble::mul_add(r, drx, DoubleDouble::mul_add_f64(r, rx, -1.0));
+    //     let dr = DoubleDouble::quick_mult(DoubleDouble::quick_mult_f64(r, 0.5), h);
+    //     DoubleDouble::add(r, dr)
+    // }
 
     #[inline]
     pub(crate) fn from_rsqrt_fast(x: f64) -> DoubleDouble {
