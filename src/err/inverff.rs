@@ -28,8 +28,8 @@
  */
 use crate::logs::simple_fast_log;
 use crate::polyeval::{
-    f_estrin_polyeval8, f_estrin_polyeval9, f_polyeval3, f_polyeval5, f_polyeval10, f_polyeval11,
-    f_polyeval12,
+    f_estrin_polyeval7, f_estrin_polyeval8, f_estrin_polyeval9, f_polyeval3, f_polyeval5,
+    f_polyeval10, f_polyeval11,
 };
 
 #[inline]
@@ -250,44 +250,38 @@ pub(crate) fn erfinv_core(z: f64, ax: u32, sign: f32) -> f32 {
         // <<FunctionApproximations`
         // ClearAll["Global`*"]
         // f[x_]:=InverseErf[Exp[-1/(x^2)]*(-1+Exp[1/(x^2)])]/(Sqrt[-Log[1-(Exp[-1/(x^2)]*(-1+Exp[1/(x^2)]))]] )
-        // {err0, approx}=MiniMaxApproximation[f[z],{z,{0.9375,1-(10^(-14))},11,11},WorkingPrecision->70]
-        // num=Numerator[approx][[1]];
-        // den=Denominator[approx][[1]];
+        // {err0, approx,err1}=MiniMaxApproximation[f[z],{z,{0.2,0.9999999},7,6},WorkingPrecision->90]
+        // num=Numerator[approx];
+        // den=Denominator[approx];
         // poly=num;
+        // coeffs=CoefficientList[poly,z];
+        // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+        // poly=den;
         // coeffs=CoefficientList[poly,z];
         // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
         let zeta = -simple_fast_log(1. - z);
         let zeta_sqrt = zeta.sqrt();
         let rcp_zeta = (1. / zeta) * zeta_sqrt;
-        let p_num = f_polyeval12(
+        let p_num = f_estrin_polyeval8(
             rcp_zeta,
-            f64::from_bits(0x3ff0007e1e866ba0),
-            f64::from_bits(0x40331260344dd33e),
-            f64::from_bits(0x40593ab0e07db78b),
-            f64::from_bits(0x406f35270af12fd3),
-            f64::from_bits(0x407a1d07db7556b0),
-            f64::from_bits(0x40801b4db8d080ed),
-            f64::from_bits(0x407e87801b3b2acd),
-            f64::from_bits(0x407640e51485dd37),
-            f64::from_bits(0x40691b2dff63f89d),
-            f64::from_bits(0x4053675b18f1d6d7),
-            f64::from_bits(0x40356749bb07cbde),
-            f64::from_bits(0xbea1e888397bb680),
+            f64::from_bits(0x3ff00072876c578e),
+            f64::from_bits(0x40314e00c10282da),
+            f64::from_bits(0x404f4a1412af03f6),
+            f64::from_bits(0x404c895cc0d9b1b3),
+            f64::from_bits(0x404545794620bfaf),
+            f64::from_bits(0x403264d21ea21354),
+            f64::from_bits(0x3fc5a5141dd19237),
+            f64::from_bits(0xbf8c2e49707c21ec),
         );
-        let p_den = f_polyeval12(
+        let p_den = f_estrin_polyeval7(
             rcp_zeta,
             f64::from_bits(0x3ff0000000000000),
-            f64::from_bits(0x4033159f3de9ca79),
-            f64::from_bits(0x4059c8a81c174cdd),
-            f64::from_bits(0x407143cbc37ca47e),
-            f64::from_bits(0x408009deefa289da),
-            f64::from_bits(0x40862a9daa25e4ac),
-            f64::from_bits(0x4087f7e8176d87f0),
-            f64::from_bits(0x4084a1206fd336e6),
-            f64::from_bits(0x407bd90c7a4f5f0c),
-            f64::from_bits(0x406dd6a9410df4ce),
-            f64::from_bits(0x4055e512f54c8e6f),
-            f64::from_bits(0x403826b5d7a56257),
+            f64::from_bits(0x403151312c313d77),
+            f64::from_bits(0x405032345fa3d0cd),
+            f64::from_bits(0x4053e0a81d4c5f09),
+            f64::from_bits(0x4054fa20c5e0731c),
+            f64::from_bits(0x404620d7f94d4804),
+            f64::from_bits(0x4035d7400867b81f),
         );
         let r = zeta_sqrt * (p_num / p_den);
         f32::copysign(r as f32, sign)

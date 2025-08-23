@@ -29,13 +29,13 @@
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::logs::fast_log_dd;
-use crate::polyeval::{f_polyeval4, f_polyeval6, f_polyeval7, f_polyeval8, f_polyeval10};
+use crate::polyeval::{f_polyeval4, f_polyeval5};
 
 #[cold]
 fn inverf_0p06_to_0p75(x: f64) -> f64 {
     // First step rational approximant is generated, but it's ill-conditioned, thus
     // we're using taylor expansion to create Newton form at the point.
-    //
+    // Generated in Wolfram Mathematica:
     // <<FunctionApproximations`
     // ClearAll["Global`*"]
     // f[x_]:=InverseErf[x]/x
@@ -63,20 +63,21 @@ fn inverf_0p06_to_0p75(x: f64) -> f64 {
         (0x3baffb33d69d6276, 0xbf142a246fd2c07c),
     ];
     let x2 = DoubleDouble::from_exact_mult(x, x);
-    let z = DoubleDouble::full_add_f64(x2, -0.5625);
+    let vz = DoubleDouble::full_add_f64(x2, -0.5625);
     let mut num = DoubleDouble::mul_add(
         DoubleDouble::from_bit_pair(P[9]),
-        z,
+        vz,
         DoubleDouble::from_bit_pair(P[8]),
     );
-    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[7]));
-    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[6]));
-    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[5]));
-    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[4]));
-    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[3]));
-    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[2]));
-    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[1]));
-    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[0]));
+    num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[7]));
+    num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[6]));
+    num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[5]));
+    num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[4]));
+    num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[3]));
+    num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[2]));
+    num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[1]));
+    num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[0]));
+    // Generated in Wolfram Mathematica:
     // <<FunctionApproximations`
     // ClearAll["Global`*"]
     // f[x_]:=InverseErf[x]/x
@@ -105,9 +106,218 @@ fn inverf_0p06_to_0p75(x: f64) -> f64 {
 
     let mut den = DoubleDouble::mul_add(
         DoubleDouble::from_bit_pair(Q[9]),
+        vz,
+        DoubleDouble::from_bit_pair(Q[8]),
+    );
+    den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[7]));
+    den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[6]));
+    den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[5]));
+    den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[4]));
+    den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[3]));
+    den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[2]));
+    den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[1]));
+    den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[0]));
+    let r = DoubleDouble::div(num, den);
+    let k = DoubleDouble::quick_mult_f64(r, x);
+    k.to_f64()
+}
+
+#[inline]
+fn inverf_asympt_small(z: DoubleDouble, zeta_sqrt: DoubleDouble, x: f64) -> f64 {
+    // Generated in Wolfram Mathematica:
+    // <<FunctionApproximations`
+    // ClearAll["Global`*"]
+    // f[x_]:=InverseErf[Exp[-1/(x^2)]*(-1+Exp[1/(x^2)])]/(Sqrt[-Log[1-(Exp[-1/(x^2)]*(-1+Exp[1/(x^2)]))]] )
+    // {err0, approx,err1}=MiniMaxApproximation[f[z],{z,{0.2,0.9999999},10,10},WorkingPrecision->90]
+    // num=Numerator[approx];
+    // den=Denominator[approx];
+    // poly=num;
+    // coeffs=CoefficientList[poly,z];
+    // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+    const P: [(u64, u64); 11] = [
+        (0x3c936555853a8b2c, 0x3ff0001df06a2515),
+        (0x3cea488e802db3c3, 0x404406ba373221da),
+        (0xbce27d42419754e3, 0x407b0442e38a9597),
+        (0xbd224a407624cbdf, 0x409c9277e31ef446),
+        (0x3d4f16ce65d6fea0, 0x40aec3ec005b1d8a),
+        (0x3d105bc37bc61b58, 0x40b46be8f860f4d9),
+        (0x3d5ca133dcdecaa0, 0x40b3826e6a32dad7),
+        (0x3d1d52013ba8aa38, 0x40aae93a603cf3ea),
+        (0xbd07a75306df0fc3, 0x4098ab8357dc2e51),
+        (0x3d1bb6770bb7a27e, 0x407ebead00879010),
+        (0xbbfcbff4a9737936, 0x3f8936117ccbff83),
+    ];
+
+    let z2 = DoubleDouble::quick_mult(z, z);
+    let z4 = DoubleDouble::quick_mult(z2, z2);
+    let z8 = DoubleDouble::quick_mult(z4, z4);
+
+    let q0 = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(P[1]),
+        z,
+        DoubleDouble::from_bit_pair(P[0]),
+    );
+    let q1 = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(P[3]),
+        z,
+        DoubleDouble::from_bit_pair(P[2]),
+    );
+    let q2 = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(P[5]),
+        z,
+        DoubleDouble::from_bit_pair(P[4]),
+    );
+    let q3 = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(P[7]),
+        z,
+        DoubleDouble::from_bit_pair(P[6]),
+    );
+    let q4 = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(P[9]),
+        z,
+        DoubleDouble::from_bit_pair(P[8]),
+    );
+
+    let r0 = DoubleDouble::mul_add(z2, q1, q0);
+    let r1 = DoubleDouble::mul_add(z2, q3, q2);
+
+    let s0 = DoubleDouble::mul_add(z4, r1, r0);
+    let s1 = DoubleDouble::mul_add(z2, DoubleDouble::from_bit_pair(P[10]), q4);
+    let num = DoubleDouble::mul_add(z8, s1, s0);
+
+    // See numerator generation above:
+    // poly=den;
+    // coeffs=CoefficientList[poly,z];
+    // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+    const Q: [(u64, u64); 11] = [
+        (0x0000000000000000, 0x3ff0000000000000),
+        (0xbc75b1109d4a3262, 0x40440782efaab17f),
+        (0x3d1f7775b207d84f, 0x407b2da74b0d39f2),
+        (0xbd3291fdbab49501, 0x409dac8d9e7c90b2),
+        (0xbd58d8fdd27707a9, 0x40b178dfeffa3192),
+        (0xbd57fc74ad705ce0, 0x40bad19b686f219f),
+        (0x3d4075510031f2cd, 0x40be70a598208cea),
+        (0xbd5442e109152efb, 0x40b9683ef36ae330),
+        (0x3d5398192933962e, 0x40b04b7c4c3ca8ee),
+        (0x3d2d04d03598e303, 0x409bd0080799fbf1),
+        (0x3d2a988eb552ef44, 0x40815a46f12bafe3),
+    ];
+
+    let q0 = DoubleDouble::mul_add_f64(
+        DoubleDouble::from_bit_pair(Q[1]),
+        z,
+        f64::from_bits(0x3ff0000000000000),
+    );
+    let q1 = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(Q[3]),
+        z,
+        DoubleDouble::from_bit_pair(Q[2]),
+    );
+    let q2 = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(Q[5]),
+        z,
+        DoubleDouble::from_bit_pair(Q[4]),
+    );
+    let q3 = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(Q[7]),
+        z,
+        DoubleDouble::from_bit_pair(Q[6]),
+    );
+    let q4 = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(Q[9]),
         z,
         DoubleDouble::from_bit_pair(Q[8]),
     );
+
+    let r0 = DoubleDouble::mul_add(z2, q1, q0);
+    let r1 = DoubleDouble::mul_add(z2, q3, q2);
+
+    let s0 = DoubleDouble::mul_add(z4, r1, r0);
+    let s1 = DoubleDouble::mul_add(z2, DoubleDouble::from_bit_pair(Q[10]), q4);
+    let den = DoubleDouble::mul_add(z8, s1, s0);
+    let r = DoubleDouble::div(num, den);
+    let k = DoubleDouble::quick_mult(r, zeta_sqrt);
+    f64::copysign(k.to_f64(), x)
+}
+
+// branch for |x| > 0.9999 for extreme tail
+#[cold]
+fn inverf_asympt_long(z: DoubleDouble, zeta_sqrt: DoubleDouble, x: f64) -> f64 {
+    // First step rational approximant is generated, but it's ill-conditioned, thus
+    // we're using taylor expansion to create Newton form at the point.
+    // Generated in Wolfram Mathematica:
+    // <<FunctionApproximations`
+    // ClearAll["Global`*"]
+    // f[x_]:=InverseErf[Exp[-1/(x^2)]*(-1+Exp[1/(x^2)])]/(Sqrt[-Log[1-(Exp[-1/(x^2)]*(-1+Exp[1/(x^2)]))]] )
+    // {err0, approx}=MiniMaxApproximation[f[z],{z,{0.2,0.9999999},13,13},WorkingPrecision->90]
+    // num=Numerator[approx][[1]];
+    // den=Denominator[approx][[1]];
+    // poly=num;
+    // coeffs=CoefficientList[poly,z];
+    // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+    const P: [(u64, u64); 14] = [
+        (0x3c97612f9b24a614, 0x3ff0000ba84cc7a5),
+        (0xbcee8fe2da463412, 0x40515246546f5d88),
+        (0x3d2fa4a2b891b526, 0x40956b6837159b11),
+        (0x3d5d673ffad4f817, 0x40c5a1aa3be58652),
+        (0x3d8867a1e5506f88, 0x40e65ebb1e1e7c75),
+        (0xbd9bbc0764ed8f5b, 0x40fd2064a652e5c2),
+        (0xbda78e569c0d237f, 0x410a385c627c461c),
+        (0xbdab3123ebc465d7, 0x4110f05ca2b65fe5),
+        (0x3d960def35955192, 0x4110bb079af2fe08),
+        (0xbd97904816054836, 0x410911c24610c11c),
+        (0xbd937745e9192593, 0x40fc603244adca35),
+        (0xbd65fbc476d63050, 0x40e6399103188c21),
+        (0xbd61016ef381cce6, 0x40c6482b44995b89),
+        (0x3c326105c49e5a1a, 0xbfab44bd8b4e3138),
+    ];
+    let mut num = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(P[13]),
+        z,
+        DoubleDouble::from_bit_pair(P[12]),
+    );
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[11]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[10]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[9]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[8]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[7]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[6]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[5]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[4]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[3]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[2]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[1]));
+    num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[0]));
+    // See numerator generation above:
+    // poly=den;
+    // coeffs=CoefficientList[poly,z];
+    // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+    const Q: [(u64, u64); 14] = [
+        (0x0000000000000000, 0x3ff0000000000000),
+        (0xbcfc7b886ee61417, 0x405152838f711f3c),
+        (0xbd33f933c14e831a, 0x409576cb78cab36e),
+        (0x3d33fb09e2c4898a, 0x40c5e8a2c7602ced),
+        (0x3d7be430c664bf7e, 0x40e766fdc8c7638c),
+        (0x3dac662e74cdfc0e, 0x4100276b5f47b5f1),
+        (0x3da67d06e82a8495, 0x410f843887f8a24a),
+        (0x3dbbf2e22fc2550a, 0x4116d04271703e08),
+        (0xbdb2fb3aed100853, 0x4119aff4ed32b74b),
+        (0x3dba75e7b7171c3c, 0x4116b5eb8bf386bd),
+        (0x3dab2d8b8c1937eb, 0x410f71c38e84cb34),
+        (0xbda4e2e8a50b7370, 0x4100ca04b0f36b94),
+        (0xbd86ed6df34fdaf9, 0x40e9151ded4cf4b7),
+        (0x3d6938ea702c0328, 0x40c923ee1ab270c4),
+    ];
+
+    let mut den = DoubleDouble::mul_add(
+        DoubleDouble::from_bit_pair(Q[13]),
+        z,
+        DoubleDouble::from_bit_pair(Q[12]),
+    );
+    den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[11]));
+    den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[10]));
+    den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[9]));
+    den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[8]));
     den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[7]));
     den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[6]));
     den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[5]));
@@ -117,13 +327,13 @@ fn inverf_0p06_to_0p75(x: f64) -> f64 {
     den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[1]));
     den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[0]));
     let r = DoubleDouble::div(num, den);
-    let k = DoubleDouble::quick_mult_f64(r, x);
+    let k = DoubleDouble::quick_mult(r, zeta_sqrt);
     f64::copysign(k.to_f64(), x)
 }
 
 /// Inverse error function
 ///
-/// Max ulp 0.7, ulp 0.5 on [0;0.75]
+/// ulp 0.5
 pub fn f_erfinv(x: f64) -> f64 {
     let ax = x.to_bits() & 0x7fff_ffff_ffff_ffff;
     if ax >= 0x3ff0000000000000u64 {
@@ -229,7 +439,7 @@ pub fn f_erfinv(x: f64) -> f64 {
 
         // First step rational approximant is generated, but it's ill-conditioned, thus
         // we're using taylor expansion to create Newton form at the point.
-        //
+        // Generated in Wolfram Mathematica:
         // <<FunctionApproximations`
         // ClearAll["Global`*"]
         // f[x_]:=InverseErf[x]/x
@@ -244,27 +454,30 @@ pub fn f_erfinv(x: f64) -> f64 {
         // NumberForm[Series[num[x],{x,x0,50}], ExponentFunction->(Null&)]
         // coeffs=Table[SeriesCoefficient[num[x],{x,x0,k}],{k,0,9}];
         // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]];
-        const P: [(u64, u64); 3] = [
+        const P: [(u64, u64); 5] = [
             (0xbc3e06eda42202a0, 0x3f93c2fc5d00e0c8),
             (0xbc6eb374406b33b4, 0xbfc76fcfd022e3ff),
             (0xbc857822d7ffd282, 0x3fe6f8443546010a),
+            (0x3c68269c66dfb28a, 0xbff80996754ceb79),
+            (0x3c543dce8990a9f9, 0x3ffcf778d5ef0504),
         ];
         let x2 = DoubleDouble::from_exact_mult(x, x);
-        let z = DoubleDouble::full_add_f64(x2, -0.5625);
-        let ps_num = f_polyeval7(
-            z.hi,
-            f64::from_bits(0xbff80996754ceb79),
-            f64::from_bits(0x3ffcf778d5ef0504),
+        let vz = DoubleDouble::full_add_f64(x2, -0.5625);
+        let ps_num = f_polyeval5(
+            vz.hi,
             f64::from_bits(0xbff433be821423d0),
             f64::from_bits(0x3fdf15f19e9d8da4),
             f64::from_bits(0xbfb770b6827e0829),
             f64::from_bits(0x3f7a98a2980282bb),
             f64::from_bits(0xbf142a246fd2c07c),
         );
-        let mut num = DoubleDouble::mul_f64_add(z, ps_num, DoubleDouble::from_bit_pair(P[2]));
-        num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[1]));
-        num = DoubleDouble::mul_add(z, num, DoubleDouble::from_bit_pair(P[0]));
+        let mut num = DoubleDouble::mul_f64_add(vz, ps_num, DoubleDouble::from_bit_pair(P[4]));
+        num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[3]));
+        num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[2]));
+        num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[1]));
+        num = DoubleDouble::mul_add(vz, num, DoubleDouble::from_bit_pair(P[0]));
 
+        // Generated in Wolfram Mathematica:
         // <<FunctionApproximations`
         // ClearAll["Global`*"]
         // f[x_]:=InverseErf[x]/x
@@ -278,16 +491,16 @@ pub fn f_erfinv(x: f64) -> f64 {
         // NumberForm[Series[den[x],{x,x0,50}], ExponentFunction->(Null&)]
         // coeffs=Table[SeriesCoefficient[den[x],{x,x0,k}],{k,0,9}];
         // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]];
-        const Q: [(u64, u64); 3] = [
+        const Q: [(u64, u64); 5] = [
             (0xbc36337f24e57cb9, 0x3f92388d5d757e3a),
             (0xbc63dfae43d60e0b, 0xbfc6ca7da581358c),
             (0xbc77656389bd0e62, 0x3fe7c82ce417b4e0),
+            (0xbc93679667bef2f0, 0xbffad58651fd1a51),
+            (0x3ca2c6cb9eb17fb4, 0x4001bdb67e93a242),
         ];
 
-        let ps_den = f_polyeval7(
-            z.hi,
-            f64::from_bits(0xbffad58651fd1a51),
-            f64::from_bits(0x4001bdb67e93a242),
+        let ps_den = f_polyeval5(
+            vz.hi,
             f64::from_bits(0xbffbdaeff6fbb81c),
             f64::from_bits(0x3fe91b12cf47da3a),
             f64::from_bits(0xbfc7c5d0ffb7f1da),
@@ -295,15 +508,17 @@ pub fn f_erfinv(x: f64) -> f64 {
             f64::from_bits(0xbf41be65038ccfe6),
         );
 
-        let mut den = DoubleDouble::mul_f64_add(z, ps_den, DoubleDouble::from_bit_pair(Q[2]));
-        den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[1]));
-        den = DoubleDouble::mul_add(z, den, DoubleDouble::from_bit_pair(Q[0]));
+        let mut den = DoubleDouble::mul_f64_add(vz, ps_den, DoubleDouble::from_bit_pair(Q[4]));
+        den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[3]));
+        den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[2]));
+        den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[1]));
+        den = DoubleDouble::mul_add(vz, den, DoubleDouble::from_bit_pair(Q[0]));
         let r = DoubleDouble::div(num, den);
-        let k = DoubleDouble::quick_mult_f64(r, x);
+        let k = DoubleDouble::quick_mult_f64(r, z);
         let err = f_fmla(
             k.hi,
-            f64::from_bits(0x3c10000000000000), // 2^-62
-            f64::from_bits(0x3b50000000000000), // 2^-74
+            f64::from_bits(0x3c70000000000000), // 2^-56
+            f64::from_bits(0x3c40000000000000), // 2^-59
         );
         let ub = k.hi + (k.lo + err);
         let lb = k.hi + (k.lo - err);
@@ -319,190 +534,12 @@ pub fn f_erfinv(x: f64) -> f64 {
     zeta = DoubleDouble::from_exact_add(zeta.hi, zeta.lo);
     zeta = -zeta;
     let zeta_sqrt = zeta.fast_sqrt();
+    let rz = zeta_sqrt.recip();
 
-    if zeta_sqrt.hi < 3.0 {
-        const Y: f64 = 0.807220458984375;
-        let xs = DoubleDouble::full_add_f64(zeta_sqrt, -1.125);
-
-        const P: [f64; 11] = [
-            -0.131102781679951906451,
-            -0.163794047193317060787,
-            0.117030156341995252019,
-            0.387079738972604337464,
-            0.337785538912035898924,
-            0.142869534408157156766,
-            0.0290157910005329060432,
-            0.00214558995388805277169,
-            -0.679465575181126350155e-6,
-            0.285225331782217055858e-7,
-            -0.681149956853776992068e-9,
-        ];
-
-        let p_num_s = f_polyeval10(
-            xs.hi, P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8], P[9], P[10],
-        );
-        let p_num = DoubleDouble::mul_f64_add_f64(xs, p_num_s, P[0]);
-
-        const Q: [f64; 8] = [
-            1.0,
-            3.46625407242567245975,
-            5.38168345707006855425,
-            4.77846592945843778382,
-            2.59301921623620271374,
-            0.848854343457902036425,
-            0.152264338295331783612,
-            0.01105924229346489121,
-        ];
-
-        let p_den_s = f_polyeval7(xs.hi, Q[1], Q[2], Q[3], Q[4], Q[5], Q[6], Q[7]);
-        let p_den = DoubleDouble::mul_f64_add_f64(xs, p_den_s, Q[0]);
-        let r = DoubleDouble::div(p_num, p_den);
-
-        let r0 = DoubleDouble::quick_mult(r, zeta_sqrt);
-        let p = DoubleDouble::mul_f64_add(zeta_sqrt, Y, r0);
-        f64::copysign(p.to_f64(), x)
-    } else if zeta_sqrt.hi < 6.0 {
-        const Y: f64 = 0.93995571136474609375;
-        let xs = DoubleDouble::full_add_f64(zeta_sqrt, -3.0);
-
-        const P: [f64; 9] = [
-            -0.0350353787183177984712,
-            -0.00222426529213447927281,
-            0.0185573306514231072324,
-            0.00950804701325919603619,
-            0.00187123492819559223345,
-            0.000157544617424960554631,
-            0.460469890584317994083e-5,
-            -0.230404776911882601748e-9,
-            0.266339227425782031962e-11,
-        ];
-
-        let p_num_s = f_polyeval8(xs.hi, P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8]);
-        let p_num = DoubleDouble::mul_f64_add_f64(xs, p_num_s, P[0]);
-
-        const Q: [f64; 7] = [
-            1.0,
-            1.3653349817554063097,
-            0.762059164553623404043,
-            0.220091105764131249824,
-            0.0341589143670947727934,
-            0.00263861676657015992959,
-            0.764675292302794483503e-4,
-        ];
-
-        let p_den_s = f_polyeval6(xs.hi, Q[1], Q[2], Q[3], Q[4], Q[5], Q[6]);
-        let p_den = DoubleDouble::mul_f64_add_f64(xs, p_den_s, Q[0]);
-        let r = DoubleDouble::div(p_num, p_den);
-
-        let r0 = DoubleDouble::quick_mult(r, zeta_sqrt);
-        let p = DoubleDouble::mul_f64_add(zeta_sqrt, Y, r0);
-        f64::copysign(p.to_f64(), x)
-    } else if zeta_sqrt.hi < 18.0 {
-        const Y: f64 = 0.98362827301025390625;
-        let xs = DoubleDouble::full_add_f64(zeta_sqrt, -6.0);
-
-        const P: [f64; 9] = [
-            -0.0167431005076633737133,
-            -0.00112951438745580278863,
-            0.00105628862152492910091,
-            0.000209386317487588078668,
-            0.149624783758342370182e-4,
-            0.449696789927706453732e-6,
-            0.462596163522878599135e-8,
-            -0.281128735628831791805e-13,
-            0.99055709973310326855e-16,
-        ];
-
-        let p_num_s = f_polyeval8(xs.hi, P[1], P[2], P[3], P[4], P[5], P[6], P[7], P[8]);
-        let p_num = DoubleDouble::mul_f64_add_f64(xs, p_num_s, P[0]);
-
-        const Q: [f64; 7] = [
-            1.0,
-            0.591429344886417493481,
-            0.138151865749083321638,
-            0.0160746087093676504695,
-            0.000964011807005165528527,
-            0.275335474764726041141e-4,
-            0.282243172016108031869e-6,
-        ];
-
-        let p_den_s = f_polyeval6(xs.hi, Q[1], Q[2], Q[3], Q[4], Q[5], Q[6]);
-        let p_den = DoubleDouble::mul_f64_add_f64(xs, p_den_s, Q[0]);
-        let r = DoubleDouble::div(p_num, p_den);
-
-        let r0 = DoubleDouble::quick_mult(r, zeta_sqrt);
-        let p = DoubleDouble::mul_f64_add(zeta_sqrt, Y, r0);
-        f64::copysign(p.to_f64(), x)
-    } else if zeta_sqrt.hi < 44.0 {
-        const Y: f64 = 0.99714565277099609375;
-        let xs = DoubleDouble::full_add_f64(zeta_sqrt, -18.0);
-
-        const P: [f64; 8] = [
-            -0.0024978212791898131227,
-            -0.779190719229053954292e-5,
-            0.254723037413027451751e-4,
-            0.162397777342510920873e-5,
-            0.396341011304801168516e-7,
-            0.411632831190944208473e-9,
-            0.145596286718675035587e-11,
-            -0.116765012397184275695e-17,
-        ];
-
-        let p_num_s = f_polyeval7(xs.hi, P[1], P[2], P[3], P[4], P[5], P[6], P[7]);
-        let p_num = DoubleDouble::mul_f64_add_f64(xs, p_num_s, P[0]);
-
-        const Q: [f64; 7] = [
-            1.0,
-            0.207123112214422517181,
-            0.0169410838120975906478,
-            0.000690538265622684595676,
-            0.145007359818232637924e-4,
-            0.144437756628144157666e-6,
-            0.509761276599778486139e-9,
-        ];
-
-        let p_den_s = f_polyeval6(xs.hi, Q[1], Q[2], Q[3], Q[4], Q[5], Q[6]);
-        let p_den = DoubleDouble::mul_f64_add_f64(xs, p_den_s, Q[0]);
-        let r = DoubleDouble::div(p_num, p_den);
-
-        let r0 = DoubleDouble::quick_mult(r, zeta_sqrt);
-        let p = DoubleDouble::mul_f64_add(zeta_sqrt, Y, r0);
-        f64::copysign(p.to_f64(), x)
+    if z < 0.9999 {
+        inverf_asympt_small(rz, zeta_sqrt, x)
     } else {
-        const Y: f64 = 0.99941349029541015625;
-        let xs = DoubleDouble::full_add_f64(zeta_sqrt, -44.0);
-
-        const P: [f64; 8] = [
-            -0.000539042911019078575891,
-            -0.28398759004727721098e-6,
-            0.899465114892291446442e-6,
-            0.229345859265920864296e-7,
-            0.225561444863500149219e-9,
-            0.947846627503022684216e-12,
-            0.135880130108924861008e-14,
-            -0.348890393399948882918e-21,
-        ];
-
-        let p_num_s = f_polyeval7(xs.hi, P[1], P[2], P[3], P[4], P[5], P[6], P[7]);
-        let p_num = DoubleDouble::mul_f64_add_f64(xs, p_num_s, P[0]);
-
-        const Q: [f64; 7] = [
-            1.0,
-            0.0845746234001899436914,
-            0.00282092984726264681981,
-            0.468292921940894236786e-4,
-            0.399968812193862100054e-6,
-            0.161809290887904476097e-8,
-            0.231558608310259605225e-11,
-        ];
-
-        let p_den_s = f_polyeval6(xs.hi, Q[1], Q[2], Q[3], Q[4], Q[5], Q[6]);
-        let p_den = DoubleDouble::mul_f64_add_f64(xs, p_den_s, Q[0]);
-        let r = DoubleDouble::div(p_num, p_den);
-
-        let r0 = DoubleDouble::quick_mult(r, zeta_sqrt);
-        let p = DoubleDouble::mul_f64_add(zeta_sqrt, Y, r0);
-        f64::copysign(p.to_f64(), x)
+        inverf_asympt_long(rz, zeta_sqrt, x)
     }
 }
 
@@ -512,6 +549,8 @@ mod tests {
 
     #[test]
     fn test_erfinv() {
+        assert_eq!(f_erfinv(-0.5435340000000265), -0.5265673336010599);
+        assert_eq!(f_erfinv(0.5435340000000265), 0.5265673336010599);
         assert_eq!(f_erfinv(0.001000000000084706), 0.0008862271575416209);
         assert_eq!(f_erfinv(-0.001000000000084706), -0.0008862271575416209);
         assert_eq!(f_erfinv(0.71), 0.7482049711849852);
@@ -526,8 +565,10 @@ mod tests {
         assert_eq!(f_erfinv(-0.05), -0.044340387910005497);
         assert_eq!(f_erfinv(0.99), 1.8213863677184494);
         assert_eq!(f_erfinv(-0.99), -1.8213863677184494);
-        assert_eq!(f_erfinv(0.9900000000867389), 1.821386369839293);
+        assert_eq!(f_erfinv(0.9900000000867389), 1.8213863698392927);
+        assert_eq!(f_erfinv(-0.9900000000867389), -1.8213863698392927);
         assert_eq!(f_erfinv(0.99999), 3.123413274341571);
+        assert_eq!(f_erfinv(-0.99999), -3.123413274341571);
         assert!(f_erfinv(f64::NEG_INFINITY).is_nan());
         assert!(f_erfinv(f64::INFINITY).is_nan());
         assert!(f_erfinv(f64::NAN).is_nan());
