@@ -28,31 +28,12 @@
  */
 use crate::logs::simple_fast_log;
 use crate::polyeval::{
-    f_polyeval3, f_polyeval5, f_polyeval7, f_polyeval10, f_polyeval11, f_polyeval12,
+    f_estrin_polyeval8, f_estrin_polyeval9, f_polyeval3, f_polyeval5, f_polyeval10, f_polyeval11,
+    f_polyeval12,
 };
 
-/// Inverse error function
-///
-/// Max ulp 0.5
-pub fn f_erfinvf(x: f32) -> f32 {
-    let ax = x.to_bits() & 0x7fff_ffff;
-    if ax >= 0x3f800000 {
-        // |x| > 1
-        if ax == 0x3f800000 {
-            return if x.is_sign_negative() {
-                f32::NEG_INFINITY
-            } else {
-                f32::INFINITY
-            };
-        }
-        return f32::NAN;
-    }
-    if ax == 0 {
-        return 0.;
-    }
-
-    let z = f32::from_bits(ax) as f64;
-
+#[inline]
+pub(crate) fn erfinv_core(z: f64, ax: u32, sign: f32) -> f32 {
     if ax <= 0x3c1ba5e3u32 {
         // 0.0095
         // for small |x| using taylor series first 3 terms
@@ -77,7 +58,7 @@ pub fn f_erfinvf(x: f32) -> f32 {
             f64::from_bits(0x3fcdb29fb2fee5e4),
             f64::from_bits(0x3fc053c2c0ab91c5),
         ) * z;
-        return f32::copysign(p as f32, x);
+        return f32::copysign(p as f32, sign);
     } else if ax <= 0x3d75c28fu32 {
         // 0.06
         // for |x| < 0.06 using taylor series first 5 terms
@@ -104,7 +85,7 @@ pub fn f_erfinvf(x: f32) -> f32 {
             f64::from_bits(0x3fb62847c47dda48),
             f64::from_bits(0x3fb0a13189c6ef7a),
         ) * z;
-        return f32::copysign(p as f32, x);
+        return f32::copysign(p as f32, sign);
     }
 
     if ax <= 0x3f400000u32 {
@@ -117,7 +98,7 @@ pub fn f_erfinvf(x: f32) -> f32 {
         // <<FunctionApproximations`
         // ClearAll["Global`*"]
         // f[x_]:=InverseErf[Sqrt[x]]/Sqrt[x]
-        // {err0, approx}=MiniMaxApproximation[f[z],{z,{0.06,0.75},6,6},WorkingPrecision->70]
+        // {err0, approx}=MiniMaxApproximation[f[z],{z,{0.06,0.75},8,7},WorkingPrecision->70]
         // num=Numerator[approx][[1]];
         // den=Denominator[approx][[1]];
         // poly=num;
@@ -126,34 +107,37 @@ pub fn f_erfinvf(x: f32) -> f32 {
         let r = z2 - 0.5625;
         // x0=SetPrecision[0.5625,75];
         // NumberForm[Series[num[x],{x,x0,50}], ExponentFunction->(Null&)]
-        // coeffs=Table[SeriesCoefficient[num[x],{x,x0,k}],{k,0,7}];
+        // coeffs=Table[SeriesCoefficient[num[x],{x,x0,k}],{k,0,8}];
         // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
-        let p_num = f_polyeval7(
+        let p_num = f_estrin_polyeval9(
             r,
-            f64::from_bits(0x3fb2289bc222941d),
-            f64::from_bits(0xbfdc4f70bdf4434f),
-            f64::from_bits(0x3ff053f40fceaf43),
-            f64::from_bits(0xbff10ea724acfdc0),
-            f64::from_bits(0x3fdf79caaa551a5b),
-            f64::from_bits(0xbfb4a285f798a2b8),
-            f64::from_bits(0x3f618a054ac09110),
+            f64::from_bits(0x3fa329348a73d9d4),
+            f64::from_bits(0xbfd2cb089b644580),
+            f64::from_bits(0x3fed229149f732d6),
+            f64::from_bits(0xbff6a233d2028bff),
+            f64::from_bits(0x3ff268adbfbb6023),
+            f64::from_bits(0xbfddac401c7d70f4),
+            f64::from_bits(0x3fb3b1bd759d5046),
+            f64::from_bits(0xbf67aeb45bad547e),
+            f64::from_bits(0xbf01ccc7434d381b),
         );
         // x0=SetPrecision[0.5625,75];
         // NumberForm[Series[den[x],{x,x0,50}], ExponentFunction->(Null&)]
         // coeffs=Table[SeriesCoefficient[den[x],{x,x0,k}],{k,0,7}];
         // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
-        let p_den = f_polyeval7(
+        let p_den = f_estrin_polyeval8(
             r,
-            f64::from_bits(0x3fb0be2bb3742570),
-            f64::from_bits(0xbfdc463d8ccbbc60),
-            f64::from_bits(0x3ff212d7df3dcb00),
-            f64::from_bits(0xbff5b4a7015caca2),
-            f64::from_bits(0x3fe892ca875442f5),
-            f64::from_bits(0xbfc6c1693c6d9094),
-            f64::from_bits(0x3f863da89234fe3f),
+            f64::from_bits(0x3fa1aac2ee4b1413),
+            f64::from_bits(0xbfd279342e281c99),
+            f64::from_bits(0x3feef89a353c6d1b),
+            f64::from_bits(0xbffa8f1b7cd6d0a7),
+            f64::from_bits(0x3ff89ce6289819a1),
+            f64::from_bits(0xbfe7db5282a4a2e1),
+            f64::from_bits(0x3fc543f9a928db4a),
+            f64::from_bits(0xbf888fd2990e88db),
         );
         let k = (p_num / p_den) * z;
-        f32::copysign(k as f32, x)
+        f32::copysign(k as f32, sign)
     } else if ax <= 0x3f580000u32 {
         // |x| <= 0.84375
         let z2 = z * z;
@@ -206,7 +190,7 @@ pub fn f_erfinvf(x: f32) -> f32 {
             f64::from_bits(0xbf83be49c2d5cb9e),
         );
         let k = (p_num / p_den) * z;
-        f32::copysign(k as f32, x)
+        f32::copysign(k as f32, sign)
     } else if ax <= 0x3f700000u32 {
         // |x| <= 0.9375
         // First step rational approximant is generated, but it's ill-conditioned, thus
@@ -258,7 +242,7 @@ pub fn f_erfinvf(x: f32) -> f32 {
             f64::from_bits(0xbfb844807521be56),
         );
         let f = z * (p_num / p_den);
-        f32::copysign(f as f32, x)
+        f32::copysign(f as f32, sign)
     } else {
         // Rational approximation generated by Wolfram Mathematica:
         // for inverf(x) = sqrt(-log(1-x))*R(1/sqrt(-log(1-x)))
@@ -306,8 +290,33 @@ pub fn f_erfinvf(x: f32) -> f32 {
             f64::from_bits(0x403826b5d7a56257),
         );
         let r = zeta_sqrt * (p_num / p_den);
-        f32::copysign(r as f32, x)
+        f32::copysign(r as f32, sign)
     }
+}
+
+/// Inverse error function
+///
+/// Max ulp 0.5
+pub fn f_erfinvf(x: f32) -> f32 {
+    let ax = x.to_bits() & 0x7fff_ffff;
+    if ax >= 0x3f800000u32 {
+        // |x| > 1
+        if ax == 0x3f800000u32 {
+            // |x| == 1
+            return if x.is_sign_negative() {
+                f32::NEG_INFINITY
+            } else {
+                f32::INFINITY
+            };
+        }
+        return f32::NAN;
+    }
+    if ax == 0 {
+        return 0.;
+    }
+
+    let z = f32::from_bits(ax) as f64;
+    erfinv_core(z, ax, x)
 }
 
 #[cfg(test)]
