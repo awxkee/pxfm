@@ -1,26 +1,18 @@
-use bessel::bessel_i0;
-use num_complex::Complex;
-use pxfm::{
-    f_cbrtf, f_cosf, f_cospi, f_cospif, f_cotf, f_cscf, f_erfinv, f_erfinvf, f_exp2f, f_exp10f,
-    f_i0, f_i0f, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k1, f_lgamma, f_lgammaf, f_log, f_rcbrtf,
-    f_rerf, f_rerff, f_rsqrtf, f_secf, f_sincf, f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tanf,
-    f_tgamma, f_tgammaf, f_y0, f_y0f, f_y1, f_y1f,
-};
+use pxfm::f_erfinv;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
-use std::ops::Div;
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use zbessel_rs::{bessel_i, bessel_k};
 
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
+    let r=  x.to_string();
     let output = Command::new("python3")
         .arg("bessel/inverf.py")
-        .arg(x.to_string())
+        .arg(r)
         .output()?;
 
     if !output.status.success() {
@@ -131,53 +123,53 @@ fn test_f32_against_mpfr_multithreaded() {
 
     let mut exceptions = Arc::new(Mutex::new(Vec::<f64>::new()));
 
-    /*let start_bits = (6f32).to_bits();
-    let end_bits = (105f32).to_bits() - 1;
-    println!("amount {}", end_bits - start_bits);
+    // let start_bits = (0.75f32).to_bits();
+    // let end_bits = (0.9375f32).to_bits() - 1;
+    // println!("amount {}", end_bits - start_bits);
+    //
+    // // Exhaustive: 0..=u32::MAX
+    // (start_bits..=end_bits).into_par_iter().for_each(|bits| {
+    //     let x = f32::from_bits(bits);
+    //
+    //     if !x.is_finite() {
+    //         return; // skip NaNs and infinities
+    //     }
+    //
+    //     let v = match bessel_i(
+    //         Complex {
+    //             re: x as f64,
+    //             im: 0.,
+    //         },
+    //         0.,
+    //         1,
+    //         1,
+    //     ) {
+    //         Ok(v) => v,
+    //         Err(_) => return,
+    //     };
+    //
+    //     let expected_sin_pi = Float::with_val(53, statrs::function::erf::erf_inv(x as f64)); //compute_besselk(x as f64).unwrap(); //Float::with_val(90, statrs::function::erf::erf_inv(x as f64));
+    //     let actual = f_erfinvf(x);
+    //
+    //     executions.fetch_add(1, Ordering::Relaxed);
+    //
+    //     let diff = count_ulp(actual, &Float::with_val(90, expected_sin_pi.clone()));
+    //     // if diff.is_nan() || diff.is_infinite() {
+    //     //     return;
+    //     // }
+    //
+    //     if diff > 0.5 {
+    //         failures.fetch_add(1, Ordering::Relaxed);
+    //         exceptions.lock().unwrap().push(x);
+    //         eprintln!(
+    //             "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
+    //             expected_sin_pi.to_f32(),
+    //         );
+    //     }
+    // });
 
-    // Exhaustive: 0..=u32::MAX
-    (start_bits..=end_bits).into_par_iter().for_each(|bits| {
-        let x = f32::from_bits(bits);
-
-        if !x.is_finite() {
-            return; // skip NaNs and infinities
-        }
-
-        let v = match bessel_i(
-            Complex {
-                re: x as f64,
-                im: 0.,
-            },
-            0.,
-            1,
-            1,
-        ) {
-            Ok(v) => v,
-            Err(_) => return,
-        };
-
-        let expected_sin_pi = Float::with_val(53, v.values[0].re); //compute_besselk(x as f64).unwrap(); //Float::with_val(90, statrs::function::erf::erf_inv(x as f64));
-        let actual = f_i0f(x);
-
-        executions.fetch_add(1, Ordering::Relaxed);
-
-        let diff = count_ulp(actual, &Float::with_val(90, expected_sin_pi.clone()));
-        // if diff.is_nan() || diff.is_infinite() {
-        //     return;
-        // }
-
-        if diff > 0.5 {
-            failures.fetch_add(1, Ordering::Relaxed);
-            exceptions.lock().unwrap().push(x);
-            eprintln!(
-                "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
-                expected_sin_pi.to_f32(),
-            );
-        }
-    });*/
-
-    let start_bits = (-12.0f64).to_bits();
-    let end_bits = (start_bits + 2500000);
+    let start_bits = ( 0.74f64).to_bits();
+    let end_bits = start_bits + 15;
     //
     // //
     // // // Exhaustive: 0..=u64::MAX
@@ -201,8 +193,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = Float::with_val(90, x).ln_abs_gamma().0;
-        let actual = f_lgamma(x);
+        let expected = compute_besselk(x).unwrap();// Float::with_val(90, x).ln_abs_gamma().0;
+        let actual = f_erfinv(x);
 
         let diff = count_ulp_f64(actual, &expected);
 
