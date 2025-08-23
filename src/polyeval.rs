@@ -135,6 +135,34 @@ pub(crate) fn f_polyeval9<T: PolyevalMla + Copy + Mul<T, Output = T>>(
 
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]
+pub(crate) fn f_estrin_polyeval9<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+    x: T,
+    a0: T,
+    a1: T,
+    a2: T,
+    a3: T,
+    a4: T,
+    a5: T,
+    a6: T,
+    a7: T,
+    a8: T,
+) -> T {
+    let x2 = x * x;
+    let x4 = x2 * x2;
+    let x8 = x4 * x4;
+    let p0 = T::polyeval_mla(x, a1, a0);
+    let p1 = T::polyeval_mla(x, a3, a2);
+    let p2 = T::polyeval_mla(x, a5, a4);
+    let p3 = T::polyeval_mla(x, a7, a6);
+
+    let q0 = T::polyeval_mla(x2, p1, p0);
+    let q1 = T::polyeval_mla(x2, p3, p2);
+    let r0 = T::polyeval_mla(x4, q1, q0);
+    T::polyeval_mla(x8, a8, r0)
+}
+
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn f_polyeval10<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     x: T,
     a0: T,
@@ -185,17 +213,17 @@ pub(crate) fn f_polyeval11<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     let x4 = x2 * x2;
     let x8 = x4 * x4;
 
-    let q0 = T::polyeval_mla(x, a1, a0); 
-    let q1 = T::polyeval_mla(x, a3, a2); 
-    let q2 = T::polyeval_mla(x, a5, a4); 
-    let q3 = T::polyeval_mla(x, a7, a6); 
-    let q4 = T::polyeval_mla(x, a9, a8); 
+    let q0 = T::polyeval_mla(x, a1, a0);
+    let q1 = T::polyeval_mla(x, a3, a2);
+    let q2 = T::polyeval_mla(x, a5, a4);
+    let q3 = T::polyeval_mla(x, a7, a6);
+    let q4 = T::polyeval_mla(x, a9, a8);
 
     let r0 = T::polyeval_mla(x2, q1, q0);
     let r1 = T::polyeval_mla(x2, q3, q2);
 
     let s0 = T::polyeval_mla(x4, r1, r0);
-    let s1 = T::polyeval_mla(x2, a10, q4); 
+    let s1 = T::polyeval_mla(x2, a10, q4);
     T::polyeval_mla(x8, s1, s0)
 }
 
@@ -566,6 +594,33 @@ pub(crate) fn f_polyeval8<T: PolyevalMla + Copy>(
     let t4 = T::polyeval_mla(x, t3, a2);
     let t5 = T::polyeval_mla(x, t4, a1);
     T::polyeval_mla(x, t5, a0)
+}
+
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn f_estrin_polyeval8<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+    x: T,
+    a0: T,
+    a1: T,
+    a2: T,
+    a3: T,
+    a4: T,
+    a5: T,
+    a6: T,
+    a7: T,
+) -> T {
+    let x2 = x * x;
+    let x4 = x2 * x2;
+
+    let p0 = T::polyeval_mla(x, a1, a0);
+    let p1 = T::polyeval_mla(x, a3, a2);
+    let p2 = T::polyeval_mla(x, a5, a4);
+    let p3 = T::polyeval_mla(x, a7, a6);
+
+    let q0 = T::polyeval_mla(x2, p1, p0);
+    let q1 = T::polyeval_mla(x2, p3, p2);
+
+    T::polyeval_mla(x4, q1, q0)
 }
 
 #[inline(always)]

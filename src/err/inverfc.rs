@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 8/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -26,25 +26,52 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#![deny(unreachable_pub)]
-mod erf;
-mod erf_poly;
-mod erfc;
-mod erff;
-mod erffc;
-mod inverf;
-mod inverfc;
-mod inverff;
-mod rerf;
-mod rerf_poly;
-mod rerff;
+use crate::err::inverff::erfinv_core;
 
-pub use erf::f_erf;
-pub use erfc::f_erfc;
-pub use erff::f_erff;
-pub use erffc::f_erfcf;
-pub use inverf::f_erfinv;
-pub use inverfc::f_erfcinvf;
-pub use inverff::f_erfinvf;
-pub use rerf::f_rerf;
-pub use rerff::f_rerff;
+/// Complementary inverse error function
+///
+/// Max ulp 0.5
+pub fn f_erfcinvf(x: f32) -> f32 {
+    if x <= 0. {
+        if x == 0. {
+            return f32::INFINITY;
+        }
+        return f32::NAN;
+    }
+
+    if x >= 1. {
+        if x == 1. {
+            return 0.;
+        }
+        if x >= 2. {
+            // x > 2
+            if x == 2. {
+                return f32::NEG_INFINITY;
+            }
+            return f32::NAN;
+        }
+    }
+
+    let z = x as f64;
+    static SIGN: [f32; 2] = [1.0, -1.0];
+    // inferfc(x) = -inverf(1-x)
+    // ax doesn't need to be extremely accurate,
+    // it's just boundary detection so will do subtraction in f32
+    erfinv_core(1. - z, (1. - x).abs().to_bits(), SIGN[(x > 1.) as usize])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::f_erfcinvf;
+    #[test]
+    fn m_test() {
+        assert!(f_erfcinvf(-1.).is_nan());
+        assert_eq!(f_erfcinvf(0.), f32::INFINITY);
+        assert_eq!(f_erfcinvf(2.), f32::NEG_INFINITY);
+        assert!(f_erfcinvf(2.1).is_nan());
+        assert_eq!(f_erfcinvf(0.5), 0.47693628);
+        assert_eq!(f_erfcinvf(1.5), -0.47693628);
+        assert_eq!(f_erfcinvf(0.002), 2.1851242);
+        assert_eq!(f_erfcinvf(1.002), -0.0017724329);
+    }
+}
