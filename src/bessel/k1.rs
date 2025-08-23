@@ -31,8 +31,9 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::rational128_exp;
+use crate::horner::f_horner_polyeval11;
 use crate::logs::{log_dd, log_dyadic};
-use crate::polyeval::{f_horner_polyeval13, f_polyeval11, f_polyeval22};
+use crate::polyeval::{f_horner_polyeval13, f_polyeval22};
 
 /// Modified Bessel of the second kind order 1
 ///
@@ -177,7 +178,7 @@ fn i1_fast(x: f64) -> DoubleDouble {
     let dx = x;
     const ONE_OVER_4: f64 = 1. / 4.;
     let eval_x = DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_mult(dx, dx), ONE_OVER_4);
-    let r = f_polyeval11(
+    let r = f_horner_polyeval11(
         eval_x.to_f64(),
         f64::from_bits(0x3e3522a43f65486a),
         f64::from_bits(0x3dd2c9758daf5c4f),

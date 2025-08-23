@@ -181,16 +181,22 @@ pub(crate) fn f_polyeval11<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     a9: T,
     a10: T,
 ) -> T {
-    let z00 = T::polyeval_mla(x, a10, a9);
-    let z0 = T::polyeval_mla(x, z00, a8);
-    let t0 = T::polyeval_mla(x, z0, a7);
-    let t01 = T::polyeval_mla(x, t0, a6);
-    let t1 = T::polyeval_mla(x, t01, a5);
-    let t2 = T::polyeval_mla(x, t1, a4);
-    let t3 = T::polyeval_mla(x, t2, a3);
-    let t4 = T::polyeval_mla(x, t3, a2);
-    let t5 = T::polyeval_mla(x, t4, a1);
-    T::polyeval_mla(x, t5, a0)
+    let x2 = x * x;
+    let x4 = x2 * x2;
+    let x8 = x4 * x4;
+
+    let q0 = T::polyeval_mla(x, a1, a0); 
+    let q1 = T::polyeval_mla(x, a3, a2); 
+    let q2 = T::polyeval_mla(x, a5, a4); 
+    let q3 = T::polyeval_mla(x, a7, a6); 
+    let q4 = T::polyeval_mla(x, a9, a8); 
+
+    let r0 = T::polyeval_mla(x2, q1, q0);
+    let r1 = T::polyeval_mla(x2, q3, q2);
+
+    let s0 = T::polyeval_mla(x4, r1, r0);
+    let s1 = T::polyeval_mla(x2, a10, q4); 
+    T::polyeval_mla(x8, s1, s0)
 }
 
 #[inline(always)]
