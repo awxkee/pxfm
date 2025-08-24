@@ -28,7 +28,7 @@
  */
 use crate::common::f_fmla;
 use crate::polyeval::f_polyeval5;
-use crate::sin_cosf::sincosf_eval;
+use crate::sin_cosf::tanf_eval;
 
 /// Computes cotangent
 ///
@@ -79,18 +79,19 @@ pub fn f_cotf(x: f32) -> f32 {
     }
 
     // For |x| >= pi/32, we use the definition of cot(x) function:
-    //   cot(x) = cos(x) / sin(x)
-    // The we follow the same computations of sin(x) and cos(x) as sinf, cosf,
-    // and sincosf.
-
-    let rs = sincosf_eval(xd, x_abs);
-
-    // cot(x) = cos(x) / sin(x)
-    //        = (cos_y * cos_k - sin_y * sin_k) / (sin_y * cos_k + cos_y * sin_k)
-    let v_cos = f_fmla(rs.sin_y, -rs.sin_k, f_fmla(rs.cosm1_y, rs.cos_k, rs.cos_k));
-    let v_sin = f_fmla(rs.sin_y, rs.cos_k, f_fmla(rs.cosm1_y, rs.sin_k, rs.sin_k));
-
-    (v_cos / v_sin) as f32
+    // hence tan(A+y)=(cos(A)−tan(y)⋅sinA)/(sin(A)+tan(y)⋅cos(A)),
+    // then cot(A+y)=(sin(A)+tan(y)⋅cos(A))/(cos(A)−tan(y)⋅sinA)
+    // tanpif_eval returns:
+    // - rs.tan_y = tan(y)                  -> tangent of the remainder
+    // - rs.msin_k = sin(pi/32 * k)         -> sine of the main angle multiple
+    // - rs.cos_k  = cos(pi/32 * k)         -> cosine of the main angle multiple
+    let rs = tanf_eval(xd, x_abs);
+    // num = sin(k*pi/32) + tan(y) * cos(k*pi/32)
+    let num = f_fmla(rs.tan_y, rs.cos_k, -rs.msin_k);
+    // den = cos(k*pi/32) - tan(y) * sin(k*pi/32)
+    let den = f_fmla(rs.tan_y, rs.msin_k, rs.cos_k);
+    // tan(x) = num(x) / den(x)
+    (den / num) as f32
 }
 
 #[cfg(test)]

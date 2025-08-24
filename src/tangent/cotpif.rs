@@ -28,7 +28,7 @@
  */
 
 use crate::common::f_fmla;
-use crate::sin_cosf::{ArgumentReducerPi, sincospif_eval, sincospif_eval_argument};
+use crate::sin_cosf::{ArgumentReducerPi, tanpif_eval};
 
 /// Computes 1/tan(PI*x)
 ///
@@ -49,6 +49,7 @@ pub fn f_cotpif(x: f32) -> f32 {
         }
         return f32::INFINITY;
     }
+
     let argument_reduction = ArgumentReducerPi { x: x as f64 };
 
     let (y, k) = argument_reduction.reduce();
@@ -65,24 +66,54 @@ pub fn f_cotpif(x: f32) -> f32 {
         }
     }
 
-    let rs = sincospif_eval_argument(y, k);
-    // tan(x) = sin(x) / cos(x)
-    //        = (sin_y * cos_k + cos_y * sin_k) / (cos_y * cos_k - sin_y * sin_k)
-    let v_cos = f_fmla(rs.sin_y, -rs.sin_k, f_fmla(rs.cosm1_y, rs.cos_k, rs.cos_k));
-    let v_sin = f_fmla(rs.sin_y, rs.cos_k, f_fmla(rs.cosm1_y, rs.sin_k, rs.sin_k));
+    let ax = ix & 0x7fff_ffff;
+    if ax < 0x3bc49ba6u32 {
+        // taylor series for cot(PI*x) where |x| < 0.006
+        let dx = x as f64;
+        let dx_sqr = dx * dx;
+        // cot(PI*x) ~ 1/(PI*x) - PI*x/3 - PI^3*x^3/45 + O(x^5)
+        const ONE_OVER_PI: f64 = f64::from_bits(0x3fd45f306dc9c883);
+        let r = f_fmla(
+            dx_sqr,
+            f64::from_bits(0xbfe60c8539c1dc14),
+            f64::from_bits(0xbff0c152382d7366),
+        );
+        let rcp = 1. / dx;
+        return f_fmla(rcp, ONE_OVER_PI, r * dx) as f32;
+    }
 
-    (v_cos / v_sin) as f32
+    // tanpif_eval returns:
+    // - rs.tan_y = tan(pi/32 * y)          -> tangent of the remainder
+    // - rs.msin_k = sin(pi/32 * k)         -> sine of the main angle multiple
+    // - rs.cos_k  = cos(pi/32 * k)         -> cosine of the main angle multiple
+    let rs = tanpif_eval(y, k);
+    // num = sin(k*pi/32) + tan(y*pi/32) * cos(k*pi/32)
+    let num = f_fmla(rs.tan_y, rs.cos_k, -rs.msin_k);
+    // den = cos(k*pi/32) - tan(y*pi/32) * sin(k*pi/32)
+    let den = f_fmla(rs.tan_y, rs.msin_k, rs.cos_k);
+    // hence tan = num / den then
+    // cot = den / num
+    (den / num) as f32
 }
 
 #[inline]
 pub(crate) fn cotpif_core(x: f64) -> f64 {
-    let rs = sincospif_eval(x);
-    // tan(x) = sin(x) / cos(x)
-    //        = (sin_y * cos_k + cos_y * sin_k) / (cos_y * cos_k - sin_y * sin_k)
-    let v_cos = f_fmla(rs.sin_y, -rs.sin_k, f_fmla(rs.cosm1_y, rs.cos_k, rs.cos_k));
-    let v_sin = f_fmla(rs.sin_y, rs.cos_k, f_fmla(rs.cosm1_y, rs.sin_k, rs.sin_k));
+    let argument_reduction = ArgumentReducerPi { x };
 
-    v_cos / v_sin
+    let (y, k) = argument_reduction.reduce();
+
+    // tanpif_eval returns:
+    // - rs.tan_y = tan(pi/32 * y)          -> tangent of the remainder
+    // - rs.msin_k = sin(pi/32 * k)         -> sine of the main angle multiple
+    // - rs.cos_k  = cos(pi/32 * k)         -> cosine of the main angle multiple
+    let rs = tanpif_eval(y, k);
+    // num = sin(k*pi/32) + tan(y*pi/32) * cos(k*pi/32)
+    let num = f_fmla(rs.tan_y, rs.cos_k, -rs.msin_k);
+    // den = cos(k*pi/32) - tan(y*pi/32) * sin(k*pi/32)
+    let den = f_fmla(rs.tan_y, rs.msin_k, rs.cos_k);
+    // hence tan = num / den then
+    // cot = den / num
+    den / num
 }
 
 #[cfg(test)]
@@ -91,6 +122,9 @@ mod tests {
 
     #[test]
     fn test_cotpif() {
+        println!("0x{:8x}", 0.006f32.to_bits());
+        assert_eq!(f_cotpif(0.00046277765), 687.82416);
+        assert_eq!(f_cotpif(2.3588752e-6), 134941.39);
         assert_eq!(f_cotpif(10775313000000000000000000000000.), f32::INFINITY);
         assert_eq!(f_cotpif(5.5625), -0.19891237);
         assert_eq!(f_cotpif(-29.75), 1.0);

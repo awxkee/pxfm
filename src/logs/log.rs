@@ -158,7 +158,7 @@ fn log_accurate(e_x: i32, index: i32, m_x: f64) -> DyadicFloat128 {
     sum + p
 }
 
-/// Natural logarithm using FMA
+/// Natural logarithm
 ///
 /// Max found ULP 0.5
 pub fn f_log(x: f64) -> f64 {

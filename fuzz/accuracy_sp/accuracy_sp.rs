@@ -189,7 +189,7 @@ fuzz_target!(|data: (f32, f32)| {
         "f_cotpif".to_string(),
     );
 
-     test_method(
+    test_method(
         x0,
         f_lgammaf,
         &mpfr_x0.clone().ln_abs_gamma().0,

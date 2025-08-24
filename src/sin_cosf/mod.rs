@@ -46,7 +46,7 @@ pub use cscf::f_cscf;
 pub use secf::f_secf;
 pub use sincf::f_sincf;
 pub use sincosf::f_sincosf;
-pub(crate) use sincosf_eval::{sincosf_eval, sincospif_eval, sincospif_eval_argument};
+pub(crate) use sincosf_eval::{tanf_eval, tanpif_eval};
 pub use sincospif::f_sincospif;
 pub use sinf::f_sinf;
 pub use sinpif::f_sinpif;
