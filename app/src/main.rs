@@ -1,4 +1,4 @@
-use pxfm::{f_cotpif, f_digammaf, f_erfcinvf, f_erfinv, f_erfinvf, f_tanpif};
+use pxfm::{f_cotf, f_cotpif, f_digammaf, f_erfcinvf, f_erfinv, f_erfinvf, f_tanf, f_tanpif};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -123,12 +123,12 @@ fn test_f32_against_mpfr_multithreaded() {
 
     let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
 
-    let start_bits = (-3f32).to_bits();
-    let end_bits = (-15f32).to_bits();
+    let start_bits = (0.06f32).to_bits();
+    let end_bits = (100f32).to_bits();
     println!("amount {}", end_bits - start_bits);
 
     // Exhaustive: 0..=u32::MAX
-    (start_bits..=end_bits).into_par_iter().for_each(|bits| {
+    (0..=u32::MAX).into_par_iter().for_each(|bits| {
         let x = f32::from_bits(bits);
 
         if !x.is_finite() {
@@ -148,8 +148,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected_sin_pi = Float::with_val(53, x).digamma(); //compute_besselk(x as f64).unwrap(); //Float::with_val(90, statrs::function::erf::erf_inv(x as f64));
-        let actual = f_digammaf(x);
+        let expected_sin_pi = Float::with_val(53, x).cot(); //compute_besselk(x as f64).unwrap(); //Float::with_val(90, statrs::function::erf::erf_inv(x as f64));
+        let actual = f_cotf(x);
 
         executions.fetch_add(1, Ordering::Relaxed);
 

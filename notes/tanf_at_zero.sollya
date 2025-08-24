@@ -2,11 +2,11 @@ pretty = proc(u) {
   return ~(floor(u*1000)/1000);
 };
 
-d = [0, 0.5];
-f_tan = tan(x*pi/32)/x;
-Q = fpminimax(f_tan, [|0, 2, 4, 6|], [|D...|], d);
+f_tan = tan(x)/x;
 
-err_p = -log2(dirtyinfnorm(Q-f_tan, d));
+Q = fpminimax(f_tan, [|0, 2, 4, 6, 8|], [|1, D...|], [0, pi/32]);
+
+err_p = -log2(dirtyinfnorm(Q-f_tan, [0, pi/32]));
 display = decimal;
 print (Q);
 display = decimal;

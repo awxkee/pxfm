@@ -142,6 +142,7 @@ static EXP2F_TABLE: [u64; 64] = [
 */
 
 /// Computing exp2f
+/// 
 /// ULP 0.4999994
 #[inline]
 pub fn f_exp2f(x: f32) -> f32 {

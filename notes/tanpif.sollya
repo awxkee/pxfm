@@ -3,21 +3,10 @@ pretty = proc(u) {
 };
 
 d = [0, 0.5];
-f_sin = sin(y*pi/4)/y;
-Q = fpminimax(f_sin, [|0, 2, 4, 6|], [|D...|], d, relative, floating);
+f_tan = tan(y*pi/32)/y;
+Q = fpminimax(f_tan, [|0, 2, 4, 6|], [|D...|], d, relative, floating);
 
-err_p = -log2(dirtyinfnorm(Q-f_sin, d));
-display = decimal;
-print (Q);
-display = decimal;
-print ("absolute error:",pretty(err_p));
-
-for i from 0 to degree(Q) by 2 do printdouble(coeff(Q, i));
-
-f_cos = cos(y*pi/4);
-Q = fpminimax(f_cos, [|0, 2, 4, 6|], [|1, D...|], d, absolute, floating);
-
-err_p = -log2(dirtyinfnorm(Q-f_cos, d));
+err_p = -log2(dirtyinfnorm(Q-f_tan, d));
 display = decimal;
 print (Q);
 display = decimal;
