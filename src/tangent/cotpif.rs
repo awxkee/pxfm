@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 8/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -26,14 +26,15 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
-use crate::sin_cosf::{ArgumentReducerPi, sincospif_eval_argument};
 
-/// Computes tan(PI*x)
+use crate::common::f_fmla;
+use crate::sin_cosf::{ArgumentReducerPi, sincospif_eval, sincospif_eval_argument};
+
+/// Computes 1/tan(PI*x)
 ///
 /// Max found ULP 0.5
 #[inline]
-pub fn f_tanpif(x: f32) -> f32 {
+pub fn f_cotpif(x: f32) -> f32 {
     let ix = x.to_bits();
     let e = ix & (0xff << 23);
     if e > (150 << 23) {
@@ -46,7 +47,7 @@ pub fn f_tanpif(x: f32) -> f32 {
             }
             return x + x; // x = nan
         }
-        return f32::copysign(0.0, x);
+        return f32::INFINITY;
     }
     let argument_reduction = ArgumentReducerPi { x: x as f64 };
 
@@ -56,10 +57,10 @@ pub fn f_tanpif(x: f32) -> f32 {
         let km = (k.abs() & 31) as i32; // k mod 32
 
         match km {
-            0 => return 0.0f32.copysign(x),               // tanpi(n) = 0
-            16 => return f32::copysign(f32::INFINITY, x), // tanpi(n+0.5) = ±∞
-            8 => return f32::copysign(1.0, x),            // tanpi(n+0.25) = ±1
-            24 => return -f32::copysign(1.0, x),          // tanpi(n+0.75) = ∓1
+            0 => return f32::copysign(f32::INFINITY, x), // cotpi(n) = ∞
+            16 => return 0.0f32.copysign(x),             // cotpi(n+0.5) = 0
+            8 => return f32::copysign(1.0, x),           // cotpi(n+0.25) = 1
+            24 => return -f32::copysign(1.0, x),         // cotpi(n+0.75) = -1
             _ => {}
         }
     }
@@ -70,7 +71,18 @@ pub fn f_tanpif(x: f32) -> f32 {
     let v_cos = f_fmla(rs.sin_y, -rs.sin_k, f_fmla(rs.cosm1_y, rs.cos_k, rs.cos_k));
     let v_sin = f_fmla(rs.sin_y, rs.cos_k, f_fmla(rs.cosm1_y, rs.sin_k, rs.sin_k));
 
-    (v_sin / v_cos) as f32
+    (v_cos / v_sin) as f32
+}
+
+#[inline]
+pub(crate) fn cotpif_core(x: f64) -> f64 {
+    let rs = sincospif_eval(x);
+    // tan(x) = sin(x) / cos(x)
+    //        = (sin_y * cos_k + cos_y * sin_k) / (cos_y * cos_k - sin_y * sin_k)
+    let v_cos = f_fmla(rs.sin_y, -rs.sin_k, f_fmla(rs.cosm1_y, rs.cos_k, rs.cos_k));
+    let v_sin = f_fmla(rs.sin_y, rs.cos_k, f_fmla(rs.cosm1_y, rs.sin_k, rs.sin_k));
+
+    v_cos / v_sin
 }
 
 #[cfg(test)]
@@ -78,13 +90,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tanpif() {
-        assert_eq!(f_tanpif(5.5625), -5.0273395);
-        assert_eq!(f_tanpif(-29.75), 1.0);
-        assert_eq!(f_tanpif(-21.5625), 5.0273395);
-        assert_eq!(f_tanpif(-15.611655), 2.7329326);
-        assert_eq!(f_tanpif(115.30706), 1.4426143);
-        assert!(f_tanpif(f32::INFINITY).is_nan());
-        assert!(f_tanpif(f32::NAN).is_nan());
+    fn test_cotpif() {
+        assert_eq!(f_cotpif(10775313000000000000000000000000.), f32::INFINITY);
+        assert_eq!(f_cotpif(5.5625), -0.19891237);
+        assert_eq!(f_cotpif(-29.75), 1.0);
+        assert_eq!(f_cotpif(-21.5625), 0.19891237);
+        assert_eq!(f_cotpif(-15.611655), 0.3659073);
+        assert_eq!(f_cotpif(115.30706), 0.693186);
+        assert_eq!(f_cotpif(0.), f32::INFINITY);
+        assert!(f_cotpif(f32::INFINITY).is_nan());
+        assert!(f_cotpif(f32::NAN).is_nan());
     }
 }

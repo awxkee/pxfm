@@ -111,13 +111,13 @@ pub use common::{copysignfk, copysignk};
 pub use compound::{f_compound, f_compound_m1, f_compound_m1f, f_compoundf};
 pub use csc::f_csc;
 pub use cube_roots::{cbrtf, f_cbrt, f_cbrtf, f_rcbrt, f_rcbrtf};
-pub use err::{f_erf, f_erfc, f_erfcf, f_erff, f_erfinv, f_erfinvf, f_rerf, f_rerff, f_erfcinvf};
+pub use err::{f_erf, f_erfc, f_erfcf, f_erfcinvf, f_erff, f_erfinv, f_erfinvf, f_rerf, f_rerff};
 pub use exponents::{
     exp, expf, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
     f_exp10m1f, f_expf, f_expm1, f_expm1f,
 };
 pub use floor::{floor, floorf};
-pub use gamma::{f_lgamma, f_lgammaf, f_tgamma, f_tgammaf};
+pub use gamma::{f_digammaf, f_lgamma, f_lgammaf, f_tgamma, f_tgammaf};
 pub use hyperbolic::{
     f_acosh, f_acoshf, f_asinh, f_asinhf, f_atanh, f_atanhf, f_cosh, f_coshf, f_sinh, f_sinhf,
     f_tanh, f_tanhf,
@@ -143,6 +143,6 @@ pub use sincospi::{f_cospi, f_sincospi, f_sinpi};
 pub use square_root::{f_rsqrt, f_rsqrtf, sqrtf};
 pub use tangent::{
     f_atan, f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf, f_atanpi, f_atanpif, f_cot, f_cotf,
-    f_tan, f_tanf, f_tanpi, f_tanpif,
+    f_cotpif, f_tan, f_tanf, f_tanpi, f_tanpif,
 };
 pub use trunc::{trunc, truncf};

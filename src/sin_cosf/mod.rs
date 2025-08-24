@@ -39,13 +39,14 @@ mod sincospif;
 mod sinf;
 mod sinpif;
 
+pub(crate) use argument_reduction_pi::ArgumentReducerPi;
 pub use cosf::f_cosf;
 pub use cospif::f_cospif;
 pub use cscf::f_cscf;
 pub use secf::f_secf;
 pub use sincf::f_sincf;
 pub use sincosf::f_sincosf;
-pub(crate) use sincosf_eval::sincosf_eval;
+pub(crate) use sincosf_eval::{sincosf_eval, sincospif_eval, sincospif_eval_argument};
 pub use sincospif::f_sincospif;
 pub use sinf::f_sinf;
 pub use sinpif::f_sinpif;
