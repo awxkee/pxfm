@@ -735,8 +735,7 @@ pub(crate) fn y0_small_argument_fast(x: f64) -> f64 {
         &Y0_COEFFS[idx - 1]
     };
 
-    let mut r = DoubleDouble::full_add_f64(-found_zero, x);
-    r = DoubleDouble::from_exact_add(r.hi, r.lo);
+    let r = DoubleDouble::full_add_f64(-found_zero, x);
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {

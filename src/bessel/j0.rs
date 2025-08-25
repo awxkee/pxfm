@@ -338,8 +338,7 @@ pub(crate) fn j0_small_argument_fast(x: f64) -> f64 {
         &J0_COEFFS_REMEZ[idx - 1]
     };
 
-    let mut r = DoubleDouble::full_add_f64(-found_zero, x);
-    r = DoubleDouble::from_exact_add(r.hi, r.lo);
+    let r = DoubleDouble::full_add_f64(-found_zero, x.abs());
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
