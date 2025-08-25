@@ -1,8 +1,8 @@
-use bessel::{bessel_i0, bessel_i1};
+use bessel::{bessel_i0, bessel_i1, bessel_k0, bessel_k1};
 use num_complex::Complex;
 use pxfm::{
     f_cotf, f_cotpif, f_digammaf, f_erfcinvf, f_erfinv, f_erfinvf, f_i0, f_i0f, f_i1, f_i1f, f_j0,
-    f_j1, f_k0f, f_k1f, f_tanf, f_tanpif, f_y0, f_y1,
+    f_j1, f_k0, f_k0f, f_k1, f_k1f, f_tanf, f_tanpif, f_y0, f_y1,
 };
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -17,7 +17,7 @@ use zbessel_rs::{bessel_i, bessel_k};
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
     let r = x.to_string();
     let output = Command::new("python3")
-        .arg("bessel/inverf.py")
+        .arg("bessel/besselk.py")
         .arg(r)
         .output()?;
 
@@ -174,8 +174,11 @@ fn test_f32_against_mpfr_multithreaded() {
         }
     });*/
 
-    let start_bits = (8.51f64).to_bits();
+    let start_bits = (1.001f64).to_bits();
     let end_bits = (start_bits + 350000);
+
+    // Mismatch: x = 0.9999900000195318, expected = 0.6019174596052772, got = 0.6019174596052773, ULP diff = 0.5242313917684331, correct 10790, wrong 435
+    println!("{}", compute_besselk(0.9999900000195318).unwrap().to_f64());
 
     //
     // // Exhaustive: 0..=u64::MAX
@@ -199,8 +202,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = bessel_i0(x, 100); //compute_besselk(x).unwrap();// Float::with_val(90, x).ln_abs_gamma().0;
-        let actual = f_i0(x);
+        let expected = bessel_k0(x, 107);// compute_besselk(x).unwrap();// Float::with_val(90, x).ln_abs_gamma().0;
+        let actual = f_k0(x);
 
         let diff = count_ulp_f64(actual, &expected);
 

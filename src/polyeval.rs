@@ -322,38 +322,38 @@ pub(crate) fn f_polyeval12<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     T::polyeval_mla(x8, f2, g0) // f2·x⁸ + g0
 }
 
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn f_horner_polyeval13<T: PolyevalMla + Copy + Mul<T, Output = T>>(
-    x: T,
-    a0: T,
-    a1: T,
-    a2: T,
-    a3: T,
-    a4: T,
-    a5: T,
-    a6: T,
-    a7: T,
-    a8: T,
-    a9: T,
-    a10: T,
-    a11: T,
-    a12: T,
-) -> T {
-    let mut acc = a12;
-    acc = T::polyeval_mla(x, acc, a11);
-    acc = T::polyeval_mla(x, acc, a10);
-    acc = T::polyeval_mla(x, acc, a9);
-    acc = T::polyeval_mla(x, acc, a8);
-    acc = T::polyeval_mla(x, acc, a7);
-    acc = T::polyeval_mla(x, acc, a6);
-    acc = T::polyeval_mla(x, acc, a5);
-    acc = T::polyeval_mla(x, acc, a4);
-    acc = T::polyeval_mla(x, acc, a3);
-    acc = T::polyeval_mla(x, acc, a2);
-    acc = T::polyeval_mla(x, acc, a1);
-    T::polyeval_mla(x, acc, a0)
-}
+// #[inline(always)]
+// #[allow(clippy::too_many_arguments)]
+// pub(crate) fn f_horner_polyeval13<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+//     x: T,
+//     a0: T,
+//     a1: T,
+//     a2: T,
+//     a3: T,
+//     a4: T,
+//     a5: T,
+//     a6: T,
+//     a7: T,
+//     a8: T,
+//     a9: T,
+//     a10: T,
+//     a11: T,
+//     a12: T,
+// ) -> T {
+//     let mut acc = a12;
+//     acc = T::polyeval_mla(x, acc, a11);
+//     acc = T::polyeval_mla(x, acc, a10);
+//     acc = T::polyeval_mla(x, acc, a9);
+//     acc = T::polyeval_mla(x, acc, a8);
+//     acc = T::polyeval_mla(x, acc, a7);
+//     acc = T::polyeval_mla(x, acc, a6);
+//     acc = T::polyeval_mla(x, acc, a5);
+//     acc = T::polyeval_mla(x, acc, a4);
+//     acc = T::polyeval_mla(x, acc, a3);
+//     acc = T::polyeval_mla(x, acc, a2);
+//     acc = T::polyeval_mla(x, acc, a1);
+//     T::polyeval_mla(x, acc, a0)
+// }
 
 // #[inline(always)]
 // #[allow(clippy::too_many_arguments)]

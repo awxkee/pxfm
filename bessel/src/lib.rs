@@ -1,6 +1,7 @@
+use rug::float::Constant;
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::ops::{Add, Div, Mul};
+pub use std::ops::{Add, Div, Mul, Neg};
 
 pub fn bessel_i0(x: f64, prec: u32) -> Float {
     let mut sum = Float::with_val(prec, 1); // First term: k = 0
@@ -24,7 +25,7 @@ pub fn bessel_i0(x: f64, prec: u32) -> Float {
         //     break;
         // }
 
-        if terms > 100 {
+        if terms > 200 {
             break;
         }
 
@@ -84,8 +85,8 @@ pub fn bessel_i1(x: f64, prec: u32) -> Float {
 
 /// Harmonic number H_n = 1 + 1/2 + ... + 1/n
 fn harmonic(n: u32, prec: u32) -> Float {
-    let mut sum = Float::with_val(prec, 0);
-    for i in 1..=n {
+    let mut sum = Float::with_val(prec, 1);
+    for i in 2..=n {
         sum += Float::with_val(prec, 1) / i;
     }
     sum
@@ -93,35 +94,89 @@ fn harmonic(n: u32, prec: u32) -> Float {
 
 /// Computes Bessel function K₀(x) using series for small x.
 pub fn bessel_k0(x: f64, prec: u32) -> Float {
-    let mut result = Float::with_val(prec, 0);
     let mut term = Float::with_val(prec, 1);
-    let x2 = Float::with_val(prec, x * x).div(&Float::with_val(107, 4));
+    let x_over_two = Float::with_val(prec, x).div(&Float::with_val(prec, 2));
+    let x2 = x_over_two.clone().mul(x_over_two.clone());
 
-    let p = Float::parse(
-        "0.57721566490153286060651209008240243104215933593992359880576723488486772677",
-    )
-    .unwrap();
-
-    let gamma = Float::with_val(107, p);
+    let euler = Float::with_val(prec, Constant::Euler);
     let i0 = bessel_i0(x, prec);
 
-    // Series sum: ∑ [ (ψ(k+1) + γ) / (k!)² * (x²/4)^k ]
+    let mut result = x_over_two.clone().ln().add(euler.clone()).mul(i0).neg();
+
     let mut k_fact = Float::with_val(prec, 1);
-    for k in 0..1500 {
-        let psi_k1 = harmonic(k, prec) - &gamma;
+    for k in 1..150 {
+        let harmony = harmonic(k, prec);
         if k > 0 {
             k_fact *= k;
         }
         let denom = Float::with_val(prec, &k_fact * &k_fact);
-        let num = Float::with_val(prec, &x2.clone().pow(k));
-        term.assign(&psi_k1 * num / denom);
+        let num = x2.clone().pow(k);
+        term.assign(&harmony * num / denom);
         result = result.add(&term.clone());
+    }
+    result
+}
 
-        // if term.clone().abs() < Float::with_val(prec, 1e-70) {
-        //     break;
-        // }
+pub fn bessel_k1(x: f64, prec: u32) -> Float {
+    assert!(
+        x > 0.0,
+        "K1(x) is singular at x = 0 and undefined for x <= 0 in this routine"
+    );
+
+    let dx = x;
+    let x = Float::with_val(prec, x);
+    let x2 = Float::with_val(prec, &x / 2); // x/2
+    let euler = Float::with_val(prec, Constant::Euler); // γ
+
+    // You need consistent I0/I1 implementations at `prec`.
+    let i0 = bessel_i0(dx, prec);
+    let i1 = bessel_i1(dx, prec);
+
+    // K1(x) = I0(x)/x + (ln(x/2)+γ) I1(x) - Σ_{k>=0} H_{k+1} (x/2)^{2k+1} / (k!(k+1)!)
+    let mut result = Float::with_val(prec, &i0 / &x);
+    result += Float::with_val(prec, x2.clone().ln() + euler.clone()) * &i1;
+
+    // Accumulate S = Σ H_{k+1} (x/2)^{2k+1} / (k!(k+1)!)
+    let mut sum = Float::with_val(prec, 0);
+    let mut k_fact = Float::with_val(prec, 1); // k!
+    let mut power = Float::with_val(prec, x2.clone()); // (x/2)^{2k+1}, start at k=0 => (x/2)^1
+
+    for k in 0..150 {
+        // denom = k! * (k+1)!
+        // (k+1)! = (k+1) * k!
+        let kp1 = Float::with_val(prec, (k + 1) as i32);
+        let denom = Float::with_val(prec, k_fact.clone().mul(k_fact.clone().mul(kp1)));
+
+        // H_{k+1}
+        let h_k1 = harmonic(k + 1, prec);
+
+        // term
+        let term = Float::with_val(prec, h_k1.mul(power.clone()).div(denom));
+        sum += term;
+
+        // advance k!, power
+        let next = k + 1;
+        if next > 0 {
+            k_fact *= next;
+        }
+        power *= &x2; // (x/2)^{2k+1} -> (x/2)^{2k+2}
+        power *= &x2; // -> (x/2)^{2(k+1)+1}
     }
 
-    let log_term = Float::with_val(prec, x / 2.).ln() * i0;
-    -log_term + result
+    result -= sum;
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_k0() {
+        println!("{}", bessel_k0(5., 100));
+    }
+
+    #[test]
+    fn test_k1() {
+        println!("{}", bessel_k1(0.01, 100));
+    }
 }

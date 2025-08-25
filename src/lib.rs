@@ -62,7 +62,6 @@ mod err;
 mod exponents;
 mod floor;
 mod gamma;
-mod horner;
 mod hyperbolic;
 mod hypot;
 mod hypotf;
