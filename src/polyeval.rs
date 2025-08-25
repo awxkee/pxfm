@@ -1605,107 +1605,107 @@ pub(crate) fn f_polyeval24<T: PolyevalMla + Copy + Mul<T, Output = T>>(
 //     T::polyeval_mla(x, t14, a0)
 // }
 
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn f_polyeval30<T: PolyevalMla + Copy + Mul<T, Output = T>>(
-    x: T,
-    a0: T,
-    a1: T,
-    a2: T,
-    a3: T,
-    a4: T,
-    a5: T,
-    a6: T,
-    a7: T,
-    a8: T,
-    a9: T,
-    a10: T,
-    a11: T,
-    a12: T,
-    a13: T,
-    a14: T,
-    a15: T,
-    a16: T,
-    a17: T,
-    a18: T,
-    a19: T,
-    a20: T,
-    a21: T,
-    a22: T,
-    a23: T,
-    a24: T,
-    a25: T,
-    a26: T,
-    a27: T,
-    a28: T,
-    a29: T,
-) -> T {
-    let x2 = x * x;
-    let x4 = x2 * x2;
-    let x8 = x4 * x4;
-    let x16 = x8 * x8;
-
-    // Degree 0–1
-    let e0 = T::polyeval_mla(x, a1, a0);
-    // Degree 2–3
-    let e1 = T::polyeval_mla(x, a3, a2);
-    // Degree 4–5
-    let e2 = T::polyeval_mla(x, a5, a4);
-    // Degree 6–7
-    let e3 = T::polyeval_mla(x, a7, a6);
-    // Degree 8–9
-    let e4 = T::polyeval_mla(x, a9, a8);
-    // Degree 10–11
-    let e5 = T::polyeval_mla(x, a11, a10);
-    // Degree 12–13
-    let e6 = T::polyeval_mla(x, a13, a12);
-    // Degree 14–15
-    let e7 = T::polyeval_mla(x, a15, a14);
-
-    // Combine with x²
-    let f0 = T::polyeval_mla(x2, e1, e0); // deg 0–3
-    let f1 = T::polyeval_mla(x2, e3, e2); // deg 4–7
-    let f2 = T::polyeval_mla(x2, e5, e4); // deg 8–11
-    let f3 = T::polyeval_mla(x2, e7, e6); // deg 12–15
-
-    // Combine with x⁴
-    let g0 = T::polyeval_mla(x4, f1, f0); // deg 0–7
-    let g1 = T::polyeval_mla(x4, f3, f2); // deg 8–15
-
-    // Degree 16–17
-    let e8 = T::polyeval_mla(x, a17, a16);
-    // Degree 18–19
-    let e9 = T::polyeval_mla(x, a19, a18);
-    // Degree 20–21
-    let e10 = T::polyeval_mla(x, a21, a20);
-    // Degree 22–23
-    let e11 = T::polyeval_mla(x, a23, a22);
-    // Degree 24–25
-    let e12 = T::polyeval_mla(x, a25, a24);
-    // Degree 26–27
-    let e13 = T::polyeval_mla(x, a27, a26);
-    // Degree 28–29
-    let e14 = T::polyeval_mla(x, a29, a28);
-
-    // Combine with x²
-    let f4 = T::polyeval_mla(x2, e9, e8); // deg 16–19
-    let f5 = T::polyeval_mla(x2, e11, e10); // deg 20–23
-    let f6 = T::polyeval_mla(x2, e13, e12); // deg 24–27
-
-    // Combine remaining term (28–29)
-    let f7 = e14;
-
-    // Combine with x⁴
-    let g2 = T::polyeval_mla(x4, f5, f4); // deg 16–23
-    let g3 = T::polyeval_mla(x4, f7, f6); // deg 24–29
-
-    // Combine with x⁸
-    let h0 = T::polyeval_mla(x8, g1, g0); // deg 0–15
-    let h1 = T::polyeval_mla(x8, g3, g2); // deg 16–29
-
-    // Final combination with x¹⁶
-    T::polyeval_mla(x16, h1, h0)
-}
+// #[inline(always)]
+// #[allow(clippy::too_many_arguments)]
+// pub(crate) fn f_polyeval30<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+//     x: T,
+//     a0: T,
+//     a1: T,
+//     a2: T,
+//     a3: T,
+//     a4: T,
+//     a5: T,
+//     a6: T,
+//     a7: T,
+//     a8: T,
+//     a9: T,
+//     a10: T,
+//     a11: T,
+//     a12: T,
+//     a13: T,
+//     a14: T,
+//     a15: T,
+//     a16: T,
+//     a17: T,
+//     a18: T,
+//     a19: T,
+//     a20: T,
+//     a21: T,
+//     a22: T,
+//     a23: T,
+//     a24: T,
+//     a25: T,
+//     a26: T,
+//     a27: T,
+//     a28: T,
+//     a29: T,
+// ) -> T {
+//     let x2 = x * x;
+//     let x4 = x2 * x2;
+//     let x8 = x4 * x4;
+//     let x16 = x8 * x8;
+//
+//     // Degree 0–1
+//     let e0 = T::polyeval_mla(x, a1, a0);
+//     // Degree 2–3
+//     let e1 = T::polyeval_mla(x, a3, a2);
+//     // Degree 4–5
+//     let e2 = T::polyeval_mla(x, a5, a4);
+//     // Degree 6–7
+//     let e3 = T::polyeval_mla(x, a7, a6);
+//     // Degree 8–9
+//     let e4 = T::polyeval_mla(x, a9, a8);
+//     // Degree 10–11
+//     let e5 = T::polyeval_mla(x, a11, a10);
+//     // Degree 12–13
+//     let e6 = T::polyeval_mla(x, a13, a12);
+//     // Degree 14–15
+//     let e7 = T::polyeval_mla(x, a15, a14);
+//
+//     // Combine with x²
+//     let f0 = T::polyeval_mla(x2, e1, e0); // deg 0–3
+//     let f1 = T::polyeval_mla(x2, e3, e2); // deg 4–7
+//     let f2 = T::polyeval_mla(x2, e5, e4); // deg 8–11
+//     let f3 = T::polyeval_mla(x2, e7, e6); // deg 12–15
+//
+//     // Combine with x⁴
+//     let g0 = T::polyeval_mla(x4, f1, f0); // deg 0–7
+//     let g1 = T::polyeval_mla(x4, f3, f2); // deg 8–15
+//
+//     // Degree 16–17
+//     let e8 = T::polyeval_mla(x, a17, a16);
+//     // Degree 18–19
+//     let e9 = T::polyeval_mla(x, a19, a18);
+//     // Degree 20–21
+//     let e10 = T::polyeval_mla(x, a21, a20);
+//     // Degree 22–23
+//     let e11 = T::polyeval_mla(x, a23, a22);
+//     // Degree 24–25
+//     let e12 = T::polyeval_mla(x, a25, a24);
+//     // Degree 26–27
+//     let e13 = T::polyeval_mla(x, a27, a26);
+//     // Degree 28–29
+//     let e14 = T::polyeval_mla(x, a29, a28);
+//
+//     // Combine with x²
+//     let f4 = T::polyeval_mla(x2, e9, e8); // deg 16–19
+//     let f5 = T::polyeval_mla(x2, e11, e10); // deg 20–23
+//     let f6 = T::polyeval_mla(x2, e13, e12); // deg 24–27
+//
+//     // Combine remaining term (28–29)
+//     let f7 = e14;
+//
+//     // Combine with x⁴
+//     let g2 = T::polyeval_mla(x4, f5, f4); // deg 16–23
+//     let g3 = T::polyeval_mla(x4, f7, f6); // deg 24–29
+//
+//     // Combine with x⁸
+//     let h0 = T::polyeval_mla(x8, g1, g0); // deg 0–15
+//     let h1 = T::polyeval_mla(x8, g3, g2); // deg 16–29
+//
+//     // Final combination with x¹⁶
+//     T::polyeval_mla(x16, h1, h0)
+// }
 
 // #[inline(always)]
 // #[allow(clippy::too_many_arguments)]
