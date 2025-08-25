@@ -1,8 +1,8 @@
 use bessel::bessel_i0;
 use num_complex::Complex;
 use pxfm::{
-    f_cotf, f_cotpif, f_digammaf, f_erfcinvf, f_erfinv, f_erfinvf, f_i0, f_i0f, f_i1f, f_k0f,
-    f_k1f, f_tanf, f_tanpif,
+    f_cotf, f_cotpif, f_digammaf, f_erfcinvf, f_erfinv, f_erfinvf, f_i0, f_i0f, f_i1f, f_j0, f_j1,
+    f_k0f, f_k1f, f_tanf, f_tanpif, f_y0, f_y1,
 };
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -174,7 +174,7 @@ fn test_f32_against_mpfr_multithreaded() {
         }
     });*/
 
-    let start_bits = (6.49f64).to_bits();
+    let start_bits = (13.28575815678f64).to_bits();
     let end_bits = (start_bits + 350000);
 
     //
@@ -199,8 +199,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = bessel_i0(x, 100); //compute_besselk(x).unwrap();// Float::with_val(90, x).ln_abs_gamma().0;
-        let actual = f_i0(x);
+        let expected = Float::with_val(107, x).y1(); //compute_besselk(x).unwrap();// Float::with_val(90, x).ln_abs_gamma().0;
+        let actual = f_y1(x);
 
         let diff = count_ulp_f64(actual, &expected);
 

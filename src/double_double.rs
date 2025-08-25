@@ -754,16 +754,6 @@ impl DoubleDouble {
         DoubleDouble::new(r + q, p)
     }
 
-    /// `a*b+c` with full product
-    ///
-    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
-    #[inline]
-    pub(crate) fn full_mul_add(a: DoubleDouble, b: DoubleDouble, c: DoubleDouble) -> Self {
-        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult(a, b);
-        let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
-        DoubleDouble::new(r + q, p)
-    }
-
     #[inline]
     pub(crate) fn quick_mult(a: DoubleDouble, b: DoubleDouble) -> Self {
         #[cfg(any(

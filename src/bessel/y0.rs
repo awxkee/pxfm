@@ -35,10 +35,7 @@ use crate::bessel::beta0::{
 use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::j0::j0_maclaurin_series;
 use crate::bessel::y0_coeffs::Y0_COEFFS;
-use crate::bessel::y0_coeffs_dyadic_remez::Y0_COEFFS_RATIONAL128_REMEZ;
-use crate::bessel::y0_coeffs_dyadic_taylor::Y0_COEFFS_RATIONAL128;
 use crate::bessel::y0_coeffs_taylor::Y0_COEFFS_TAYLOR;
-use crate::bessel::y0_dyadic_zeros::Y0_ZEROS_RATIONAL128;
 use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
@@ -49,8 +46,6 @@ use crate::sin_helper::{sin_dd_small, sin_dd_small_fast, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the second kind of order 0 (Y0)
-///
-/// Max ULP 0.5
 pub fn f_y0(x: f64) -> f64 {
     if x < 0. {
         return f64::NAN;
@@ -480,7 +475,8 @@ fn y0_transient_area_moderate(x: f64) -> f64 {
     const ZERO: DoubleDouble =
         DoubleDouble::from_bit_pair((0xbc8bd1e50d219bfd, 0x400193bed4dff243));
 
-    let r = DoubleDouble::full_add_f64(-ZERO, x);
+    let mut r = DoubleDouble::full_add_f64(-ZERO, x);
+    r = DoubleDouble::from_exact_add(r.hi, r.lo);
 
     let p0 = f_polyeval13(
         r.to_f64(),
@@ -739,7 +735,8 @@ pub(crate) fn y0_small_argument_fast(x: f64) -> f64 {
         &Y0_COEFFS[idx - 1]
     };
 
-    let r = DoubleDouble::full_add_f64(-found_zero, x_abs);
+    let mut r = DoubleDouble::full_add_f64(-found_zero, x);
+    r = DoubleDouble::from_exact_add(r.hi, r.lo);
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
@@ -787,20 +784,14 @@ pub(crate) fn y0_small_argument_fast(x: f64) -> f64 {
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
     if ub != lb {
-        return y0_small_argument_moderate(r, x, c, idx, dist);
+        return y0_small_argument_moderate(r, c);
     }
     z.to_f64()
 }
 
 /// This method on small range searches for nearest zero or extremum.
 /// Then picks stored series expansion at the point end evaluates the poly at the point.
-fn y0_small_argument_moderate(
-    r: DoubleDouble,
-    x: f64,
-    c: &[(u64, u64); 28],
-    idx: usize,
-    dist: f64,
-) -> f64 {
+fn y0_small_argument_moderate(r: DoubleDouble, c: &[(u64, u64); 28]) -> f64 {
     let c0 = &c[15..];
 
     let p0 = f_polyeval13(
@@ -845,28 +836,20 @@ fn y0_small_argument_moderate(
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
     if ub != lb {
-        return y0_small_argument_hard(x, idx, dist);
+        return y0_small_argument_hard(r, c);
     }
     p.to_f64()
 }
 
 #[cold]
 #[inline(never)]
-fn y0_small_argument_hard(x: f64, idx: usize, dist: f64) -> f64 {
-    let is_too_close_to_zero = dist.abs() < 1e-3;
-    let c = if is_too_close_to_zero {
-        &Y0_COEFFS_RATIONAL128[idx - 1]
-    } else {
-        &Y0_COEFFS_RATIONAL128_REMEZ[idx - 1]
-    };
-    let zero = Y0_ZEROS_RATIONAL128[idx];
-    let dx = DyadicFloat128::new_from_f64(x) - zero;
-
-    let mut p = c[27];
+fn y0_small_argument_hard(r: DoubleDouble, c: &[(u64, u64); 28]) -> f64 {
+    let mut p = DoubleDouble::from_bit_pair(c[27]);
     for i in (0..27).rev() {
-        p = dx * p + c[i];
+        p = DoubleDouble::mul_add(r, p, DoubleDouble::from_bit_pair(c[i]));
+        p = DoubleDouble::from_exact_add(p.hi, p.lo);
     }
-    p.fast_as_f64()
+    p.to_f64()
 }
 
 /*

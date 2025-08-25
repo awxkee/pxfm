@@ -38,9 +38,6 @@ use crate::bessel::beta1::{
 use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::j1_coeffs::{J1_COEFFS, J1_ZEROS, J1_ZEROS_VALUE};
 use crate::bessel::j1_coeffs_taylor::J1_COEFFS_TAYLOR;
-use crate::bessel::j1_remez_dyadic_coeffs::J1_COEFFS_RATIONAL128_REMEZ;
-use crate::bessel::j1_taylor_dyadic_coeffs::J1_COEFFS_RATIONAL128_TAYLOR;
-use crate::bessel::j1_zeros_dyadic::J1_ZEROS_RATIONAL;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
@@ -49,8 +46,6 @@ use crate::sin_helper::{sin_dd_small, sin_dd_small_fast, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel J 1st order in f64
-///
-/// Max found ULP 0.5.
 ///
 /// Note about accuracy:
 /// - Close to zero Bessel have tiny values such that testing against MPFR must be done exactly
@@ -482,7 +477,8 @@ pub(crate) fn j1_small_argument_fast(x: f64) -> f64 {
         return j1_maclaurin_series_fast(x);
     }
 
-    let r = DoubleDouble::full_add_f64(-found_zero, x_abs);
+    let mut r = DoubleDouble::full_add_f64(-found_zero, x);
+    r = DoubleDouble::from_exact_add(r.hi, r.lo);
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
@@ -537,17 +533,10 @@ pub(crate) fn j1_small_argument_fast(x: f64) -> f64 {
         return z.to_f64() * sign_scale;
     }
 
-    j1_small_argument_dd(x_abs, idx, sign_scale, dist, r, c)
+    j1_small_argument_dd(sign_scale, r, c)
 }
 
-fn j1_small_argument_dd(
-    x_abs: f64,
-    idx: usize,
-    sign_scale: f64,
-    dist: f64,
-    r: DoubleDouble,
-    c0: &[(u64, u64); 24],
-) -> f64 {
+fn j1_small_argument_dd(sign_scale: f64, r: DoubleDouble, c0: &[(u64, u64); 24]) -> f64 {
     let c = &c0[15..];
 
     let p0 = f_polyeval9(
@@ -590,28 +579,20 @@ fn j1_small_argument_dd(
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
     if ub != lb {
-        return j1_small_argument_path_hard(x_abs, idx, sign_scale, dist);
+        return j1_small_argument_path_hard(sign_scale, r, c);
     }
     p.to_f64() * sign_scale
 }
 
 #[cold]
 #[inline(never)]
-fn j1_small_argument_path_hard(x: f64, idx: usize, sign_scale: f64, dist: f64) -> f64 {
-    let zero = J1_ZEROS_RATIONAL[idx];
-    let is_zero_too_close = dist.abs() < 1e-3;
-    let c = if is_zero_too_close {
-        &J1_COEFFS_RATIONAL128_TAYLOR[idx - 1]
-    } else {
-        &J1_COEFFS_RATIONAL128_REMEZ[idx - 1]
-    };
-    let dx = DyadicFloat128::new_from_f64(x) - zero;
-
-    let mut p = c[23];
+fn j1_small_argument_path_hard(sign_scale: f64, r: DoubleDouble, c: &[(u64, u64); 24]) -> f64 {
+    let mut p = DoubleDouble::from_bit_pair(c[23]);
     for i in (0..23).rev() {
-        p = dx * p + c[i];
+        p = DoubleDouble::mul_add(r, p, DoubleDouble::from_bit_pair(c[i]));
+        p = DoubleDouble::from_exact_add(p.hi, p.lo);
     }
-    p.fast_as_f64() * sign_scale
+    p.to_f64() * sign_scale
 }
 
 /*
