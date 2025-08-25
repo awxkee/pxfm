@@ -173,7 +173,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: k0", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_k0(i as f64 / 1000.0));
+                black_box(pxfm::f_k0(i as f64 / 100.0));
             }
         })
     });
@@ -181,7 +181,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: k1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_k0(i as f64 / 1000.0));
+                black_box(pxfm::f_k1(i as f64 / 10.0));
             }
         })
     });
