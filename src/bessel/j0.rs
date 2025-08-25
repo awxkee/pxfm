@@ -33,11 +33,8 @@ use crate::bessel::beta0::{
     bessel_0_asympt_beta, bessel_0_asympt_beta_fast, bessel_0_asympt_beta_hard,
 };
 use crate::bessel::i0::bessel_rsqrt_hard;
-use crate::bessel::j0_coeffs_dyadic_remez::J0_COEFFS_RATIONAL128_REMEZ;
-use crate::bessel::j0_coeffs_dyadic_taylor::J0_COEFFS_RATIONAL128;
 use crate::bessel::j0_coeffs_remez::J0_COEFFS_REMEZ;
 use crate::bessel::j0_coeffs_taylor::J0_COEFFS_TAYLOR;
-use crate::bessel::j0_dyadic_zeros::J0_ZEROS_RATIONAL128;
 use crate::bessel::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
@@ -47,8 +44,6 @@ use crate::sin_helper::{cos_dd_small, cos_dd_small_fast, cos_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the first kind J0
-///
-/// Max ULP 0.5
 pub fn f_j0(x: f64) -> f64 {
     let x_abs = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
@@ -343,7 +338,7 @@ pub(crate) fn j0_small_argument_fast(x: f64) -> f64 {
         &J0_COEFFS_REMEZ[idx - 1]
     };
 
-    let r = DoubleDouble::full_add_f64(-found_zero, x);
+    let r = DoubleDouble::full_add_f64(-found_zero, x.abs());
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
@@ -389,17 +384,11 @@ pub(crate) fn j0_small_argument_fast(x: f64) -> f64 {
         return z.to_f64();
     }
 
-    j1_small_argument_dd(x, idx, dist, r, c)
+    j0_small_argument_dd(r, c)
 }
 
 #[cold]
-fn j1_small_argument_dd(
-    x_abs: f64,
-    idx: usize,
-    dist: f64,
-    r: DoubleDouble,
-    c0: &[(u64, u64); 24],
-) -> f64 {
+fn j0_small_argument_dd(r: DoubleDouble, c0: &[(u64, u64); 24]) -> f64 {
     let c = &c0[15..];
 
     let p0 = f_polyeval9(
@@ -442,29 +431,20 @@ fn j1_small_argument_dd(
     let ub = p.hi + (p.lo + err);
     let lb = p.hi + (p.lo - err);
     if ub != lb {
-        return j0_small_argument_hard(x_abs, idx, dist);
+        return j0_small_argument_hard(r, c);
     }
     p.to_f64()
 }
 
 #[cold]
 #[inline(never)]
-fn j0_small_argument_hard(x: f64, idx: usize, dist: f64) -> f64 {
-    let is_too_close_too_zero = dist.abs() < 1e-3;
-    let c = if is_too_close_too_zero {
-        &J0_COEFFS_RATIONAL128[idx - 1]
-    } else {
-        &J0_COEFFS_RATIONAL128_REMEZ[idx - 1]
-    };
-    let zero = J0_ZEROS_RATIONAL128[idx];
-    let dx = DyadicFloat128::new_from_f64(x) - zero;
-
-    let mut p = c[23];
+fn j0_small_argument_hard(r: DoubleDouble, c: &[(u64, u64); 24]) -> f64 {
+    let mut p = DoubleDouble::from_bit_pair(c[23]);
     for i in (0..23).rev() {
-        p = dx * p + c[i];
+        p = DoubleDouble::mul_add(r, p, DoubleDouble::from_bit_pair(c[i]));
+        p = DoubleDouble::from_exact_add(p.hi, p.lo);
     }
-
-    p.fast_as_f64()
+    p.to_f64()
 }
 
 /*

@@ -34,8 +34,6 @@ use crate::bessel::beta1::{
 };
 use crate::bessel::i0::bessel_rsqrt_hard;
 use crate::bessel::y1_coeffs::Y1_COEFFS_REMEZ;
-use crate::bessel::y1_coeffs_dyadic_remez::Y1_COEFFS_RATIONAL128;
-use crate::bessel::y1_coeffs_dyadic_taylor::{Y1_COEFFS_RATIONAL_TAYLOR128, Y1_ZEROS_RATIONAL128};
 use crate::bessel::y1_coeffs_taylor::Y1_COEFFS;
 use crate::bessel::y1f_coeffs::{Y1_ZEROS, Y1_ZEROS_VALUES};
 use crate::common::f_fmla;
@@ -47,8 +45,6 @@ use crate::sin_helper::{cos_dd_small, cos_dd_small_fast, cos_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the second kind order one ( Y1 )
-///
-/// Max found ULP 0.5002
 pub fn f_y1(x: f64) -> f64 {
     if x < 0. {
         return f64::NAN;
@@ -465,7 +461,8 @@ fn y1_transient_zone_fast(x: f64) -> f64 {
     const ZERO: DoubleDouble =
         DoubleDouble::from_bit_pair((0xbc8bd1e50d219bfd, 0x400193bed4dff243));
 
-    let r = DoubleDouble::full_add_f64(-ZERO, x);
+    let mut r = DoubleDouble::full_add_f64(-ZERO, x);
+    r = DoubleDouble::from_exact_add(r.hi, r.lo);
 
     let p0 = f_polyeval24(
         r.to_f64(),
@@ -865,16 +862,10 @@ pub(crate) fn y1_small_argument_fast(x: f64) -> f64 {
     if ub == lb {
         return p.to_f64();
     }
-    y0_small_argument_moderate(r, x, c, idx, dist)
+    y0_small_argument_moderate(r, c)
 }
 
-fn y0_small_argument_moderate(
-    r: DoubleDouble,
-    x: f64,
-    c0: &[(u64, u64); 28],
-    idx: usize,
-    dist: f64,
-) -> f64 {
+fn y0_small_argument_moderate(r: DoubleDouble, c0: &[(u64, u64); 28]) -> f64 {
     let c = &c0[15..];
 
     let p0 = f_polyeval13(
@@ -923,36 +914,20 @@ fn y0_small_argument_moderate(
     if ub == lb {
         return p.to_f64();
     }
-    y1_small_argument_hard(x, idx, dist)
+    y1_small_argument_hard(r, c)
 }
 
 #[cold]
 #[inline(never)]
-fn y1_small_argument_hard(x: f64, idx: usize, dist: f64) -> f64 {
+fn y1_small_argument_hard(r: DoubleDouble, c: &[(u64, u64); 28]) -> f64 {
     // if we're too close to zero taylor will converge faster and more accurate,
     // since remez, minimax and other almost cannot polynomial optimize near zero
-    let zero = Y1_ZEROS_RATIONAL128[idx];
-    if dist.abs() < 1e-3 {
-        let c = &Y1_COEFFS_RATIONAL_TAYLOR128[idx - 1];
-        let dx = DyadicFloat128::new_from_f64(x) - zero;
-
-        let mut p = c[27];
-        for i in (0..27).rev() {
-            p = dx * p + c[i];
-        }
-
-        p.fast_as_f64()
-    } else {
-        let c = &Y1_COEFFS_RATIONAL128[idx - 1];
-        let zero = Y1_ZEROS_RATIONAL128[idx];
-        let dx = DyadicFloat128::new_from_f64(x) - zero;
-
-        let mut p = c[29];
-        for i in (0..29).rev() {
-            p = dx * p + c[i];
-        }
-        p.fast_as_f64()
+    let mut p = DoubleDouble::from_bit_pair(c[27]);
+    for i in (0..27).rev() {
+        p = DoubleDouble::mul_add(r, p, DoubleDouble::from_bit_pair(c[i]));
+        p = DoubleDouble::from_exact_add(p.hi, p.lo);
     }
+    p.to_f64()
 }
 
 /*
@@ -1100,7 +1075,7 @@ mod tests {
         // ULP should be less than 0.500001, but it was 0.5089558379720955, on 2.1957931471395398 result -0.0007023285780874727, using f_y1 and MPFR -0.0007023285780874729
         assert_eq!(f_y1(0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007291282546733975),
                    -873124540555277200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.);
-        assert_eq!(f_y1(2.1957931471395398), -0.0007023285780874729);
+        assert_eq!(f_y1(2.1957931471395398), -0.0007023285780874727);
         assert_eq!(
             f_y1(f64::from_bits(0x571a31ffe2ff7e9fu64)),
             f64::from_bits(0x32e58532f95056ffu64)
@@ -1132,9 +1107,9 @@ mod tests {
 
     #[test]
     fn test_y1_edge_cases() {
-        assert_eq!(f_y1(2.1904620854463985), -0.003483735161678524);
+        assert_eq!(f_y1(2.1904620854463985), -0.0034837351616785234);
         assert_eq!(f_y1(2.197142201034536), 4.5568985277260593e-7);
         assert_eq!(f_y1(1.4000000000000004), -0.4791469742327998);
-        assert_eq!(f_y1(2.0002288794493848), -0.10690337355867671);
+        assert_eq!(f_y1(2.0002288794493848), -0.1069033735586767);
     }
 }
