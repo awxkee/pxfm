@@ -497,6 +497,13 @@ fuzz_target!(|data: (f64, f64)| {
     );
     test_method(
         x0,
+        f_cotpi,
+        &mpfr_x0.clone().tan_pi().recip(),
+        "f_cotpi".to_string(),
+        0.5,
+    );
+    test_method(
+        x0,
         f_tanpi,
         &mpfr_x0.clone().tan_pi(),
         "f_tanpi".to_string(),
