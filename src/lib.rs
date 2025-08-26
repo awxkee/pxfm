@@ -142,6 +142,6 @@ pub use sincospi::{f_cospi, f_sincospi, f_sinpi};
 pub use square_root::{f_rsqrt, f_rsqrtf, sqrtf};
 pub use tangent::{
     f_atan, f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf, f_atanpi, f_atanpif, f_cot, f_cotf,
-    f_cotpif, f_tan, f_tanf, f_tanpi, f_tanpif,
+    f_cotpi, f_cotpif, f_tan, f_tanf, f_tanpi, f_tanpif,
 };
 pub use trunc::{trunc, truncf};
