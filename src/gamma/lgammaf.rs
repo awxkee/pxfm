@@ -73,7 +73,7 @@ pub fn f_lgammaf(x: f32) -> f32 {
     // lgamma(x) = log(|Gamma(x)|)
     //  = log(pi/(|x*sin(pi*x)|)) - lgamma(-x);
     if !is_positive {
-        let y1 = ax.trunc();
+        let y1 = ax.floor();
         let fraction = ax - y1; // excess over the boundary
 
         let a = fast_sinpif(fraction);

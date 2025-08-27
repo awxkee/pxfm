@@ -116,7 +116,7 @@ pub use exponents::{
     f_exp10m1f, f_expf, f_expm1, f_expm1f,
 };
 pub use floor::{floor, floorf};
-pub use gamma::{f_digammaf, f_lgamma, f_lgammaf, f_tgamma, f_tgammaf};
+pub use gamma::{f_digamma, f_digammaf, f_lgamma, f_lgammaf, f_tgamma, f_tgammaf};
 pub use hyperbolic::{
     f_acosh, f_acoshf, f_asinh, f_asinhf, f_atanh, f_atanhf, f_cosh, f_coshf, f_sinh, f_sinhf,
     f_tanh, f_tanhf,

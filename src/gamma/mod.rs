@@ -26,12 +26,15 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+mod digamma;
+mod digamma_coeffs;
 mod digammaf;
 mod lgamma;
 mod lgammaf;
 mod tgamma;
 mod tgammaf;
 
+pub use digamma::f_digamma;
 pub use digammaf::f_digammaf;
 pub use lgamma::f_lgamma;
 pub use lgammaf::f_lgammaf;

@@ -383,8 +383,9 @@ pub fn f_digammaf(x: f32) -> f32 {
 
         // reflection Gamma(1-x) + Gamma(x) = Pi/tan(PI*x)
         const PI: f64 = f64::from_bits(0x400921fb54442d18);
+        let cot_x_angle = -dx;
         dx = 1. - dx;
-        result = PI * cotpif_core(dx);
+        result = PI * cotpif_core(cot_x_angle);
     }
     let approx = approx_digamma(dx);
     result += approx;
@@ -397,6 +398,7 @@ mod tests {
 
     #[test]
     fn test_digamma() {
+        assert_eq!(f_digammaf(-13.999000000012591), -996.9182);
         assert_eq!(f_digammaf(15.3796425), 2.700182);
         assert_eq!(f_digammaf(0.0005187988), -1928.1058);
         assert_eq!(f_digammaf(0.0019531252), -512.574);
