@@ -53,6 +53,7 @@ pub use atanpi::f_atanpi;
 pub use atanpif::f_atanpif;
 pub use cot::f_cot;
 pub use cotf::f_cotf;
+pub(crate) use cotpi::cotpi_core;
 pub use cotpi::f_cotpi;
 pub(crate) use cotpif::cotpif_core;
 pub use cotpif::f_cotpif;

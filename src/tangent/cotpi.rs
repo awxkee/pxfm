@@ -62,6 +62,9 @@ fn cotpi_hard(x: f64, msin_k: DoubleDouble, cos_k: DoubleDouble) -> DoubleDouble
     DoubleDouble::div(den, num)
 }
 
+/// Computes cotangent 1/tan(PI*x)
+///
+/// ulp 0.5
 pub fn f_cotpi(x: f64) -> f64 {
     if x == 0. {
         return if x.is_sign_negative() {
@@ -158,6 +161,31 @@ pub fn f_cotpi(x: f64) -> f64 {
         return tan_value.to_f64();
     }
     cotpi_hard(y, msin_k, cos_k).to_f64()
+}
+
+#[inline]
+pub(crate) fn cotpi_core(x: f64) -> DoubleDouble {
+    // argument reduction
+    let (y, k) = reduce_pi_64(x);
+
+    let msin_k = DoubleDouble::from_bit_pair(
+        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(64) & 127) as usize],
+    );
+    let cos_k = DoubleDouble::from_bit_pair(
+        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(32) & 127) as usize],
+    );
+
+    // tanpi_eval returns:
+    // - rs.tan_y = tan(pi * y)          -> tangent of the remainder
+    // - rs.msin_k = sin(pi * k)         -> sine of the main angle multiple
+    // - rs.cos_k  = cos(pi * k)         -> cosine of the main angle multiple
+    let tan_y = tanpi_eval(y);
+    // num = sin(k*pi) + tan(y*pi) * cos(k*pi)
+    let num = DoubleDouble::mul_add(tan_y, cos_k, -msin_k);
+    // den = cos(k*pi) - tan(y*pi) * sin(k*pi)
+    let den = DoubleDouble::mul_add(tan_y, msin_k, cos_k);
+    // cot = den / num
+    DoubleDouble::div(den, num)
 }
 
 #[cfg(test)]

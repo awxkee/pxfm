@@ -90,6 +90,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("pxfm: f_digamma", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_digamma(black_box(i as f64 / 1000.0 * 100.0)));
+            }
+        })
+    });
+
     c.bench_function("pxfm: f_digammaf", |b| {
         b.iter(|| {
             for i in 1..1000 {
