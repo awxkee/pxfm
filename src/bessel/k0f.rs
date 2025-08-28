@@ -28,8 +28,8 @@
  */
 use crate::bessel::i0f::i0f_small;
 use crate::common::f_fmla;
-use crate::f_exp;
-use crate::logs::simple_fast_log;
+use crate::exponents::core_expf;
+use crate::logs::fast_logf;
 use crate::polyeval::{f_estrin_polyeval7, f_estrin_polyeval8};
 
 /// Modified Bessel of the second kind order 0
@@ -88,7 +88,7 @@ TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Nu
 **/
 #[inline]
 fn k0f_small(x: f32) -> f32 {
-    let v_log = simple_fast_log(x as f64);
+    let v_log = fast_logf(x);
     let i0 = i0f_small(x);
 
     let dx = x as f64;
@@ -132,7 +132,7 @@ TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Nu
 fn k0f_asympt(x: f32) -> f32 {
     let dx = x as f64;
     let recip = 1. / dx;
-    let e = f_exp(dx);
+    let e = core_expf(x);
     let r_sqrt = dx.sqrt();
 
     let p_num = f_estrin_polyeval8(

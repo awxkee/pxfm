@@ -30,7 +30,7 @@ use crate::bessel::j0f::{j0f_asympt_alpha, j0f_asympt_beta, j1f_rsqrt};
 use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES, Y0F_COEFFS};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
-use crate::logs::simple_fast_log;
+use crate::logs::fast_logf;
 use crate::polyeval::{f_polyeval10, f_polyeval18};
 use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
@@ -183,7 +183,7 @@ fn y0f_near_zero(x: f32) -> f32 {
         f64::from_bits(Z[8]),
         f64::from_bits(Z[9]),
     );
-    let w_log = simple_fast_log(dx);
+    let w_log = fast_logf(x);
     f_fmla(w0, w_log, -z0) as f32
 }
 

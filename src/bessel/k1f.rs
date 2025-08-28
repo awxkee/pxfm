@@ -27,8 +27,8 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
-use crate::f_exp;
-use crate::logs::simple_fast_log;
+use crate::exponents::core_expf;
+use crate::logs::fast_logf;
 use crate::polyeval::{f_estrin_polyeval8, f_polyeval3, f_polyeval4};
 
 /// Modified Bessel of the second kind order 1
@@ -153,7 +153,7 @@ fn k1f_small(x: f32) -> f32 {
     );
     let p = p_num / p_den;
 
-    let lg = simple_fast_log(dx);
+    let lg = fast_logf(x);
     let v_i = i1f_small(x);
     let z = f_fmla(lg, v_i, rcp);
     let z0 = f_fmla(p, dx, z);
@@ -180,7 +180,7 @@ TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Nu
 fn k1f_asympt(x: f32) -> f32 {
     let dx = x as f64;
     let recip = 1. / dx;
-    let e = f_exp(dx);
+    let e = core_expf(x);
     let r_sqrt = dx.sqrt();
     let p_num = f_estrin_polyeval8(
         recip,
