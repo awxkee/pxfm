@@ -32,7 +32,7 @@ use crate::polyeval::{f_estrin_polyeval8, f_estrin_polyeval9};
 
 /// Modified Bessel of the first kind order 2
 ///
-/// Max ULP 0.5
+/// ULP 0.5
 pub fn f_i2f(x: f32) -> f32 {
     if (x.to_bits() & 0x0007_ffff) == 0 {
         if x == 0. {

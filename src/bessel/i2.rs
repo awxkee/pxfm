@@ -32,6 +32,7 @@ use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::rational128_exp;
 
+/// Modified bessel of the first kind of order 2
 pub fn f_i2(x: f64) -> f64 {
     if !x.is_normal() {
         if x == 0. {
