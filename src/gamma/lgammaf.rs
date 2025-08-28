@@ -91,7 +91,7 @@ pub fn f_lgammaf(x: f32) -> f32 {
             f64::from_bits(0x3fea51a6625307d3),
             f64::from_bits(0xbfd9a4d55beab2d7),
         );
-        let d_log = fast_logf(ax);
+        let d_log = simple_fast_log(dx);
         let log_gamma = f_fmla(fp, dx, -d_log);
         f_res = f_fmla(log_gamma, sum_parity, f_res);
     } else if ax < 1. {
