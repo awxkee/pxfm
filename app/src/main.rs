@@ -2,8 +2,8 @@ use bessel::{bessel_i0, bessel_i1, bessel_k0, bessel_k1};
 use num_complex::Complex;
 use pxfm::{
     f_cotf, f_cotpi, f_cotpif, f_digamma, f_digammaf, f_erfcinvf, f_erfinv, f_erfinvf, f_expf,
-    f_i0, f_i0f, f_i1, f_i1f, f_i2f, f_j0, f_j1, f_k0, f_k0f, f_k1, f_k1f, f_k2f, f_tanf, f_tanpi,
-    f_tanpif, f_y0, f_y0f, f_y1, f_y1f,
+    f_i0, f_i0f, f_i1, f_i1f, f_i2f, f_j0, f_j1, f_k0, f_k0f, f_k1, f_k1f, f_k2f, f_lgammaf,
+    f_tanf, f_tanpi, f_tanpif, f_y0, f_y0f, f_y1, f_y1f,
 };
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -130,8 +130,8 @@ fn test_f32_against_mpfr_multithreaded() {
 
     let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
 
-    let start_bits = (1f32).to_bits();
-    let end_bits = (105f32).to_bits();
+    let start_bits = (8f32).to_bits();
+    let end_bits = (12f32).to_bits();
     println!("amount {}", end_bits - start_bits);
 
     // Exhaustive: 0..=u32::MAX
@@ -155,8 +155,8 @@ fn test_f32_against_mpfr_multithreaded() {
             Err(_) => return,
         };
 
-        let expected_sin_pi = Float::with_val(53, v.values[0].re); //compute_besselk(x as f64).unwrap(); //Float::with_val(90, statrs::function::erf::erf_inv(x as f64));
-        let actual = f_k2f(x);
+        let expected_sin_pi = Float::with_val(53, x).ln_abs_gamma().0; //compute_besselk(x as f64).unwrap(); //Float::with_val(90, statrs::function::erf::erf_inv(x as f64));
+        let actual = f_lgammaf(x);
 
         executions.fetch_add(1, Ordering::Relaxed);
 
