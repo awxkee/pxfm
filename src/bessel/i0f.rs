@@ -28,7 +28,7 @@
  */
 use crate::bessel::j0f::j1f_rsqrt;
 use crate::common::f_fmla;
-use crate::f_exp;
+use crate::exponents::core_expf;
 use crate::polyeval::{
     f_estrin_polyeval5, f_estrin_polyeval7, f_estrin_polyeval8, f_estrin_polyeval9, f_polyeval6,
 };
@@ -298,7 +298,7 @@ fn i0f_asympt(x: f32) -> f32 {
     );
     let z = p_num / p_den;
 
-    let e = f_exp(dx);
+    let e = core_expf(x);
     let r_sqrt = j1f_rsqrt(dx);
     (z * r_sqrt * e) as f32
 }

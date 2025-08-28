@@ -92,4 +92,5 @@ pub use log10p1::f_log10p1;
 pub use log10p1f::f_log10p1f;
 #[allow(unused)]
 pub(crate) use logf::LOG_REDUCTION_F32;
+pub(crate) use logf::fast_logf;
 pub use logf::{f_logf, logf};
