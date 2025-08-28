@@ -68,6 +68,14 @@ pub fn f_i1(x: f64) -> f64 {
     let sign_scale = SIGN[x.is_sign_negative() as usize];
 
     if xb < 0x401f000000000000u64 {
+        if xb <= 0x3cb0000000000000u64 {
+            // x <= f64::EPSILON
+            // Power series of I1(x) ~ x/2 + x^3/16 + O(x^4)
+            const A0: f64 = 1. / 2.;
+            const A1: f64 = 1. / 16.;
+            let r0 = f_fmla(x, x * A1, A0);
+            return r0 * x;
+        }
         // 7.75
         return i1_0_to_7p75(f64::from_bits(xb), sign_scale);
     }

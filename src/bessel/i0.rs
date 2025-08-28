@@ -56,8 +56,17 @@ pub fn f_i0(x: f64) -> f64 {
     }
 
     if xb <= 0x400ccccccccccccdu64 {
+        // x <= 3.6
+        if xb <= 0x3cb0000000000000u64 {
+            // x <= f64::EPSILON
+            // Power series of I0(x) ~ 1 + x^2/4 + O(x^4)
+            const R: f64 = 1. / 4.;
+            let r = f_fmla(x, x * R, 1.);
+            return r;
+        }
         return i0_0_to_3p6_exec(f64::from_bits(xb));
     } else if xb <= 0x401e000000000000u64 {
+        // x <= 7.5
         return i3p6_to_7p5(f64::from_bits(xb));
     } else if xb <= 0x4023000000000000u64 {
         // 9.5

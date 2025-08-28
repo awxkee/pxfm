@@ -102,8 +102,8 @@ pub use asinf::f_asinf;
 pub use asinpi::f_asinpi;
 pub use asinpif::f_asinpif;
 pub use bessel::{
-    f_i0, f_i0f, f_i1, f_i1f, f_i2f, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k0f, f_k1, f_k1f, f_k2f,
-    f_y0, f_y0f, f_y1, f_y1f,
+    f_i0, f_i0f, f_i1, f_i1f, f_i2, f_i2f, f_j0, f_j0f, f_j1, f_j1f, f_k0, f_k0f, f_k1, f_k1f,
+    f_k2f, f_y0, f_y0f, f_y1, f_y1f,
 };
 pub use ceil::{ceil, ceilf};
 pub use common::{copysignfk, copysignk};
