@@ -142,7 +142,6 @@ poly=Denominator[approx][[1]];
 coeffs=CoefficientList[poly,z];
 TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
 ```
-See ./notes/bessel_sollya
 **/
 #[inline]
 fn i2f_asympt(x: f32) -> f32 {
