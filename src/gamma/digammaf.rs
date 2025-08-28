@@ -304,6 +304,7 @@ fn approx_digamma(x: f64) -> f64 {
     v_log - f_fmla(rcp, f64::from_bits(0x3fe0000000000000), p * rcp_sqr)
 }
 
+/// Computes digamma(x)
 pub fn f_digammaf(x: f32) -> f32 {
     let xb = x.to_bits();
     if (xb & 0x0007_ffff) == 0 {

@@ -31,6 +31,9 @@ use crate::exponents::core_expf;
 use crate::logs::fast_logf;
 use crate::polyeval::{f_estrin_polyeval5, f_estrin_polyeval8, f_polyeval4, f_polyeval11};
 
+/// Modified bessel of the second kind of order 2
+///
+/// ulp 0.5
 pub fn f_k2f(x: f32) -> f32 {
     if x < 0. {
         return f32::NAN;
@@ -62,13 +65,12 @@ pub fn f_k2f(x: f32) -> f32 {
         return r as f32;
     }
 
-    if xb <= 0x3e9eb852u32 {
-        // x < 0.31
-        return k2f_tiny(x);
-    }
-
     if xb <= 0x3f800000u32 {
-        // 1.0
+        if xb <= 0x3e9eb852u32 {
+            // x < 0.31
+            return k2f_tiny(x);
+        }
+        // x < 1.0
         return k2f_small(x);
     }
 
