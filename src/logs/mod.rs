@@ -44,6 +44,7 @@ mod log1p_dd;
 mod log1p_dyadic;
 mod log1p_dyadic_tables;
 mod log1pf;
+mod log1pmxf;
 mod log2;
 mod log2dd;
 mod log2dd_coeffs;
@@ -71,6 +72,7 @@ pub use log1p::f_log1p;
 pub(crate) use log1p::log1p_f64_dyadic;
 pub(crate) use log1p_dd::log1p_dd;
 pub use log1pf::f_log1pf;
+pub use log1pmxf::f_log1pmxf;
 #[cfg(not(any(
     all(
         any(target_arch = "x86", target_arch = "x86_64"),
