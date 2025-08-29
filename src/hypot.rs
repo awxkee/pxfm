@@ -248,13 +248,11 @@ pub fn f_hypot(x: f64, y: f64) -> f64 {
     yd = yd.wrapping_add(off as u64);
     x = f64::from_bits(xd);
     y = f64::from_bits(yd);
-    let x2 = x * x;
-    let dx2 = dd_fmla(x, x, -x2);
-    let y2 = y * y;
-    let dy2 = dd_fmla(y, y, -y2);
-    let r2 = x2 + y2;
+    let x2 = DoubleDouble::from_exact_mult(x, x);
+    let y2 = DoubleDouble::from_exact_mult(y, y);
+    let r2 = x2.hi + y2.hi;
     let ir2 = 0.5 / r2;
-    let dr2 = ((x2 - r2) + y2) + (dx2 + dy2);
+    let dr2 = ((x2.hi - r2) + y2.hi) + (x2.lo + y2.lo);
     let mut th = r2.sqrt();
     let rsqrt = th * ir2;
     let dz = dr2 - dd_fmla(th, th, -r2);

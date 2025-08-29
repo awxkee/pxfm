@@ -132,6 +132,23 @@ pub(crate) fn core_logf(x: f64) -> f64 {
 pub fn f_log1pf(x: f32) -> f32 {
     let ax = x.to_bits() & 0x7fff_ffffu32;
     let xd = x as f64;
+
+    if !x.is_normal() {
+        if x.is_nan() {
+            return x + x;
+        }
+        if x.is_infinite() {
+            return if x.is_sign_positive() {
+                f32::INFINITY
+            } else {
+                f32::NAN
+            };
+        }
+        if x == 0. {
+            return x;
+        }
+    }
+
     // Use log1p(x) = log(1 + x) for |x| > 2^-6;
     if ax > 0x3c80_0000u32 {
         if x == -1. {
@@ -174,6 +191,9 @@ mod tests {
 
     #[test]
     fn log1pf_works() {
+        assert!(f_log1pf(f32::from_bits(0xffefb9a7)).is_nan());
+        assert!(f_log1pf(f32::NAN).is_nan());
+        assert_eq!(f_log1pf(f32::from_bits(0x41078feb)), 2.2484074);
         assert_eq!(f_log1pf(-0.0000014305108), -0.0000014305118);
         assert_eq!(f_log1pf(0.0), 0.0);
         assert_eq!(f_log1pf(2.0), 1.0986123);

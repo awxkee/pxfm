@@ -35,6 +35,18 @@ pub fn f_log1pmxf(x: f32) -> f32 {
     let ax = x.to_bits() & 0x7fff_ffffu32;
     let xd = x as f64;
 
+    if !x.is_normal() {
+        if x.is_nan() {
+            return x + x;
+        }
+        if x.is_infinite() {
+            return f32::NAN;
+        }
+        if x == 0. {
+            return x;
+        }
+    }
+
     // Use log1p(x) = log(1 + x) for |x| > 2^-6;
     if ax > 0x3c80_0000u32 {
         if x == -1. {
