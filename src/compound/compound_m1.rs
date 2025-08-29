@@ -378,7 +378,7 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
         return mul_fixed_power_hard(x, y);
     }
 
-    // approximate log(x)
+    // approximate log1p(x)
     let l = log1p_dd(x);
 
     let ey = ((y.to_bits() >> 52) & 0x7ff) as i32;

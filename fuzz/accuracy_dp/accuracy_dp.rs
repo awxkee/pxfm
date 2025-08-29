@@ -276,6 +276,12 @@ fn compound_mpfr(x: f64, y: f64) -> Float {
     }
 }
 
+fn mpfr_cosm1(x: f64) -> Float {
+    let r = Float::with_val(100, (x) * 0.5).sin();
+    let r = r.clone().mul(&r.clone());
+    r.mul(Float::with_val(100, -2))
+}
+
 static mut MAX_ULP: f64 = 0.;
 
 fuzz_target!(|data: (f64, f64)| {
@@ -301,6 +307,9 @@ fuzz_target!(|data: (f64, f64)| {
     //         0.50013,
     //     );
     // }
+    if x0.abs() > 1e-8 {
+        test_method(x0, f_cosm1, &mpfr_cosm1(x0), "f_cosm1".to_string(), 0.5001);
+    }
     if x0 < 1e+50 {
         test_method(
             x0,

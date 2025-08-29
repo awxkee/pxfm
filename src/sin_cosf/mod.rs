@@ -29,6 +29,7 @@
 mod argument_reduction;
 mod argument_reduction_pi;
 mod cosf;
+mod cosm1f;
 mod cospif;
 mod cscf;
 mod secf;
@@ -41,6 +42,7 @@ mod sinpif;
 
 pub(crate) use argument_reduction_pi::ArgumentReducerPi;
 pub use cosf::f_cosf;
+pub use cosm1f::f_cosm1f;
 pub use cospif::f_cospif;
 pub use cscf::f_cscf;
 pub use secf::f_secf;

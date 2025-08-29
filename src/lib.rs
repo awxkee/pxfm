@@ -53,6 +53,7 @@ mod bits;
 mod ceil;
 mod common;
 mod compound;
+mod cosm1;
 mod csc;
 mod cube_roots;
 mod double_double;
@@ -108,6 +109,7 @@ pub use bessel::{
 pub use ceil::{ceil, ceilf};
 pub use common::{copysignfk, copysignk};
 pub use compound::{f_compound, f_compound_m1, f_compound_m1f, f_compoundf};
+pub use cosm1::f_cosm1;
 pub use csc::f_csc;
 pub use cube_roots::{cbrtf, f_cbrt, f_cbrtf, f_rcbrt, f_rcbrtf};
 pub use err::{f_erf, f_erfc, f_erfcf, f_erfcinvf, f_erff, f_erfinv, f_erfinvf, f_rerf, f_rerff};
@@ -134,7 +136,7 @@ pub use round_ties_even::{round_ties_even, roundf_ties_even};
 pub use sec::f_sec;
 pub use sin::{f_cos, f_sin};
 pub use sin_cosf::{
-    f_cosf, f_cospif, f_cscf, f_secf, f_sincf, f_sincosf, f_sincospif, f_sinf, f_sinpif,
+    f_cosf, f_cosm1f, f_cospif, f_cscf, f_secf, f_sincf, f_sincosf, f_sincospif, f_sinf, f_sinpif,
 };
 pub use sinc::f_sinc;
 pub use sincos::f_sincos;

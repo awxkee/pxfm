@@ -114,8 +114,8 @@ pub fn f_sinc(x: f64) -> f64 {
     let sk = SIN_K_PI_OVER_128[(k & 255) as usize];
     let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
 
-    let sin_k = DoubleDouble::new(f64::from_bits(sk.0), f64::from_bits(sk.1));
-    let cos_k = DoubleDouble::new(f64::from_bits(ck.0), f64::from_bits(ck.1));
+    let sin_k = DoubleDouble::from_bit_pair(sk);
+    let cos_k = DoubleDouble::from_bit_pair(ck);
 
     let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, sin_k);
     let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, cos_k);
