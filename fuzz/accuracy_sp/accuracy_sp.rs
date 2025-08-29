@@ -7,13 +7,13 @@ use pxfm::{
     f_acosf, f_acoshf, f_acospif, f_asinf, f_asinhf, f_asinpif, f_atan2f, f_atan2pif, f_atanhf,
     f_atanpif, f_cbrtf, f_cosf, f_coshf, f_cospif, f_cotf, f_cotpif, f_cscf, f_digammaf, f_erfcf,
     f_erff, f_exp2f, f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_i0f, f_i1f,
-    f_j0f, f_j1f, f_k0f, f_k1f, f_lgammaf, f_log1pf, f_log2f, f_log2p1f, f_log10f, f_log10p1f,
-    f_logf, f_powf, f_rcbrtf, f_rerff, f_rsqrtf, f_secf, f_sincf, f_sinf, f_sinhf, f_sinpif,
-    f_tanf, f_tanhf, f_tanpif, f_tgammaf, f_y0f, f_y1f,
+    f_j0f, f_j1f, f_k0f, f_k1f, f_lgammaf, f_log1pf, f_log1pmxf, f_log2f, f_log2p1f, f_log10f,
+    f_log10p1f, f_logf, f_powf, f_rcbrtf, f_rerff, f_rsqrtf, f_secf, f_sincf, f_sinf, f_sinhf,
+    f_sinpif, f_tanf, f_tanhf, f_tanpif, f_tgammaf, f_y0f, f_y1f,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::ops::{Div, Mul};
+use std::ops::{Div, Mul, Sub};
 use zbessel_rs::bessel_k;
 
 fn count_ulp(d: f32, c: &Float) -> f32 {
@@ -101,6 +101,10 @@ fn test_method_allow_not_normals(
     );
 }
 
+fn log1pmxf(x: f32) -> Float {
+    Float::with_val(90, x).ln_1p().sub(&Float::with_val(90, x))
+}
+
 fn test_method_2vals_ignore_nan(
     value0: f32,
     value1: f32,
@@ -174,6 +178,8 @@ fuzz_target!(|data: (f32, f32)| {
     //     &compound_mpfr.clone(),
     //     "f_compoundf".to_string(),
     // );
+
+    test_method(x0, f_log1pmxf, &log1pmxf(x0), "f_log1pmxf".to_string());
 
     test_method(
         x0,

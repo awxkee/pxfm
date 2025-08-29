@@ -739,6 +739,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("pxfm: f_log1pmxf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_log1pmxf(i as f32 / 1000.0));
+            }
+        })
+    });
+
     c.bench_function("pxfm: f_exp10m1f", |b| {
         b.iter(|| {
             for i in 1..1000 {

@@ -126,8 +126,8 @@ pub use hyperbolic::{
 pub use hypot::f_hypot;
 pub use hypotf::{f_hypot3f, f_hypotf};
 pub use logs::{
-    f_log, f_log1p, f_log1pf, f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f, f_log10p1,
-    f_log10p1f, f_logf, log, logf,
+    f_log, f_log1p, f_log1pf, f_log1pmxf, f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10, f_log10f,
+    f_log10p1, f_log10p1f, f_logf, log, logf,
 };
 pub use pow::{f_pow, pow};
 pub use powf::{dirty_powf, f_powf, powf};
