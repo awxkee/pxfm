@@ -32,7 +32,7 @@ use crate::sin_cosf::sincosf_eval::sincosf_eval;
 
 /// Sine function
 ///
-/// Max found ULP 0.4999996
+/// Max found ULP 0.5
 #[inline]
 pub fn f_sinf(x: f32) -> f32 {
     let x_abs = x.to_bits() & 0x7fff_ffffu32;
@@ -116,6 +116,7 @@ mod tests {
         assert_eq!(f_sinf(0.3), 0.29552022);
         assert_eq!(f_sinf(-1.0), -0.84147096);
         assert_eq!(f_sinf(-0.3), -0.29552022);
+        assert_eq!(f_sinf(std::f32::consts::PI / 2.), 1.);
         assert!(f_sinf(f32::INFINITY).is_nan());
         assert!(f_sinf(f32::NEG_INFINITY).is_nan());
         assert!((f_sinf(std::f32::consts::PI) - 0f32).abs() < 1e-6);

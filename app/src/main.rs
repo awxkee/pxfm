@@ -1,13 +1,14 @@
 use bessel::{bessel_i0, bessel_i1, bessel_k0, bessel_k1};
 use num_complex::Complex;
 use pxfm::{
-    f_cotf, f_cotpi, f_cotpif, f_digamma, f_digammaf, f_erfcinvf, f_erfinv, f_erfinvf, f_expf,
-    f_i0, f_i0f, f_i1, f_i1f, f_i2, f_i2f, f_j0, f_j1, f_k0, f_k0f, f_k1, f_k1f, f_k2f, f_lgammaf,
-    f_tanf, f_tanpi, f_tanpif, f_y0, f_y0f, f_y1, f_y1f,
+    f_cosm1, f_cosm1f, f_cotf, f_cotpi, f_cotpif, f_digamma, f_digammaf, f_erfcinvf, f_erfinv,
+    f_erfinvf, f_expf, f_i0, f_i0f, f_i1, f_i1f, f_i2, f_i2f, f_j0, f_j1, f_k0, f_k0f, f_k1, f_k1f,
+    f_k2f, f_lgammaf, f_tanf, f_tanpi, f_tanpif, f_y0, f_y0f, f_y1, f_y1f,
 };
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
+use std::ops::{Mul, Sub};
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -100,6 +101,18 @@ fn count_ulp_f64(d: f64, c: &Float) -> f64 {
     fry.to_f64().abs()
 }
 
+fn mpfr_cosm1f(x: f32) -> Float {
+    let r = Float::with_val(100, (x as f64) * 0.5).sin();
+    let r = r.clone().mul(&r.clone());
+    r.mul(Float::with_val(100, -2))
+}
+
+fn mpfr_cosm1(x: f64) -> Float {
+    let r = Float::with_val(100, (x as f64) * 0.5).sin();
+    let r = r.clone().mul(&r.clone());
+    r.mul(Float::with_val(100, -2))
+}
+
 #[allow(static_mut_refs)]
 
 fn test_f32_against_mpfr_multithreaded() {
@@ -127,11 +140,10 @@ fn test_f32_against_mpfr_multithreaded() {
             }
         }
     });
-
     let mut exceptions = Arc::new(Mutex::new(Vec::<f64>::new()));
 
-    // let start_bits = (8f32).to_bits();
-    // let end_bits = (12f32).to_bits();
+    // let start_bits = (0.00001f32).to_bits();
+    // let end_bits = (0.00025f32).to_bits();
     // println!("amount {}", end_bits - start_bits);
     //
     // // Exhaustive: 0..=u32::MAX
@@ -142,21 +154,21 @@ fn test_f32_against_mpfr_multithreaded() {
     //         return; // skip NaNs and infinities
     //     }
     //
-    //     let v = match bessel_k(
-    //         Complex {
-    //             re: x as f64,
-    //             im: 0.,
-    //         },
-    //         2.,
-    //         1,
-    //         1,
-    //     ) {
-    //         Ok(v) => v,
-    //         Err(_) => return,
-    //     };
+    //     // let v = match bessel_k(
+    //     //     Complex {
+    //     //         re: x as f64,
+    //     //         im: 0.,
+    //     //     },
+    //     //     2.,
+    //     //     1,
+    //     //     1,
+    //     // ) {
+    //     //     Ok(v) => v,
+    //     //     Err(_) => return,
+    //     // };
     //
-    //     let expected_sin_pi = Float::with_val(53, x).ln_abs_gamma().0; //compute_besselk(x as f64).unwrap(); //Float::with_val(90, statrs::function::erf::erf_inv(x as f64));
-    //     let actual = f_lgammaf(x);
+    //     let expected_sin_pi = mpfr_cosm1f(x); //compute_besselk(x as f64).unwrap(); //Float::with_val(90, statrs::function::erf::erf_inv(x as f64));
+    //     let actual = f_cosm1f(x);
     //
     //     executions.fetch_add(1, Ordering::Relaxed);
     //
@@ -175,7 +187,7 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (1e-17f64).to_bits();
+    let start_bits = (0.00001f64).to_bits();
     let end_bits = (start_bits + 350000);
 
     // Mismatch: x = 0.9999900000195318, expected = 0.6019174596052772, got = 0.6019174596052773, ULP diff = 0.5242313917684331, correct 10790, wrong 435
@@ -202,8 +214,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = bessel_i1(x, 100);//Float::with_val(90, x).digamma();
-        let actual = f_i1(x);
+        let expected = mpfr_cosm1(x);//Float::with_val(90, x).digamma();
+        let actual = f_cosm1(x);
 
         let diff = count_ulp_f64(actual, &expected);
 

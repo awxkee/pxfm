@@ -135,38 +135,6 @@ fn sincos_hard(
     cos_upper: f64,
     cos_lower: f64,
 ) -> (f64, f64) {
-    // const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-    // let u_f128 = if x_e < E_BIAS + 16 {
-    //     range_reduction_small_f128(x)
-    // } else {
-    //     argument_reduction.accurate()
-    // };
-    //
-    // let r_sincos = sincos_eval_dyadic(&u_f128);
-    //
-    // // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    // let sin_k_f128 = get_sin_k_rational(k);
-    // let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
-    // let msin_k_f128 = get_sin_k_rational(k.wrapping_add(128));
-    //
-    // let sin_x = if sin_upper == sin_lower {
-    //     sin_upper
-    // } else {
-    //     // sin(x) = sin((k * pi/128 + u)
-    //     //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
-    //
-    //     ((sin_k_f128 * r_sincos.v_cos) + (cos_k_f128 * r_sincos.v_sin)).fast_as_f64()
-    // };
-    //
-    // let cos_x = if cos_upper == cos_lower {
-    //     cos_upper
-    // } else {
-    //     // cos(x) = cos((k * pi/128 + u)
-    //     //        = cos(u) * cos(k*pi/128) - sin(u) * sin(k*pi/128)
-    //     ((cos_k_f128 * r_sincos.v_cos) + (msin_k_f128 * r_sincos.v_sin)).fast_as_f64()
-    // };
-    // (sin_x, cos_x)
-
     let r_sincos = sincos_eval_dd(y);
 
     let msin_k = -sin_k;

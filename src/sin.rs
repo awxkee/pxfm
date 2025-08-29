@@ -199,24 +199,6 @@ pub(crate) fn sincos_eval(u: DoubleDouble) -> SinCos {
 #[cold]
 #[inline(never)]
 fn sin_accurate(y: DoubleDouble, sin_k: DoubleDouble, cos_k: DoubleDouble) -> f64 {
-    // const EXP_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-    // let u_f128 = if x_e < EXP_BIAS + 16 {
-    //     range_reduction_small_f128(x)
-    // } else {
-    //     argument_reduction.accurate()
-    // };
-    //
-    // let sin_cos = sincos_eval_dyadic(&u_f128);
-    //
-    // // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    // let sin_k_f128 = get_sin_k_rational(k);
-    // let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
-    //
-    // // sin(x) = sin(k * pi/128 + u)
-    // //        = sin(u) * cos(k*pi/128) + cos(u) * sin(k*pi/128)
-    // let r = (sin_k_f128 * sin_cos.v_cos) + (cos_k_f128 * sin_cos.v_sin);
-    // r.fast_as_f64()
-
     let r_sincos = sincos_eval_dd(y);
 
     // k is an integer and -pi / 256 <= y <= pi / 256.
