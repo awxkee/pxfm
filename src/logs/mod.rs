@@ -44,6 +44,7 @@ mod log1p_dd;
 mod log1p_dyadic;
 mod log1p_dyadic_tables;
 mod log1pf;
+mod log1pmx;
 mod log1pmxf;
 mod log2;
 mod log2dd;
@@ -72,6 +73,7 @@ pub use log1p::f_log1p;
 pub(crate) use log1p::log1p_f64_dyadic;
 pub(crate) use log1p_dd::log1p_dd;
 pub use log1pf::f_log1pf;
+pub use log1pmx::f_log1pmx;
 pub use log1pmxf::f_log1pmxf;
 #[cfg(not(any(
     all(

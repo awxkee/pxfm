@@ -6,7 +6,7 @@ use libfuzzer_sys::fuzz_target;
 use pxfm::*;
 use rug::ops::Pow;
 use rug::{Assign, Float};
-use std::ops::{Div, Mul};
+use std::ops::{Div, Mul, Sub};
 
 pub fn count_ulp_f64(d: f64, c: &Float) -> f64 {
     let c2 = c.to_f64();
@@ -200,6 +200,12 @@ fn test_method_2vals_ignore_nan1(
     );
 }
 
+fn log1pmx(x: f64) -> Float {
+    Float::with_val(250, x)
+        .ln_1p()
+        .sub(&Float::with_val(250, x))
+}
+
 #[track_caller]
 fn track_ulp(
     value0: f64,
@@ -307,6 +313,10 @@ fuzz_target!(|data: (f64, f64)| {
     //         0.50013,
     //     );
     // }
+
+    if x0.abs() > 1e-55 {
+        test_method(x0, f_log1pmx, &log1pmx(x0), "f_log1pmx".to_string(), 0.500001);
+    }
     if x0.abs() > 1e-8 {
         test_method(x0, f_cosm1, &mpfr_cosm1(x0), "f_cosm1".to_string(), 0.5001);
     }
