@@ -423,7 +423,7 @@ pub(crate) fn pow_exp_dd(r: DoubleDouble, s: f64) -> DoubleDouble {
 }
 
 #[inline(always)]
-fn expm1_poly_dd(z: DoubleDouble) -> DoubleDouble {
+pub(crate) fn expm1_poly_dd(z: DoubleDouble) -> DoubleDouble {
     /*
        Sollya:
        pretty = proc(u) {
@@ -457,18 +457,18 @@ fn expm1_poly_dd(z: DoubleDouble) -> DoubleDouble {
         (0x3baeab43b813ef24, 0x3f2a01a1e12d253c),
     ];
     let mut p = DoubleDouble::mult(z, DoubleDouble::from_bit_pair(Q_1[6]));
-    p = DoubleDouble::mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[5]));
-    p = DoubleDouble::mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[4]));
-    p = DoubleDouble::mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[3]));
-    p = DoubleDouble::mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[2]));
-    p = DoubleDouble::mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[1]));
-    p = DoubleDouble::mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[0]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[5]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[4]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[3]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[2]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[1]));
+    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[0]));
     DoubleDouble::quick_mult(p, z)
 }
 
 /// |z.hi| < 0.125
 #[inline(always)]
-fn expm1_poly_dd_tiny(z: DoubleDouble) -> DoubleDouble {
+pub(crate) fn expm1_poly_dd_tiny(z: DoubleDouble) -> DoubleDouble {
     /*
        Sollya:
        pretty = proc(u) {
