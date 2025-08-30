@@ -108,7 +108,7 @@ pub use bessel::{
 };
 pub use ceil::{ceil, ceilf};
 pub use common::{copysignfk, copysignk};
-pub use compound::{f_compound, f_compound_m1, f_compound_m1f, f_compoundf};
+pub use compound::{f_compound, f_compound_m1, f_compound_m1f, f_compoundf, f_powm1f};
 pub use cosm1::f_cosm1;
 pub use csc::f_csc;
 pub use cube_roots::{cbrtf, f_cbrt, f_cbrtf, f_rcbrt, f_rcbrtf};

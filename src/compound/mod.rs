@@ -30,8 +30,10 @@ mod compound_d;
 mod compound_m1;
 mod compound_m1f;
 mod compoundf;
+mod powm1f;
 
 pub use compound_d::f_compound;
 pub use compound_m1::f_compound_m1;
 pub use compound_m1f::f_compound_m1f;
 pub use compoundf::f_compoundf;
+pub use powm1f::f_powm1f;
