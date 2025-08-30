@@ -179,7 +179,7 @@ pub(crate) static R1: [u64; 129] = [
     ),
     all(target_arch = "aarch64", target_feature = "neon")
 )))]
-static RCM1: [u64; 129] = [
+pub(crate) static RCM1: [u64; 129] = [
     0x0000000000000000,
     0xbf10000000000000,
     0xbf30000000000000,
