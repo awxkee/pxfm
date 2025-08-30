@@ -169,7 +169,7 @@ fn test_method_2vals_ignore_nan(
     }
     assert!(
         ulp <= max_ulp,
-        "ULP should be less than {max_ulp}, but it was {}, using {method_name} on x: {value0}, y: {value1}, MPFR {}",
+        "ULP should be less than {max_ulp}, but it was {}, using {method_name} on x: {value0}, y: {value1}, value {xr}, MPFR {}",
         ulp,
         mpfr_value.to_f64()
     );
@@ -265,6 +265,12 @@ fn compound_m1_mpfr(x: f64, y: f64) -> Float {
     exp
 }
 
+fn powm1(x: f64, y: f64) -> Float {
+    Float::with_val(200, x)
+        .pow(&Float::with_val(200, y))
+        .sub(&Float::with_val(200, 1))
+}
+
 fn compound_mpfr(x: f64, y: f64) -> Float {
     let mpfr_x0 = Float::with_val(150, x);
     let mpfr_x1 = Float::with_val(150, y);
@@ -313,6 +319,10 @@ fuzz_target!(|data: (f64, f64)| {
     //         0.50013,
     //     );
     // }
+
+    if x0.abs() > 2e-6 && x1.abs() > 2e-6 && x0.abs() < 20. && x1.abs() < 20. {
+        test_method_2vals_ignore_nan(x0, x1, f_powm1, &powm1(x0, x1), "f_powm1".to_string(), 1.0);
+    }
 
     if x0.abs() > 1e-55 {
         test_method(

@@ -1,11 +1,6 @@
 use bessel::{bessel_i0, bessel_i1, bessel_k0, bessel_k1};
 use num_complex::Complex;
-use pxfm::{
-    f_cosm1, f_cosm1f, f_cotf, f_cotpi, f_cotpif, f_digamma, f_digammaf, f_erfcinvf, f_erfinv,
-    f_erfinvf, f_expf, f_i0, f_i0f, f_i1, f_i1f, f_i2, f_i2f, f_j0, f_j1, f_k0, f_k0f, f_k1, f_k1f,
-    f_k2f, f_lgammaf, f_log1pf, f_log1pmx, f_log1pmxf, f_tanf, f_tanpi, f_tanpif, f_y0, f_y0f,
-    f_y1, f_y1f,
-};
+use pxfm::{f_cosm1, f_cosm1f, f_cotf, f_cotpi, f_cotpif, f_digamma, f_digammaf, f_erfcinvf, f_erfinv, f_erfinvf, f_expf, f_expm1, f_i0, f_i0f, f_i1, f_i1f, f_i2, f_i2f, f_j0, f_j1, f_k0, f_k0f, f_k1, f_k1f, f_k2f, f_lgammaf, f_log1pf, f_log1pmx, f_log1pmxf, f_tanf, f_tanpi, f_tanpif, f_y0, f_y0f, f_y1, f_y1f};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -258,12 +253,13 @@ fn test_f32_against_mpfr_multithreaded() {
 }
 
 fn find_cutoff() {
-    let mut scratch = 0.1;
-    let mut value = 707.0;
+    let mut scratch = -0.1;
+    let mut value = -707.0;
     let mut depth = 0;
     loop {
-        let rs = f_i2(value);
-        if rs.is_infinite() || rs.is_nan() {
+        let rs = f_expm1(value);
+        // if rs.is_infinite() || rs.is_nan() {
+        if rs == -1. {
             println!(
                 "found basic cutoff between {}, next {}",
                 value - scratch,
@@ -274,8 +270,9 @@ fn find_cutoff() {
                 // time to refine
                 loop {
                     value = f64::from_bits(value.to_bits() + 1);
-                    let rs = f_i2(value);
-                    if rs.is_infinite() || rs.is_nan() {
+                    let rs = f_expm1(value);
+                    if rs == -1. {
+                    // if rs.is_infinite() || rs.is_nan() {
                         panic!(
                             "found basic cutoff between {}, next {}",
                             value - scratch,
@@ -293,5 +290,6 @@ fn find_cutoff() {
 }
 
 fn main() {
+    // find_cutoff();
     test_f32_against_mpfr_multithreaded();
 }
