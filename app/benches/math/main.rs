@@ -1811,6 +1811,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("pxfm: f_powm1f", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_powm1f(i as f32, 0.323221324312f32 * i as f32));
+            }
+        })
+    });
+
     c.bench_function("pxfm: f_compoundf", |b| {
         b.iter(|| {
             for i in 1..1000 {

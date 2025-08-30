@@ -9,9 +9,9 @@ use pxfm::{
     f_erfinv, f_erfinvf, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
     f_exp10m1f, f_expf, f_expm1, f_expm1f, f_hypot, f_i0, f_i0f, f_i1f, f_j0, f_j0f, f_j1, f_j1f,
     f_k0, f_k0f, f_k1, f_k1f, f_k2f, f_log, f_log1p, f_log1pf, f_log2, f_log2f, f_log2p1,
-    f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_rcbrt, f_rcbrtf, f_rerf,
-    f_rerff, f_sec, f_secf, f_sin, f_sincos, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif, f_tanf,
-    f_tanh, f_tanpi, f_tanpif, f_tgammaf, f_y0, f_y0f, f_y1, f_y1f,
+    f_log2p1f, f_log10, f_log10f, f_log10p1, f_log10p1f, f_logf, f_powm1f, f_rcbrt, f_rcbrtf,
+    f_rerf, f_rerff, f_sec, f_secf, f_sin, f_sincos, f_sinf, f_sinh, f_sinhf, f_sinpi, f_sinpif,
+    f_tanf, f_tanh, f_tanpi, f_tanpif, f_tgammaf, f_y0, f_y0f, f_y1, f_y1f,
 };
 
 fuzz_target!(|data: (f64, f32, f32, f64)| {
@@ -84,6 +84,7 @@ fuzz_target!(|data: (f64, f32, f32, f64)| {
     _ = f_acosh(z_f64);
     _ = f_asinhf(z_f32);
     _ = f_compoundf(z_f32, y_f32);
+    _ = f_powm1f(z_f32, y_f32);
     _ = f_compound_m1f(z_f32, y_f32);
     _ = f_compound(z_f64, y_f64);
     _ = f_compound_m1(z_f64, y_f64);
