@@ -94,7 +94,15 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_digamma", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_digamma(black_box(i as f64 / 1000.0 * 100.0)));
+                black_box(pxfm::f_digamma(black_box(15. + i as f64 / 1000.0)));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_trigamma", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_trigamma(black_box(15. + i as f64 / 1000.0)));
             }
         })
     });
@@ -103,6 +111,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(pxfm::f_digammaf(black_box(-i as f32 / 1000.0 * 100.0)));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_trigammaf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_trigammaf(black_box(-i as f32 / 1000.0 * 100.0)));
             }
         })
     });
