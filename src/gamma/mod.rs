@@ -33,6 +33,8 @@ mod lgamma;
 mod lgammaf;
 mod tgamma;
 mod tgammaf;
+mod trigamma;
+mod trigammaf;
 
 pub use digamma::f_digamma;
 pub use digammaf::f_digammaf;
@@ -40,3 +42,5 @@ pub use lgamma::f_lgamma;
 pub use lgammaf::f_lgammaf;
 pub use tgamma::f_tgamma;
 pub use tgammaf::f_tgammaf;
+pub use trigamma::f_trigamma;
+pub use trigammaf::f_trigammaf;

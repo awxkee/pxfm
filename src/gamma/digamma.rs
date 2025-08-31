@@ -166,38 +166,38 @@ fn approx_digamma_hard(x: f64) -> DoubleDouble {
     let x4 = DoubleDouble::quick_mult(x2, x2);
     let x8 = DoubleDouble::quick_mult(x4, x4);
 
-    let q0 = DoubleDouble::mul_add(
+    let q0 = DoubleDouble::quick_mul_add(
         DoubleDouble::from_bit_pair(C[1]),
         rx,
         DoubleDouble::from_bit_pair(C[0]),
     );
-    let q1 = DoubleDouble::mul_add(
+    let q1 = DoubleDouble::quick_mul_add(
         DoubleDouble::from_bit_pair(C[3]),
         rx,
         DoubleDouble::from_bit_pair(C[2]),
     );
-    let q2 = DoubleDouble::mul_add(
+    let q2 = DoubleDouble::quick_mul_add(
         DoubleDouble::from_bit_pair(C[5]),
         rx,
         DoubleDouble::from_bit_pair(C[4]),
     );
-    let q3 = DoubleDouble::mul_add(
+    let q3 = DoubleDouble::quick_mul_add(
         DoubleDouble::from_bit_pair(C[7]),
         rx,
         DoubleDouble::from_bit_pair(C[6]),
     );
-    let q4 = DoubleDouble::mul_add(
+    let q4 = DoubleDouble::quick_mul_add(
         DoubleDouble::from_bit_pair(C[9]),
         rx,
         DoubleDouble::from_bit_pair(C[8]),
     );
 
-    let q0 = DoubleDouble::mul_add(x2, q1, q0);
-    let q1 = DoubleDouble::mul_add(x2, q3, q2);
+    let q0 = DoubleDouble::quick_mul_add(x2, q1, q0);
+    let q1 = DoubleDouble::quick_mul_add(x2, q3, q2);
 
-    let r0 = DoubleDouble::mul_add(x4, q1, q0);
-    let mut p = DoubleDouble::mul_add(x8, q4, r0);
-    p = DoubleDouble::mul_f64_add(
+    let r0 = DoubleDouble::quick_mul_add(x4, q1, q0);
+    let mut p = DoubleDouble::quick_mul_add(x8, q4, r0);
+    p = DoubleDouble::quick_mul_f64_add(
         rcp,
         f64::from_bits(0x3fe0000000000000),
         DoubleDouble::quick_mult(p, rcp_sqr),
@@ -342,38 +342,38 @@ fn approx_digamma_hard_dd(x: DoubleDouble) -> DoubleDouble {
     let x4 = DoubleDouble::quick_mult(x2, x2);
     let x8 = DoubleDouble::quick_mult(x4, x4);
 
-    let q0 = DoubleDouble::mul_add(
+    let q0 = DoubleDouble::quick_mul_add(
         DoubleDouble::from_bit_pair(C[1]),
         rx,
         DoubleDouble::from_bit_pair(C[0]),
     );
-    let q1 = DoubleDouble::mul_add(
+    let q1 = DoubleDouble::quick_mul_add(
         DoubleDouble::from_bit_pair(C[3]),
         rx,
         DoubleDouble::from_bit_pair(C[2]),
     );
-    let q2 = DoubleDouble::mul_add(
+    let q2 = DoubleDouble::quick_mul_add(
         DoubleDouble::from_bit_pair(C[5]),
         rx,
         DoubleDouble::from_bit_pair(C[4]),
     );
-    let q3 = DoubleDouble::mul_add(
+    let q3 = DoubleDouble::quick_mul_add(
         DoubleDouble::from_bit_pair(C[7]),
         rx,
         DoubleDouble::from_bit_pair(C[6]),
     );
-    let q4 = DoubleDouble::mul_add(
+    let q4 = DoubleDouble::quick_mul_add(
         DoubleDouble::from_bit_pair(C[9]),
         rx,
         DoubleDouble::from_bit_pair(C[8]),
     );
 
-    let q0 = DoubleDouble::mul_add(x2, q1, q0);
-    let q1 = DoubleDouble::mul_add(x2, q3, q2);
+    let q0 = DoubleDouble::quick_mul_add(x2, q1, q0);
+    let q1 = DoubleDouble::quick_mul_add(x2, q3, q2);
 
-    let r0 = DoubleDouble::mul_add(x4, q1, q0);
-    let mut p = DoubleDouble::mul_add(x8, q4, r0);
-    p = DoubleDouble::mul_f64_add(
+    let r0 = DoubleDouble::quick_mul_add(x4, q1, q0);
+    let mut p = DoubleDouble::quick_mul_add(x8, q4, r0);
+    p = DoubleDouble::quick_mul_f64_add(
         rcp,
         f64::from_bits(0x3fe0000000000000),
         DoubleDouble::quick_mult(p, rcp_sqr),
