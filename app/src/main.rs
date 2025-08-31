@@ -1,6 +1,11 @@
 use bessel::{bessel_i0, bessel_i1, bessel_k0, bessel_k1};
 use num_complex::Complex;
-use pxfm::{f_cosm1, f_cosm1f, f_cotf, f_cotpi, f_cotpif, f_digamma, f_digammaf, f_erfcinvf, f_erfinv, f_erfinvf, f_expf, f_expm1, f_i0, f_i0f, f_i1, f_i1f, f_i2, f_i2f, f_j0, f_j1, f_k0, f_k0f, f_k1, f_k1f, f_k2f, f_lgammaf, f_log1pf, f_log1pmx, f_log1pmxf, f_tanf, f_tanpi, f_tanpif, f_y0, f_y0f, f_y1, f_y1f};
+use pxfm::{
+    f_cosm1, f_cosm1f, f_cotf, f_cotpi, f_cotpif, f_digamma, f_digammaf, f_erfcinvf, f_erfinv,
+    f_erfinvf, f_expf, f_expm1, f_i0, f_i0f, f_i1, f_i1f, f_i2, f_i2f, f_j0, f_j1, f_k0, f_k0f,
+    f_k1, f_k1f, f_k2f, f_lgammaf, f_log1pf, f_log1pmx, f_log1pmxf, f_sin, f_sinmx, f_sinmxf,
+    f_tanf, f_tanpi, f_tanpif, f_y0, f_y0f, f_y1, f_y1f,
+};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::{Assign, Float};
@@ -107,6 +112,14 @@ fn log1pmxf(x: f32) -> Float {
     Float::with_val(90, x).ln_1p().sub(&Float::with_val(90, x))
 }
 
+fn sinmxf(x: f32) -> Float {
+    Float::with_val(150, x).sin().sub(&Float::with_val(150, x))
+}
+
+fn sinmx(x: f64) -> Float {
+    Float::with_val(250, x).sin().sub(&Float::with_val(250, x))
+}
+
 fn log1pmx(x: f64) -> Float {
     Float::with_val(150, x)
         .ln_1p()
@@ -173,8 +186,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //     //     Err(_) => return,
     //     // };
     //
-    //     let expected_sin_pi = log1pmxf(x); //Float::with_val(90, x).ln_1p();
-    //     let actual = f_log1pmxf(x);
+    //     let expected_sin_pi = sinmxf(x); //Float::with_val(90, x).ln_1p();
+    //     let actual = f_sinmxf(x);
     //
     //     executions.fetch_add(1, Ordering::Relaxed);
     //
@@ -193,7 +206,7 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (2.34543f64).to_bits();
+    let start_bits = (0.00001f64).to_bits();
     let end_bits = (start_bits + 350000);
 
     // Mismatch: x = 0.9999900000195318, expected = 0.6019174596052772, got = 0.6019174596052773, ULP diff = 0.5242313917684331, correct 10790, wrong 435
@@ -220,8 +233,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = log1pmx(x);//Float::with_val(90, x).digamma();
-        let actual = f_log1pmx(x);
+        let expected = sinmx(x);//Float::with_val(90, x).digamma();
+        let actual = f_sinmx(x);
 
         let diff = count_ulp_f64(actual, &expected);
 
@@ -272,7 +285,7 @@ fn find_cutoff() {
                     value = f64::from_bits(value.to_bits() + 1);
                     let rs = f_expm1(value);
                     if rs == -1. {
-                    // if rs.is_infinite() || rs.is_nan() {
+                        // if rs.is_infinite() || rs.is_nan() {
                         panic!(
                             "found basic cutoff between {}, next {}",
                             value - scratch,

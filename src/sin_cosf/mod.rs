@@ -38,6 +38,7 @@ mod sincosf;
 mod sincosf_eval;
 mod sincospif;
 mod sinf;
+mod sinmxf;
 mod sinpif;
 
 pub(crate) use argument_reduction_pi::ArgumentReducerPi;
@@ -51,5 +52,6 @@ pub use sincosf::f_sincosf;
 pub(crate) use sincosf_eval::{tanf_eval, tanpif_eval};
 pub use sincospif::f_sincospif;
 pub use sinf::f_sinf;
+pub use sinmxf::f_sinmxf;
 pub use sinpif::f_sinpif;
 pub(crate) use sinpif::fast_sinpif;
