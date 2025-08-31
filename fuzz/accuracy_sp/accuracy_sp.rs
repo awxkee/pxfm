@@ -9,7 +9,7 @@ use pxfm::{
     f_erff, f_exp2f, f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_i0f, f_i1f,
     f_j0f, f_j1f, f_k0f, f_k1f, f_lgammaf, f_log1pf, f_log1pmxf, f_log2f, f_log2p1f, f_log10f,
     f_log10p1f, f_logf, f_powf, f_powm1f, f_rcbrtf, f_rerff, f_rsqrtf, f_secf, f_sincf, f_sinf,
-    f_sinhf, f_sinpif, f_tanf, f_tanhf, f_tanpif, f_tgammaf, f_y0f, f_y1f,
+    f_sinhf, f_sinmxf, f_sinpif, f_tanf, f_tanhf, f_tanpif, f_tgammaf, f_y0f, f_y1f,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
@@ -111,6 +111,10 @@ fn powm1(x: f32, y: f32) -> Float {
         .sub(&Float::with_val(200, 1))
 }
 
+fn sinmxf(x: f32) -> Float {
+    Float::with_val(150, x).sin().sub(&Float::with_val(150, x))
+}
+
 fn test_method_2vals_ignore_nan(
     value0: f32,
     value1: f32,
@@ -186,6 +190,8 @@ fuzz_target!(|data: (f32, f32)| {
     //     "f_compoundf".to_string(),
     // );
     test_method_2vals_ignore_nan(x0, x1, f_powm1f, &powm1(x0, x1), "f_powm1f".to_string());
+
+    test_method(x0, f_sinmxf, &sinmxf(x0), "f_sinmxf".to_string());
 
     test_method(x0, f_log1pmxf, &log1pmxf(x0), "f_log1pmxf".to_string());
 
