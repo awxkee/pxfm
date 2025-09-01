@@ -31,7 +31,7 @@ use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, ldexp};
 use crate::exponents::{EXPM1_T0, EXPM1_T1};
-use crate::polyeval::{f_polyeval8, f_polyeval16};
+use crate::polyeval::f_polyeval8;
 use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC, POW_INVERSE, POW_LOG_INV};
 
 #[inline(always)]
@@ -441,7 +441,7 @@ pub(crate) fn expm1_poly_dd(z: DoubleDouble) -> DoubleDouble {
        err_p = -log2(dirtyinfnorm(pf*w-f, d));
        print ("relative error:",pretty(err_p));
     */
-    const Q_1: [(u64, u64); 7] = [
+    const Q: [(u64, u64); 7] = [
         (0x0000000000000000, 0x3ff0000000000000),
         (0x0000000000000000, 0x3fe0000000000000),
         (0xbc75555554d7c48c, 0x3fc5555555555556),
@@ -450,79 +450,65 @@ pub(crate) fn expm1_poly_dd(z: DoubleDouble) -> DoubleDouble {
         (0x3be34665978dddb8, 0x3f56c16c16efac90),
         (0x3baeab43b813ef24, 0x3f2a01a1e12d253c),
     ];
-    let mut p = DoubleDouble::mult(z, DoubleDouble::from_bit_pair(Q_1[6]));
-    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[5]));
-    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[4]));
-    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[3]));
-    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[2]));
-    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[1]));
-    p = DoubleDouble::quick_mul_add(z, p, DoubleDouble::from_bit_pair(Q_1[0]));
+    let z2 = z * z;
+    let z4 = z2 * z2;
+
+    let b0 = DoubleDouble::quick_mul_add(
+        z,
+        DoubleDouble::from_bit_pair(Q[1]),
+        DoubleDouble::from_bit_pair(Q[0]),
+    );
+    let b1 = DoubleDouble::quick_mul_add(
+        z,
+        DoubleDouble::from_bit_pair(Q[3]),
+        DoubleDouble::from_bit_pair(Q[2]),
+    );
+    let b2 = DoubleDouble::quick_mul_add(
+        z,
+        DoubleDouble::from_bit_pair(Q[5]),
+        DoubleDouble::from_bit_pair(Q[4]),
+    );
+
+    let c0 = DoubleDouble::quick_mul_add(z2, b1, b0);
+    let c1 = DoubleDouble::quick_mul_add(z2, DoubleDouble::from_bit_pair(Q[6]), b2);
+
+    let p = DoubleDouble::quick_mul_add(z4, c1, c0);
     DoubleDouble::quick_mult(p, z)
 }
 
-/// |z.hi| < 0.125
+/// |z.hi| < 2^-7
 #[inline(always)]
 pub(crate) fn expm1_poly_dd_tiny(z: DoubleDouble) -> DoubleDouble {
-    /*
-       Sollya:
-       pretty = proc(u) {
-         return ~(floor(u*1000)/1000);
-       };
-
-       d = [-0.125,0.125];
-       f = expm1(x);
-       w = 1;
-       pf = fpminimax(f, [|1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16|], [|1, 1, 107...|], d, absolute, floating);
-       err_p = -log2(dirtyinfnorm(pf*w-f, d));
-       display = decimal;
-
-       for i from 1 to degree(pf) do print(coeff(pf, i));
-
-       print (pf);
-       display = decimal;
-       print ("absolute error:",pretty(err_p));
-       f = 1;
-       w = 1/expm1(x);
-       err_p = -log2(dirtyinfnorm(pf*w-f, d));
-       print ("relative error:",pretty(err_p));
-    */
-    const Q_1: [(u64, u64); 16] = [
+    // Polynomial generated in Sollya
+    // d = [-2^-7,2^-7];
+    // f = expm1(x);
+    // w = 1;
+    // pf = fpminimax(f, [|1,2,3,4,5,6,7,8,9|], [|1, 1, 107...|], d, absolute, floating);
+    // See ./notes/compound_expm1_tiny.sollya
+    const Q: [(u64, u64); 9] = [
         (0x0000000000000000, 0x3ff0000000000000),
         (0x0000000000000000, 0x3fe0000000000000),
-        (0xbc7555555555508a, 0x3fc5555555555556),
-        (0xbc555555555552ef, 0x3fa5555555555556),
-        (0xbc3ddddddf5d7dc6, 0x3f81111111111112),
-        (0x3c082d82d6f3fa9c, 0x3f56c16c16c16c16),
-        (0x3b6a598752c05680, 0x3f2a01a01a01a01a),
-        (0x3b3a3f1f55ededc0, 0x3efa01a01a01a01a),
-        (0x3b640302275be168, 0x3ec71de3a556c732),
-        (0xbb349e408bc89dde, 0x3e927e4fb7789f5c),
-        (0xbae6f16f532cfba4, 0x3e5ae64567f594ca),
-        (0xbac3e1710ca37691, 0x3e21eed8eff9051e),
-        (0x3a9dddca8584f362, 0x3de612460879029c),
-        (0xba5b76efeca727ea, 0x3da939749d52a3ec),
-        (0x3a0b150aa66ecfae, 0x3d6ae998f695b152),
-        (0x39d60e9153cb33ae, 0x3d2ae9833f488b0c),
+        (0x3c6555564150ff16, 0x3fc5555555555555),
+        (0x3c4586275c26f8a5, 0x3fa5555555555555),
+        (0xbc19e6193ac658a6, 0x3f81111111111111),
+        (0xbbf025e72dc21051, 0x3f56c16c16c1500a),
+        (0x3bc2d641a7b7b9b8, 0x3f2a01a01a07dc46),
+        (0xbb42cc8aaeeb3d00, 0x3efa01a29fef3e6f),
+        (0x3b52b1589125ce82, 0x3ec71db6af553255),
     ];
-    let d = f_polyeval16(
+    let z = DoubleDouble::from_exact_add(z.hi, z.lo);
+    let mut d = DoubleDouble::quick_mul_add(
         z,
-        DoubleDouble::from_bit_pair(Q_1[0]),
-        DoubleDouble::from_bit_pair(Q_1[1]),
-        DoubleDouble::from_bit_pair(Q_1[2]),
-        DoubleDouble::from_bit_pair(Q_1[3]),
-        DoubleDouble::from_bit_pair(Q_1[4]),
-        DoubleDouble::from_bit_pair(Q_1[5]),
-        DoubleDouble::from_bit_pair(Q_1[6]),
-        DoubleDouble::from_bit_pair(Q_1[7]),
-        DoubleDouble::from_bit_pair(Q_1[8]),
-        DoubleDouble::from_bit_pair(Q_1[9]),
-        DoubleDouble::from_bit_pair(Q_1[10]),
-        DoubleDouble::from_bit_pair(Q_1[11]),
-        DoubleDouble::from_bit_pair(Q_1[12]),
-        DoubleDouble::from_bit_pair(Q_1[13]),
-        DoubleDouble::from_bit_pair(Q_1[14]),
-        DoubleDouble::from_bit_pair(Q_1[15]),
+        DoubleDouble::from_bit_pair(Q[8]),
+        DoubleDouble::from_bit_pair(Q[7]),
     );
+    d = DoubleDouble::quick_mul_add(z, d, DoubleDouble::from_bit_pair(Q[6]));
+    d = DoubleDouble::quick_mul_add(z, d, DoubleDouble::from_bit_pair(Q[5]));
+    d = DoubleDouble::quick_mul_add(z, d, DoubleDouble::from_bit_pair(Q[4]));
+    d = DoubleDouble::quick_mul_add(z, d, DoubleDouble::from_bit_pair(Q[3]));
+    d = DoubleDouble::quick_mul_add(z, d, DoubleDouble::from_bit_pair(Q[2]));
+    d = DoubleDouble::quick_mul_add_f64(z, d, f64::from_bits(0x3fe0000000000000));
+    d = DoubleDouble::quick_mul_add_f64(z, d, f64::from_bits(0x3ff0000000000000));
     DoubleDouble::quick_mult(d, z)
 }
 
@@ -593,7 +579,12 @@ pub(crate) fn pow_expm1_1(r: DoubleDouble, s: f64) -> DoubleDouble {
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
 
-    if f64::from_bits(ax) < 0.125 {
+    if ax <= 0x3f80000000000000 {
+        // |x| < 2^-7
+        if ax < 0x3970000000000000 {
+            // |x| < 2^-104
+            return r;
+        }
         let d = expm1_poly_dd_tiny(r);
         return d;
     }

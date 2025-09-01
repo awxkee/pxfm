@@ -148,7 +148,12 @@ pub(crate) fn powm1_expm1_1(r: DoubleDouble) -> DoubleDouble {
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
 
-    if f64::from_bits(ax) < 0.125 {
+    if ax <= 0x3f80000000000000 {
+        // |x| < 2^-7
+        if ax < 0x3970000000000000 {
+            // |x| < 2^-104
+            return r;
+        }
         let d = crate::pow_exec::expm1_poly_dd_tiny(r);
         return d;
     }

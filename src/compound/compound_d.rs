@@ -29,7 +29,7 @@
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::logs::{log1p_dd, log1p_f64_dyadic};
+use crate::logs::{log1p_f64_dyadic, log1p_fast_dd};
 use crate::pow::{is_integer, is_odd_integer};
 use crate::pow_exec::{exp_dyadic, pow_exp_dd};
 use crate::triple_double::TripleDouble;
@@ -355,7 +355,7 @@ pub fn f_compound(x: f64, y: f64) -> f64 {
         return mul_fixed_power_hard(x, y);
     }
 
-    let l = log1p_dd(x);
+    let l = log1p_fast_dd(x);
     let ey = ((y.to_bits() >> 52) & 0x7ff) as i32;
     if ey < 0x36 || ey >= 0x7f5 {
         return compound_accurate(x, y, s);

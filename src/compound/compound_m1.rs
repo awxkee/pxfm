@@ -29,10 +29,9 @@
 use crate::common::*;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::logs::log1p_dd;
+use crate::logs::log1p_fast_dd;
 use crate::pow::{is_integer, is_odd_integer};
 use crate::pow_exec::pow_expm1_1;
-use crate::triple_double::TripleDouble;
 
 /// Computes (1+x)^y - 1
 ///
@@ -379,7 +378,7 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
     }
 
     // approximate log1p(x)
-    let l = log1p_dd(x);
+    let l = log1p_fast_dd(x);
 
     let ey = ((y.to_bits() >> 52) & 0x7ff) as i32;
     if ey < 0x36 || ey >= 0x7f5 {
@@ -395,31 +394,37 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
 #[cold]
 #[inline(never)]
 fn mul_fixed_power_hard(x: f64, y: f64) -> f64 {
-    let mut s = TripleDouble::from_full_exact_add(1.0, x);
+    const ONE: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -127,
+        mantissa: 0x80000000_00000000_00000000_00000000_u128,
+    };
+    const M_ONE: DyadicFloat128 = DyadicFloat128 {
+        sign: DyadicSign::Neg,
+        exponent: -127,
+        mantissa: 0x80000000_00000000_00000000_00000000_u128,
+    };
+    let mut s = DyadicFloat128::new_from_f64(x) + ONE;
     let mut iter_count = y.abs() as usize;
 
     // exponentiation by squaring: O(log(y)) complexity
-    let mut acc = if iter_count % 2 != 0 {
-        s
-    } else {
-        TripleDouble::new(0., 0., 1.)
-    };
+    let mut acc = if iter_count % 2 != 0 { s } else { ONE };
 
     while {
         iter_count >>= 1;
         iter_count
     } != 0
     {
-        s = TripleDouble::quick_mult(s, s);
+        s = s * s;
         if iter_count % 2 != 0 {
-            acc = TripleDouble::quick_mult(acc, s);
+            acc = acc * s;
         }
     }
 
     if y.is_sign_negative() {
-        TripleDouble::add_f64(-1., acc.recip()).to_f64()
+        (acc.reciprocal() + M_ONE).fast_as_f64()
     } else {
-        TripleDouble::add_f64(-1., acc).to_f64()
+        (acc + M_ONE).fast_as_f64()
     }
 }
 
@@ -429,6 +434,21 @@ mod tests {
 
     #[test]
     fn test_compound_exotic() {
+        assert_eq!(
+            f_compound_m1(0.000152587890625, -8.484374999999998),
+            -0.0012936766014690006
+        );
+        assert_eq!(
+            f_compound_m1(
+                0.00000000000000799360578102344,
+                -0.000000000000000000000001654361225106131
+            ),
+            -0.000000000000000000000000000000000000013224311452909338
+        );
+        assert_eq!(
+            f_compound_m1( 4.517647064592699, 0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000055329046628180653),
+            0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009449932890153435
+        );
         assert_eq!(f_compound_m1(
     11944758478933760000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.,
                 -1242262631503757300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.,
