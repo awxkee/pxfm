@@ -174,7 +174,7 @@ pub(crate) fn powm1_expm1_1(r: DoubleDouble) -> DoubleDouble {
     let tbh = DoubleDouble::quick_mult(t1, t0);
     let mut de = tbh;
     // exp(k)=2^k*exp(r) + (2^k - 1)
-    let q = crate::pow_exec::expm1_poly_dd(z);
+    let q = crate::pow_exec::expm1_poly_fast(z);
     de = DoubleDouble::quick_mult(de, q);
     de = DoubleDouble::add(tbh, de);
 
