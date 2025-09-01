@@ -228,7 +228,7 @@ pub fn f_trigammaf(x: f32) -> f32 {
             return f32::INFINITY;
         }
         // reflection formula
-        // Trigamma[1-x] + Trigamma[x] = PI^2 / sinpi(x)
+        // Trigamma[1-x] + Trigamma[x] = PI^2 / sinpi^2(x)
         const SQR_PI: f64 = f64::from_bits(0x4023bd3cc9be45de); // pi^2
         let sinpi_ax = fast_sinpif(-x);
         dx = 1. - dx;

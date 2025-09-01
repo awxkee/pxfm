@@ -565,7 +565,7 @@ pub fn f_trigamma(x: f64) -> f64 {
             return f64::INFINITY;
         }
         // reflection formula
-        // Trigamma[1-x] + Trigamma[x] = PI^2 / sinpi(x)
+        // Trigamma[1-x] + Trigamma[x] = PI^2 / sinpi^2(x)
         const SQR_PI: DoubleDouble =
             DoubleDouble::from_bit_pair((0x3cc692b71366cc05, 0x4023bd3cc9be45de)); // pi^2
         let sinpi_ax = f_fast_sinpi_dd(-x);
