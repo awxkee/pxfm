@@ -258,6 +258,16 @@ impl DoubleDouble {
     ///
     /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
     #[inline]
+    pub(crate) fn quick_mul_add_f64(a: DoubleDouble, b: DoubleDouble, c: f64) -> DoubleDouble {
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_exact_add(c, h);
+        DoubleDouble::new(r + q, p)
+    }
+
+    /// `a*b+c`
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    #[inline]
     pub(crate) fn mul_f64_add_f64(a: DoubleDouble, b: f64, c: f64) -> DoubleDouble {
         let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_f64(a, b);
         let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_full_exact_add(c, h);

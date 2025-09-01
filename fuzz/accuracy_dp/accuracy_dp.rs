@@ -194,7 +194,7 @@ fn test_method_2vals_ignore_nan1(
     }
     assert!(
         ulp <= max_ulp,
-        "ULP should be less than {max_ulp}, but it was {}, using {method_name} on x: {value0}, y: {value1}, MPFR {}",
+        "ULP should be less than {max_ulp}, but it was {}, using {method_name} on x: {value0}, y: {value1}, value {xr}, MPFR {}",
         ulp,
         mpfr_value.to_f64()
     );
@@ -316,7 +316,7 @@ fuzz_target!(|data: (f64, f64)| {
     //         f_compound_m1,
     //         &compound_m1_mpfr,
     //         "f_compound_m1".to_string(),
-    //         0.50013,
+    //         0.56,
     //     );
     // }
 
