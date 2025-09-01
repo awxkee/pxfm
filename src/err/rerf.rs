@@ -216,6 +216,7 @@ mod tests {
 
     #[test]
     fn test_erf() {
+        assert_eq!(f_rerf(65.), 1.0);
         assert_eq!(f_rerf(3.), 1.0000220909849995);
         assert_eq!(f_rerf(-3.), -1.0000220909849995);
         assert_eq!(f_rerf(-0.03723630312089732), -23.811078627277197);

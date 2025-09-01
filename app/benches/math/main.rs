@@ -123,6 +123,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("pxfm: f_erfinvc", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_erfcinv(i as f64 / 1000.0));
+            }
+        })
+    });
+
     c.bench_function("pxfm: f_erfinv", |b| {
         b.iter(|| {
             for i in 1..1000 {

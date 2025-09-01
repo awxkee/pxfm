@@ -293,6 +293,16 @@ pub(crate) fn erfinv_core(z: f64, ax: u32, sign: f32) -> f32 {
 /// Max ulp 0.5
 pub fn f_erfinvf(x: f32) -> f32 {
     let ax = x.to_bits() & 0x7fff_ffff;
+
+    if !x.is_normal() {
+        if x.is_nan() || x.is_infinite() {
+            return f32::NAN;
+        }
+        if ax == 0 {
+            return 0.;
+        }
+    }
+
     if ax >= 0x3f800000u32 {
         // |x| > 1
         if ax == 0x3f800000u32 {
@@ -305,9 +315,6 @@ pub fn f_erfinvf(x: f32) -> f32 {
         }
         return f32::NAN;
     }
-    if ax == 0 {
-        return 0.;
-    }
 
     let z = f32::from_bits(ax) as f64;
     erfinv_core(z, ax, x)
@@ -319,10 +326,10 @@ mod tests {
 
     #[test]
     fn f_test_inv_erff() {
-        assert!(f_erfinvf(-1.1).is_nan());
-        assert!(f_erfinvf(1.1).is_nan());
         assert!(f_erfinvf(f32::NEG_INFINITY).is_nan());
         assert!(f_erfinvf(f32::INFINITY).is_nan());
+        assert!(f_erfinvf(-1.1).is_nan());
+        assert!(f_erfinvf(1.1).is_nan());
         assert_eq!(f_erfinvf(-1.), f32::NEG_INFINITY);
         assert_eq!(f_erfinvf(1.), f32::INFINITY);
         assert_eq!(f_erfinvf(0.002), 0.0017724558);

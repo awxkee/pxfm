@@ -32,10 +32,15 @@ use crate::err::inverff::erfinv_core;
 ///
 /// Max ulp 0.5
 pub fn f_erfcinvf(x: f32) -> f32 {
-    if x <= 0. {
+    if !x.is_normal() {
+        if x.is_nan() || x.is_infinite() {
+            return f32::INFINITY;
+        }
         if x == 0. {
             return f32::INFINITY;
         }
+    }
+    if x < 0. {
         return f32::NAN;
     }
 

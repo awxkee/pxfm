@@ -296,12 +296,6 @@ pub(crate) fn pow_exp_1(r: DoubleDouble, s: f64) -> DoubleDouble {
 pub(crate) fn exp_dd_fast(r: DoubleDouble) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    /* Note: if the rounding mode is to nearest, we can save about 2 cycles
-       (on an i7-8700) by replacing the computation of k by the following
-       classical trick:
-       const double magic = 0x1.8p+52;
-       double k = __builtin_fma (rh, INVLOG2, magic) - magic;
-    */
     let k = (r.hi * INVLOG2).round();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
