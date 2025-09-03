@@ -5,11 +5,12 @@ use libfuzzer_sys::fuzz_target;
 use num_complex::Complex;
 use pxfm::{
     f_acosf, f_acoshf, f_acospif, f_asinf, f_asinhf, f_asinpif, f_atan2f, f_atan2pif, f_atanhf,
-    f_atanpif, f_cbrtf, f_cosf, f_coshf, f_cospif, f_cotf, f_cotpif, f_cscf, f_digammaf, f_erfcf,
-    f_erff, f_exp2f, f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f, f_hypotf, f_i0f, f_i1f,
-    f_j0f, f_j1f, f_k0f, f_k1f, f_lgammaf, f_log1pf, f_log1pmxf, f_log2f, f_log2p1f, f_log10f,
-    f_log10p1f, f_logf, f_powf, f_powm1f, f_rcbrtf, f_rerff, f_rsqrtf, f_secf, f_sincf, f_sinf,
-    f_sinhf, f_sinmxf, f_sinpif, f_tanf, f_tanhf, f_tanpif, f_tgammaf, f_y0f, f_y1f,
+    f_atanpif, f_cathetusf, f_cbrtf, f_cosf, f_coshf, f_cospif, f_cotf, f_cotpif, f_cscf,
+    f_digammaf, f_erfcf, f_erff, f_exp2f, f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f,
+    f_hypotf, f_i0f, f_i1f, f_j0f, f_j1f, f_k0f, f_k1f, f_lgammaf, f_log1pf, f_log1pmxf, f_log2f,
+    f_log2p1f, f_log10f, f_log10p1f, f_logf, f_powf, f_powm1f, f_rcbrtf, f_rerff, f_rsqrtf, f_secf,
+    f_sincf, f_sinf, f_sinhf, f_sinmxf, f_sinpif, f_tanf, f_tanhf, f_tanpif, f_tgammaf, f_y0f,
+    f_y1f,
 };
 use rug::ops::Pow;
 use rug::{Assign, Float};
@@ -130,10 +131,17 @@ fn test_method_2vals_ignore_nan(
     if !ulp.is_normal() {
         return;
     }
+    if ulp >= 0.5 {
+        if mpfr_value.to_f32() == xr {
+            // println!("false positive at x: {value0}, y: {value1}");
+            return;
+        }
+    }
     assert!(
         ulp <= 0.5,
-        "ULP should be less than 0.5, but it was {}, using {method_name} on x: {value0}, y: {value1}, MRFR {}",
+        "ULP should be less than 0.5, but it was {}, using {method_name} on x: {value0}, y: {value1}, result {} MRFR {}",
         ulp,
+        xr,
         mpfr_value.to_f32()
     );
 }
@@ -189,6 +197,27 @@ fuzz_target!(|data: (f32, f32)| {
     //     &compound_mpfr.clone(),
     //     "f_compoundf".to_string(),
     // );
+
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_cathetusf,
+        &mpfr_x0
+            .clone()
+            .mul(mpfr_x0.clone())
+            .sub(mpfr_x1.clone().mul(mpfr_x1.clone()))
+            .sqrt(),
+        "f_cathetusf".to_string(),
+    );
+
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_hypotf,
+        &mpfr_x0.clone().hypot(&mpfr_x1),
+        "f_hypotf".to_string(),
+    );
+
     test_method_2vals_ignore_nan(x0, x1, f_powm1f, &powm1(x0, x1), "f_powm1f".to_string());
 
     test_method(x0, f_sinmxf, &sinmxf(x0), "f_sinmxf".to_string());
@@ -304,19 +333,6 @@ fuzz_target!(|data: (f32, f32)| {
         mpfr_x0.clone().sin().div(&mpfr_x0)
     };
     test_method_max_ulp(x0, f_sincf, &sinc_x0, "f_sincf".to_string(), 0.5000);
-    // TODO: fix subnormals for x86 without fma
-    // TODO: Fix ULP should be less than 0.5, but it was 0.71068525, using f_hypotf on x: 0.000000000000000000000000000000000000000091771, y: 0.000000000000000000000000000000000000011754585, MRFR 0.000000000000000000000000000000000000011754944
-    #[cfg(any(
-        all(target_arch = "x86_64", target_feature = "fma"),
-        target_arch = "aarch64"
-    ))]
-    test_method_2vals_ignore_nan(
-        x0,
-        x1,
-        f_hypotf,
-        &mpfr_x0.clone().hypot(&mpfr_x1),
-        "f_hypotf".to_string(),
-    );
     test_method(
         x0,
         f_atanhf,

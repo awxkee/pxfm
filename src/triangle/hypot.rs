@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 9/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, dyad_fmla, f_fmla};
+use crate::common::{dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use std::hint::black_box;
 
@@ -254,9 +254,9 @@ pub fn f_hypot(x: f64, y: f64) -> f64 {
     let ir2 = 0.5 / r2;
     let dr2 = ((x2.hi - r2) + y2.hi) + (x2.lo + y2.lo);
     let mut th = r2.sqrt();
-    let rsqrt = th * ir2;
-    let dz = dr2 - dd_fmla(th, th, -r2);
-    let mut tl = rsqrt * dz;
+    let rsqrt = DoubleDouble::from_exact_mult(th, ir2);
+    let dz = dr2 - rsqrt.lo;
+    let mut tl = rsqrt.hi * dz;
     let p = DoubleDouble::from_exact_add(th, tl);
     th = p.hi;
     tl = p.lo;

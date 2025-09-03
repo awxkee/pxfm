@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 9/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -65,10 +65,8 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
     let x_abs = x.abs();
     let y_abs = y.abs();
 
-    let x_abs_larger = x_abs >= y_abs;
-
-    let a_bits = (if x_abs_larger { x_abs } else { y_abs }).to_bits();
-    let b_bits = (if x_abs_larger { y_abs } else { x_abs }).to_bits();
+    let a_bits = x_abs.to_bits().max(y_abs.to_bits());
+    let b_bits = x_abs.to_bits().min(y_abs.to_bits());
 
     let a_u = a_bits;
     let b_u = b_bits;
@@ -88,20 +86,6 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
         return x_abs + y_abs;
     }
 
-    let ad = f32::from_bits(a_bits) as f64;
-    let bd = f32::from_bits(b_bits) as f64;
-
-    // These squares are exact.
-    let a_sq: f64 = ad * ad;
-    let sum_sq: f64;
-    #[cfg(not(any(
-        all(
-            any(target_arch = "x86", target_arch = "x86_64"),
-            target_feature = "fma"
-        ),
-        all(target_arch = "aarch64", target_feature = "neon")
-    )))]
-    let b_sq: f64;
     #[cfg(any(
         all(
             any(target_arch = "x86", target_arch = "x86_64"),
@@ -110,8 +94,16 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
         all(target_arch = "aarch64", target_feature = "neon")
     ))]
     {
+        let ad = x as f64;
+        let bd = y as f64;
         use crate::common::f_fmla;
-        sum_sq = f_fmla(bd, bd, a_sq);
+        // for FMA environment we're using Kahan style summation which is short and reliable.
+        let w = bd * bd; // RN(bc)
+        let e = f_fmla(-bd, bd, w); // RN(w − bc)
+        let f = f_fmla(ad, ad, w); // RN(ad + w)
+        let r = e + f; // RN(f + e)
+        let hyp = r.sqrt(); // sqrt(x^2 + y^2)
+        hyp as f32
     }
     #[cfg(not(any(
         all(
@@ -121,53 +113,17 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
         all(target_arch = "aarch64", target_feature = "neon")
     )))]
     {
-        b_sq = bd * bd;
-        sum_sq = a_sq + b_sq;
+        let ad = f32::from_bits(a_bits) as f64;
+        let bd = f32::from_bits(b_bits) as f64;
+        use crate::double_double::DoubleDouble;
+        let dy2 = DoubleDouble::from_exact_mult(bd, bd);
+        let fdx = DoubleDouble::from_exact_mult(ad, ad);
+        // elements are always sorted thus fdx.hi > dy2.hi, thus fasttwosum requirements is fulfilled
+        let f = DoubleDouble::add_f64(fdx, dy2.hi).to_f64();
+        let r = dy2.lo + f;
+        let cath = r.sqrt();
+        cath as f32
     }
-
-    let mut r_u: u64 = sum_sq.sqrt().to_bits();
-
-    // If any of the sticky bits of the result are non-zero, except the LSB, then
-    // the rounded result is correct.
-    if ((r_u + 1) & 0x0000_0000_0FFF_FFFE) == 0 {
-        let r_d = f64::from_bits(r_u);
-
-        let (sum_sq_lo, err);
-
-        #[cfg(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        ))]
-        {
-            use crate::common::f_fmla;
-            sum_sq_lo = f_fmla(bd, bd, a_sq - sum_sq);
-            err = sum_sq_lo - f_fmla(r_d, r_d, -sum_sq);
-        }
-        #[cfg(not(any(
-            all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "fma"
-            ),
-            all(target_arch = "aarch64", target_feature = "neon")
-        )))]
-        {
-            use crate::double_double::DoubleDouble;
-            let r_sq = DoubleDouble::from_exact_mult(r_d, r_d);
-            sum_sq_lo = b_sq - (sum_sq - a_sq);
-            err = (sum_sq - r_sq.hi) + (sum_sq_lo - r_sq.lo);
-        }
-
-        if err > 0. {
-            r_u |= 1;
-        } else if (err < 0.) && (r_u & 1) == 0 {
-            r_u = r_u.wrapping_sub(r_u);
-        }
-        return f64::from_bits(r_u) as f32;
-    }
-    f64::from_bits(r_u) as f32
 }
 
 #[cfg(test)]
@@ -191,5 +147,21 @@ mod tests {
         assert!(dx < 1e-5);
         let dx = (f_hypotf(5f32, 5f32) - (5f32 * 5f32 + 5f32 * 5f32).sqrt()).abs();
         assert!(dx < 1e-5);
+    }
+
+    #[test]
+    fn test_hypotf_edge_cases() {
+        assert_eq!(f_hypotf(0.0, 0.0), 0.0);
+        assert_eq!(f_hypotf(f32::INFINITY, 0.0), f32::INFINITY);
+        assert_eq!(f_hypotf(0.0, f32::INFINITY), f32::INFINITY);
+        assert_eq!(f_hypotf(f32::INFINITY, f32::INFINITY), f32::INFINITY);
+        assert_eq!(f_hypotf(f32::NEG_INFINITY, 0.0), f32::INFINITY);
+        assert_eq!(f_hypotf(0.0, f32::NEG_INFINITY), f32::INFINITY);
+        assert_eq!(
+            f_hypotf(f32::NEG_INFINITY, f32::NEG_INFINITY),
+            f32::INFINITY
+        );
+        assert!(f_hypotf(f32::NAN, 1.0).is_nan());
+        assert!(f_hypotf(1.0, f32::NAN).is_nan());
     }
 }

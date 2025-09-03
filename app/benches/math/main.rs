@@ -380,6 +380,30 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("system: hypotf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f32::hypot(i as f32 / 1000., i as f32 / 324.));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_hypotf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_hypotf(i as f32 / 1000.0, i as f32 / 324.));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_cathetusf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_cathetusf(i as f32 / 1000.0, i as f32 / 324.));
+            }
+        })
+    });
+
     c.bench_function("libm: hypot", |b| {
         b.iter(|| {
             for i in 1..1000 {
