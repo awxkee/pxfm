@@ -268,8 +268,15 @@ mod tests {
 
     #[test]
     fn test_exp2m1f() {
+        assert_eq!(f_exp2m1f(0.432423), 0.34949815);
+        assert_eq!(f_exp2m1f(-4.), -0.9375);
+        assert_eq!(f_exp2m1f(5.43122), 42.14795);
+        assert_eq!(f_exp2m1f(4.), 15.0);
         assert_eq!(f_exp2m1f(3.), 7.);
         assert_eq!(f_exp2m1f(0.1), 0.07177346);
         assert_eq!(f_exp2m1f(0.0543432432), 0.038386293);
+        assert!(f_exp2m1f(f32::NAN).is_nan());
+        assert_eq!(f_exp2m1f(f32::INFINITY), f32::INFINITY);
+        assert_eq!(f_exp2m1f(f32::NEG_INFINITY), -1.0);
     }
 }

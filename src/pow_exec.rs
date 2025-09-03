@@ -259,12 +259,6 @@ pub(crate) fn pow_exp_1(r: DoubleDouble, s: f64) -> DoubleDouble {
     }
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    /* Note: if the rounding mode is to nearest, we can save about 2 cycles
-       (on an i7-8700) by replacing the computation of k by the following
-       classical trick:
-       const double magic = 0x1.8p+52;
-       double k = __builtin_fma (rh, INVLOG2, magic) - magic;
-    */
     let k = (r.hi * INVLOG2).round();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
@@ -293,6 +287,7 @@ pub(crate) fn pow_exp_1(r: DoubleDouble, s: f64) -> DoubleDouble {
     de
 }
 
+#[inline]
 pub(crate) fn exp_dd_fast(r: DoubleDouble) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
@@ -301,8 +296,8 @@ pub(crate) fn exp_dd_fast(r: DoubleDouble) -> DoubleDouble {
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
 
-    let zh = dd_fmla(LOG2H, -k, r.hi);
-    let zl = dd_fmla(LOG2L, -k, r.lo);
+    let mut z = DoubleDouble::mul_f64_add(DoubleDouble::new(LOG2L, LOG2H), -k, r);
+    z = DoubleDouble::from_exact_add(z.hi, z.lo);
 
     let bk = k as i64; /* Note: k is an integer, this is just a conversion. */
     let mk = (bk >> 12) + 0x3ff;
@@ -312,7 +307,11 @@ pub(crate) fn exp_dd_fast(r: DoubleDouble) -> DoubleDouble {
     let t0 = DoubleDouble::from_bit_pair(EXP_REDUCE_T0[i2 as usize]);
     let t1 = DoubleDouble::from_bit_pair(EXP_REDUCE_T1[i1 as usize]);
     let mut de = DoubleDouble::quick_mult(t1, t0);
-    let q = exp_poly_1(zh + zl);
+    // exp(hi + lo) = exp(hi) * exp(lo)
+    let q_hi = exp_poly_1(z.hi);
+    // Taylor series exp(x) ~ 1 + x since z.lo < ulp(z.h)
+    let q_lo = DoubleDouble::from_exact_add(1., z.lo);
+    let q = DoubleDouble::quick_mult(q_hi, q_lo);
     de = DoubleDouble::quick_mult(de, q);
     /* we should have 1 < M < 2047 here, since we filtered out
     potential underflow/overflow cases at the beginning of this function */

@@ -30,7 +30,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm: lgamma", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::lgamma(black_box(i as f64 / 1000.0)));
+                black_box(libm::lgamma(black_box(i as f64 / 1000.0 * 4.)));
             }
         })
     });
@@ -38,7 +38,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_lgamma", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_lgamma(black_box(i as f64 / 1000.0 * 8.0 + 4.)));
+                black_box(pxfm::f_lgamma(black_box(i as f64 / 1000.0 + 4.)));
             }
         })
     });

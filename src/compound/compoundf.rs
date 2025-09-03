@@ -117,9 +117,6 @@ fn as_compoundf_special(x: f32, y: f32) -> f32 {
     0.0
 }
 
-/* for |z| <= 1/64, returns an approximation of log2(1+z)
-with relative error < 2^-49.642 (see analyze_p1() in compoundf.sage)
-and |p1(z)| < 2^-5.459 */
 #[inline]
 pub(crate) fn log2p1_polyeval_1(z: f64) -> f64 {
     // we include P[0] = 0 so that P[i] corresponds to degree i
@@ -913,20 +910,25 @@ pub fn f_compoundf(x: f32, y: f32) -> f32 {
         if ax <= 0x62000000u32 {
             return 1.0 + y * x;
         } // does it work for |x|<2^-29 and |y|<=16?
-        let ky: i32 = (((ay & 0x00ffffff) | 1 << 24) >> (151 - (ay >> 24))) as i32;
-        let s = 1.0 + x as f64;
-        let mut p = 1.;
-        let s2 = s * s;
-        let s4 = s2 * s2;
-        let s8 = s4 * s4;
-        let s16 = s8 * s8;
-        let sn: [f64; 6] = [1., s, s2, s4, s8, s16];
-        p *= sn[(ky & 1) as usize];
-        p *= sn[(ky & 2) as usize];
-        p *= sn[(((ky >> 2) & 1) * 3) as usize];
-        p *= sn[((ky >> 1) & 4) as usize];
-        p *= sn[(((ky >> 4) & 1) * 5) as usize];
-        return (if (ny >> 31) != 0 { 1. / p } else { p }) as f32;
+        let mut s = x as f64 + 1.;
+        let mut iter_count = y.abs() as usize;
+
+        // exponentiation by squaring: O(log(y)) complexity
+        let mut acc = if iter_count % 2 != 0 { s } else { 1. };
+
+        while {
+            iter_count >>= 1;
+            iter_count
+        } != 0
+        {
+            s = s * s;
+            if iter_count % 2 != 0 {
+                acc = acc * s;
+            }
+        }
+
+        let dz = if y.is_sign_negative() { 1. / acc } else { acc };
+        return dz as f32;
     }
 
     let xd = x as f64;

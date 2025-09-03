@@ -79,7 +79,7 @@ pub fn f_powm1f(x: f32, y: f32) -> f32 {
         if x.is_infinite() {
             return if x.is_sign_positive() {
                 if y.is_infinite() {
-                    return -1.0;
+                    return f32::INFINITY;
                 } else if y > 0.0 {
                     f32::INFINITY // inf^positive -> inf
                 } else if y < 0.0 {
@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn test_powm1f() {
         assert_eq!(f_powm1f(1.83329e-40, 2.4645883e-32), -2.2550315e-30);
-        assert_eq!(f_powm1f(f32::INFINITY, f32::INFINITY), -1.);
+        assert_eq!(f_powm1f(f32::INFINITY, f32::INFINITY), f32::INFINITY);
         assert_eq!(f_powm1f(-3.375, -9671689000000000000000000.), -1.);
         assert_eq!(f_powm1f(3., 2.), 8.);
         assert_eq!(f_powm1f(3., 3.), 26.);
