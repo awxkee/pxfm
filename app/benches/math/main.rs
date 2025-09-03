@@ -6,6 +6,7 @@
  * // license that can be found in the LICENSE file.
  */
 use criterion::{Criterion, criterion_group, criterion_main};
+use num_complex::Complex;
 use pxfm::{
     exp, f_acos, f_acosf, f_acosh, f_acoshf, f_acospi, f_acospif, f_asin, f_asinf, f_asinh,
     f_asinhf, f_asinpi, f_asinpif, f_atan, f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf,
@@ -239,6 +240,22 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(pxfm::f_k1(i as f64 / 10.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: erfcx", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_erfcx(black_box(i as f64 / 1000.0 + 8.)));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: erfcxf", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_erfcxf(black_box(i as f32 / 100.0)));
             }
         })
     });

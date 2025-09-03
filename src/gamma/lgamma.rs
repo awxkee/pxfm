@@ -530,7 +530,7 @@ fn lgamma_around_2(x: f64, parity: f64, f_res: DoubleDouble) -> f64 {
 
 /// Computes log(gamma(x))
 ///
-/// ulp 0.5
+/// ulp 0.52
 pub fn f_lgamma(x: f64) -> f64 {
     let nx = x.to_bits().wrapping_shl(1);
     if nx >= 0xfeaea9b24f16a34cu64 {

@@ -30,6 +30,8 @@
 mod erf;
 mod erf_poly;
 mod erfc;
+mod erfcx;
+mod erfcxf;
 mod erff;
 mod erffc;
 mod inverf;
@@ -42,6 +44,8 @@ mod rerff;
 
 pub use erf::f_erf;
 pub use erfc::f_erfc;
+pub use erfcx::f_erfcx;
+pub use erfcxf::f_erfcxf;
 pub use erff::f_erff;
 pub use erffc::f_erfcf;
 pub use inverf::f_erfinv;

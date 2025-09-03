@@ -56,7 +56,7 @@ pub use exp10::f_exp10;
 pub use exp10f::f_exp10f;
 pub use exp10m1::f_exp10m1;
 pub use exp10m1f::f_exp10m1f;
-pub(crate) use expf::core_expf;
+pub(crate) use expf::{core_expdf, core_expf};
 pub use expf::{expf, f_expf};
 pub use expm1::f_expm1;
 pub(crate) use expm1::{EXPM1_T0, EXPM1_T1};

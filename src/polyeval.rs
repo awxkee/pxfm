@@ -303,23 +303,20 @@ pub(crate) fn f_polyeval12<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     let x4 = x2 * x2;
     let x8 = x4 * x4;
 
-    // Base pairs
-    let e0 = T::polyeval_mla(x, a1, a0); // a1·x + a0
-    let e1 = T::polyeval_mla(x, a3, a2); // a3·x + a2
+    let e0 = T::polyeval_mla(x, a1, a0);
+    let e1 = T::polyeval_mla(x, a3, a2);
     let e2 = T::polyeval_mla(x, a5, a4);
     let e3 = T::polyeval_mla(x, a7, a6);
     let e4 = T::polyeval_mla(x, a9, a8);
     let e5 = T::polyeval_mla(x, a11, a10);
 
-    // Group level 2
-    let f0 = T::polyeval_mla(x2, e1, e0); // e1·x² + e0
+    let f0 = T::polyeval_mla(x2, e1, e0);
     let f1 = T::polyeval_mla(x2, e3, e2);
     let f2 = T::polyeval_mla(x2, e5, e4);
 
-    // Group level 3
-    let g0 = T::polyeval_mla(x4, f1, f0); // f1·x⁴ + f0
+    let g0 = T::polyeval_mla(x4, f1, f0);
 
-    T::polyeval_mla(x8, f2, g0) // f2·x⁸ + g0
+    T::polyeval_mla(x8, f2, g0)
 }
 
 // #[inline(always)]

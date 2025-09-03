@@ -337,7 +337,7 @@ pub fn f_compound_m1f(x: f32, y: f32) -> f32 {
         {
             s = s * s;
             if iter_count % 2 != 0 {
-                acc = acc * s;
+                acc *= s;
             }
         }
 
