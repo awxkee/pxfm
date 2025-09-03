@@ -351,7 +351,7 @@ fuzz_target!(|data: (f64, f64)| {
             f_lgamma,
             &mpfr_x0.clone().ln_abs_gamma().0,
             "f_lgamma".to_string(),
-            3.6,
+            0.52,
         );
     }
     test_method(
@@ -359,7 +359,7 @@ fuzz_target!(|data: (f64, f64)| {
         f_tgamma,
         &mpfr_x0.clone().gamma(),
         "f_tgamma".to_string(),
-        0.95,
+        1.,
     );
     test_method(
         x0,

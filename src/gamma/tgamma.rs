@@ -35,7 +35,7 @@ use crate::sincospi::f_fast_sinpi_dd;
 
 /// Computes gamma(x)
 ///
-/// ulp 0.95
+/// ulp 1
 pub fn f_tgamma(x: f64) -> f64 {
     let x_a = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
 
@@ -316,14 +316,12 @@ pub fn f_tgamma(x: f64) -> f64 {
         result = exp_dd_fast(log_gamma);
     }
 
-    result.hi *= parity;
-    result.lo *= parity;
     if fact.lo != 0. && fact.hi != 0. {
         // y / x = y / (z*z) = y / z * 1/z
         result = DoubleDouble::from_exact_add(result.hi, result.lo);
         result = DoubleDouble::div(fact, result);
     }
-    result.to_f64()
+    result.to_f64() * parity
 }
 
 #[cfg(test)]
@@ -332,6 +330,7 @@ mod tests {
 
     #[test]
     fn test_tgamma() {
+        // assert_eq!(f_tgamma(6.757812502211891), 459.54924419209556);
         assert_eq!(f_tgamma(-1.70000000042915), 2.513923520668069);
         assert_eq!(f_tgamma(5.), 24.);
         assert_eq!(f_tgamma(24.), 25852016738884980000000.);

@@ -2,9 +2,10 @@ use bessel::{bessel_i0, bessel_i1, bessel_k0, bessel_k1};
 use num_complex::Complex;
 use pxfm::{
     f_cosm1, f_cosm1f, f_cotf, f_cotpi, f_cotpif, f_digamma, f_digammaf, f_erfcinv, f_erfcinvf,
-    f_erfinv, f_erfinvf, f_expf, f_expm1, f_i0, f_i0f, f_i1, f_i1f, f_i2, f_i2f, f_j0, f_j1, f_k0,
-    f_k0f, f_k1, f_k1f, f_k2f, f_lgammaf, f_log1pf, f_log1pmx, f_log1pmxf, f_sin, f_sinmx,
-    f_sinmxf, f_tanf, f_tanpi, f_tanpif, f_trigamma, f_trigammaf, f_y0, f_y0f, f_y1, f_y1f,
+    f_erfcx, f_erfcxf, f_erfinv, f_erfinvf, f_expf, f_expm1, f_i0, f_i0f, f_i1, f_i1f, f_i2, f_i2f,
+    f_j0, f_j1, f_k0, f_k0f, f_k1, f_k1f, f_k2f, f_lgammaf, f_log1pf, f_log1pmx, f_log1pmxf, f_sin,
+    f_sinmx, f_sinmxf, f_tanf, f_tanpi, f_tanpif, f_trigamma, f_trigammaf, f_y0, f_y0f, f_y1,
+    f_y1f,
 };
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -116,6 +117,11 @@ fn sinmxf(x: f32) -> Float {
     Float::with_val(150, x).sin().sub(&Float::with_val(150, x))
 }
 
+fn erfcx(x: f64) -> Float {
+    let dx2 = Float::with_val(150, x).mul(&Float::with_val(150, x));
+    Float::with_val(150, x).erfc().mul(&dx2.exp())
+}
+
 fn sinmx(x: f64) -> Float {
     Float::with_val(250, x).sin().sub(&Float::with_val(250, x))
 }
@@ -161,8 +167,8 @@ fn test_f32_against_mpfr_multithreaded() {
     });
     let mut exceptions = Arc::new(Mutex::new(Vec::<f64>::new()));
 
-    // let start_bits = (0.9f32).to_bits();
-    // let end_bits = (-100f32).to_bits();
+    // let start_bits = (-3f32).to_bits();
+    // let end_bits = (-15f32).to_bits();
     // println!("amount {}", end_bits - start_bits);
     //
     // // Exhaustive: 0..=u32::MAX
@@ -185,9 +191,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //     //     Ok(v) => v,
     //     //     Err(_) => return,
     //     // };
-    //
-    //     let expected_sin_pi = Float::with_val(90, (x as f64).trigamma());
-    //     let actual = f_trigammaf(x);
+    //     let expected_sin_pi = Float::with_val(90, x);
+    //     let actual = f_erfcxf(x);
     //     if actual.is_infinite() {
     //         return;
     //     }
@@ -209,7 +214,7 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (0.7001200000182189f64).to_bits();
+    let start_bits = (-8f64).to_bits();
     let end_bits = (start_bits + 350000);
 
     // Mismatch: x = 0.9999900000195318, expected = 0.6019174596052772, got = 0.6019174596052773, ULP diff = 0.5242313917684331, correct 10790, wrong 435
@@ -236,8 +241,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = compute_besselk(x).unwrap(); //Float::with_val(90, (x as f64).trigamma());
-        let actual = f_erfcinv(x);
+        let expected = erfcx(x); //Float::with_val(90, (x as f64).trigamma());
+        let actual = f_erfcx(x);
 
         let diff = count_ulp_f64(actual, &expected);
 
@@ -269,13 +274,13 @@ fn test_f32_against_mpfr_multithreaded() {
 }
 
 fn find_cutoff() {
-    let mut scratch = 0.1;
-    let mut value = 1e10;
+    let mut scratch = -0.1;
+    let mut value = -9f64;
     let mut depth = 0;
     loop {
-        let rs = f_trigammaf(value);
-        // if rs.is_infinite() || rs.is_nan() {
-        if rs == 0. {
+        let rs = f_erfcx(value);
+        if rs.is_infinite() || rs.is_nan() {
+            // if rs == 0. {
             println!(
                 "found basic cutoff between {}, next {}",
                 value - scratch,
@@ -285,13 +290,14 @@ fn find_cutoff() {
             if depth >= 9 {
                 // time to refine
                 loop {
-                    value = f32::from_bits(value.to_bits() + 1);
-                    let rs = f_trigammaf(value);
-                    if rs == 0. {
-                        // if rs.is_infinite() || rs.is_nan() {
+                    value = f64::from_bits(value.to_bits() + 1);
+                    let rs = f_erfcx(value);
+                    // if rs == 0. {
+                    if rs.is_infinite() || rs.is_nan() {
                         panic!(
-                            "found basic cutoff between {}, next {}",
+                            "found basic cutoff between {}, 0x{:16x}u64, next {}",
                             value - scratch,
+                            value.to_bits(),
                             value
                         );
                     }

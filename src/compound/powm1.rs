@@ -46,7 +46,7 @@ pub fn f_powm1(x: f64, y: f64) -> f64 {
         if x.is_infinite() {
             return if x.is_sign_positive() {
                 if y.is_infinite() {
-                    return -1.0;
+                    return f64::INFINITY;
                 } else if y > 0.0 {
                     f64::INFINITY // inf^positive -> inf
                 } else if y < 0.0 {
@@ -205,10 +205,10 @@ mod tests {
     use super::*;
     #[test]
     fn test_powm1() {
+        assert_eq!(f_powm1(f64::INFINITY, f64::INFINITY), f64::INFINITY);
         assert_eq!(f_powm1(50850368932909610000000000., 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000023201985303960773), 1.3733470789307166e-303);
         assert_eq!(f_powm1(-3.375, -9671689000000000000000000.), -1.);
         assert_eq!(f_powm1(1.83329e-40, 2.4645883e-32), -2.255031542428047e-30);
-        assert_eq!(f_powm1(f64::INFINITY, f64::INFINITY), -1.);
         assert_eq!(f_powm1(3., 2.), 8.);
         assert_eq!(f_powm1(3., 3.), 26.);
         assert_eq!(f_powm1(5., 2.), 24.);

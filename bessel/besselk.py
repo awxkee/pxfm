@@ -2,7 +2,7 @@ from mpmath import mp
 import sys
 
 x = float(sys.argv[1])
-mp.prec = 100
+mp.prec = 110
 # print(mp.besseli(2, x))
-print(mp.erfinv(mp.mpf('1') - mp.mpf(x)))
+print(mp.exp(mp.mpf(x)*mp.mpf(x)) * mp.erfc(mp.mpf(x)))
 # print(mp.erfinv(x))
