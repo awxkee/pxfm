@@ -32,7 +32,7 @@ use crate::sin_cosf::sincosf_eval::sincosf_eval;
 
 /// Cosecant ( 1 / sin(x) )
 ///
-/// Max found ULP 0.4999996
+/// ULP 0.5
 #[inline]
 pub fn f_cscf(x: f32) -> f32 {
     let x_abs = x.to_bits() & 0x7fff_ffffu32;
