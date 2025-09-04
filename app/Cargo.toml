@@ -17,5 +17,45 @@ criterion = { version = "0.7.0", features = ["html_reports"] }
 libm = "0.2"
 
 [[bench]]
-name = "math"
+name = "trigo"
+harness = false
+
+[[bench]]
+name = "bessel"
+harness = false
+
+[[bench]]
+name = "gamma"
+harness = false
+
+[[bench]]
+name = "erf"
+harness = false
+
+[[bench]]
+name = "power"
+harness = false
+
+[[bench]]
+name = "triangle"
+harness = false
+
+[[bench]]
+name = "roots"
+harness = false
+
+[[bench]]
+name = "hyperbolic"
+harness = false
+
+[[bench]]
+name = "log"
+harness = false
+
+[[bench]]
+name = "exp"
+harness = false
+
+[[bench]]
+name = "atrigo"
 harness = false

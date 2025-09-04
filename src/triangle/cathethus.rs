@@ -83,15 +83,15 @@ pub fn f_cathethus(x: f64, y: f64) -> f64 {
         }
         dx *= f64::from_bits(0x6bb0000000000000); // 2^700
         dy *= f64::from_bits(0x6bb0000000000000); // 2^700
-        scale = f64::from_bits(0x1430000000000000); //  2^(-700 / 2), compensate after sqrt
+        scale = f64::from_bits(0x1430000000000000); // 2^(-700 / 2)
     } else if unbiased_e_x >= 510 {
         dx *= f64::from_bits(0x1430000000000000); // 2^-700
         dy *= f64::from_bits(0x1430000000000000); // 2^-700
-        scale = f64::from_bits(0x6bb0000000000000); //  2^(700 / 2), compensate after sqrt
+        scale = f64::from_bits(0x6bb0000000000000); // 2^(700 / 2)
     } else if unbiased_e_x <= -450 {
         dx *= f64::from_bits(0x6bb0000000000000); // 2^700
         dy *= f64::from_bits(0x6bb0000000000000); // 2^700
-        scale = f64::from_bits(0x1430000000000000); //  2^(-700 / 2), compensate after sqrt
+        scale = f64::from_bits(0x1430000000000000); // 2^(-700)
     }
 
     let dy2 = DoubleDouble::from_exact_mult(dy, dy);
