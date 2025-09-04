@@ -550,18 +550,18 @@ impl DoubleDouble {
     //     }
     // }
 
-    // #[inline]
-    // pub(crate) fn from_f64_div_dd(a: f64, b: DoubleDouble) -> Self {
-    //     let q1 = a / b.hi;
-    //
-    //     let prod = DoubleDouble::from_exact_mult(q1, b.hi);
-    //     let prod_lo = f_fmla(q1, b.lo, prod.lo);
-    //     let rem = f_fmla(-1.0, prod.hi, a) - prod_lo;
-    //
-    //     let q2 = rem / b.hi;
-    //
-    //     DoubleDouble::new(q2, q1)
-    // }
+    #[inline]
+    pub(crate) fn from_f64_div_dd(a: f64, b: DoubleDouble) -> Self {
+        let q1 = a / b.hi;
+
+        let prod = DoubleDouble::from_exact_mult(q1, b.hi);
+        let prod_lo = f_fmla(q1, b.lo, prod.lo);
+        let rem = f_fmla(-1.0, prod.hi, a) - prod_lo;
+
+        let q2 = rem / b.hi;
+
+        DoubleDouble::new(q2, q1)
+    }
 
     // #[inline]
     // pub(crate) fn mla_f64(a: Dekker, b: f64, c: f64) -> Self {

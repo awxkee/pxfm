@@ -10,7 +10,6 @@ rug = "1.27.0"
 zbessel-rs = "0.1"
 num-complex = "^0.4"
 bessel = {path = "../bessel"}
-rand = "0.9.2"
 
 [dev-dependencies]
 criterion = { version = "0.7.0", features = ["html_reports"] }

@@ -142,6 +142,7 @@ pub(crate) fn fast_sinpif(x: f32) -> f64 {
         );
         return xd * p;
     }
+
     let reducer = ArgumentReducerPi { x: x as f64 };
     let (y, k) = reducer.reduce_0p25();
     // Decide based on quadrant what kernel function to use

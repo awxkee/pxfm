@@ -31,7 +31,7 @@ use crate::exponents::core_expf;
 use crate::logs::fast_logf;
 use crate::polyeval::{f_estrin_polyeval5, f_estrin_polyeval8, f_polyeval4, f_polyeval11};
 
-/// Modified bessel of the second kind of order 2
+/// Modified Bessel of the second kind of order 2
 ///
 /// ulp 0.5
 pub fn f_k2f(x: f32) -> f32 {

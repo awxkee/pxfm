@@ -4,6 +4,7 @@
 use bessel::{bessel_i0, bessel_i1};
 use libfuzzer_sys::fuzz_target;
 use pxfm::*;
+use rug::float::Constant;
 use rug::ops::Pow;
 use rug::{Assign, Float};
 use std::ops::{Div, Mul, Sub};
@@ -246,6 +247,15 @@ fn cathethus(x: f64, y: f64) -> Float {
         .sqrt()
 }
 
+fn sinc(x: f64) -> Float {
+    if x == 0. {
+        return Float::with_val(100, 1);
+    }
+    Float::with_val(250, x)
+        .sin_pi()
+        .div(Float::with_val(250, x).mul(&Float::with_val(250, Constant::Pi)))
+}
+
 #[inline]
 pub(crate) fn is_odd_integer(x: f64) -> bool {
     let x_u = x.to_bits();
@@ -327,7 +337,10 @@ fuzz_target!(|data: (f64, f64)| {
     //     );
     // }
 
-    test_method_2vals_ignore_nan(
+    // mpfr computes wrong values
+    test_method(x0, f_sincpi, &sinc(x0), "f_sincpi".to_string(), 0.6);
+
+    /* test_method_2vals_ignore_nan(
         x0,
         x1,
         f_cathethus,
@@ -673,7 +686,7 @@ fuzz_target!(|data: (f64, f64)| {
         &mpfr_x0.clone().pow(&mpfr_x1),
         "f_pow".to_string(),
         0.5,
-    );
+    );*/
     // let compound_mpfr = compound_mpfr(x0, x1);
 
     // //TODO: MPFR computes wrong values on subnormals.

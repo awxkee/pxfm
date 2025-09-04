@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::polyeval::{f_polyeval3, f_polyeval4, f_polyeval6, f_polyeval7};
+use crate::polyeval::{f_estrin_polyeval7, f_polyeval3, f_polyeval4, f_polyeval6};
 use crate::sin_cosf::argument_reduction::ArgumentReducer;
 use crate::sin_cosf::argument_reduction_pi::ArgumentReducerPi;
 
@@ -321,7 +321,7 @@ See ./notes/sinpif_0p25_2.sollya
 #[inline]
 pub(crate) fn sinpif_eval2(y: f64) -> f64 {
     let y2 = y * y;
-    f_polyeval7(
+    f_estrin_polyeval7(
         y2,
         f64::from_bits(0x400921fb54442d18),
         f64::from_bits(0xc014abbce625be09),
@@ -346,7 +346,7 @@ See ./notes/cospif_0p25.sollya
 #[inline]
 pub(crate) fn cospif_eval(y: f64) -> f64 {
     let y2 = y * y;
-    f_polyeval7(
+    f_estrin_polyeval7(
         y2,
         f64::from_bits(0x3ff0000000000000),
         f64::from_bits(0xc013bd3cc9be459b),

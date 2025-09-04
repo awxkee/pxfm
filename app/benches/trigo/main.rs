@@ -19,6 +19,44 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.warm_up_time(Duration::new(1, 100));
     c.sample_size(15);
 
+    c.bench_function("system: sincpi", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(black_box(
+                    (i as f64 / 1000.0 * std::f64::consts::PI).sin()
+                        / (i as f64 / 1000.0 * std::f64::consts::PI),
+                ));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: sincpi", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_sincpi(i as f64 / 1000.0));
+            }
+        })
+    });
+
+    c.bench_function("system: sincpif", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(black_box(
+                    (i as f32 / 1000.0 * std::f32::consts::PI).sin()
+                        / (i as f32 / 1000.0 * std::f32::consts::PI),
+                ));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: sincpif", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_sincpif(i as f32 / 1000.0));
+            }
+        })
+    });
+
     c.bench_function("pxfm: sincf", |b| {
         b.iter(|| {
             for i in 1..1000 {

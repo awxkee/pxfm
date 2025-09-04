@@ -86,6 +86,7 @@ mod sincos_reduce;
 mod sincos_reduce_tables;
 mod sincospi;
 mod sincospi_tables;
+mod sincpi;
 mod sinmx;
 mod square_root;
 mod tangent;
@@ -139,12 +140,13 @@ pub use round_ties_even::{round_ties_even, roundf_ties_even};
 pub use sec::f_sec;
 pub use sin::{f_cos, f_sin};
 pub use sin_cosf::{
-    f_cosf, f_cosm1f, f_cospif, f_cscf, f_secf, f_sincf, f_sincosf, f_sincospif, f_sinf, f_sinmxf,
-    f_sinpif,
+    f_cosf, f_cosm1f, f_cospif, f_cscf, f_secf, f_sincf, f_sincosf, f_sincospif, f_sincpif, f_sinf,
+    f_sinmxf, f_sinpif,
 };
 pub use sinc::f_sinc;
 pub use sincos::f_sincos;
 pub use sincospi::{f_cospi, f_sincospi, f_sinpi};
+pub use sincpi::f_sincpi;
 pub use sinmx::f_sinmx;
 pub use square_root::{f_rsqrt, f_rsqrtf, sqrtf};
 pub use tangent::{
