@@ -239,6 +239,13 @@ fn track_ulp(
     // );
 }
 
+fn cathethus(x: f64, y: f64) -> Float {
+    Float::with_val(200, x)
+        .mul(Float::with_val(200, x))
+        .sub(Float::with_val(200, y).mul(Float::with_val(200, y)))
+        .sqrt()
+}
+
 #[inline]
 pub(crate) fn is_odd_integer(x: f64) -> bool {
     let x_u = x.to_bits();
@@ -319,6 +326,15 @@ fuzz_target!(|data: (f64, f64)| {
     //         0.56,
     //     );
     // }
+
+    test_method_2vals_ignore_nan(
+        x0,
+        x1,
+        f_cathethus,
+        &cathethus(x0, x1),
+        "f_cathethus".to_string(),
+        1.1,
+    );
 
     if x0.abs() > 2e-6 && x1.abs() > 2e-6 && x0.abs() < 20. && x1.abs() < 20. {
         test_method_2vals_ignore_nan(x0, x1, f_powm1, &powm1(x0, x1), "f_powm1".to_string(), 1.0);

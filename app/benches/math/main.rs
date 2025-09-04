@@ -428,6 +428,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("pxfm: f_cathethus", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_cathethus(i as f64 / 1000.0, i as f64 / 324.));
+            }
+        })
+    });
+
     c.bench_function("libm: atanh", |b| {
         b.iter(|| {
             for i in 1..1000 {
