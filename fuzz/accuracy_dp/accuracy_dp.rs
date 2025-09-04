@@ -340,7 +340,7 @@ fuzz_target!(|data: (f64, f64)| {
     // mpfr computes wrong values
     test_method(x0, f_sincpi, &sinc(x0), "f_sincpi".to_string(), 0.6);
 
-    /* test_method_2vals_ignore_nan(
+    test_method_2vals_ignore_nan(
         x0,
         x1,
         f_cathethus,
@@ -686,7 +686,7 @@ fuzz_target!(|data: (f64, f64)| {
         &mpfr_x0.clone().pow(&mpfr_x1),
         "f_pow".to_string(),
         0.5,
-    );*/
+    );
     // let compound_mpfr = compound_mpfr(x0, x1);
 
     // //TODO: MPFR computes wrong values on subnormals.
