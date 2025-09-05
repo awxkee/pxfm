@@ -600,7 +600,10 @@ impl DyadicFloat128 {
             (FRACTION_LENGTH as i64).wrapping_sub(self.exponent as i64 + (BITS - 1) as i64) as u128;
         let half_bit_set =
             self.mantissa & (1u128.wrapping_shl(trim_size.wrapping_sub(1) as u32)) != 0;
-        let trunc_u: u128 = (self.mantissa >> trim_size).wrapping_shl(trim_size as u32);
+        let trunc_u: u128 = self
+            .mantissa
+            .wrapping_shr(trim_size as u32)
+            .wrapping_shl(trim_size as u32);
         if trunc_u == self.mantissa {
             return *self;
         }

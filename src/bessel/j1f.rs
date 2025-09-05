@@ -82,7 +82,7 @@ pub fn f_j1f(x: f32) -> f32 {
         };
     }
 
-    j1f_asympt(x)
+    j1f_asympt(x) as f32
 }
 
 #[inline]
@@ -101,7 +101,7 @@ fn j1f_rsqrt(x: f64) -> f64 {
    J1 = sqrt(2/(PI*x)) * beta(x) * sin((x mod 2*PI) - PI/4 - alpha(x))
 */
 #[inline]
-fn j1f_asympt(x: f32) -> f32 {
+fn j1f_asympt(x: f32) -> f64 {
     static SGN: [f64; 2] = [1., -1.];
     let sign_scale = SGN[x.is_sign_negative() as usize];
     let x = x.abs();
@@ -124,7 +124,7 @@ fn j1f_asympt(x: f32) -> f32 {
     let z0 = beta * m_sin;
     let scale = SQRT_2_OVER_PI * j1f_rsqrt(dx);
 
-    (scale * z0 * sign_scale) as f32
+    scale * z0 * sign_scale
 }
 
 /**
