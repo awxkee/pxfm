@@ -153,5 +153,5 @@ pub use tangent::{
     f_atan, f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf, f_atanpi, f_atanpif, f_cot, f_cotf,
     f_cotpi, f_cotpif, f_tan, f_tanf, f_tanpi, f_tanpif,
 };
-pub use triangle::{f_cathethus, f_cathetusf, f_hypot, f_hypot3f, f_hypotf};
+pub use triangle::{f_cathetus, f_cathetusf, f_hypot, f_hypot3f, f_hypotf};
 pub use trunc::{trunc, truncf};
