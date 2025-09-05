@@ -26,12 +26,12 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-mod cathethus;
+mod cathetus;
 mod cathetusf;
 mod hypot;
 mod hypotf;
 
-pub use cathethus::f_cathetus;
+pub use cathetus::f_cathetus;
 pub use cathetusf::f_cathetusf;
 pub use hypot::f_hypot;
 pub use hypotf::{f_hypot3f, f_hypotf};

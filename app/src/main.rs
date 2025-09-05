@@ -1,4 +1,4 @@
-use pxfm::{f_erfcx, f_sincpi, f_sincpif};
+use pxfm::{f_erfcx, f_jincpi, f_jincpif, f_sincpi, f_sincpif};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::float::Constant;
@@ -146,6 +146,26 @@ fn sincf(x: f32) -> Float {
         .div(Float::with_val(90, x).mul(&Float::with_val(90, Constant::Pi)))
 }
 
+fn jincf(x: f32) -> Float {
+    if x == 0. {
+        return Float::with_val(100, 0.5);
+    }
+    Float::with_val(100, x)
+        .mul(Float::with_val(100, Constant::Pi))
+        .j1()
+        .div(Float::with_val(100, x).mul(&Float::with_val(100, Constant::Pi)))
+}
+
+fn jinc(x: f64) -> Float {
+    if x == 0. {
+        return Float::with_val(90, 0.5);
+    }
+    Float::with_val(500, x)
+        .mul(Float::with_val(500, Constant::Pi))
+        .j1()
+        .div(Float::with_val(500, x).mul(&Float::with_val(500, Constant::Pi)))
+}
+
 fn sinc(x: f64) -> Float {
     if x == 0. {
         return Float::with_val(100, 1);
@@ -191,12 +211,12 @@ fn test_f32_against_mpfr_multithreaded() {
     });
     let mut exceptions = Arc::new(Mutex::new(Vec::<f64>::new()));
 
-    // let start_bits = (-1f32).to_bits();
-    // let end_bits = (-5f32).to_bits();
+    // let start_bits = (1e10f32).to_bits();
+    // let end_bits = (1e15f32).to_bits();
     // println!("amount {}", end_bits - start_bits);
     //
     // // Exhaustive: 0..=u32::MAX
-    // (0..u32::MAX).into_par_iter().for_each(|bits| {
+    // (start_bits..end_bits).into_par_iter().for_each(|bits| {
     //     let x = f32::from_bits(bits);
     //
     //     if !x.is_finite() {
@@ -216,8 +236,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //     //     Err(_) => return,
     //     // };
     //
-    //     let expected_sin_pi = sincf(x);
-    //     let actual = f_sincpif(x);
+    //     let expected_sin_pi = jincf(x);
+    //     let actual = f_jincpif(x);
     //     if actual.is_infinite() {
     //         return;
     //     }
@@ -239,8 +259,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //     }
     // });
 
-    let start_bits = (10000000000.5f64).to_bits();
-    let end_bits = (start_bits + 350000);
+    let start_bits = (-1e305f64).to_bits();
+    let end_bits = (start_bits + 3500);
 
     // Mismatch: x = 0.9999900000195318, expected = 0.6019174596052772, got = 0.6019174596052773, ULP diff = 0.5242313917684331, correct 10790, wrong 435
 
@@ -265,8 +285,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected = sinc(x); //Float::with_val(90, (x as f64).trigamma());
-        let actual = f_sincpi(x);
+        let expected = jinc(x); //Float::with_val(90, (x as f64).trigamma());
+        let actual = f_jincpi(x);
 
         let diff = count_ulp_f64(actual, &expected);
 
