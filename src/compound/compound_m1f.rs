@@ -394,18 +394,6 @@ pub fn f_compound_m1f(x: f32, y: f32) -> f32 {
         }
     }
 
-    /* since |t| < 150, the absolute error on t is bounded by
-    150*2^-47.909 < 2^-40.680 */
-
-    // 2^t rounds to 1 to nearest when |t| <= 0x1.715476ba97f14p-25
-    if (t.wrapping_shl(1)) <= 0x3e6715476ba97f14u64 {
-        return if (t >> 63) != 0 {
-            black_box(1.0) - black_box(f32::from_bits(0x33000000))
-        } else {
-            black_box(1.0) + black_box(f32::from_bits(0x33000000))
-        };
-    }
-
     let res = exp2m1_fast(f64::from_bits(t));
     if res != -1.0 {
         return res as f32;

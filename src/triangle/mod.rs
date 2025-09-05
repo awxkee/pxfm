@@ -31,7 +31,7 @@ mod cathetusf;
 mod hypot;
 mod hypotf;
 
-pub use cathethus::f_cathethus;
+pub use cathethus::f_cathetus;
 pub use cathetusf::f_cathetusf;
 pub use hypot::f_hypot;
 pub use hypotf::{f_hypot3f, f_hypotf};

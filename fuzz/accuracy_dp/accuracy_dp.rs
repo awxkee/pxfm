@@ -343,7 +343,7 @@ fuzz_target!(|data: (f64, f64)| {
     test_method_2vals_ignore_nan(
         x0,
         x1,
-        f_cathethus,
+        f_cathetus,
         &cathethus(x0, x1),
         "f_cathethus".to_string(),
         1.1,
