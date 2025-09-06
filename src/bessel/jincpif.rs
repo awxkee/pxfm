@@ -34,13 +34,13 @@ use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval6, f_polyeval14};
 use crate::sin_helper::sin_small;
 
-/// Normalized jinc J1(PI\*x)/(pi\*x)
+/// Normalized jinc 2*J1(PI\*x)/(pi\*x)
 ///
 /// ULP 0.5
 pub fn f_jincpif(x: f32) -> f32 {
     if (x.to_bits() & 0x0007_ffff) == 0 {
         if x == 0. {
-            return 0.5;
+            return 1.;
         }
         if x.is_infinite() {
             return 0.;
@@ -54,11 +54,11 @@ pub fn f_jincpif(x: f32) -> f32 {
 
     if ax <= 0x34000000u32 {
         // |x| <= f32::EPSILON
-        // use series here j1(x*Pi)/(x*Pi) ~ 0.5 - Pi^2*x^2/16 + O(x^4)
+        // use series here j1(x*Pi)/(x*Pi) ~ 1 - Pi^2*x^2/8 + O(x^4)
         let dx = x as f64;
         let x2 = dx * dx;
-        const MSQR_PI_OVER_16: f64 = f64::from_bits(0xbfe3bd3cc9be45de);
-        return f_fmla(MSQR_PI_OVER_16, x2, 0.5) as f32;
+        const MSQR_PI_OVER_16: f64 = f64::from_bits(0xbff3bd3cc9be45de);
+        return f_fmla(MSQR_PI_OVER_16, x2, 1.) as f32;
     }
 
     if ax < 0x429533c2u32 {
@@ -110,7 +110,7 @@ fn jincf_near_zero(x: f32) -> f32 {
         f64::from_bits(0x3fa0cf182218e448),
         f64::from_bits(0xbf939ab46c3f7a7d),
     );
-    (p_num / p_den) as f32
+    (p_num / p_den * 2.) as f32
 }
 
 /// This method on small range searches for nearest zero or extremum.
@@ -151,7 +151,7 @@ fn jincpif_small_argument(ox: f32) -> f32 {
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
-        return (f64::from_bits(J1_ZEROS_VALUE[idx]) / inv_scale) as f32;
+        return (f64::from_bits(J1_ZEROS_VALUE[idx]) / inv_scale * 2.) as f32;
     }
 
     let c = &J1F_COEFFS[idx - 1];
@@ -176,7 +176,7 @@ fn jincpif_small_argument(ox: f32) -> f32 {
         f64::from_bits(c[13]),
     );
 
-    (p / inv_scale) as f32
+    (p / inv_scale * 2.) as f32
 }
 
 /*
@@ -219,7 +219,7 @@ pub(crate) fn jincpif_asympt(x: f32) -> f64 {
     let scale = SQRT_2_OVER_PI * j1f_rsqrt(dx);
 
     let j1pix = scale * z0;
-    j1pix / inv_scale
+    (j1pix / inv_scale) * 2.
 }
 
 #[cfg(test)]
@@ -228,22 +228,22 @@ mod tests {
 
     #[test]
     fn test_jincpif() {
-        assert_eq!(f_jincpif(102.59484), 0.000121903846);
-        assert_eq!(f_jincpif(100.08199), -7.1930706e-5);
-        assert_eq!(f_jincpif(0.27715185), 0.4540911);
-        assert_eq!(f_jincpif(0.007638072), 0.49996403);
+        assert_eq!(f_jincpif(102.59484), 0.00024380769);
+        assert_eq!(f_jincpif(100.08199), -0.00014386141);
+        assert_eq!(f_jincpif(0.27715185), 0.9081822);
+        assert_eq!(f_jincpif(0.007638072), 0.99992806);
         assert_eq!(
             f_jincpif(0.000000000000000000000000000000000000008827127),
-            0.5
+            1.0
         );
-        assert_eq!(f_jincpif(5.4), -0.0054108715);
+        assert_eq!(f_jincpif(5.4), -0.010821743);
         assert_eq!(
             f_jincpif(77.743162408196766932633181568235159),
-            -0.00020899551
+            -0.00041799102
         );
         assert_eq!(
             f_jincpif(84.027189586293545175976760219782591),
-            -0.000119638964
+            -0.00023927793
         );
         assert_eq!(f_jincpif(f32::INFINITY), 0.);
         assert_eq!(f_jincpif(f32::NEG_INFINITY), 0.);

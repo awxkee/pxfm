@@ -38,11 +38,11 @@ use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval9, f_polyeval19};
 use crate::sin_helper::sin_dd_small_fast;
 
-/// Normalized jinc J1(PI\*x)/(pi\*x)
+/// Normalized jinc 2*J1(PI\*x)/(pi\*x)
 pub fn f_jincpi(x: f64) -> f64 {
     if !x.is_normal() {
         if x == 0. {
-            return 0.5;
+            return 1.0;
         }
         if x.is_infinite() {
             return 0.;
@@ -56,9 +56,9 @@ pub fn f_jincpi(x: f64) -> f64 {
 
     if ax <= 0x3cb0000000000000u64 {
         // |x| <= f64::EPSILON
-        // use series here j1(x*Pi)/(x*Pi) ~ 0.5 - Pi^2*x^2/16 + O(x^4)
-        const MSQR_PI_OVER_16: f64 = f64::from_bits(0xbfe3bd3cc9be45de);
-        return f_fmla(MSQR_PI_OVER_16 * x, x, 0.5);
+        // use series here j1(x*Pi)/(x*Pi) ~ 1 - Pi^2*x^2/8 + O(x^4)
+        const MSQR_PI_OVER_16: f64 = f64::from_bits(0xbff3bd3cc9be45de);
+        return f_fmla(MSQR_PI_OVER_16 * x, x, 1.);
     }
 
     if ax < 0x4052a6784230fcf8u64 {
@@ -126,7 +126,7 @@ fn jinc_asympt_fast(ox: f64) -> f64 {
     let scale = DoubleDouble::div(SQRT_2_OVER_PI, dx_sqrt);
     let p = DoubleDouble::quick_mult(scale, z0);
 
-    DoubleDouble::quick_mult(p, recip).to_f64()
+    DoubleDouble::quick_mult(p, recip).to_f64() * 2.
 }
 
 #[inline]
@@ -219,7 +219,7 @@ pub(crate) fn jincpi_near_zero(x: f64) -> f64 {
 
     let p_den = DoubleDouble::mul_add(x4, q1, q0);
 
-    DoubleDouble::div(p_num, p_den).to_f64()
+    DoubleDouble::quick_mult_f64(DoubleDouble::div(p_num, p_den), 2.).to_f64()
 }
 
 /// This method on small range searches for nearest zero or extremum.
@@ -263,7 +263,11 @@ pub(crate) fn jinc_small_argument_fast(x: f64) -> f64 {
 
     // We hit exact zero, value, better to return it directly
     if dist == 0. {
-        return DoubleDouble::from_f64_div_dd(f64::from_bits(J1_ZEROS_VALUE[idx]), dx).to_f64();
+        return DoubleDouble::quick_mult_f64(
+            DoubleDouble::from_f64_div_dd(f64::from_bits(J1_ZEROS_VALUE[idx]), dx),
+            2.,
+        )
+        .to_f64();
     }
 
     let is_zero_too_close = dist.abs() < 1e-3;
@@ -303,7 +307,7 @@ pub(crate) fn jinc_small_argument_fast(x: f64) -> f64 {
     z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[1]));
     z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[0]));
 
-    z = DoubleDouble::div(z, dx);
+    z = DoubleDouble::quick_mult_f64(DoubleDouble::div(z, dx), 2.);
 
     let err = f_fmla(
         z.hi,
@@ -356,7 +360,7 @@ fn j1_small_argument_dd(r: DoubleDouble, c0: &[(u64, u64); 24], inv_scale: Doubl
 
     let p = DoubleDouble::from_exact_add(p_e.hi, p_e.lo);
     let z = DoubleDouble::div(p, inv_scale);
-    z.to_f64()
+    DoubleDouble::quick_mult_f64(z, 2.).to_f64()
 }
 
 #[cfg(test)]
@@ -365,28 +369,28 @@ mod tests {
 
     #[test]
     fn test_jincpi() {
-        assert_eq!(f_jincpi(0.5000000000020244), 0.36085142245070817);
-        assert_eq!(f_jincpi(73.81695991658546), -0.00022087733191585246);
-        assert_eq!(f_jincpi(0.01), 0.4999383175091361);
-        assert_eq!(f_jincpi(0.9), 0.14165848923255311);
-        assert_eq!(f_jincpi(3.831705970207517), -0.018342207505127543);
-        assert_eq!(f_jincpi(-3.831705970207517), -0.018342207505127543);
+        assert_eq!(f_jincpi(0.5000000000020244), 0.7217028449014163);
+        assert_eq!(f_jincpi(73.81695991658546), -0.0004417546638317049);
+        assert_eq!(f_jincpi(0.01), 0.9998766350182722);
+        assert_eq!(f_jincpi(0.9), 0.28331697846510623);
+        assert_eq!(f_jincpi(3.831705970207517), -0.036684415010255086);
+        assert_eq!(f_jincpi(-3.831705970207517), -0.036684415010255086);
         assert_eq!(
             f_jincpi(0.000000000000000000000000000000000000008827127),
-            0.5
+            1.0
         );
         assert_eq!(
             f_jincpi(-0.000000000000000000000000000000000000008827127),
-            0.5
+            1.0
         );
-        assert_eq!(f_jincpi(5.4), -0.005410868404224128);
+        assert_eq!(f_jincpi(5.4), -0.010821736808448256);
         assert_eq!(
             f_jincpi(77.743162408196766932633181568235159),
-            -0.00020899549323475262
+            -0.00041799098646950523
         );
         assert_eq!(
             f_jincpi(84.027189586293545175976760219782591),
-            -0.00011963967464925277
+            -0.00023927934929850555
         );
         assert_eq!(f_jincpi(f64::NEG_INFINITY), 0.0);
         assert_eq!(f_jincpi(f64::INFINITY), 0.0);
