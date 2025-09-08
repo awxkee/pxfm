@@ -34,7 +34,7 @@ use crate::exponents::rational128_exp;
 use crate::logs::{fast_log_d_to_dd, log_dd};
 use crate::polyeval::f_polyeval3;
 
-/// Modified Bessel of the second kind order 1
+/// Modified Bessel of the second kind of order 1
 ///
 /// Max ULP 0.5
 pub fn f_k1(x: f64) -> f64 {

@@ -216,14 +216,14 @@ pub fn f_tan(x: f64) -> f64 {
 
     let mut argument_reduction = LargeArgumentReduction::default();
 
-    // |x| < 2^16
     if x_e < E_BIAS + 16 {
-        // |x| < 2^-7
+        // |x| < 2^16
         if x_e < E_BIAS - 7 {
-            // |x| < 2^-27, |tan(x) - x| < ulp(x)/2.
+            // |x| < 2^-7
             if x_e < E_BIAS - 27 {
-                // Signed zeros.
+                // |x| < 2^-27, |tan(x) - x| < ulp(x)/2.
                 if x == 0.0 {
+                    // Signed zeros.
                     return x + x;
                 }
                 return dyad_fmla(x, f64::from_bits(0x3c90000000000000), x);

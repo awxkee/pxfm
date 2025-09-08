@@ -45,7 +45,7 @@ use crate::polyeval::{f_polyeval8, f_polyeval9, f_polyeval12, f_polyeval19};
 use crate::sin_helper::{sin_dd_small, sin_dd_small_fast, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
-/// Bessel J 1st order in f64
+/// Bessel of the first kind of order 1
 ///
 /// Note about accuracy:
 /// - Close to zero Bessel have tiny values such that testing against MPFR must be done exactly

@@ -27,17 +27,18 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::bessel::i0f::i0f_small;
+use crate::bessel::j0f::j1f_rsqrt;
 use crate::common::f_fmla;
 use crate::exponents::core_expf;
 use crate::logs::fast_logf;
 use crate::polyeval::{f_estrin_polyeval7, f_estrin_polyeval8};
 
-/// Modified Bessel of the second kind of order 0
+/// Modified exponentially scaled Bessel of the first kind of order 0
+///
+/// Computes K0(x)exp(x)
 ///
 /// Max ULP 0.5
-///
-/// This method have exactly one exception which is not correctly rounded with FMA.
-pub fn f_k0f(x: f32) -> f32 {
+pub fn f_k0ef(x: f32) -> f32 {
     if x < 0. {
         return f32::NAN;
     }
@@ -56,24 +57,21 @@ pub fn f_k0f(x: f32) -> f32 {
 
     let xb = x.to_bits();
 
-    if xb >= 0x42cbc4fbu32 {
-        // 101.88473
-        return 0.;
-    }
-
     if xb <= 0x3f800000u32 {
         if xb <= 0x34000000u32 {
-            // |x| < f32::EPSILON
-            // taylor series for K0(x) ~ -euler_gamma + log(2) - log(x)
+            // |x| <= f32::EPSILON
+            // taylor series for K0(x)exp(x) ~ (-euler_gamma + log(2) - log(x)) + (-euler_gamma + log(2) - log(x)) * x
+            let dx = x as f64;
             let log_x = fast_logf(x);
-            const EULER_GAMMA_PLUS_LOG2: f64 = f64::from_bits(0x3fbdadb014541eb2);
-            return (-log_x + EULER_GAMMA_PLUS_LOG2) as f32;
+            const M_EULER_GAMMA_P_LOG2: f64 = f64::from_bits(0x3fbdadb014541eb2);
+            let c1 = -log_x + M_EULER_GAMMA_P_LOG2;
+            return f_fmla(c1, dx, c1) as f32;
         }
         // 1.0
-        return k0f_small(x);
+        return k0ef_small(x);
     }
 
-    k0f_asympt(x)
+    k0ef_asympt(x)
 }
 
 /**
@@ -94,9 +92,11 @@ TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Nu
 ```
 **/
 #[inline]
-fn k0f_small(x: f32) -> f32 {
+fn k0ef_small(x: f32) -> f32 {
     let v_log = fast_logf(x);
     let i0 = i0f_small(x);
+
+    let v_exp = core_expf(x);
 
     let dx = x as f64;
 
@@ -111,7 +111,7 @@ fn k0f_small(x: f32) -> f32 {
         f64::from_bits(0x3e15233b0788618b),
     );
     let c = f_fmla(-i0, v_log, p);
-    c as f32
+    (c * v_exp) as f32
 }
 
 /**
@@ -119,53 +119,52 @@ Generated in Wolfram
 
 Computes sqrt(x)*exp(x)*K0(x)=Pn(1/x)/Qm(1/x)
 hence
-K0(x) = Pn(1/x)/Qm(1/x) / (sqrt(x) * exp(x))
+K0(x)exp(x) = Pn(1/x)/Qm(1/x) / sqrt(x)
 
 ```text
 <<FunctionApproximations`
 ClearAll["Global`*"]
 f[x_]:=Sqrt[x] Exp[x] BesselK[0,x]
 g[z_]:=f[1/z]
-{err, approx}=MiniMaxApproximation[g[z],{z,{0.0000000000001,1},7,7},WorkingPrecision->60]
+{err,approx}=MiniMaxApproximation[g[z],{z,{2^-33,1},7,7},WorkingPrecision->60]
 poly=Numerator[approx][[1]];
 coeffs=CoefficientList[poly,z];
-TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
 poly=Denominator[approx][[1]];
 coeffs=CoefficientList[poly,z];
-TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
 ```
 **/
 #[inline]
-fn k0f_asympt(x: f32) -> f32 {
+fn k0ef_asympt(x: f32) -> f32 {
     let dx = x as f64;
     let recip = 1. / dx;
-    let e = core_expf(x);
-    let r_sqrt = dx.sqrt();
+    let r_sqrt = j1f_rsqrt(dx);
 
     let p_num = f_estrin_polyeval8(
         recip,
         f64::from_bits(0x3ff40d931ff62701),
-        f64::from_bits(0x402d8410a62d9c17),
-        f64::from_bits(0x404e9f1804dd7e54),
-        f64::from_bits(0x405c076822dcd255),
-        f64::from_bits(0x4057379c6932949f),
-        f64::from_bits(0x403ffd64a0bd54b7),
-        f64::from_bits(0x400cc53ed733fd97),
-        f64::from_bits(0x3faf8cc8756944eb),
+        f64::from_bits(0x402d8410a60e2ced),
+        f64::from_bits(0x404e9f18049bf704),
+        f64::from_bits(0x405c07682282783c),
+        f64::from_bits(0x4057379c68ce6d5e),
+        f64::from_bits(0x403ffd64a0105c4e),
+        f64::from_bits(0x400cc53ed67913b4),
+        f64::from_bits(0x3faf8cc8747a5d72),
     );
     let p_den = f_estrin_polyeval8(
         recip,
         f64::from_bits(0x3ff0000000000000),
-        f64::from_bits(0x4027ccde1d27ffc9),
-        f64::from_bits(0x40492418136fb90f),
-        f64::from_bits(0x4057be8a00983906),
-        f64::from_bits(0x4054cc77d2379b76),
-        f64::from_bits(0x403fd218713ec08d),
-        f64::from_bits(0x4011c77649d3f65f),
-        f64::from_bits(0x3fc2080a59e87324),
+        f64::from_bits(0x4027ccde1d0eeb14),
+        f64::from_bits(0x40492418133aa7a7),
+        f64::from_bits(0x4057be8a004d0938),
+        f64::from_bits(0x4054cc77d1dfef26),
+        f64::from_bits(0x403fd2187097af1d),
+        f64::from_bits(0x4011c77649649e55),
+        f64::from_bits(0x3fc2080a5965ef9b),
     );
     let v = p_num / p_den;
-    let pp = v / (e * r_sqrt);
+    let pp = v * r_sqrt;
     pp as f32
 }
 
@@ -175,14 +174,14 @@ mod tests {
 
     #[test]
     fn test_k0f() {
-        assert_eq!(f_k0f(2.034804e-5), 10.918458);
-        assert_eq!(f_k0f(0.010260499), 4.695535);
-        assert_eq!(f_k0f(0.3260499), 1.2965646);
-        assert_eq!(f_k0f(0.72341), 0.636511734);
-        assert_eq!(f_k0f(0.), f32::INFINITY);
-        assert_eq!(f_k0f(-0.), f32::INFINITY);
-        assert!(f_k0f(-0.5).is_nan());
-        assert!(f_k0f(f32::NEG_INFINITY).is_nan());
-        assert_eq!(f_k0f(f32::INFINITY), 0.);
+        assert_eq!(f_k0ef(2.034804e-5), 10.918679);
+        assert_eq!(f_k0ef(0.010260499), 4.743962);
+        assert_eq!(f_k0ef(0.3260499), 1.7963701);
+        assert_eq!(f_k0ef(0.72341), 1.3121376);
+        assert_eq!(f_k0ef(0.), f32::INFINITY);
+        assert_eq!(f_k0ef(-0.), f32::INFINITY);
+        assert!(f_k0ef(-0.5).is_nan());
+        assert!(f_k0ef(f32::NEG_INFINITY).is_nan());
+        assert_eq!(f_k0ef(f32::INFINITY), 0.);
     }
 }

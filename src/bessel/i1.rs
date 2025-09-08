@@ -33,7 +33,7 @@ use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::rational128_exp;
 use crate::polyeval::{f_estrin_polyeval5, f_polyeval6};
 
-/// Modified Bessel of the first kind order 1
+/// Modified Bessel of the first kind of order 1
 ///
 /// Max found ULP 0.5
 pub fn f_i1(x: f64) -> f64 {

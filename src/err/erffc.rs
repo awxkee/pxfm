@@ -202,7 +202,6 @@ static ERFC_COEFFS: [[u64; 16]; 2] = [
 /// Complementary error function
 ///
 /// Max ULP 0.5
-#[inline]
 pub fn f_erfcf(x: f32) -> f32 {
     let ax = f32::from_bits(x.to_bits() & 0x7fff_ffff);
     let axd = ax as f64;

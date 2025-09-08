@@ -58,19 +58,18 @@ pub fn f_k2f(x: f32) -> f32 {
         return 0.;
     }
 
-    if xb <= 0x34000000u32 {
-        // x <= f32::EPSILON
-        let dx = x as f64;
-        let r = 2. / (dx * dx);
-        return r as f32;
-    }
-
     if xb <= 0x3f800000u32 {
+        // x <= 1.0
         if xb <= 0x3e9eb852u32 {
-            // x < 0.31
+            // x <= 0.31
+            if xb <= 0x34000000u32 {
+                // x <= f32::EPSILON
+                let dx = x as f64;
+                let r = 2. / (dx * dx);
+                return r as f32;
+            }
             return k2f_tiny(x);
         }
-        // x < 1.0
         return k2f_small(x);
     }
 

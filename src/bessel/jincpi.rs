@@ -54,17 +54,16 @@ pub fn f_jincpi(x: f64) -> f64 {
 
     let ax: u64 = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
-    if ax <= 0x3cb0000000000000u64 {
-        // |x| <= f64::EPSILON
-        // use series here j1(x*Pi)/(x*Pi) ~ 1 - Pi^2*x^2/8 + O(x^4)
-        const MSQR_PI_OVER_16: f64 = f64::from_bits(0xbff3bd3cc9be45de);
-        return f_fmla(MSQR_PI_OVER_16 * x, x, 1.);
-    }
-
     if ax < 0x4052a6784230fcf8u64 {
         // 74.60109
         if ax < 0x3fd3333333333333 {
             // 0.3
+            if ax <= 0x3cb0000000000000u64 {
+                // |x| <= f64::EPSILON
+                // use series here j1(x*Pi)/(x*Pi) ~ 1 - Pi^2*x^2/8 + O(x^4)
+                const MSQR_PI_OVER_16: f64 = f64::from_bits(0xbff3bd3cc9be45de);
+                return f_fmla(MSQR_PI_OVER_16 * x, x, 1.);
+            }
             return jincpi_near_zero(f64::from_bits(ax));
         }
         let scaled_pix = f64::from_bits(ax) * std::f64::consts::PI; // just test boundaries
