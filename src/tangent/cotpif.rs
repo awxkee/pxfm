@@ -28,7 +28,8 @@
  */
 
 use crate::common::f_fmla;
-use crate::sin_cosf::{ArgumentReducerPi, tanpif_eval};
+use crate::sin_cosf::ArgumentReducerPi;
+use crate::tangent::evalf::tanpif_eval;
 
 /// Computes 1/tan(PI*x)
 ///
@@ -84,15 +85,15 @@ pub fn f_cotpif(x: f32) -> f32 {
 
     // tanpif_eval returns:
     // - rs.tan_y = tan(pi/32 * y)          -> tangent of the remainder
-    // - rs.msin_k = sin(pi/32 * k)         -> sine of the main angle multiple
-    // - rs.cos_k  = cos(pi/32 * k)         -> cosine of the main angle multiple
+    // - rs.tan_k = tan(pi/32 * k)          -> tan of the main angle multiple
     let rs = tanpif_eval(y, k);
-    // num = sin(k*pi/32) + tan(y*pi/32) * cos(k*pi/32)
-    let num = f_fmla(rs.tan_y, rs.cos_k, -rs.msin_k);
-    // den = cos(k*pi/32) - tan(y*pi/32) * sin(k*pi/32)
-    let den = f_fmla(rs.tan_y, rs.msin_k, rs.cos_k);
-    // hence tan = num / den then
-    // cot = den / num
+
+    // Then computing tan through identities
+    // num = tan(k*pi/32) + tan(y*pi/32)
+    let num = rs.tan_y + rs.tan_k;
+    // den = 1 - tan(k*pi/32) * tan(y*pi/32)
+    let den = f_fmla(rs.tan_y, -rs.tan_k, 1.);
+    // cotangent is tangent in inverse order
     (den / num) as f32
 }
 
@@ -104,15 +105,15 @@ pub(crate) fn cotpif_core(x: f64) -> f64 {
 
     // tanpif_eval returns:
     // - rs.tan_y = tan(pi/32 * y)          -> tangent of the remainder
-    // - rs.msin_k = sin(pi/32 * k)         -> sine of the main angle multiple
-    // - rs.cos_k  = cos(pi/32 * k)         -> cosine of the main angle multiple
+    // - rs.tan_k = tan(pi/32 * k)          -> tan of the main angle multiple
     let rs = tanpif_eval(y, k);
-    // num = sin(k*pi/32) + tan(y*pi/32) * cos(k*pi/32)
-    let num = f_fmla(rs.tan_y, rs.cos_k, -rs.msin_k);
-    // den = cos(k*pi/32) - tan(y*pi/32) * sin(k*pi/32)
-    let den = f_fmla(rs.tan_y, rs.msin_k, rs.cos_k);
-    // hence tan = num / den then
-    // cot = den / num
+
+    // Then computing tan through identities
+    // num = tan(k*pi/32) + tan(y*pi/32)
+    let num = rs.tan_y + rs.tan_k;
+    // den = 1 - tan(k*pi/32) * tan(y*pi/32)
+    let den = f_fmla(rs.tan_y, -rs.tan_k, 1.);
+    // cotangent is tangent in inverse order
     den / num
 }
 
@@ -122,7 +123,6 @@ mod tests {
 
     #[test]
     fn test_cotpif() {
-        println!("0x{:8x}", 0.006f32.to_bits());
         assert_eq!(f_cotpif(0.00046277765), 687.82416);
         assert_eq!(f_cotpif(2.3588752e-6), 134941.39);
         assert_eq!(f_cotpif(10775313000000000000000000000000.), f32::INFINITY);

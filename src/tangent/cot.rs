@@ -29,45 +29,24 @@
 use crate::bits::EXP_MASK;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
-use crate::sin::{get_sin_k_rational, range_reduction_small};
-use crate::sin_table::SIN_K_PI_OVER_128;
-use crate::sincos_dyadic::range_reduction_small_f128;
+use crate::sin::range_reduction_small;
 use crate::sincos_reduce::LargeArgumentReduction;
-use crate::tangent::tan::{newton_raphson_div, tan_eval, tan_eval_rational};
+use crate::tangent::tan::{tan_eval, tan_eval_dd};
+use crate::tangent::tanpi_table::TAN_K_PI_OVER_128;
 
 #[cold]
-fn cot_accurate(
-    x: f64,
-    k: u64,
-    argument_reduction: &mut LargeArgumentReduction,
-    den_dd: DoubleDouble,
-) -> f64 {
-    let x_e = (x.to_bits() >> 52) & 0x7ff;
-    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-    let u_f128 = if x_e < E_BIAS + 16 {
-        range_reduction_small_f128(x)
-    } else {
-        argument_reduction.accurate()
-    };
+fn cot_accurate(y: DoubleDouble, tan_k: DoubleDouble) -> f64 {
+    // Computes tan(x) through identities
+    // tan(a+b) = (tan(a) + tan(b)) / (1 - tan(a)tan(b)) = (tan(y) + tan(k*pi/128)) / (1 - tan(y)*tan(k*pi/128))
+    let tan_y = tan_eval_dd(y);
 
-    let tan_u = tan_eval_rational(&u_f128);
+    // num = tan(y) + tan(k*pi/64)
+    let num_dd = DoubleDouble::full_dd_add(tan_y, tan_k);
+    // den = 1 - tan(y)*tan(k*pi/64)
+    let den_dd = DoubleDouble::mul_add_f64(tan_y, -tan_k, 1.);
 
-    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    let sin_k_f128 = get_sin_k_rational(k);
-    let cos_k_f128 = get_sin_k_rational(k.wrapping_add(64));
-    let msin_k_f128 = get_sin_k_rational(k.wrapping_add(128));
-
-    // num_f128 = sin(k*pi/128) + tan(y) * cos(k*pi/128)
-    let num_f128 = sin_k_f128 + (cos_k_f128 * tan_u);
-    // den_f128 = cos(k*pi/128) - tan(y) * sin(k*pi/128)
-    let den_f128 = cos_k_f128 + (msin_k_f128 * tan_u);
-
-    // tan(x) = (sin(k*pi/128) + tan(y) * cos(k*pi/128)) /
-    //          / (cos(k*pi/128) - tan(y) * sin(k*pi/128))
-
-    // num and den is shuffled for cot
-    let result = newton_raphson_div(&den_f128, &num_f128, 1.0 / den_dd.hi);
-    result.fast_as_f64()
+    let cot_x = DoubleDouble::div(den_dd, num_dd);
+    cot_x.to_f64()
 }
 
 /// Cotangent in double precision
@@ -129,45 +108,36 @@ pub fn f_cot(x: f64) -> f64 {
 
     let (tan_y, err) = tan_eval(y);
 
-    // Fast look up version, but needs 256-entry table.
-    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    let sk = SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
-    let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
+    // Computes tan(x) through identities.
+    // tan(a+b) = (tan(a) + tan(b)) / (1 - tan(a)tan(b)) = (tan(y) + tan(k*pi/128)) / (1 - tan(y)*tan(k*pi/128))
+    let tan_k = DoubleDouble::from_bit_pair(TAN_K_PI_OVER_128[(k & 255) as usize]);
 
-    let msin_k = DoubleDouble::from_bit_pair(sk);
-    let cos_k = DoubleDouble::from_bit_pair(ck);
+    // num = tan(y) + tan(k*pi/64)
+    let num_dd = DoubleDouble::add(tan_y, tan_k);
+    // den = 1 - tan(y)*tan(k*pi/64)
+    let den_dd = DoubleDouble::mul_add_f64(tan_y, -tan_k, 1.);
 
-    let cos_k_tan_y = DoubleDouble::quick_mult(tan_y, cos_k);
-    let msin_k_tan_y = DoubleDouble::quick_mult(tan_y, msin_k);
-
-    // num_dd = sin(k*pi/128) + tan(y) * cos(k*pi/128)
-    let mut num_dd = DoubleDouble::from_full_exact_add(cos_k_tan_y.hi, -msin_k.hi);
-    // den_dd = cos(k*pi/128) - tan(y) * sin(k*pi/128)
-    let mut den_dd = DoubleDouble::from_full_exact_add(msin_k_tan_y.hi, cos_k.hi);
-    num_dd.lo += cos_k_tan_y.lo - msin_k.lo;
-    den_dd.lo += msin_k_tan_y.lo + cos_k.lo;
-
-    // num and den is shuffled for cot
-    let tan_x = DoubleDouble::div(den_dd, num_dd);
+    // num and den shifted for cot
+    let cot_x = DoubleDouble::div(den_dd, num_dd);
 
     // Simple error bound: |1 / den_dd| < 2^(1 + floor(-log2(den_dd)))).
     let den_inv = ((E_BIAS + 1) << (52 + 1)) - (den_dd.hi.to_bits() & EXP_MASK);
     // For tan_x = (num_dd + err) / (den_dd + err), the error is bounded by:
     //   | tan_x - num_dd / den_dd |  <= err * ( 1 + | tan_x * den_dd | ).
-    let tan_err = err * f_fmla(f64::from_bits(den_inv), tan_x.hi.abs(), 1.0);
+    let tan_err = err * f_fmla(f64::from_bits(den_inv), cot_x.hi.abs(), 1.0);
 
-    let err_higher = tan_x.lo + tan_err;
-    let err_lower = tan_x.lo - tan_err;
+    let err_higher = cot_x.lo + tan_err;
+    let err_lower = cot_x.lo - tan_err;
 
-    let tan_upper = tan_x.hi + err_higher;
-    let tan_lower = tan_x.hi + err_lower;
+    let tan_upper = cot_x.hi + err_higher;
+    let tan_lower = cot_x.hi + err_lower;
 
     // Ziv_s rounding test.
     if tan_upper == tan_lower {
         return tan_upper;
     }
 
-    cot_accurate(x, k, &mut argument_reduction, num_dd)
+    cot_accurate(y, tan_k)
 }
 
 #[cfg(test)]

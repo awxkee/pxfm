@@ -29,11 +29,11 @@
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::sincospi::reduce_pi_64;
-use crate::sincospi_tables::SINPI_K_PI_OVER_64;
 use crate::tangent::tanpi::tanpi_eval;
+use crate::tangent::tanpi_table::TANPI_K_PI_OVER_64;
 
 #[cold]
-fn cotpi_hard(x: f64, msin_k: DoubleDouble, cos_k: DoubleDouble) -> DoubleDouble {
+fn cotpi_hard(x: f64, tan_k: DoubleDouble) -> DoubleDouble {
     const C: [(u64, u64); 6] = [
         (0x3ca1a62632712fc8, 0x400921fb54442d18),
         (0xbcc052338fbb4528, 0x4024abbce625be53),
@@ -54,10 +54,10 @@ fn cotpi_hard(x: f64, msin_k: DoubleDouble, cos_k: DoubleDouble) -> DoubleDouble
     tan_y = DoubleDouble::quick_mul_add(x2, tan_y, DoubleDouble::from_bit_pair(C[0]));
     tan_y = DoubleDouble::quick_mult_f64(tan_y, x);
 
-    // num = sin(k*pi) + tan(y*pi) * cos(k*pi)
-    let num = DoubleDouble::mul_add(tan_y, cos_k, -msin_k);
-    // den = cos(k*pi) - tan(y*pi) * sin(k*pi)
-    let den = DoubleDouble::mul_add(tan_y, msin_k, cos_k);
+    // num = tan(y*pi/64) + tan(k*pi/64)
+    let num = DoubleDouble::full_dd_add(tan_y, tan_k);
+    // den = 1 - tan(y*pi/64)*tan(k*pi/64)
+    let den = DoubleDouble::mul_add_f64(tan_y, -tan_k, 1.);
     // cot = den / num
     DoubleDouble::div(den, num)
 }
@@ -132,24 +132,18 @@ pub fn f_cotpi(x: f64) -> f64 {
         }
     }
 
-    let msin_k = DoubleDouble::from_bit_pair(
-        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(64) & 127) as usize],
-    );
-    let cos_k = DoubleDouble::from_bit_pair(
-        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(32) & 127) as usize],
-    );
+    let tan_k = DoubleDouble::from_bit_pair(TANPI_K_PI_OVER_64[((k as u64) & 127) as usize]);
 
-    // tanpi_eval returns:
-    // - rs.tan_y = tan(pi * y)          -> tangent of the remainder
-    // - rs.msin_k = sin(pi * k)         -> sine of the main angle multiple
-    // - rs.cos_k  = cos(pi * k)         -> cosine of the main angle multiple
+    // Computes tan(pi*x) through identities
+    // tan(a+b) = (tan(a) + tan(b)) / (1 - tan(a)tan(b)) = (tan(y*pi/64) + tan(k*pi/64)) / (1 - tan(y*pi/64)*tan(k*pi/64))
     let tan_y = tanpi_eval(y);
-    // num = sin(k*pi) + tan(y*pi) * cos(k*pi)
-    let num = DoubleDouble::mul_add(tan_y, cos_k, -msin_k);
-    // den = cos(k*pi) - tan(y*pi) * sin(k*pi)
-    let den = DoubleDouble::mul_add(tan_y, msin_k, cos_k);
+    // num = tan(y*pi/64) + tan(k*pi/64)
+    let num = DoubleDouble::add(tan_k, tan_y);
+    // den = 1 - tan(y*pi/64)*tan(k*pi/64)
+    let den = DoubleDouble::mul_add_f64(tan_y, -tan_k, 1.);
     // cot = den / num
     let tan_value = DoubleDouble::div(den, num);
+
     let err = f_fmla(
         tan_value.hi,
         f64::from_bits(0x3bf0000000000000), // 2^-64
@@ -160,7 +154,7 @@ pub fn f_cotpi(x: f64) -> f64 {
     if ub == lb {
         return tan_value.to_f64();
     }
-    cotpi_hard(y, msin_k, cos_k).to_f64()
+    cotpi_hard(y, tan_k).to_f64()
 }
 
 #[inline]
@@ -168,22 +162,15 @@ pub(crate) fn cotpi_core(x: f64) -> DoubleDouble {
     // argument reduction
     let (y, k) = reduce_pi_64(x);
 
-    let msin_k = DoubleDouble::from_bit_pair(
-        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(64) & 127) as usize],
-    );
-    let cos_k = DoubleDouble::from_bit_pair(
-        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(32) & 127) as usize],
-    );
+    let tan_k = DoubleDouble::from_bit_pair(TANPI_K_PI_OVER_64[((k as u64) & 127) as usize]);
 
-    // tanpi_eval returns:
-    // - rs.tan_y = tan(pi * y)          -> tangent of the remainder
-    // - rs.msin_k = sin(pi * k)         -> sine of the main angle multiple
-    // - rs.cos_k  = cos(pi * k)         -> cosine of the main angle multiple
+    // Computes tan(pi*x) through identities.
+    // tan(a+b) = (tan(a) + tan(b)) / (1 - tan(a)tan(b)) = (tan(y*pi/64) + tan(k*pi/64)) / (1 - tan(y*pi/64)*tan(k*pi/64))
     let tan_y = tanpi_eval(y);
-    // num = sin(k*pi) + tan(y*pi) * cos(k*pi)
-    let num = DoubleDouble::mul_add(tan_y, cos_k, -msin_k);
-    // den = cos(k*pi) - tan(y*pi) * sin(k*pi)
-    let den = DoubleDouble::mul_add(tan_y, msin_k, cos_k);
+    // num = tan(y*pi/64) + tan(k*pi/64)
+    let num = DoubleDouble::add(tan_k, tan_y);
+    // den = 1 - tan(y*pi/64)*tan(k*pi/64)
+    let den = DoubleDouble::mul_add_f64(tan_y, -tan_k, 1.);
     // cot = den / num
     DoubleDouble::div(den, num)
 }
@@ -195,5 +182,11 @@ mod tests {
     #[test]
     fn test_cotpi() {
         assert_eq!(f_cotpi(3.382112265043898e-306), 9.411570676518013e304);
+        assert_eq!(f_cotpi(0.0431431231), 7.332763436038805);
+        assert_eq!(f_cotpi(-0.0431431231), -7.332763436038805);
+        assert_eq!(f_cotpi(0.52324), -0.07314061937774036);
+        assert!(f_cotpi(f64::INFINITY).is_nan());
+        assert!(f_cotpi(f64::NAN).is_nan());
+        assert!(f_cotpi(f64::NEG_INFINITY).is_nan());
     }
 }
