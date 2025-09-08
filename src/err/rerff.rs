@@ -404,7 +404,6 @@ static COEFFS: [[u64; 8]; 32] = [
 /// Computes 1/erf(x)
 ///
 /// Max ulp 0.5
-#[inline]
 pub fn f_rerff(x: f32) -> f32 {
     let x_u = x.to_bits();
     let x_abs = x_u & 0x7fff_ffffu32;

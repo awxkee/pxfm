@@ -32,7 +32,7 @@ use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval14};
 use crate::sin_helper::cos_small;
 use crate::sincos_reduce::rem2pif_any;
 
-/// Bessel of the first kind J0
+/// Bessel of the first kind of order 0
 ///
 /// Max ulp 0.5
 pub fn f_j0f(x: f32) -> f32 {
@@ -55,6 +55,33 @@ pub fn f_j0f(x: f32) -> f32 {
         // 74.8
         if x_abs <= 0x3e800000u32 {
             // 0.25
+            if x_abs <= 0x34000000u32 {
+                // |x| < f32::EPSILON
+                // taylor series for J0(x) ~ 1 - x^2/4 + O(x^4)
+                #[cfg(any(
+                    all(
+                        any(target_arch = "x86", target_arch = "x86_64"),
+                        target_feature = "fma"
+                    ),
+                    all(target_arch = "aarch64", target_feature = "neon")
+                ))]
+                {
+                    use crate::common::f_fmlaf;
+                    return f_fmlaf(x, -x * 0.25, 1.);
+                }
+                #[cfg(not(any(
+                    all(
+                        any(target_arch = "x86", target_arch = "x86_64"),
+                        target_feature = "fma"
+                    ),
+                    all(target_arch = "aarch64", target_feature = "neon")
+                )))]
+                {
+                    use crate::common::f_fmla;
+                    let dx = x as f64;
+                    return f_fmla(dx, -dx * 0.25, 1.) as f32;
+                }
+            }
             return j0f_maclaurin_series(x);
         }
 

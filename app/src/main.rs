@@ -1,4 +1,8 @@
-use pxfm::{f_erfcx, f_jincpi, f_jincpif, f_sincpi, f_sincpif};
+use num_complex::Complex;
+use pxfm::{
+    f_cos, f_cospi, f_cospif, f_erfcx, f_i0ef, f_i0f, f_i1ef, f_i1f, f_j0, f_j0f, f_j1f, f_jincpi,
+    f_jincpif, f_k0ef, f_k0f, f_k1f, f_sin, f_sincpi, f_sincpif, f_sinpif, f_y0f,
+};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::float::Constant;
@@ -9,6 +13,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+use zbessel_rs::{bessel_i, bessel_k};
 
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
     let r = x.to_string();
@@ -213,8 +218,8 @@ fn test_f32_against_mpfr_multithreaded() {
     });
     let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
 
-    let start_bits = (0.01f32).to_bits();
-    let end_bits = (1f32).to_bits();
+    let start_bits = (0f32).to_bits();
+    let end_bits = (0.0000001f32).to_bits();
     println!("amount {}", end_bits - start_bits);
 
     // Exhaustive: 0..=u32::MAX
@@ -230,7 +235,7 @@ fn test_f32_against_mpfr_multithreaded() {
         //         re: x as f64,
         //         im: 0.,
         //     },
-        //     2.,
+        //     1.,
         //     1,
         //     1,
         // ) {
@@ -238,8 +243,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected_sin_pi = jincf(x);
-        let actual = f_jincpif(x);
+        let expected_sin_pi = Float::with_val(53, x).cos_pi();
+        let actual = f_cospif(x);
         if actual.is_infinite() {
             return;
         }
@@ -260,9 +265,9 @@ fn test_f32_against_mpfr_multithreaded() {
             );
         }
     });
-    //
-    // let start_bits = (1000f64).to_bits();
-    // let end_bits = (start_bits + 35000);
+
+    // let start_bits = (0.039087f64).to_bits();
+    // let end_bits = (start_bits + 3500000);
     //
     // // Mismatch: x = 0.9999900000195318, expected = 0.6019174596052772, got = 0.6019174596052773, ULP diff = 0.5242313917684331, correct 10790, wrong 435
     //
@@ -287,8 +292,8 @@ fn test_f32_against_mpfr_multithreaded() {
     //     //     Err(_) => return,
     //     // };
     //
-    //     let expected = jinc(x); //Float::with_val(90, (x as f64).trigamma());
-    //     let actual = f_jincpi(x);
+    //     let expected = Float::with_val(90, x).cos();
+    //     let actual = f_cos(x);
     //
     //     let diff = count_ulp_f64(actual, &expected);
     //

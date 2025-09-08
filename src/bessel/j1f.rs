@@ -33,7 +33,7 @@ use crate::polyeval::{f_polyeval7, f_polyeval10, f_polyeval12, f_polyeval14};
 use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
 
-/// Bessel J1
+/// Bessel of the first kind of order 1
 ///
 /// Max ULP 0.5
 ///
@@ -61,6 +61,11 @@ pub fn f_j1f(x: f32) -> f32 {
     if ax < 0x429533c2u32 {
         // 74.60109
         if ax < 0x3e800000u32 {
+            if ax <= 0x34000000u32 {
+                // |x| <= f32::EPSILON
+                // taylor series for J1(x) ~ x/2 + O(x^3)
+                return x * 0.5;
+            }
             // 0.25
             return maclaurin_series(x);
         }

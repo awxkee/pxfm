@@ -249,7 +249,7 @@ fn atanh_refine(x: f64, a: f64, z: DoubleDouble) -> f64 {
     v02.hi + v12.hi
 }
 
-/// Hyperbolic tangent
+/// Hyperbolic arc tangent
 ///
 /// Max ULP 0.5
 pub fn f_atanh(x: f64) -> f64 {

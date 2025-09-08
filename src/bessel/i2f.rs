@@ -30,7 +30,7 @@ use crate::bessel::j0f::j1f_rsqrt;
 use crate::exponents::core_expf;
 use crate::polyeval::{f_estrin_polyeval8, f_estrin_polyeval9};
 
-/// Modified Bessel of the first kind order 2
+/// Modified Bessel of the first kind of order 2
 ///
 /// ULP 0.5
 pub fn f_i2f(x: f32) -> f32 {
@@ -53,15 +53,14 @@ pub fn f_i2f(x: f32) -> f32 {
         return f32::INFINITY;
     }
 
-    if xb <= 0x34000000u32 {
-        // |x| <= f32::EPSILON
-        let dx = x as f64;
-        const R: f64 = 1. / 8.;
-        return (dx * dx * R) as f32;
-    }
-
     if xb <= 0x40f80000u32 {
         // |x| <= 7.75
+        if xb <= 0x34000000u32 {
+            // |x| <= f32::EPSILON
+            let dx = x as f64;
+            const R: f64 = 1. / 8.;
+            return (dx * dx * R) as f32;
+        }
         return i2f_small(f32::from_bits(xb));
     }
 

@@ -43,6 +43,7 @@ pub fn f_secf(x: f32) -> f32 {
     if x_abs <= 0x3e49_0fdbu32 {
         // |x| < 0.000244141
         if x_abs < 0x3980_0000u32 {
+            // taylor series for sec(x) ~ 1 + x^2/2 + O(x^4)
             // for such small interval just doing 2 first coefficients from taylor series
             // FMA availability is mandatory to perform it in f32 without upcasting to f64.
             #[cfg(any(
@@ -54,8 +55,7 @@ pub fn f_secf(x: f32) -> f32 {
             ))]
             {
                 use crate::common::f_fmlaf;
-                let x2 = x * x;
-                return f_fmlaf(x2, f32::from_bits(0x3f000000), 1.);
+                return f_fmlaf(x, x * f32::from_bits(0x3f000000), 1.);
             }
             #[cfg(not(any(
                 all(

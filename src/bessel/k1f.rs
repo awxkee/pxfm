@@ -31,7 +31,7 @@ use crate::exponents::core_expf;
 use crate::logs::fast_logf;
 use crate::polyeval::{f_estrin_polyeval8, f_polyeval3, f_polyeval4};
 
-/// Modified Bessel of the second kind order 1
+/// Modified Bessel of the second kind of order 1
 ///
 /// Max ULP 0.5
 pub fn f_k1f(x: f32) -> f32 {
@@ -60,6 +60,22 @@ pub fn f_k1f(x: f32) -> f32 {
 
     if xb <= 0x3f800000u32 {
         // 1.0
+        if xb <= 0x34000000u32 {
+            // |x| <= f32::EPSILON
+            let dx = x as f64;
+            let leading_term = 1. / dx;
+            if xb <= 0x3109705fu32 {
+                // |x| <= 2e-9
+                // taylor series for tiny K1(x) ~ 1/x + O(x)
+                return leading_term as f32;
+            }
+            // taylor series for small K1(x) ~ 1/x+1/4 (-1+2 EulerGamma-2 Log[2]+2 Log[x]) x + O(x^3)
+            const C: f64 = f64::from_bits(0xbff3b5b6028a83d7); // -1+2 EulerGamma-2 Log[2]
+            let log_x = fast_logf(x);
+            let r = f_fmla(log_x, 2., C);
+            let w0 = f_fmla(dx * 0.25, r, leading_term);
+            return w0 as f32;
+        }
         return k1f_small(x);
     }
 

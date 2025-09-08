@@ -30,19 +30,21 @@ use crate::bessel::j0f::j1f_rsqrt;
 use crate::common::f_fmla;
 use crate::exponents::core_expf;
 use crate::polyeval::{
-    f_estrin_polyeval5, f_estrin_polyeval7, f_estrin_polyeval8, f_estrin_polyeval9, f_polyeval6,
+    f_estrin_polyeval5, f_estrin_polyeval7, f_estrin_polyeval8, f_polyeval6, f_polyeval10,
 };
 
-/// Modified Bessel of the first kind of order 0
+/// Modified exponentially scaled Bessel of the first kind of order 0
+///
+/// Computes exp(-|x|)*I0(x)
 ///
 /// Max ULP 0.5
-pub fn f_i0f(x: f32) -> f32 {
+pub fn f_i0ef(x: f32) -> f32 {
     if (x.to_bits() & 0x0007_ffff) == 0 {
         if x == 0. {
             return 1.;
         }
         if x.is_infinite() {
-            return f32::INFINITY;
+            return 0.;
         }
         if x.is_nan() {
             return f32::NAN;
@@ -51,53 +53,28 @@ pub fn f_i0f(x: f32) -> f32 {
 
     let xb = x.to_bits() & 0x7fff_ffff;
 
-    if xb >= 0x42b7cd32 {
-        return f32::INFINITY;
-    }
-
-    if xb < 0x40f00000u32 {
+    if xb <= 0x40f00000u32 {
+        // |x| <= 7.5
+        let core_expf = core_expf(-f32::from_bits(xb));
         if xb < 0x3f800000u32 {
-            // 1
             if xb <= 0x34000000u32 {
-                // |x| < f32::EPSILON
-                // taylor series for I0(x) ~ 1 + x^2/4 + O(x^4)
-                #[cfg(any(
-                    all(
-                        any(target_arch = "x86", target_arch = "x86_64"),
-                        target_feature = "fma"
-                    ),
-                    all(target_arch = "aarch64", target_feature = "neon")
-                ))]
-                {
-                    use crate::common::f_fmlaf;
-                    return f_fmlaf(x, x * 0.25, 1.);
-                }
-                #[cfg(not(any(
-                    all(
-                        any(target_arch = "x86", target_arch = "x86_64"),
-                        target_feature = "fma"
-                    ),
-                    all(target_arch = "aarch64", target_feature = "neon")
-                )))]
-                {
-                    let dx = x as f64;
-                    return f_fmla(dx, dx * 0.25, 1.) as f32;
-                }
+                // |x| <= f32::EPSILON
+                // taylor series for I0(x) * exp(-x) ~ 1 - x + O(x^2)
+                return 1. - x;
             }
-            return i0f_small(f32::from_bits(xb)) as f32;
+            // |x| < 1
+            return i0f_small(f32::from_bits(xb), core_expf);
         } else if xb <= 0x40600000u32 {
-            // 3.5
-            return i0f_1_to_3p5(f32::from_bits(xb));
+            // |x| <= 3.5
+            return i0ef_1_to_3p5(f32::from_bits(xb), core_expf);
         } else if xb <= 0x40c00000u32 {
-            // 6
-            return i0f_3p5_to_6(f32::from_bits(xb));
-        } else if xb < 0x40f00000u32 {
-            // 7.5
-            return i0f_6_to_7p5(f32::from_bits(xb));
+            // |x| <= 6
+            return i0f_3p5_to_6(f32::from_bits(xb), core_expf);
         }
+        return i0f_6_to_7p5(f32::from_bits(xb), core_expf);
     }
 
-    i0f_asympt(f32::from_bits(xb))
+    i0ef_asympt(f32::from_bits(xb))
 }
 
 /**
@@ -121,7 +98,7 @@ TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Nu
 ```
 **/
 #[inline]
-pub(crate) fn i0f_small(x: f32) -> f64 {
+pub(crate) fn i0f_small(x: f32, v_exp: f64) -> f32 {
     let dx = x as f64;
     const C: f64 = 1. / 4.;
     let eval_x = dx * dx * C;
@@ -136,7 +113,7 @@ pub(crate) fn i0f_small(x: f32) -> f64 {
         f64::from_bits(0x3ec0280faf31678c),
         f64::from_bits(0x3e664fd494223545),
     );
-    f_fmla(p, eval_x, 1.)
+    (f_fmla(p, eval_x, 1.) * v_exp) as f32
 }
 
 /**
@@ -162,7 +139,7 @@ TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Nu
 ```
 **/
 #[inline]
-fn i0f_1_to_3p5(x: f32) -> f32 {
+fn i0ef_1_to_3p5(x: f32, v_exp: f64) -> f32 {
     let dx = x as f64;
     const C: f64 = 1. / 4.;
     let eval_x = dx * dx * C;
@@ -185,7 +162,7 @@ fn i0f_1_to_3p5(x: f32) -> f32 {
         f64::from_bits(0x3e735d0c1eb6ed7d),
     );
 
-    f_fmla(p_num / p_den, eval_x, 1.) as f32
+    (f_fmla(p_num / p_den, eval_x, 1.) * v_exp) as f32
 }
 
 // Valid only on interval [6;7]
@@ -202,7 +179,7 @@ fn i0f_1_to_3p5(x: f32) -> f32 {
 // coeffs=CoefficientList[poly,z];
 // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
 #[inline]
-fn i0f_6_to_7p5(x: f32) -> f32 {
+fn i0f_6_to_7p5(x: f32, v_exp: f64) -> f32 {
     let dx = x as f64;
     const C: f64 = 1. / 4.;
     let eval_x = dx * dx * C;
@@ -229,7 +206,7 @@ fn i0f_6_to_7p5(x: f32) -> f32 {
         f64::from_bits(0x3d64a21a2ea78ef6),
     );
 
-    f_fmla(p_num / p_den, eval_x, 1.) as f32
+    (f_fmla(p_num / p_den, eval_x, 1.) * v_exp) as f32
 }
 
 // Valid only on interval [3.5;6]
@@ -246,7 +223,7 @@ fn i0f_6_to_7p5(x: f32) -> f32 {
 // coeffs=CoefficientList[poly,z];
 // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
 #[inline]
-fn i0f_3p5_to_6(x: f32) -> f32 {
+fn i0f_3p5_to_6(x: f32, v_exp: f64) -> f32 {
     let dx = x as f64;
     const C: f64 = 1. / 4.;
     let eval_x = dx * dx * C;
@@ -270,7 +247,7 @@ fn i0f_3p5_to_6(x: f32) -> f32 {
         f64::from_bits(0xbe09acbb64533c3e),
     );
 
-    f_fmla(p_num / p_den, eval_x, 1.) as f32
+    (f_fmla(p_num / p_den, eval_x, 1.) * v_exp) as f32
 }
 
 /**
@@ -279,7 +256,7 @@ Asymptotic expansion for I0.
 Computes:
 sqrt(x) * exp(-x) * I0(x) = Pn(1/x)/Qn(1/x)
 hence:
-I0(x) = Pn(1/x)/Qm(1/x)*exp(x)/sqrt(x)
+I0(x)exp(-x) = Pn(1/x)/Qm(1/x)/sqrt(x)
 
 Generated by Mathematica:
 ```text
@@ -287,47 +264,50 @@ Generated by Mathematica:
 ClearAll["Global`*"]
 f[x_]:=Sqrt[x] Exp[-x] BesselI[0,x]
 g[z_]:=f[1/z]
-{err, approx}=MiniMaxApproximation[g[z],{z,{1/92.3,1/7.5},8,8},WorkingPrecision->70]
+{err,approx}=MiniMaxApproximation[g[z],{z,{2^-33,1/7.5},9,9},WorkingPrecision->70]
 num=Numerator[approx][[1]];
 den=Denominator[approx][[1]];
 poly=num;
 coeffs=CoefficientList[poly,z];
-TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+poly=den;
+coeffs=CoefficientList[poly,z];
+TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
 ```
 **/
 #[inline]
-fn i0f_asympt(x: f32) -> f32 {
+fn i0ef_asympt(x: f32) -> f32 {
     let dx = x as f64;
     let recip = 1. / dx;
-    let p_num = f_estrin_polyeval9(
+    let p_num = f_polyeval10(
         recip,
-        f64::from_bits(0x3fd9884533d44829),
-        f64::from_bits(0xc02c940f40595581),
-        f64::from_bits(0x406d41c495c2f762),
-        f64::from_bits(0xc0a10ab76dda4520),
-        f64::from_bits(0x40c825b1c2a48d07),
-        f64::from_bits(0xc0e481d606d0b748),
-        f64::from_bits(0x40f34759deefbd40),
-        f64::from_bits(0xc0ef4b7fb49fa116),
-        f64::from_bits(0x40c409a6f882ba00),
+        f64::from_bits(0x3fd9884533d4364f),
+        f64::from_bits(0xc02ed6c9269921a7),
+        f64::from_bits(0x4070ee77ffed64a5),
+        f64::from_bits(0xc0a4ffd558b06889),
+        f64::from_bits(0x40cf2633e2840f6f),
+        f64::from_bits(0xc0ea813a9ba42b84),
+        f64::from_bits(0x40f569bf5d63eb8c),
+        f64::from_bits(0xc0b3138874cdd180),
+        f64::from_bits(0xc0fa3152ed485937),
+        f64::from_bits(0x40ddaccbed454f47),
     );
-    let p_den = f_estrin_polyeval9(
+    let p_den = f_polyeval10(
         recip,
         f64::from_bits(0x3ff0000000000000),
-        f64::from_bits(0xc041f8a9131ad229),
-        f64::from_bits(0x408278e56af035bb),
-        f64::from_bits(0xc0b5a34a108f3e35),
-        f64::from_bits(0x40dee6f278ee24f5),
-        f64::from_bits(0xc0fa95093b0c4f9f),
-        f64::from_bits(0x4109982b87f75651),
-        f64::from_bits(0xc10618cc3c91e2db),
-        f64::from_bits(0x40e30895aec6fc4f),
+        f64::from_bits(0xc0436352c350b88c),
+        f64::from_bits(0x40855eaa17b05edd),
+        f64::from_bits(0xc0baa46f155bd266),
+        f64::from_bits(0x40e3e9fd90a2e695),
+        f64::from_bits(0xc1012dc621dfc1e8),
+        f64::from_bits(0x410cafeea713e8ce),
+        f64::from_bits(0xc0e0a3ee0077d7f7),
+        f64::from_bits(0xc110bcced6a39e9e),
+        f64::from_bits(0x40f9a1e4a91be4d6),
     );
     let z = p_num / p_den;
-
-    let e = core_expf(x);
     let r_sqrt = j1f_rsqrt(dx);
-    (z * r_sqrt * e) as f32
+    (z * r_sqrt) as f32
 }
 
 #[cfg(test)]
@@ -336,16 +316,16 @@ mod tests {
 
     #[test]
     fn test_i0f() {
-        assert!(f_i0f(f32::NAN).is_nan());
-        assert_eq!(f_i0f(f32::NEG_INFINITY), f32::INFINITY);
-        assert_eq!(f_i0f(f32::INFINITY), f32::INFINITY);
-        assert_eq!(f_i0f(1.), 1.2660658);
-        assert_eq!(f_i0f(5.), 27.239872);
-        assert_eq!(f_i0f(16.), 893446.25);
-        assert_eq!(f_i0f(32.), 5590908000000.0);
-        assert_eq!(f_i0f(92.0), f32::INFINITY);
-        assert_eq!(f_i0f(0.), 1.0);
-        assert_eq!(f_i0f(28.), 109534600000.0);
-        assert_eq!(f_i0f(-28.), 109534600000.0);
+        assert!(f_i0ef(f32::NAN).is_nan());
+        assert_eq!(f_i0ef(f32::NEG_INFINITY), 0.);
+        assert_eq!(f_i0ef(f32::INFINITY), 0.);
+        assert_eq!(f_i0ef(1.), 0.4657596);
+        assert_eq!(f_i0ef(5.), 0.1835408);
+        assert_eq!(f_i0ef(16.), 0.100544125);
+        assert_eq!(f_i0ef(32.), 0.070804186);
+        assert_eq!(f_i0ef(92.0), 0.04164947);
+        assert_eq!(f_i0ef(0.), 1.);
+        assert_eq!(f_i0ef(28.), 0.075736605);
+        assert_eq!(f_i0ef(-28.), 0.075736605);
     }
 }

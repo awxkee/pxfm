@@ -43,7 +43,7 @@ use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval19};
 use crate::sin_helper::{cos_dd_small, cos_dd_small_fast, cos_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
-/// Bessel of the first kind J0
+/// Bessel of the first kind of order 0
 pub fn f_j0(x: f64) -> f64 {
     let x_abs = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 

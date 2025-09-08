@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::min_normal_f64;
+use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::sin::{get_sin_k_rational, range_reduction_small, sincos_eval};
 use crate::sin_table::SIN_K_PI_OVER_128;
@@ -67,18 +67,18 @@ pub fn f_sec(x: f64) -> f64 {
 
     let mut argument_reduction = LargeArgumentReduction::default();
 
-    // |x| < 2^32 (with FMA) or |x| < 2^23 (w/o FMA)
     if x_e < E_BIAS + 16 {
-        // |x| < 2^-26
+        // |x| < 2^32 (with FMA) or |x| < 2^23 (w/o FMA)
         if x_e < E_BIAS - 7 {
-            // |x| < 2^-26
+            // |x| < 2^-7
             if x_e < E_BIAS - 27 {
-                // Signed zeros.
+                // |x| < 2^-27
                 if x == 0.0 {
+                    // Signed zeros.
                     return 1.0;
                 }
-                // For |x| < 2^-26, |sin(x) - x| < ulp(x)/2.
-                return 1.0 - min_normal_f64();
+                // taylor series for sec(x) ~ 1 + x^2/2 + O(x^4)
+                return f_fmla(x, x * 0.5, 1.);
             }
             k = 0;
             y = DoubleDouble::new(0.0, x);
@@ -94,7 +94,6 @@ pub fn f_sec(x: f64) -> f64 {
         }
 
         // Large range reduction.
-        // k = argument_reduction.high_part(x);
         (k, y) = argument_reduction.reduce(x);
     }
     let r_sincos = sincos_eval(y);

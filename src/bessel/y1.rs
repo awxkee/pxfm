@@ -44,7 +44,7 @@ use crate::polyeval::{f_polyeval12, f_polyeval13, f_polyeval15, f_polyeval22, f_
 use crate::sin_helper::{cos_dd_small, cos_dd_small_fast, cos_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
-/// Bessel of the second kind order one ( Y1 )
+/// Bessel of the second kind of order 1 ( Y1 )
 pub fn f_y1(x: f64) -> f64 {
     if x < 0. {
         return f64::NAN;

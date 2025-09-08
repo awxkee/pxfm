@@ -39,20 +39,42 @@ pub fn f_sincpif(x: f32) -> f32 {
     let x_abs = x.to_bits() & 0x7fff_ffffu32;
     let xd = x as f64;
 
-    // |x| <= 1/16
     if x_abs <= 0x3d80_0000u32 {
-        // |x| < 0.0000009546391
+        // |x| <= 1/16
         if x_abs < 0x3580_2126u32 {
+            // |x| < 0.0000009546391
             if x_abs == 0u32 {
+                // Signed zeros.
                 return 1.;
             }
-            const M_SQR_PI_OVER_6: f64 = f64::from_bits(0xbffa51a6625307d3);
 
             // Small values approximated with Taylor poly
             // sincpi(x) ~ 1 - x^2*Pi^2/6 + O(x^4)
-            let x2 = xd * xd;
-            let p = f_fmla(x2, M_SQR_PI_OVER_6, 1.);
-            return p as f32;
+            #[cfg(any(
+                all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    target_feature = "fma"
+                ),
+                all(target_arch = "aarch64", target_feature = "neon")
+            ))]
+            {
+                use crate::common::f_fmlaf;
+                const M_SQR_PI_OVER_6: f32 = f32::from_bits(0xbfd28d33);
+                return f_fmlaf(x, M_SQR_PI_OVER_6 * x, 1.);
+            }
+            #[cfg(not(any(
+                all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    target_feature = "fma"
+                ),
+                all(target_arch = "aarch64", target_feature = "neon")
+            )))]
+            {
+                const M_SQR_PI_OVER_6: f64 = f64::from_bits(0xbffa51a6625307d3);
+                let x2 = xd * xd;
+                let p = f_fmla(x2, M_SQR_PI_OVER_6, 1.);
+                return p as f32;
+            }
         }
 
         let xsqr = xd * xd;

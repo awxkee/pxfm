@@ -82,14 +82,14 @@ pub fn f_cot(x: f64) -> f64 {
 
     let mut argument_reduction = LargeArgumentReduction::default();
 
-    // |x| < 2^16
     if x_e < E_BIAS + 16 {
-        // |x| < 2^-7
+        // |x| < 2^16
         if x_e < E_BIAS - 7 {
-            // |x| < 2^-27, |cot(x) - x| < ulp(x)/2.
+            // |x| < 2^-7
             if x_e < E_BIAS - 27 {
-                // Signed zeros.
+                // |x| < 2^-27, |cot(x) - x| < ulp(x)/2.
                 if x == 0.0 {
+                    // Signed zeros.
                     return if x.is_sign_negative() {
                         f64::NEG_INFINITY
                     } else {
