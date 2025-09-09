@@ -155,18 +155,56 @@ pub(crate) const fn fmlaf(a: f32, b: f32, c: f32) -> f32 {
 
 #[inline(always)]
 pub(crate) fn f_fmlaf(a: f32, b: f32, c: f32) -> f32 {
-    f32::mul_add(a, b, c)
-}
-
-#[inline(always)]
-pub(crate) const fn fmla(a: f64, b: f64, c: f64) -> f64 {
-    c + a * b
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        f32::mul_add(a, b, c)
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        a * b + c
+    }
 }
 
 /// Optional FMA, if it is available hardware FMA will use, if not then just scalar `c + a * b`
 #[inline(always)]
 pub(crate) fn f_fmla(a: f64, b: f64, c: f64) -> f64 {
-    f64::mul_add(a, b, c)
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    ))]
+    {
+        f64::mul_add(a, b, c)
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    {
+        a * b + c
+    }
+}
+
+#[inline(always)]
+pub(crate) const fn fmla(a: f64, b: f64, c: f64) -> f64 {
+    c + a * b
 }
 
 /// Executes mandatory FMA
