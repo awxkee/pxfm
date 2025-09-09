@@ -38,9 +38,11 @@ mod cot;
 mod cotf;
 mod cotpi;
 mod cotpif;
+mod evalf;
 mod tan;
 mod tanf;
 mod tanpi;
+mod tanpi_table;
 mod tanpif;
 
 pub use atan::f_atan;

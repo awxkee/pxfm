@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::dd_fmla;
+use crate::common::{dd_fmla, is_integerf};
 use crate::double_double::DoubleDouble;
 use std::hint::black_box;
 
@@ -906,7 +906,7 @@ pub fn f_compoundf(x: f32, y: f32) -> f32 {
     } // x=+-0 || x=+-inf/nan || y=+-0 || y=+-inf/nan
 
     // evaluate (1+x)^y explicitly for integer y in [-16,16] range and |x|<2^64
-    if y.floor() == y && ay <= 0x83000000u32 && ax <= 0xbefffffeu32 {
+    if is_integerf(y) && ay <= 0x83000000u32 && ax <= 0xbefffffeu32 {
         if ax <= 0x62000000u32 {
             return 1.0 + y * x;
         } // does it work for |x|<2^-29 and |y|<=16?

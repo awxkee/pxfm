@@ -26,9 +26,10 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, is_integer};
 use crate::double_double::DoubleDouble;
 use crate::f_log;
+use crate::floor::FloorFinite;
 use crate::logs::{fast_log_d_to_dd, fast_log_dd, log_dd};
 use crate::polyeval::{f_polyeval4, f_polyeval5, f_polyeval6, f_polyeval10};
 use crate::sincospi::f_fast_sinpi_dd;
@@ -544,7 +545,7 @@ pub fn f_lgamma(x: f64) -> f64 {
         return f64::INFINITY;
     }
 
-    if x.floor() == x {
+    if is_integer(x) {
         if x == 2. || x == 1. {
             return 0.;
         }
@@ -572,7 +573,7 @@ pub fn f_lgamma(x: f64) -> f64 {
     // Hence, for x<0, signgam = sign(sin(pi*x)) and
     // lgamma(x) = log(|Gamma(x)|) = log(pi/(|x*sin(pi*x)|)) - lgamma(-x);
     if !is_positive {
-        let y1 = ax.floor();
+        let y1 = ax.floor_finite();
         let fraction = ax - y1; // excess over the boundary
 
         let a = f_fast_sinpi_dd(fraction);

@@ -68,13 +68,78 @@ pub const fn roundf(x: f32) -> f32 {
     let trunc_value = f32::from_bits(trunc_u);
 
     if !half_bit_set {
-        // Franctional part is less than 0.5 so round value is the
+        // Fractional part is less than 0.5 so round value is the
         // same as the trunc value.
         trunc_value
     } else if x.is_sign_negative() {
         trunc_value - 1.0
     } else {
         trunc_value + 1.0
+    }
+}
+
+// infinity, NaNs are assumed already handled somewhere
+#[inline]
+pub(crate) fn froundf_finite(x: f32) -> f32 {
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "sse4.1"
+        ),
+        target_arch = "aarch64"
+    ))]
+    {
+        x.round()
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "sse4.1"
+        ),
+        target_arch = "aarch64"
+    )))]
+    {
+        let exponent = get_exponent_f32(x);
+
+        const FRACTION_LENGTH: u32 = 23;
+
+        // If the exponent is greater than the most negative mantissa
+        // exponent, then x is already an integer.
+        if exponent >= FRACTION_LENGTH as i32 {
+            return x;
+        }
+
+        if exponent == -1 {
+            // Absolute value of x is greater than equal to 0.5 but less than 1.
+            return if x.is_sign_negative() { -1.0 } else { 1.0 };
+        }
+
+        if exponent <= -2 {
+            // Absolute value of x is less than 0.5.
+            return if x.is_sign_negative() { -0.0 } else { 0.0 };
+        }
+
+        let trim_size = (FRACTION_LENGTH as i32).wrapping_sub(exponent);
+        let half_bit_set = mantissa_f32(x) & (1u32 << (trim_size - 1)) != 0;
+        let x_u = x.to_bits();
+        let trunc_u: u32 = (x_u >> trim_size).wrapping_shl(trim_size as u32);
+
+        // If x is already an integer, return it.
+        if trunc_u == x_u {
+            return x;
+        }
+
+        let trunc_value = f32::from_bits(trunc_u);
+
+        if !half_bit_set {
+            // Fractional part is less than 0.5 so round value is the
+            // same as the trunc value.
+            trunc_value
+        } else if x.is_sign_negative() {
+            trunc_value - 1.0
+        } else {
+            trunc_value + 1.0
+        }
     }
 }
 
@@ -118,13 +183,96 @@ pub const fn round(x: f64) -> f64 {
     let trunc_value = f64::from_bits(trunc_u);
 
     if !half_bit_set {
-        // Franctional part is less than 0.5 so round value is the
+        // Fractional part is less than 0.5 so round value is the
         // same as the trunc value.
         trunc_value
     } else if x.is_sign_negative() {
         trunc_value - 1.0
     } else {
         trunc_value + 1.0
+    }
+}
+
+// infinity, NaNs are assumed already handled somewhere
+#[inline]
+pub(crate) fn fround_finite(x: f64) -> f64 {
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "sse4.1"
+        ),
+        target_arch = "aarch64"
+    ))]
+    {
+        x.round()
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "sse4.1"
+        ),
+        target_arch = "aarch64"
+    )))]
+    {
+        let exponent = get_exponent_f64(x);
+
+        const FRACTION_LENGTH: u64 = 52;
+
+        // If the exponent is greater than the most negative mantissa
+        // exponent, then x is already an integer.
+        if exponent >= FRACTION_LENGTH as i64 {
+            return x;
+        }
+
+        if exponent == -1 {
+            // Absolute value of x is greater than equal to 0.5 but less than 1.
+            return if x.is_sign_negative() { -1.0 } else { 1.0 };
+        }
+
+        if exponent <= -2 {
+            // Absolute value of x is less than 0.5.
+            return if x.is_sign_negative() { -0.0 } else { 0.0 };
+        }
+
+        let trim_size = (FRACTION_LENGTH as i64).wrapping_sub(exponent);
+        let half_bit_set = mantissa_f64(x) & (1u64 << (trim_size.wrapping_sub(1))) != 0;
+        let x_u = x.to_bits();
+        let trunc_u: u64 = (x_u >> trim_size).wrapping_shl(trim_size as u32);
+
+        // If x is already an integer, return it.
+        if trunc_u == x_u {
+            return x;
+        }
+
+        let trunc_value = f64::from_bits(trunc_u);
+
+        if !half_bit_set {
+            // Fractional part is less than 0.5 so round value is the
+            // same as the trunc value.
+            trunc_value
+        } else if x.is_sign_negative() {
+            trunc_value - 1.0
+        } else {
+            trunc_value + 1.0
+        }
+    }
+}
+
+pub(crate) trait RoundFinite {
+    fn round_finite(self) -> Self;
+}
+
+impl RoundFinite for f32 {
+    #[inline]
+    fn round_finite(self) -> Self {
+        froundf_finite(self)
+    }
+}
+
+impl RoundFinite for f64 {
+    #[inline]
+    fn round_finite(self) -> Self {
+        fround_finite(self)
     }
 }
 

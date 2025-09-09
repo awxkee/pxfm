@@ -33,7 +33,6 @@ use crate::sin_cosf::sincosf_eval::sincosf_eval;
 /// Computes sinc(x)
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_sincf(x: f32) -> f32 {
     let x_abs = x.to_bits() & 0x7fff_ffffu32;
     let xd = x as f64;

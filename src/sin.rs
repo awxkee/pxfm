@@ -29,6 +29,7 @@
 use crate::common::{dyad_fmla, f_fmla, min_normal_f64};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::round::RoundFinite;
 use crate::sin_helper::sincos_eval_dd;
 use crate::sin_table::SIN_K_PI_OVER_128;
 use crate::sincos_dyadic::SIN_K_PI_OVER_128_F128;
@@ -45,7 +46,7 @@ pub(crate) fn range_reduction_small(x: f64) -> (DoubleDouble, u64) {
     const MPI_OVER_128: [u64; 3] = [0xbf9921fb54400000, 0xbd70b4611a600000, 0xbb43198a2e037073];
     const ONE_TWENTY_EIGHT_OVER_PI_D: f64 = f64::from_bits(0x40445f306dc9c883);
     let prod_hi = x * ONE_TWENTY_EIGHT_OVER_PI_D;
-    let kd = prod_hi.round();
+    let kd = prod_hi.round_finite();
 
     // Let y = x - k * (pi/128)
     // Then |y| < pi / 256
@@ -277,20 +278,21 @@ pub fn f_sin(x: f64) -> f64 {
             // f_sin = sin(y)/y;
             // Q = fpminimax(f_sin, [|0, 2, 4, 6, 8|], [|1, D...|], d, relative, floating);
 
-            let x2 = DoubleDouble::from_exact_mult(x, x);
+            let x2 = x * x;
+            let x4 = x2 * x2;
             const C: [u64; 4] = [
                 0xbfc5555555555555,
                 0x3f8111111110e45a,
                 0xbf2a019ffd7fdaaf,
                 0x3ec71819b9bf01ef,
             ];
-            let p01 = f_fmla(x2.hi, f64::from_bits(C[1]), f64::from_bits(C[0]));
-            let p23 = f_fmla(x2.hi, f64::from_bits(C[3]), f64::from_bits(C[2]));
-            let w0 = f_fmla(x2.hi * x2.hi, p23, p01);
-            let w1 = DoubleDouble::quick_mult_f64(DoubleDouble::quick_mult_f64(x2, w0), x);
-            let r = DoubleDouble::f64_add(x, w1);
+            let p01 = f_fmla(x2, f64::from_bits(C[1]), f64::from_bits(C[0]));
+            let p23 = f_fmla(x2, f64::from_bits(C[3]), f64::from_bits(C[2]));
+            let w0 = f_fmla(x4, p23, p01);
+            let w1 = x2 * w0 * x;
+            let r = DoubleDouble::from_exact_add(x, w1);
             let err = f_fmla(
-                x2.hi,
+                x2,
                 f64::from_bits(0x3cb0000000000000), // 2^-52
                 f64::from_bits(0x3be0000000000000), // 2^-65
             );
@@ -422,20 +424,21 @@ pub fn f_cos(x: f64) -> f64 {
             // f_cos = cos(y);
             // Q = fpminimax(f_cos, [|0, 2, 4, 6, 8|], [|1, D...|], d, relative, floating);
 
-            let x2 = DoubleDouble::from_exact_mult(x, x);
+            let x2 = x * x;
+            let x4 = x2 * x2;
             const C: [u64; 4] = [
                 0xbfe0000000000000,
                 0x3fa55555555554a4,
                 0xbf56c16c1619b84a,
                 0x3efa013d3d01cf7f,
             ];
-            let p01 = f_fmla(x2.hi, f64::from_bits(C[1]), f64::from_bits(C[0]));
-            let p23 = f_fmla(x2.hi, f64::from_bits(C[3]), f64::from_bits(C[2]));
-            let w0 = f_fmla(x2.hi * x2.hi, p23, p01);
-            let w1 = DoubleDouble::quick_mult_f64(x2, w0);
-            let r = DoubleDouble::f64_add(1., w1);
+            let p01 = f_fmla(x2, f64::from_bits(C[1]), f64::from_bits(C[0]));
+            let p23 = f_fmla(x2, f64::from_bits(C[3]), f64::from_bits(C[2]));
+            let w0 = f_fmla(x4, p23, p01);
+            let w1 = x2 * w0;
+            let r = DoubleDouble::from_exact_add(1., w1);
             let err = f_fmla(
-                x2.hi,
+                x2,
                 f64::from_bits(0x3cb0000000000000), // 2^-52
                 f64::from_bits(0x3be0000000000000), // 2^-65
             );

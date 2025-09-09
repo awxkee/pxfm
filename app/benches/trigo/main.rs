@@ -7,9 +7,9 @@
  */
 use criterion::{Criterion, criterion_group, criterion_main};
 use pxfm::{
-    f_cos, f_cosf, f_cosm1, f_cospi, f_cospif, f_cot, f_cotf, f_cotpi, f_csc, f_cscf, f_secf,
-    f_sin, f_sincf, f_sincos, f_sincosf, f_sincospi, f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tan,
-    f_tanf, f_tanpi, f_tanpif,
+    f_cos, f_cosf, f_cosm1, f_cospi, f_cospif, f_cotf, f_cotpi, f_csc, f_cscf, f_secf, f_sin,
+    f_sincf, f_sincos, f_sincosf, f_sincospi, f_sincospif, f_sinf, f_sinpi, f_sinpif, f_tanf,
+    f_tanpi, f_tanpif,
 };
 use std::hint::black_box;
 use std::time::Duration;
@@ -105,14 +105,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("pxfm: f_tanpif", |b| {
-        b.iter(|| {
-            for i in 1..1000 {
-                black_box(f_tanpif(i as f32 / 1000.0));
-            }
-        })
-    });
-
     c.bench_function("pxfm: f_sinpif", |b| {
         b.iter(|| {
             for i in 1..1000 {
@@ -164,7 +156,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_cot", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_cot(i as f64 * 1000.0));
+                black_box(pxfm::f_cot(i as f64 / 1000.0));
             }
         })
     });
@@ -172,7 +164,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::tan", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::tan(i as f64 * 1000.0));
+                black_box(libm::tan(i as f64 / 1000.0));
             }
         })
     });
@@ -180,7 +172,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: tan", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::tan(i as f64 * 1000.0));
+                black_box(f64::tan(i as f64 / 1000.0));
             }
         })
     });
@@ -188,7 +180,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: tan", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_tan(i as f64 * 1000.0));
+                black_box(pxfm::f_tan(i as f64 / 1000.0));
             }
         })
     });
@@ -317,6 +309,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_tanf(i as f32 / 10000.0 - 1.));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_tanpif", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(f_tanpif(i as f32 / 1000.0));
             }
         })
     });

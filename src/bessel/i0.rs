@@ -31,6 +31,7 @@ use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, rational128_exp};
 use crate::polyeval::{f_estrin_polyeval5, f_polyeval4};
+use crate::round::RoundFinite;
 
 /// Modified Bessel of the first kind of order 0
 ///
@@ -743,7 +744,7 @@ fn exp_poly(z: f64) -> DoubleDouble {
 pub(crate) fn i0_exp(r: f64) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r * INVLOG2).round();
+    let k = (r * INVLOG2).round_finite();
 
     const L2: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3d0718432a1b0e26),

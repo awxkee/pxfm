@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, is_integerf};
 use crate::polyeval::f_polyeval5;
 use crate::sin_cosf::argument_reduction_pi::ArgumentReducerPi;
 use crate::sin_cosf::sincosf_eval::{cospif_eval, sinpif_eval, sinpif_eval2};
@@ -79,7 +79,7 @@ pub fn f_sinpif(x: f32) -> f32 {
     }
 
     // Numbers greater or equal to 2^23 are always integers or NaN
-    if x_abs >= 0x4b00_0000u32 {
+    if x_abs >= 0x4b00_0000u32 || is_integerf(x) {
         if x_abs >= 0x7f80_0000u32 {
             return x + f32::NAN;
         }
@@ -160,6 +160,7 @@ mod tests {
 
     #[test]
     fn test_f_sinpif() {
+        assert_eq!(f_sinpif(3.), 0.);
         assert_eq!(f_sinpif(1.12199515e-7), 3.524852e-7);
         assert_eq!(f_sinpif(-0.31706), -0.83934295);
         assert_eq!(f_sinpif(0.30706), 0.8218538);

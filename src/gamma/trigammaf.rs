@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, is_integerf};
 use crate::polyeval::{f_polyeval6, f_polyeval10};
 use crate::sin_cosf::fast_sinpif;
 
@@ -224,7 +224,7 @@ pub fn f_trigammaf(x: f32) -> f32 {
 
     if x < 0. {
         // singularity at negative integers
-        if x.floor() == x {
+        if is_integerf(x) {
             return f32::INFINITY;
         }
         // reflection formula

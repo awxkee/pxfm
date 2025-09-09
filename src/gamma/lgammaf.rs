@@ -26,7 +26,8 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, is_integerf};
+use crate::floor::FloorFinite;
 use crate::logs::{fast_logf, simple_fast_log};
 use crate::polyeval::{f_polyeval3, f_polyeval5, f_polyeval7, f_polyeval8};
 use crate::sin_cosf::fast_sinpif;
@@ -35,7 +36,7 @@ use crate::sin_cosf::fast_sinpif;
 ///
 /// ulp 0.5
 pub fn f_lgammaf(x: f32) -> f32 {
-    if (x.to_bits() & 0x0007_ffff) == 0 {
+    if !x.is_normal() {
         if x.is_infinite() {
             return f32::INFINITY;
         }
@@ -47,7 +48,7 @@ pub fn f_lgammaf(x: f32) -> f32 {
         }
     }
 
-    if x.floor() == x {
+    if is_integerf(x) {
         if x == 2. || x == 1. {
             return 0.;
         }
@@ -73,7 +74,7 @@ pub fn f_lgammaf(x: f32) -> f32 {
     // lgamma(x) = log(|Gamma(x)|)
     //  = log(pi/(|x*sin(pi*x)|)) - lgamma(-x);
     if !is_positive {
-        let y1 = ax.floor();
+        let y1 = ax.floor_finite();
         let fraction = ax - y1; // excess over the boundary
 
         let a = fast_sinpif(fraction);

@@ -29,6 +29,7 @@
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::exponents::fast_ldexp;
+use crate::floor::FloorFinite;
 
 const LN2H: f64 = f64::from_bits(0x3fe62e42fefa39ef);
 const LN2L: f64 = f64::from_bits(0x3c7abc9e3b39803f);
@@ -625,7 +626,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
 
     /* 2^x-1 is exact for x integer, -53 <= x <= 53 */
     if ux.wrapping_shl(17) == 0 {
-        let i = x.floor() as i32;
+        let i = x.floor_finite() as i32;
         if x == i as f64 && -53 <= i && i <= 53 {
             return if i >= 0 {
                 ((1u64 << i) - 1) as f64

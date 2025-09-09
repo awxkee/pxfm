@@ -33,6 +33,7 @@ use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, ldexp};
 use crate::exponents::{EXPM1_T0, EXPM1_T1};
 use crate::polyeval::{f_polyeval6, f_polyeval8};
 use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC, POW_INVERSE, POW_LOG_INV};
+use crate::round::RoundFinite;
 
 #[inline(always)]
 pub(crate) fn log_poly_1(z: f64) -> DoubleDouble {
@@ -259,7 +260,7 @@ pub(crate) fn pow_exp_1(r: DoubleDouble, s: f64) -> DoubleDouble {
     }
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r.hi * INVLOG2).round();
+    let k = (r.hi * INVLOG2).round_finite();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
@@ -291,7 +292,7 @@ pub(crate) fn pow_exp_1(r: DoubleDouble, s: f64) -> DoubleDouble {
 pub(crate) fn exp_dd_fast(r: DoubleDouble) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r.hi * INVLOG2).round();
+    let k = (r.hi * INVLOG2).round_finite();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
@@ -382,13 +383,7 @@ pub(crate) fn pow_exp_dd(r: DoubleDouble, s: f64) -> DoubleDouble {
     }
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    /* Note: if the rounding mode is to nearest, we can save about 2 cycles
-       (on an i7-8700) by replacing the computation of k by the following
-       classical trick:
-       const double magic = 0x1.8p+52;
-       double k = __builtin_fma (rh, INVLOG2, magic) - magic;
-    */
-    let k = (r.hi * INVLOG2).round();
+    let k = (r.hi * INVLOG2).round_finite();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);

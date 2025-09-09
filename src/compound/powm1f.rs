@@ -31,7 +31,6 @@ use crate::compound::compound_m1f::compoundf_expf_poly;
 use crate::compound::compoundf::{
     COMPOUNDF_EXP2_T, COMPOUNDF_EXP2_U, LOG2P1_COMPOUNDF_INV, LOG2P1_COMPOUNDF_LOG2_INV,
 };
-use crate::powf::{is_integer, is_odd_integer};
 use std::hint::black_box;
 
 #[inline]
@@ -92,7 +91,7 @@ pub fn f_powm1f(x: f32, y: f32) -> f32 {
                 if y.is_infinite() {
                     return -1.0;
                 }
-                if is_integer(y) {
+                if is_integerf(y) {
                     // Negative base: (-inf)^even = +inf, (-inf)^odd = -inf
                     let pow = if y as i32 % 2 == 0 {
                         f32::INFINITY
@@ -138,7 +137,7 @@ pub fn f_powm1f(x: f32, y: f32) -> f32 {
         }
     }
 
-    let y_integer = is_integer(y);
+    let y_integer = is_integerf(y);
 
     let mut negative_parity: bool = false;
 
@@ -150,7 +149,7 @@ pub fn f_powm1f(x: f32, y: f32) -> f32 {
             return f32::NAN; // x < 0 and non-integer y
         }
         x = x.abs();
-        if is_odd_integer(y) {
+        if is_odd_integerf(y) {
             negative_parity = true;
         }
     }

@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
+use crate::round::RoundFinite;
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ArgumentReducerPi {
@@ -38,7 +39,7 @@ impl ArgumentReducerPi {
     // k = round(x * 32 / pi) and y = (x * 32 / pi) - k.
     #[inline]
     pub(crate) fn reduce(self) -> (f64, i64) {
-        let kd = (self.x * 32.).round();
+        let kd = (self.x * 32.).round_finite();
         let y = f_fmla(self.x, 32.0, -kd);
         (y, kd as i64)
     }
@@ -47,7 +48,7 @@ impl ArgumentReducerPi {
     // k = round(x * 2 / pi) and y = (x * 2 / pi) - k.
     #[inline]
     pub(crate) fn reduce_0p25(self) -> (f64, i64) {
-        let kd = (self.x + self.x).round();
+        let kd = (self.x + self.x).round_finite();
         let y = f_fmla(kd, -0.5, self.x);
         (y, kd as i64)
     }

@@ -29,7 +29,7 @@
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::sincospi::reduce_pi_64;
-use crate::sincospi_tables::SINPI_K_PI_OVER_64;
+use crate::tangent::tanpi_table::TANPI_K_PI_OVER_64;
 
 #[inline]
 pub(crate) fn tanpi_eval(x: f64) -> DoubleDouble {
@@ -47,8 +47,8 @@ pub(crate) fn tanpi_eval(x: f64) -> DoubleDouble {
     const C0: DoubleDouble = DoubleDouble::from_bit_pair((0x3ca1a6444aa5b996, 0x400921fb54442d18));
 
     // polyeval 4, estrin scheme
-    let u0 = f_fmla(x2.hi, f64::from_bits(C[1]), f64::from_bits(C[0])); // a0 + a1*x
-    let u1 = f_fmla(x2.hi, f64::from_bits(C[3]), f64::from_bits(C[2])); // a2 + a3*x
+    let u0 = f_fmla(x2.hi, f64::from_bits(C[1]), f64::from_bits(C[0]));
+    let u1 = f_fmla(x2.hi, f64::from_bits(C[3]), f64::from_bits(C[2]));
     let tan_poly_lo = f_fmla(x2.hi * x2.hi, u1, u0);
 
     // We're splitting polynomial in two parts, since first term dominates
@@ -60,7 +60,7 @@ pub(crate) fn tanpi_eval(x: f64) -> DoubleDouble {
 }
 
 #[cold]
-fn tanpi_hard(x: f64, msin_k: DoubleDouble, cos_k: DoubleDouble) -> DoubleDouble {
+fn tanpi_hard(x: f64, tan_k: DoubleDouble) -> DoubleDouble {
     const C: [(u64, u64); 6] = [
         (0x3ca1a62632712fc8, 0x400921fb54442d18),
         (0xbcc052338fbb4528, 0x4024abbce625be53),
@@ -81,10 +81,10 @@ fn tanpi_hard(x: f64, msin_k: DoubleDouble, cos_k: DoubleDouble) -> DoubleDouble
     tan_y = DoubleDouble::quick_mul_add(x2, tan_y, DoubleDouble::from_bit_pair(C[0]));
     tan_y = DoubleDouble::quick_mult_f64(tan_y, x);
 
-    // num = sin(k*pi) + tan(y*pi) * cos(k*pi)
-    let num = DoubleDouble::mul_add(tan_y, cos_k, -msin_k);
-    // den = cos(k*pi) - tan(y*pi) * sin(k*pi)
-    let den = DoubleDouble::mul_add(tan_y, msin_k, cos_k);
+    // num = tan(y*pi/64) + tan(k*pi/64)
+    let num = DoubleDouble::full_dd_add(tan_y, tan_k);
+    // den = 1 - tan(y*pi/64)*tan(k*pi/64)
+    let den = DoubleDouble::mul_add_f64(tan_y, -tan_k, 1.);
     // tan = num / den
     DoubleDouble::div(num, den)
 }
@@ -156,22 +156,15 @@ pub fn f_tanpi(x: f64) -> f64 {
         }
     }
 
-    let msin_k = DoubleDouble::from_bit_pair(
-        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(64) & 127) as usize],
-    );
-    let cos_k = DoubleDouble::from_bit_pair(
-        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(32) & 127) as usize],
-    );
+    let tan_k = DoubleDouble::from_bit_pair(TANPI_K_PI_OVER_64[((k as u64) & 127) as usize]);
 
-    // tanpi_eval returns:
-    // - rs.tan_y = tan(pi * y)          -> tangent of the remainder
-    // - rs.msin_k = sin(pi * k)         -> sine of the main angle multiple
-    // - rs.cos_k  = cos(pi * k)         -> cosine of the main angle multiple
+    // Computes tan(pi*x) through identities.
+    // tan(a+b) = (tan(a) + tan(b)) / (1 - tan(a)tan(b)) = (tan(y*pi/64) + tan(k*pi/64)) / (1 - tan(y*pi/64)*tan(k*pi/64))
     let tan_y = tanpi_eval(y);
-    // num = sin(k*pi) + tan(y*pi) * cos(k*pi)
-    let num = DoubleDouble::mul_add(tan_y, cos_k, -msin_k);
-    // den = cos(k*pi) - tan(y*pi) * sin(k*pi)
-    let den = DoubleDouble::mul_add(tan_y, msin_k, cos_k);
+    // num = tan(y*pi/64) + tan(k*pi/64)
+    let num = DoubleDouble::add(tan_k, tan_y);
+    // den = 1 - tan(y*pi/64)*tan(k*pi/64)
+    let den = DoubleDouble::mul_add_f64(tan_y, -tan_k, 1.);
     // tan = num / den
     let tan_value = DoubleDouble::div(num, den);
     let err = f_fmla(
@@ -184,7 +177,7 @@ pub fn f_tanpi(x: f64) -> f64 {
     if ub == lb {
         return tan_value.to_f64();
     }
-    tanpi_hard(y, msin_k, cos_k).to_f64()
+    tanpi_hard(y, tan_k).to_f64()
 }
 
 #[cfg(test)]

@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::common::{is_integerf, is_odd_integerf};
 use crate::polyeval::f_polyeval5;
 use crate::sin_cosf::argument_reduction_pi::ArgumentReducerPi;
 use crate::sin_cosf::sincosf_eval::{cospif_eval, sinpif_eval};
@@ -88,13 +89,13 @@ pub fn f_cospif(x: f32) -> f32 {
     }
 
     // Numbers greater or equal to 2^23 are always integers or NaN
-    if x_abs >= 0x4b00_0000u32 {
+    if x_abs >= 0x4b00_0000u32 || is_integerf(x) {
         if x_abs >= 0x7f80_0000u32 {
             return x + f32::NAN;
         }
         if x_abs < 0x4b80_0000u32 {
             static CF: [f32; 2] = [1., -1.];
-            return CF[((x_abs & 0x1) != 0) as usize];
+            return CF[is_odd_integerf(x) as usize];
         }
         return 1.;
     }
@@ -118,6 +119,12 @@ mod tests {
 
     #[test]
     fn test_f_cospif() {
+        assert_eq!(f_cospif(1.), -1.);
+        assert_eq!(f_cospif(-3.5), 0.0);
+        assert_eq!(f_cospif(3.), -1.);
+        assert_eq!(f_cospif(-3.), -1.);
+        assert_eq!(f_cospif(2.), 1.);
+        assert_eq!(f_cospif(-2.), 1.);
         assert_eq!(f_cospif(115.30706), -0.5696978);
         assert!(f_cospif(f32::INFINITY).is_nan());
     }

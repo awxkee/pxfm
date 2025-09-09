@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::round::RoundFinite;
 use crate::sincos_reduce_tables::ONE_TWENTY_EIGHT_OVER_PI;
 
 pub(crate) fn range_reduction_small_f128(x: f64) -> DyadicFloat128 {
@@ -37,7 +38,7 @@ pub(crate) fn range_reduction_small_f128(x: f64) -> DyadicFloat128 {
     };
     const ONE_TWENTY_EIGHT_OVER_PI_D: f64 = f64::from_bits(0x40445f306dc9c883);
     let prod_hi = x * ONE_TWENTY_EIGHT_OVER_PI_D;
-    let kd = prod_hi.round();
+    let kd = prod_hi.round_finite();
 
     let mk_f128 = DyadicFloat128::new_from_f64(-kd);
     let x_f128 = DyadicFloat128::new_from_f64(x);
@@ -59,7 +60,7 @@ pub(crate) fn range_reduction_small_f128_f128(x: DyadicFloat128) -> (DyadicFloat
     };
     const ONE_TWENTY_EIGHT_OVER_PI_D: f64 = f64::from_bits(0x40445f306dc9c883);
     let prod_hi = x.fast_as_f64() * ONE_TWENTY_EIGHT_OVER_PI_D;
-    let kd = prod_hi.round();
+    let kd = prod_hi.round_finite();
 
     let mk_f128 = DyadicFloat128::new_from_f64(-kd);
     let over_pi3 = ONE_TWENTY_EIGHT_OVER_PI[3];

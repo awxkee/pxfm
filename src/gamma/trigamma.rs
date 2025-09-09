@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::common::is_integer;
 use crate::double_double::DoubleDouble;
 use crate::sincospi::f_fast_sinpi_dd;
 
@@ -561,7 +562,7 @@ pub fn f_trigamma(x: f64) -> f64 {
     }
 
     if x < 0. {
-        if x.floor() == x {
+        if is_integer(x) {
             return f64::INFINITY;
         }
         // reflection formula

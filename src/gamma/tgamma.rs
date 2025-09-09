@@ -26,8 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, is_integer};
 use crate::double_double::DoubleDouble;
+use crate::floor::FloorFinite;
 use crate::logs::fast_log_dd;
 use crate::polyeval::{f_polyeval6, f_polyeval7, f_polyeval8};
 use crate::pow_exec::exp_dd_fast;
@@ -60,7 +61,7 @@ pub fn f_tgamma(x: f64) -> f64 {
         return f64::INFINITY;
     }
 
-    if x.floor() == x {
+    if is_integer(x) {
         if x < 0. {
             return f64::NAN;
         }
@@ -145,11 +146,11 @@ pub fn f_tgamma(x: f64) -> f64 {
 
     // reflection
     if dy.hi < 0. {
-        if dy.hi.floor() == dy.hi {
+        if dy.hi.floor_finite() == dy.hi {
             return f64::NAN;
         }
         dy.hi = f64::from_bits(dy.hi.to_bits() & 0x7fff_ffff_ffff_ffff);
-        let y1 = x_a.floor();
+        let y1 = x_a.floor_finite();
         let fraction = x_a - y1;
         if fraction != 0.0
         // is it an integer?

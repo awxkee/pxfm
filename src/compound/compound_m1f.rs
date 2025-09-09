@@ -320,7 +320,7 @@ pub fn f_compound_m1f(x: f32, y: f32) -> f32 {
     } // x=+-0 || x=+-inf/nan || y=+-0 || y=+-inf/nan
 
     // evaluate (1+x)^y explicitly for integer y in [-16,16] range and |x|<2^64
-    if y.floor() == y && ay <= 0x83000000u32 && ax <= 0xbefffffeu32 {
+    if is_integerf(y) && ay <= 0x83000000u32 && ax <= 0xbefffffeu32 {
         if ax <= 0x62000000u32 {
             return 1.0 + y * x;
         } // does it work for |x|<2^-29 and |y|<=16?

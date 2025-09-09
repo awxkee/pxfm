@@ -28,7 +28,7 @@
  */
 use crate::common::f_fmla;
 use crate::polyeval::f_polyeval5;
-use crate::sin_cosf::tanf_eval;
+use crate::tangent::evalf::tanf_eval;
 
 /// Computes tan
 ///
@@ -100,17 +100,17 @@ pub fn f_tanf(x: f32) -> f32 {
     }
 
     // For |x| >= pi/32, we use the definition of tan(x) function:
-    // tan(A+y)=(cos(A)−tan(y)⋅sinA)/(sin(A)+tan(y)⋅cos(A))
-    // tanpif_eval returns:
-    // - rs.tan_y = tan(y)                  -> tangent of the remainder
-    // - rs.msin_k = sin(pi/32 * k)         -> sine of the main angle multiple
-    // - rs.cos_k  = cos(pi/32 * k)         -> cosine of the main angle multiple
+    // tan(a+b) = (tan(a) + tan(b)) / (1 - tan(a)tan(b))
+    // tanf_eval returns:
+    // - rs.tan_y = tan(pi/32 * y)          -> tangent of the remainder
+    // - rs.tan_k = tan(pi/32 * k)          -> tan of the main angle multiple
     let rs = tanf_eval(xd, x_abs);
-    // num = sin(k*pi/32) + tan(y) * cos(k*pi/32)
-    let num = f_fmla(rs.tan_y, rs.cos_k, -rs.msin_k);
-    // den = cos(k*pi/32) - tan(y) * sin(k*pi/32)
-    let den = f_fmla(rs.tan_y, rs.msin_k, rs.cos_k);
-    // tan(x) = num(x) / den(x)
+
+    // Then computing tan through identities
+    // num = tan(k*pi/32) + tan(y*pi/32)
+    let num = rs.tan_y + rs.tan_k;
+    // den = 1 - tan(k*pi/32) * tan(y*pi/32)
+    let den = f_fmla(rs.tan_y, -rs.tan_k, 1.);
     (num / den) as f32
 }
 

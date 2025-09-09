@@ -26,8 +26,8 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::bits::{EXP_MASK, get_exponent_f64};
-use crate::common::f_fmla;
+use crate::bits::get_exponent_f64;
+use crate::common::{f_fmla, is_integer, is_odd_integer};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::exp;
@@ -35,22 +35,6 @@ use crate::logs::log_dyadic;
 use crate::pow_exec::{exp_dyadic, pow_exp_1, pow_log_1};
 use crate::triple_double::TripleDouble;
 use crate::{f_exp2, f_exp10, log};
-
-#[inline]
-pub(crate) fn is_integer(n: f64) -> bool {
-    n == n.round_ties_even()
-}
-
-#[inline]
-pub(crate) fn is_odd_integer(x: f64) -> bool {
-    let x_u = x.to_bits();
-    let x_e = (x_u & EXP_MASK) >> 52;
-    let lsb = (x_u | EXP_MASK).trailing_zeros();
-    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-
-    const UNIT_EXPONENT: u64 = E_BIAS + 52;
-    x_e + lsb as u64 == UNIT_EXPONENT
-}
 
 #[cold]
 fn pow_exp10_fallback(x: f64) -> f64 {

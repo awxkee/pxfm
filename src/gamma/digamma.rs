@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::common::is_integer;
 use crate::double_double::DoubleDouble;
 use crate::gamma::digamma_coeffs::digamma_coeefs;
 use crate::logs::fast_log_d_to_dd;
@@ -420,8 +421,7 @@ pub fn f_digamma(x: f64) -> f64 {
 
     if x < 0. {
         // at negative integers it's inf
-        let k = x.floor();
-        if k == x {
+        if is_integer(x) {
             return f64::NAN;
         }
 

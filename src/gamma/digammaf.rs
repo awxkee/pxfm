@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, is_integerf};
 use crate::logs::simple_fast_log;
 use crate::polyeval::{
     f_estrin_polyeval7, f_estrin_polyeval8, f_estrin_polyeval9, f_polyeval4, f_polyeval6,
@@ -378,7 +378,7 @@ pub fn f_digammaf(x: f32) -> f32 {
     let mut result: f64 = 0.;
     if x < 0. {
         // at negative integers it's inf
-        if x.floor() == x {
+        if is_integerf(x) {
             return f32::NAN;
         }
 

@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, is_integerf};
 use crate::polyeval::f_polyeval5;
 use crate::sin_cosf::sincosf_eval::sincospif_eval;
 
@@ -97,7 +97,7 @@ pub fn f_sincpif(x: f32) -> f32 {
 
     // Numbers greater or equal to 2^23 are always integers or NaN
     // integers are always 0
-    if x_abs >= 0x4b00_0000u32 || x.floor() == x {
+    if x_abs >= 0x4b00_0000u32 || is_integerf(x) {
         if x_abs >= 0x7f80_0000u32 {
             return x + f32::NAN;
         }

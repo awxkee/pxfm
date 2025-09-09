@@ -26,8 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, is_integer};
 use crate::f_exp;
+use crate::floor::FloorFinite;
 use crate::logs::simple_fast_log;
 use crate::polyeval::{f_polyeval5, f_polyeval18};
 use crate::sin_cosf::fast_sinpif;
@@ -60,7 +61,7 @@ pub fn f_tgammaf(x: f32) -> f32 {
         return f32::INFINITY;
     } else if x.is_sign_negative() && x_a.to_bits() >= 0x421a67dau32 {
         // x <= -38.601418
-        if x == x.floor() {
+        if x == x.floor_finite() {
             // integer where x < 0
             return f32::NAN;
         }
@@ -91,7 +92,7 @@ pub fn f_tgammaf(x: f32) -> f32 {
 
     // reflection
     if dy < 0. {
-        if dy.floor() == dy {
+        if is_integer(dy) {
             return f32::NAN;
         }
         dy = f64::from_bits(dy.to_bits() & 0x7fff_ffff_ffff_ffff);
