@@ -852,9 +852,7 @@ pub fn f_sincospi(x: f64) -> (f64, f64) {
     let cos_k = DoubleDouble::from_bit_pair(
         SINPI_K_PI_OVER_64[((k as u64).wrapping_add(32) & 127) as usize],
     );
-    let msin_k = DoubleDouble::from_bit_pair(
-        SINPI_K_PI_OVER_64[((k as u64).wrapping_add(64) & 127) as usize],
-    );
+    let msin_k = -sin_k;
 
     let r_sincos = sincospi_eval(y);
 
