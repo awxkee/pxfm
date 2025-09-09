@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
+use crate::floor::FloorFinite;
 use std::hint::black_box;
 
 static Q: [(u32, u32); 3] = [
@@ -243,7 +244,7 @@ pub fn f_exp2m1f(x: f32) -> f32 {
         ];
 
         let a = 16.0 * z;
-        let ia = a.floor();
+        let ia = a.floor_finite();
         let h = a - ia;
         let h2 = h * h;
         let i: i64 = ia as i64;

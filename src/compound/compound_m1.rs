@@ -334,7 +334,7 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
     let straight_path_precondition: bool = y.is_sign_positive();
     // this is correct only for positive exponent number without FMA,
     // otherwise reciprocal may overflow.
-    if y.floor() == y
+    if is_integer(y)
         && y_a <= 0x4059800000000000u64
         && x_a <= 0x4090000000000000u64
         && x_a > 0x3cc0_0000_0000_0000

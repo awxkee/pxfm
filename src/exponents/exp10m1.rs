@@ -29,6 +29,7 @@
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::exponents::exp2m1::{EXP_M1_2_TABLE1, EXP_M1_2_TABLE2};
+use crate::floor::FloorFinite;
 
 const LN10H: f64 = f64::from_bits(0x40026bb1bbb55516);
 const LN10L: f64 = f64::from_bits(0xbcaf48ad494ea3e9);
@@ -539,7 +540,7 @@ pub fn f_exp10m1(d: f64) -> f64 {
 
     /* 10^x-1 is exact for x integer, 1 <= x <= 15 */
     if ux << 15 == 0 {
-        let i = x.floor() as i32;
+        let i = x.floor_finite() as i32;
         if x == i as f64 && 1 <= i && i <= 15 {
             static EXP10_1_15: [u64; 16] = [
                 0x0000000000000000,

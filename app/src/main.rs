@@ -1,5 +1,9 @@
 use num_complex::Complex;
-use pxfm::{f_cos, f_cospi, f_cospif, f_cotpif, f_erfcx, f_i0ef, f_i0f, f_i1ef, f_i1f, f_j0, f_j0f, f_j1f, f_jincpi, f_jincpif, f_k0ef, f_k0f, f_k1f, f_sin, f_sincpi, f_sincpif, f_sinpif, f_tanf, f_tanpif, f_y0f, floorf};
+use pxfm::{
+    f_cos, f_cospi, f_cospif, f_cotpif, f_erfcx, f_i0ef, f_i0f, f_i1ef, f_i1f, f_j0, f_j0f, f_j1f,
+    f_jincpi, f_jincpif, f_k0ef, f_k0f, f_k1f, f_sin, f_sincpi, f_sincpif, f_sinpif, f_tanf,
+    f_tanpif, f_y0f, floorf,
+};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::float::Constant;

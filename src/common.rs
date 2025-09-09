@@ -90,7 +90,7 @@ pub(crate) fn is_integer(n: f64) -> bool {
         target_arch = "aarch64"
     )))]
     {
-        let x_u = x.to_bits();
+        let x_u = n.to_bits();
         let x_e = (x_u & EXP_MASK) >> 52;
         let lsb = (x_u | EXP_MASK).trailing_zeros();
         const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;

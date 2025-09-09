@@ -91,6 +91,62 @@ pub const fn floor(x: f64) -> f64 {
     x
 }
 
+pub(crate) trait FloorFinite {
+    fn floor_finite(self) -> Self;
+}
+
+impl FloorFinite for f32 {
+    #[inline]
+    fn floor_finite(self) -> Self {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "sse4.1"
+            ),
+            target_arch = "aarch64"
+        ))]
+        {
+            self.floor()
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "sse4.1"
+            ),
+            target_arch = "aarch64"
+        )))]
+        {
+            floorf(self)
+        }
+    }
+}
+
+impl FloorFinite for f64 {
+    #[inline]
+    fn floor_finite(self) -> Self {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "sse4.1"
+            ),
+            target_arch = "aarch64"
+        ))]
+        {
+            self.floor()
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "sse4.1"
+            ),
+            target_arch = "aarch64"
+        )))]
+        {
+            floor(self)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
