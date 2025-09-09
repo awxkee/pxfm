@@ -26,11 +26,10 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, is_integer, is_odd_integer};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::logs::{log1p_f64_dyadic, log1p_fast_dd};
-use crate::pow::{is_integer, is_odd_integer};
 use crate::pow_exec::{exp_dyadic, pow_exp_dd};
 use crate::triple_double::TripleDouble;
 

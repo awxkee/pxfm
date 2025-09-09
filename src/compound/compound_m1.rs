@@ -30,7 +30,6 @@ use crate::common::*;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::logs::log1p_fast_dd;
-use crate::pow::{is_integer, is_odd_integer};
 use crate::pow_exec::pow_expm1_1;
 
 /// Computes (1+x)^y - 1

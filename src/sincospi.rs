@@ -26,10 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, dyad_fmla, f_fmla};
+use crate::common::{dd_fmla, dyad_fmla, f_fmla, is_odd_integer};
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval3, f_polyeval4};
-use crate::pow::is_odd_integer;
 use crate::sin::SinCos;
 use crate::sincospi_tables::SINPI_K_PI_OVER_64;
 

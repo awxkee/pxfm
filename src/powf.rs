@@ -54,27 +54,6 @@ pub const fn powf(d: f32, n: f32) -> f32 {
 }
 
 #[inline]
-pub(crate) const fn is_integer(x: f32) -> bool {
-    let x_u = x.to_bits();
-    let x_e = (x_u & EXP_MASK_F32) >> 23;
-    let lsb = (x_u | EXP_MASK_F32).trailing_zeros();
-    const E_BIAS: u32 = (1u32 << (8 - 1u32)) - 1u32;
-    const UNIT_EXPONENT: u32 = E_BIAS + 23;
-    x_e + lsb >= UNIT_EXPONENT
-}
-
-#[inline]
-pub(crate) fn is_odd_integer(x: f32) -> bool {
-    let x_u = x.to_bits();
-    let x_e = (x_u & EXP_MASK_F32) >> 23;
-    let lsb = (x_u | EXP_MASK_F32).trailing_zeros();
-    const E_BIAS: u32 = (1u32 << (8 - 1u32)) - 1u32;
-
-    const UNIT_EXPONENT: u32 = E_BIAS + 23;
-    x_e + lsb == UNIT_EXPONENT
-}
-
-#[inline]
 const fn larger_exponent(a: f64, b: f64) -> bool {
     biased_exponent_f64(a) >= biased_exponent_f64(b)
 }
@@ -263,7 +242,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
                     } // y = 1.0f
                     0x4000_0000 => return x * x, // y = 2.0f
                     _ => {
-                        let is_int = is_integer(y);
+                        let is_int = is_integerf(y);
                         if is_int && (y_u > 0x4000_0000) && (y_u <= 0x41c0_0000) {
                             // Check for exact cases when 2 < y < 25 and y is an integer.
                             let mut msb: i32 = if x_abs == 0 {
@@ -331,7 +310,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
         let x_is_neg = x.to_bits() > 0x8000_0000;
 
         if x == 0.0 {
-            let out_is_neg = x_is_neg && is_odd_integer(f32::from_bits(y_u));
+            let out_is_neg = x_is_neg && is_odd_integerf(f32::from_bits(y_u));
             if y_u > 0x8000_0000u32 {
                 // pow(0, negative number) = inf
                 return if x_is_neg {
@@ -346,7 +325,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
 
         if x_abs == 0x7f80_0000u32 {
             // x = +-Inf
-            let out_is_neg = x_is_neg && is_odd_integer(f32::from_bits(y_u));
+            let out_is_neg = x_is_neg && is_odd_integerf(f32::from_bits(y_u));
             if y_u >= 0x7fff_ffff {
                 return if out_is_neg { -0.0 } else { 0.0 };
             }
@@ -371,9 +350,9 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
 
         // x is finite and negative, and y is a finite integer.
         if x.is_sign_negative() {
-            if is_integer(y) {
+            if is_integerf(y) {
                 x = -x;
-                if is_odd_integer(y) {
+                if is_odd_integerf(y) {
                     sign = 0x8000_0000_0000_0000u64;
                 }
             } else {

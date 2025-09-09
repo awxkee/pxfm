@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::f_fmla;
+use crate::common::{f_fmla, is_integerf, is_odd_integerf};
 use crate::polyeval::f_polyeval5;
 use crate::sin_cosf::sincosf_eval::sincospif_eval;
 
@@ -115,7 +115,7 @@ pub fn f_sincospif(x: f32) -> (f32, f32) {
     }
 
     // Numbers greater or equal to 2^23 are always integers or NaN
-    if x_abs >= 0x4b00_0000u32 {
+    if x_abs >= 0x4b00_0000u32 || is_integerf(x) {
         if x_abs >= 0x7f80_0000u32 {
             return (x + f32::NAN, x + f32::NAN);
         }
@@ -123,7 +123,7 @@ pub fn f_sincospif(x: f32) -> (f32, f32) {
         let sf = SF[x.is_sign_negative() as usize];
         if x_abs < 0x4b80_0000u32 {
             static CF: [f32; 2] = [1., -1.];
-            let cs = CF[((x_abs & 0x1) != 0) as usize];
+            let cs = CF[is_odd_integerf(x) as usize];
             return (sf, cs);
         }
         return (sf, 1.);
@@ -158,6 +158,18 @@ mod tests {
 
     #[test]
     fn test_sincospif() {
+        let v0 = f_sincospif(-5.);
+        assert_eq!(v0.0, f_sinpif(-5.));
+        assert_eq!(v0.1, f_cospif(-5.));
+
+        let v0 = f_sincospif(-4.);
+        assert_eq!(v0.0, f_sinpif(-4.));
+        assert_eq!(v0.1, f_cospif(-4.));
+
+        let v0 = f_sincospif(4.);
+        assert_eq!(v0.0, f_sinpif(4.));
+        assert_eq!(v0.1, f_cospif(4.));
+
         let v0 = f_sincospif(-8489897.0);
         assert_eq!(v0.0, f_sinpif(-8489897.0));
         assert_eq!(v0.1, f_cospif(-8489897.0));

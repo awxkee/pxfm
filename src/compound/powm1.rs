@@ -26,9 +26,9 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::common::{is_integer, is_odd_integer};
 use crate::double_double::DoubleDouble;
 use crate::exponents::{EXPM1_T0, EXPM1_T1, ldexp};
-use crate::pow::{is_integer, is_odd_integer};
 use crate::pow_exec::pow_log_1;
 
 /// Computes x^y - 1
