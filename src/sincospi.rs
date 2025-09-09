@@ -29,6 +29,7 @@
 use crate::common::{dd_fmla, dyad_fmla, f_fmla, is_odd_integer};
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval3, f_polyeval4};
+use crate::round::RoundFinite;
 use crate::sin::SinCos;
 use crate::sincospi_tables::SINPI_K_PI_OVER_64;
 
@@ -106,7 +107,7 @@ fn as_sinpi_zero(x: f64) -> f64 {
 // k = round(x * 64 / pi) and y = (x * 64 / pi) - k.
 #[inline]
 pub(crate) fn reduce_pi_64(x: f64) -> (f64, i64) {
-    let kd = (x * 64.).round();
+    let kd = (x * 64.).round_finite();
     let y = dd_fmla(kd, -1. / 64., x);
     (y, kd as i64)
 }

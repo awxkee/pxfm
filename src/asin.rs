@@ -30,6 +30,7 @@ use crate::asin_eval_dyadic::asin_eval_dyadic;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::round::RoundFinite;
 
 static ASIN_COEFFS: [[u64; 12]; 9] = [
     [
@@ -163,7 +164,7 @@ static ASIN_COEFFS: [[u64; 12]; 9] = [
 #[inline]
 pub(crate) fn asin_eval(u: DoubleDouble, err: f64) -> (DoubleDouble, f64) {
     // k = round(u * 32).
-    let k = (u.hi * f64::from_bits(0x4040000000000000)).round();
+    let k = (u.hi * f64::from_bits(0x4040000000000000)).round_finite();
     let idx = k as u64;
     // y = u - k/32.
     let y_hi = f_fmla(k, f64::from_bits(0xbfa0000000000000), u.hi); // Exact
@@ -249,7 +250,7 @@ pub fn f_asin(x: f64) -> f64 {
         // Ziv's accuracy test failed, perform 128-bit calculation.
 
         // Recalculate mod 1/64.
-        let idx = (x_sq.hi * f64::from_bits(0x4050000000000000)).round() as usize;
+        let idx = (x_sq.hi * f64::from_bits(0x4050000000000000)).round_finite() as usize;
 
         // Get x^2 - idx/64 exactly.  When FMA is available, double-double
         // multiplication will be correct for all rounding modes. Otherwise, we use
@@ -401,7 +402,7 @@ pub fn f_asin(x: f64) -> f64 {
 
     // Ziv's accuracy test failed, we redo the computations in Float128.
     // Recalculate mod 1/64.
-    let idx = (u * f64::from_bits(0x4050000000000000)).round() as usize;
+    let idx = (u * f64::from_bits(0x4050000000000000)).round_finite() as usize;
 
     // After the first step of Newton-Raphson approximating v = sqrt(u), we have
     // that:

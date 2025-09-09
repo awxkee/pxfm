@@ -36,6 +36,7 @@ use crate::bessel::j1_coeffs_taylor::J1_COEFFS_TAYLOR;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval9, f_polyeval19};
+use crate::round::RoundFinite;
 use crate::sin_helper::sin_dd_small_fast;
 
 /// Normalized jinc 2*J1(PI\*x)/(pi\*x)
@@ -105,7 +106,7 @@ fn jinc_asympt_fast(ox: f64) -> f64 {
 
     // argument reduction assuming x here value is already multiple of PI.
     // k = round((x*Pi) / (pi*2))
-    let kd = (ox * 0.5).round();
+    let kd = (ox * 0.5).round_finite();
     //  y = (x * Pi) - k * 2
     let rem = f_fmla(kd, -2., ox);
     let angle = DoubleDouble::quick_mult_f64(PI, rem);
