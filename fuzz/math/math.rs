@@ -125,4 +125,16 @@ fuzz_target!(|data: (f64, f32, f32, f64)| {
     _ = f_digamma(z_f64);
     _ = f_tanpi(z_f64);
     _ = f_k2f(z_f32);
+
+    if !z_f64.is_nan() {
+        assert_eq!(pxfm::round_ties_even(z_f64), z_f64.round_ties_even());
+        assert_eq!(pxfm::floor(z_f64), z_f64.floor());
+        assert_eq!(pxfm::round(z_f64), z_f64.round());
+    }
+
+    if !z_f32.is_nan() {
+        assert_eq!(pxfm::roundf_ties_even(z_f32), z_f32.round_ties_even());
+        assert_eq!(pxfm::floorf(z_f32), z_f32.floor());
+        assert_eq!(pxfm::roundf(z_f32), z_f32.round());
+    }
 });

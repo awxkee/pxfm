@@ -30,6 +30,7 @@ use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::exponents::exp2m1::{EXP_M1_2_TABLE1, EXP_M1_2_TABLE2};
 use crate::floor::FloorFinite;
+use crate::round_ties_even::RoundTiesEven;
 
 const LN10H: f64 = f64::from_bits(0x40026bb1bbb55516);
 const LN10L: f64 = f64::from_bits(0xbcaf48ad494ea3e9);
@@ -64,7 +65,7 @@ fn q_1(dz: DoubleDouble) -> DoubleDouble {
 #[inline]
 fn exp1(x: DoubleDouble) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe); /* |INVLOG2-2^12/log(2)| < 2^-43.4 */
-    let k = (x.hi * INVLOG2).round_ties_even();
+    let k = (x.hi * INVLOG2).round_ties_even_finite();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
@@ -208,7 +209,7 @@ fn q_2(dz: DoubleDouble) -> DoubleDouble {
 // assumes -0x1.041704c068efp+4 < x <= 0x1.34413509f79fep+8
 #[inline]
 fn exp_2(x: f64) -> DoubleDouble {
-    let mut k = (x * f64::from_bits(0x40ca934f0979a371)).round_ties_even();
+    let mut k = (x * f64::from_bits(0x40ca934f0979a371)).round_ties_even_finite();
     if k == 4194304. {
         k = 4194303.; // ensures M < 2047 below
     }

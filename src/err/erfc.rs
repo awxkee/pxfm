@@ -30,6 +30,7 @@ use crate::common::dd_fmla;
 use crate::double_double::DoubleDouble;
 use crate::err::erf::{Erf, erf_accurate, erf_fast};
 use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, ldexp};
+use crate::round_ties_even::RoundTiesEven;
 use std::hint::black_box;
 
 static ASYMPTOTIC_POLY: [[u64; 13]; 6] = [
@@ -473,7 +474,7 @@ fn q_1(z_dd: DoubleDouble) -> DoubleDouble {
 #[inline]
 fn exp_1(x: DoubleDouble) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe); /* |INVLOG2-2^12/log(2)| < 2^-43.4 */
-    let k = (x.hi * INVLOG2).round_ties_even();
+    let k = (x.hi * INVLOG2).round_ties_even_finite();
 
     const LOG2_DD: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3bbabc9e3b39803f),
@@ -542,7 +543,7 @@ fn exp_accurate(x_dd: DoubleDouble) -> Exp {
         0x3c6abfe1602308c9,
     ];
     const LOG2INV: f64 = f64::from_bits(0x3ff71547652b82fe);
-    let k: i32 = (x_dd.hi * LOG2INV).round_ties_even() as i32;
+    let k: i32 = (x_dd.hi * LOG2INV).round_ties_even_finite() as i32;
 
     const LOG2_H: f64 = f64::from_bits(0x3fe62e42fefa39ef);
     /* we approximate LOG2Lacc ~ log(2) - LOG2H with 38 bits, so that

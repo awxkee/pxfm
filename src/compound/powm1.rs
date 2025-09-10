@@ -30,6 +30,7 @@ use crate::common::{is_integer, is_odd_integer};
 use crate::double_double::DoubleDouble;
 use crate::exponents::{EXPM1_T0, EXPM1_T1, ldexp};
 use crate::pow_exec::pow_log_1;
+use crate::round_ties_even::RoundTiesEven;
 
 /// Computes x^y - 1
 pub fn f_powm1(x: f64, y: f64) -> f64 {
@@ -160,7 +161,7 @@ pub(crate) fn powm1_expm1_1(r: DoubleDouble) -> DoubleDouble {
 
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r.hi * INVLOG2).round_ties_even();
+    let k = (r.hi * INVLOG2).round_ties_even_finite();
 
     let z = DoubleDouble::mul_f64_add(DoubleDouble::new(LOG2L, LOG2H), -k, r);
 

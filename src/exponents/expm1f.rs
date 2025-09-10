@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::*;
+use crate::round_ties_even::RoundTiesEven;
 use std::hint::black_box;
 
 static TD: [u64; 32] = [
@@ -167,7 +168,7 @@ pub fn f_expm1f(x: f32) -> f32 {
         return r as f32;
     }
     let a = ILN2 * z;
-    let ia = a.round_ties_even();
+    let ia = a.round_ties_even_finite();
     let h = a - ia;
     let h2 = h * h;
     let u = (ia + BIG).to_bits();
