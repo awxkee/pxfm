@@ -34,6 +34,7 @@ use crate::exponents::{EXPM1_T0, EXPM1_T1};
 use crate::polyeval::{f_polyeval6, f_polyeval8};
 use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC, POW_INVERSE, POW_LOG_INV};
 use crate::round::RoundFinite;
+use crate::round_ties_even::RoundTiesEven;
 
 #[inline(always)]
 pub(crate) fn log_poly_1(z: f64) -> DoubleDouble {
@@ -611,7 +612,7 @@ pub(crate) fn pow_expm1_1(r: DoubleDouble, s: f64) -> DoubleDouble {
 
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r.hi * INVLOG2).round_ties_even();
+    let k = (r.hi * INVLOG2).round_ties_even_finite();
 
     let z = DoubleDouble::mul_f64_add(DoubleDouble::new(LOG2L, LOG2H), -k, r);
 

@@ -31,7 +31,7 @@ use crate::bits::{get_exponent_f32, get_exponent_f64, mantissa_f32, mantissa_f64
 #[inline]
 pub const fn roundf(x: f32) -> f32 {
     // If x is infinity NaN or zero, return it.
-    if !x.is_normal() {
+    if !x.is_normal() && !x.is_subnormal() {
         return x;
     }
 
@@ -146,7 +146,7 @@ pub(crate) fn froundf_finite(x: f32) -> f32 {
 #[inline]
 pub const fn round(x: f64) -> f64 {
     // If x is infinity NaN or zero, return it.
-    if !x.is_normal() {
+    if !x.is_normal() && !x.is_subnormal() {
         return x;
     }
 

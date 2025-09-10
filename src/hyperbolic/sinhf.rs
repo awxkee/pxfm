@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, f_fmlaf};
+use crate::round_ties_even::RoundTiesEven;
 
 static TB: [u64; 32] = [
     0x3fe0000000000000,
@@ -154,7 +155,7 @@ pub fn f_sinhf(x: f32) -> f32 {
         return f_fmla(z2 * z, w2, z) as f32;
     }
     let a = ILN2 * z;
-    let ia = a.round_ties_even();
+    let ia = a.round_ties_even_finite();
     let h = a - ia;
     let h2 = h * h;
     let ja = (ia + f64::from_bits(0x4338000000000000)).to_bits();

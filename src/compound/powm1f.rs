@@ -31,6 +31,7 @@ use crate::compound::compound_m1f::compoundf_expf_poly;
 use crate::compound::compoundf::{
     COMPOUNDF_EXP2_T, COMPOUNDF_EXP2_U, LOG2P1_COMPOUNDF_INV, LOG2P1_COMPOUNDF_LOG2_INV,
 };
+use crate::round_ties_even::RoundTiesEven;
 use std::hint::black_box;
 
 #[inline]
@@ -192,7 +193,7 @@ pub fn f_powm1f(x: f32, y: f32) -> f32 {
 
 #[inline]
 pub(crate) fn powm1_exp2m1_fast(t: f64) -> f64 {
-    let k = t.round_ties_even(); // 0 <= |k| <= 150
+    let k = t.round_ties_even_finite(); // 0 <= |k| <= 150
     let mut r = t - k; // |r| <= 1/2, exact
     let mut v: f64 = 3.015625 + r; // 2.5 <= v <= 3.5015625
     // we add 2^-6 so that i is rounded to nearest

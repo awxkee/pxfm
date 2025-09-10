@@ -30,6 +30,7 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::exponents::auxiliary::fast_ldexp;
 use crate::exponents::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
+use crate::round_ties_even::RoundTiesEven;
 use std::hint::black_box;
 
 #[inline]
@@ -57,7 +58,7 @@ fn exp10_poly_dd(z: DoubleDouble) -> DoubleDouble {
 #[cold]
 fn as_exp10_accurate(x: f64) -> f64 {
     let mut ix = x.to_bits();
-    let t = (f64::from_bits(0x40ca934f0979a371) * x).round_ties_even();
+    let t = (f64::from_bits(0x40ca934f0979a371) * x).round_ties_even_finite();
     let jt: i64 = t as i64;
     let i1 = jt & 0x3f;
     let i0 = (jt >> 6) & 0x3f;
@@ -138,7 +139,7 @@ pub fn f_exp10(x: f64) -> f64 {
 
     // check x integer to avoid a spurious inexact exception
     if ix.wrapping_shl(16) == 0 && (aix >> 48) <= 0x4036 {
-        let kx = x.round_ties_even();
+        let kx = x.round_ties_even_finite();
         if kx == x {
             let k = kx as i64;
             if k >= 0 {
@@ -155,7 +156,7 @@ pub fn f_exp10(x: f64) -> f64 {
     if aix <= 0x3c7bcb7b1526e50eu64 {
         return 1.0 + x; // |x| <= 2.41082e-17
     }
-    let t = (f64::from_bits(0x40ca934f0979a371) * x).round_ties_even();
+    let t = (f64::from_bits(0x40ca934f0979a371) * x).round_ties_even_finite();
     let jt = t as i64;
     let i1 = jt & 0x3f;
     let i0 = (jt >> 6) & 0x3f;

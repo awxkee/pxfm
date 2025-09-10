@@ -27,145 +27,139 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-use crate::bits::{get_exponent_f32, get_exponent_f64, mantissa_f32, mantissa_f64};
-
-#[inline]
 pub const fn roundf_ties_even(x: f32) -> f32 {
-    // If x is infinity NaN or zero, return it.
-    if !x.is_normal() {
-        return x;
-    }
-
-    let exponent = get_exponent_f32(x);
-
-    const FRACTION_LENGTH: u32 = 23;
-
-    // If the exponent is greater than the most negative mantissa
-    // exponent, then x is already an integer.
-    if exponent >= FRACTION_LENGTH as i32 {
-        return x;
-    }
-
-    if exponent == -1 {
-        // Absolute value of x is greater than equal to 0.5 but less than 1.
-        return if x.is_sign_negative() { -0.0 } else { 0.0 };
-    }
-
-    if exponent <= -2 {
-        // Absolute value of x is less than 0.5.
-        return if x.is_sign_negative() { -0.0 } else { 0.0 };
-    }
-
-    let trim_size = (FRACTION_LENGTH as i32).wrapping_sub(exponent);
-    let trim_value = mantissa_f32(x) & (1u32 << trim_size).wrapping_sub(1);
-    let half_value = 1u32 << (trim_size.wrapping_sub(1));
-
-    let x_u = x.to_bits();
-    let trunc_u: u32 = (x_u >> trim_size).wrapping_shl(trim_size as u32);
-
-    // If x is already an integer, return it.
-    if trunc_u == x_u {
-        return x;
-    }
-
-    let trunc_value = f32::from_bits(trunc_u);
-
-    // If exponent is 0, trimSize will be equal to the mantissa width, and
-    // truncIsOdd` will not be correct. So, we handle it as a special case
-    // below.
-    let trunc_is_odd = mantissa_f32(trunc_value) & (1u32 << trim_size) != 0;
-
-    if trim_value > half_value {
-        if x.is_sign_negative() {
-            trunc_value - 1.0
+    const BIAS: i32 = 0x7f;
+    const MANT_DIG: i32 = 24;
+    const MAX_EXP: i32 = 2 * BIAS + 1;
+    let mut ix: u32 = x.to_bits();
+    let ux: u32 = ix & 0x7fffffff;
+    let exponent: i32 = (ux >> (MANT_DIG - 1)) as i32;
+    if exponent >= BIAS + MANT_DIG - 1 {
+        /* Integer, infinity or NaN.  */
+        if exponent == MAX_EXP {
+            /* Infinity or NaN; quiet signaling NaNs.  */
+            return x + x;
         } else {
-            trunc_value + 1.0
+            return x;
         }
-    } else if trim_value == half_value {
-        if exponent == 0 {
-            return if x.is_sign_negative() { -2.0 } else { 2.0 };
+    } else if exponent >= BIAS {
+        /* At least 1; not necessarily an integer.  Locate the bits with
+        exponents 0 and -1 (when the unbiased exponent is 0, the bit
+        with exponent 0 is implicit, but as the bias is odd it is OK
+        to take it from the low bit of the exponent).  */
+        let int_pos: i32 = (BIAS + MANT_DIG - 1) - exponent;
+        let half_pos: i32 = int_pos - 1;
+        let half_bit: u32 = 1u32 << half_pos;
+        let int_bit: u32 = 1u32 << int_pos;
+        if (ix & (int_bit | (half_bit - 1))) != 0 {
+            /* Carry into the exponent works correctly.  No need to test
+            whether HALF_BIT is set.  */
+            ix = ix.wrapping_add(half_bit);
         }
-        if trunc_is_odd {
-            if x.is_sign_negative() {
-                trunc_value - 1.0
-            } else {
-                trunc_value + 1.0
-            }
-        } else {
-            trunc_value
-        }
+        ix &= !(int_bit - 1);
+    } else if exponent == BIAS - 1 && ux > 0x3f000000 {
+        /* Interval (0.5, 1).  */
+        ix = (ix & 0x80000000) | 0x3f800000;
     } else {
-        trunc_value
+        /* Rounds to 0.  */
+        ix &= 0x80000000;
+    }
+    f32::from_bits(ix)
+}
+
+pub const fn round_ties_even(x: f64) -> f64 {
+    let mut ix: u64 = x.to_bits();
+    let ux = ix & 0x7fffffffffffffffu64;
+    const BIAS: i32 = 0x3ff;
+    const MANT_DIG: i32 = 53;
+    const MAX_EXP: i32 = 2 * BIAS + 1;
+    let exponent: i32 = (ux >> (MANT_DIG - 1)) as i32;
+    if exponent >= BIAS + MANT_DIG - 1 {
+        /* Integer, infinity or NaN.  */
+        return if exponent == MAX_EXP {
+            /* Infinity or NaN; quiet signaling NaNs.  */
+            x + x
+        } else {
+            x
+        };
+    } else if exponent >= BIAS {
+        /* At least 1; not necessarily an integer.  Locate the bits with
+        exponents 0 and -1 (when the unbiased exponent is 0, the bit
+        with exponent 0 is implicit, but as the bias is odd it is OK
+        to take it from the low bit of the exponent).  */
+        let int_pos: i32 = (BIAS + MANT_DIG - 1) - exponent;
+        let half_pos: i32 = int_pos - 1;
+        let half_bit: u64 = 1u64 << half_pos;
+        let int_bit: u64 = 1u64 << int_pos;
+        if (ix & (int_bit | (half_bit - 1))) != 0 {
+            /* Carry into the exponent works correctly.  No need to test
+            whether HALF_BIT is set.  */
+            ix = ix.wrapping_add(half_bit);
+        }
+        ix &= !(int_bit - 1);
+    } else if exponent == BIAS - 1 && ux > 0x3fe0000000000000u64 {
+        /* Interval (0.5, 1).  */
+        ix = (ix & 0x8000000000000000u64) | 0x3ff0000000000000u64;
+    } else {
+        /* Rounds to 0.  */
+        ix &= 0x8000000000000000u64;
+    }
+    f64::from_bits(ix)
+}
+
+pub(crate) trait RoundTiesEven {
+    fn round_ties_even_finite(self) -> Self;
+}
+
+impl RoundTiesEven for f32 {
+    #[inline]
+    fn round_ties_even_finite(self) -> Self {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "sse4.1"
+            ),
+            target_arch = "aarch64"
+        ))]
+        {
+            self.round_ties_even()
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "sse4.1"
+            ),
+            target_arch = "aarch64"
+        )))]
+        {
+            roundf_ties_even(self)
+        }
     }
 }
 
-#[inline]
-pub const fn round_ties_even(x: f64) -> f64 {
-    // If x is infinity NaN or zero, return it.
-    if !x.is_normal() {
-        return x;
-    }
-
-    let exponent = get_exponent_f64(x);
-
-    const FRACTION_LENGTH: u64 = 52;
-
-    // If the exponent is greater than the most negative mantissa
-    // exponent, then x is already an integer.
-    if exponent >= FRACTION_LENGTH as i64 {
-        return x;
-    }
-
-    if exponent == -1 {
-        // Absolute value of x is greater than equal to 0.5 but less than 1.
-        return if x.is_sign_negative() { -0.0 } else { 0.0 };
-    }
-
-    if exponent <= -2 {
-        // Absolute value of x is less than 0.5.
-        return if x.is_sign_negative() { -0.0 } else { 0.0 };
-    }
-
-    let trim_size = (FRACTION_LENGTH as i64).wrapping_sub(exponent);
-    let trim_value = mantissa_f64(x) & (1u64 << trim_size).wrapping_sub(1);
-    let half_value = 1u64 << (trim_size.wrapping_sub(1));
-
-    let x_u = x.to_bits();
-    let trunc_u: u64 = (x_u >> trim_size).wrapping_shl(trim_size as u32);
-
-    // If x is already an integer, return it.
-    if trunc_u == x_u {
-        return x;
-    }
-
-    let trunc_value = f64::from_bits(trunc_u);
-
-    // If exponent is 0, trimSize will be equal to the mantissa width, and
-    // truncIsOdd` will not be correct. So, we handle it as a special case
-    // below.
-    let trunc_is_odd = mantissa_f64(trunc_value) & (1u64 << trim_size) != 0;
-
-    if trim_value > half_value {
-        if x.is_sign_negative() {
-            trunc_value - 1.0
-        } else {
-            trunc_value + 1.0
+impl RoundTiesEven for f64 {
+    #[inline]
+    fn round_ties_even_finite(self) -> Self {
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "sse4.1"
+            ),
+            target_arch = "aarch64"
+        ))]
+        {
+            self.round_ties_even()
         }
-    } else if trim_value == half_value {
-        if exponent == 0 {
-            return if x.is_sign_negative() { -2.0 } else { 2.0 };
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "sse4.1"
+            ),
+            target_arch = "aarch64"
+        )))]
+        {
+            round_ties_even(self)
         }
-        if trunc_is_odd {
-            if x.is_sign_negative() {
-                trunc_value - 1.0
-            } else {
-                trunc_value + 1.0
-            }
-        } else {
-            trunc_value
-        }
-    } else {
-        trunc_value
     }
 }
 
@@ -186,10 +180,25 @@ mod tests {
         assert_eq!(roundf_ties_even(1.6f32), 1.6f32.round_ties_even());
         assert_eq!(roundf_ties_even(1.5f32), 1.5f32.round_ties_even());
         assert_eq!(roundf_ties_even(2.5f32), 2.5f32.round_ties_even());
+        assert_eq!(
+            roundf_ties_even(f32::INFINITY),
+            f32::INFINITY.round_ties_even()
+        );
+        assert_eq!(
+            roundf_ties_even(f32::NEG_INFINITY),
+            f32::NEG_INFINITY.round_ties_even()
+        );
+        assert!(roundf_ties_even(f32::NAN).is_nan());
     }
 
     #[test]
     fn test_round_ties_even() {
+        assert_eq!(
+            round_ties_even(5.6916e-320),
+            (5.6916e-320f64).round_ties_even()
+        );
+        assert_eq!(round_ties_even(3f64), 3f64.round_ties_even());
+        assert_eq!(round_ties_even(2f64), 2f64.round_ties_even());
         assert_eq!(round_ties_even(0.), 0.0f64.round_ties_even());
         assert_eq!(round_ties_even(0.5), 0.5f64.round_ties_even());
         assert_eq!(round_ties_even(-0.5), (-0.5f64).round_ties_even());
@@ -202,5 +211,14 @@ mod tests {
         assert_eq!(round_ties_even(1.5), 1.5f64.round_ties_even());
         assert_eq!(round_ties_even(2.5), 2.5f64.round_ties_even());
         assert_eq!(round_ties_even(-2.5), (-2.5f64).round_ties_even());
+        assert_eq!(
+            round_ties_even(f64::INFINITY),
+            f64::INFINITY.round_ties_even()
+        );
+        assert_eq!(
+            round_ties_even(f64::NEG_INFINITY),
+            f64::NEG_INFINITY.round_ties_even()
+        );
+        assert!(round_ties_even(f64::NAN).is_nan());
     }
 }
