@@ -37,11 +37,11 @@ use crate::sin_cosf::fast_sinpif;
 ///
 /// ulp 0.5
 pub fn f_tgammaf(x: f32) -> f32 {
-    let x_a = f32::from_bits(x.to_bits() & 0x7fff_ffff);
-
-    if !x.is_normal() {
-        if x == 0.0 {
-            return 1. / x;
+    let xb = x.to_bits();
+    // filter out exceptional cases
+    if xb >= 0xffu32 << 23 || xb == 0 {
+        if xb.wrapping_shl(1) == 0 {
+            return f32::INFINITY;
         }
 
         if x.is_nan() {
@@ -56,6 +56,7 @@ pub fn f_tgammaf(x: f32) -> f32 {
         }
     }
 
+    let x_a = f32::from_bits(x.to_bits() & 0x7fff_ffff);
     if x.is_sign_positive() && x_a.to_bits() >= 0x420c2910u32 {
         // x >= 35.0401
         return f32::INFINITY;
@@ -224,7 +225,7 @@ mod tests {
         assert_eq!(f_tgammaf(-1.3559477), 2.892815);
         assert_eq!(f_tgammaf(-2.3559477), -1.2278775);
         assert_eq!(f_tgammaf(0.0), f32::INFINITY);
-        assert_eq!(f_tgammaf(-0.0), f32::NEG_INFINITY);
+        assert_eq!(f_tgammaf(-0.0), f32::INFINITY);
         assert_eq!(f_tgammaf(f32::INFINITY), f32::INFINITY);
         assert!(f_tgammaf(f32::NEG_INFINITY).is_nan());
         assert!(f_tgammaf(f32::NAN).is_nan());

@@ -193,7 +193,8 @@ fn approx_trigamma(x: f64) -> f64 {
 /// The trigamma function is the second derivative of the logarithm of the gamma function.
 pub fn f_trigammaf(x: f32) -> f32 {
     let xb = x.to_bits();
-    if !x.is_normal() {
+    // filter out exceptional cases
+    if xb >= 0xffu32 << 23 || xb == 0 {
         if x.is_infinite() {
             return if x.is_sign_negative() {
                 f32::NEG_INFINITY
@@ -204,7 +205,7 @@ pub fn f_trigammaf(x: f32) -> f32 {
         if x.is_nan() {
             return f32::NAN;
         }
-        if xb == 0 {
+        if xb.wrapping_shl(1) == 0 {
             return f32::INFINITY;
         }
     }
@@ -256,6 +257,8 @@ mod tests {
         assert_eq!(f_trigammaf(0.123541), 66.911285);
         assert_eq!(f_trigammaf(-0.54331), 9.154416);
         assert_eq!(f_trigammaf(-5.), f32::INFINITY);
+        assert_eq!(f_trigammaf(-0.), f32::INFINITY);
+        assert_eq!(f_trigammaf(0.), f32::INFINITY);
         assert_eq!(f_trigammaf(f32::INFINITY), 0.0);
         assert_eq!(f_trigammaf(f32::NEG_INFINITY), f32::NEG_INFINITY);
         assert!(f_trigammaf(f32::NAN).is_nan());

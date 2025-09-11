@@ -1,8 +1,8 @@
 use num_complex::Complex;
 use pxfm::{
     f_cos, f_cospi, f_cospif, f_cotpif, f_erfcx, f_i0ef, f_i0f, f_i1ef, f_i1f, f_j0, f_j0f, f_j1f,
-    f_jincpi, f_jincpif, f_k0ef, f_k0f, f_k1f, f_sin, f_sincpi, f_sincpif, f_sinpif, f_tanf,
-    f_tanpif, f_y0f, floorf,
+    f_jincpi, f_jincpif, f_k0ef, f_k0f, f_k1f, f_lgamma_rf, f_sin, f_sincpi, f_sincpif, f_sinpif,
+    f_tanf, f_tanpif, f_y0f, floorf,
 };
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -12,8 +12,8 @@ use std::ops::{Div, Mul, Sub};
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::Duration;
+use std::{cmp, thread};
 
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
     let r = x.to_string();
@@ -243,25 +243,34 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected_sin_pi = Float::with_val(70, x).floor();
-        let actual = floorf(x);
-        if actual.is_infinite() {
-            return;
-        }
+        let expected_sin_pi = Float::with_val(70, x).ln_abs_gamma();
+        let actual = f_lgamma_rf(x);
+        // if actual.is_infinite() {
+        //     return;
+        // }
 
         executions.fetch_add(1, Ordering::Relaxed);
 
-        let diff = count_ulp(actual, &Float::with_val(90, expected_sin_pi.clone()));
+        let diff = count_ulp(actual.0, &Float::with_val(90, expected_sin_pi.0.clone()));
         // if diff.is_nan() || diff.is_infinite() {
         //     return;
         // }
+
+        let signgam = if expected_sin_pi.1 == cmp::Ordering::Less { -1 } else { 1 };
+        if signgam != actual.1 {
+            eprintln!(
+                "Mismatch: x = {x:?}, expected = {:?}, sign = {signgam}, got = {actual:?}, sign = {}, ULP diff = {diff}",
+                expected_sin_pi.0.to_f32(),
+                actual.1,
+            );
+        }
 
         if diff > 0.5 {
             failures.fetch_add(1, Ordering::Relaxed);
             exceptions.lock().unwrap().push(x);
             eprintln!(
                 "Mismatch: x = {x:?}, expected = {:?}, got = {actual:?}, ULP diff = {diff}",
-                expected_sin_pi.to_f32(),
+                expected_sin_pi.0.to_f32(),
             );
         }
     });

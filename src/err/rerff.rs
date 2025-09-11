@@ -458,6 +458,7 @@ mod tests {
 
     #[test]
     fn f_erff_test() {
+        assert!(f_rerff(f32::NAN).is_nan());
         assert_eq!(f_rerff(0.0), f32::INFINITY);
         assert_eq!(f_rerff(-0.0), f32::NEG_INFINITY);
         assert_eq!(f_rerff(0.015255669), 58.096153);

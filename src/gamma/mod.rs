@@ -26,20 +26,28 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+mod betaf;
+mod betaincf;
 mod digamma;
 mod digamma_coeffs;
 mod digammaf;
 mod lgamma;
+mod lgamma_rf;
 mod lgammaf;
+mod lnbetaf;
 mod tgamma;
 mod tgammaf;
 mod trigamma;
 mod trigammaf;
 
+pub use betaf::f_betaf;
+pub use betaincf::f_betaincf;
 pub use digamma::f_digamma;
 pub use digammaf::f_digammaf;
 pub use lgamma::f_lgamma;
+pub use lgamma_rf::f_lgamma_rf;
 pub use lgammaf::f_lgammaf;
+pub use lnbetaf::f_lnbetaf;
 pub use tgamma::f_tgamma;
 pub use tgammaf::f_tgammaf;
 pub use trigamma::f_trigamma;

@@ -409,5 +409,8 @@ mod tests {
         assert_eq!(f_erff(0.0), 0.0);
         assert_eq!(f_erff(1.0), 0.8427008);
         assert_eq!(f_erff(0.5), 0.5204999);
+        assert_eq!(f_erff(f32::INFINITY), 1.0);
+        assert_eq!(f_erff(f32::NEG_INFINITY), -1.0);
+        assert!(f_erff(f32::NAN).is_nan());
     }
 }
