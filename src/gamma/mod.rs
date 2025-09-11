@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 mod betaf;
+mod betaincf;
 mod digamma;
 mod digamma_coeffs;
 mod digammaf;
@@ -40,6 +41,7 @@ mod trigamma;
 mod trigammaf;
 
 pub use betaf::f_betaf;
+pub use betaincf::f_betaincf;
 pub use digamma::f_digamma;
 pub use digammaf::f_digammaf;
 pub use lgamma::f_lgamma;

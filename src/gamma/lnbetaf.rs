@@ -62,6 +62,15 @@ pub fn f_lnbetaf(a: f32, b: f32) -> f32 {
     y as f32
 }
 
+pub(crate) fn lnbeta_core(a: f32, b: f32) -> f64 {
+    let (mut y, _) = lgamma_coref(a + b);
+    let (y1, _) = lgamma_coref(b);
+    y = y1 - y;
+    let (y1, _) = lgamma_coref(a);
+    y += y1;
+    y
+}
+
 #[cfg(test)]
 mod tests {
     use crate::f_lnbetaf;
