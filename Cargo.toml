@@ -13,6 +13,7 @@ repository = "https://github.com/awxkee/pxfm"
 rust-version = "1.85"
 categories = ["mathematics"]
 description = "Fast and accurate math"
+include = ["/src/", "/README.md", "/LICENSE.md", "/LICENSE-APACHE.md"]
 
 [dependencies]
 num-traits = "0.2"
