@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 8/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 9/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -26,35 +26,53 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-mod beta;
-mod betaf;
-mod betaincf;
-mod digamma;
-mod digamma_coeffs;
-mod digammaf;
-mod lgamma;
-mod lgamma_r;
-mod lgamma_rf;
-mod lgammaf;
-mod lnbeta;
-mod lnbetaf;
-mod tgamma;
-mod tgammaf;
-mod trigamma;
-mod trigammaf;
+use crate::common::{is_integer, is_odd_integer};
+use crate::gamma::lgamma::lgamma_core;
 
-pub use beta::f_beta;
-pub use betaf::f_betaf;
-pub use betaincf::f_betaincf;
-pub use digamma::f_digamma;
-pub use digammaf::f_digammaf;
-pub use lgamma::f_lgamma;
-pub use lgamma_r::f_lgamma_r;
-pub use lgamma_rf::f_lgamma_rf;
-pub use lgammaf::f_lgammaf;
-pub use lnbeta::f_lnbeta;
-pub use lnbetaf::f_lnbetaf;
-pub use tgamma::f_tgamma;
-pub use tgammaf::f_tgammaf;
-pub use trigamma::f_trigamma;
-pub use trigammaf::f_trigammaf;
+/// Computes log(gamma(x))
+///
+/// Returns gamma value + sign.
+pub fn f_lgamma_r(x: f64) -> (f64, i32) {
+    // filter out exceptional cases
+    let xb = x.to_bits();
+    if xb >= 0x7ffu64 << 52 || xb.wrapping_shl(1) == 0 {
+        if x.is_nan() {
+            return (f64::NAN, 1);
+        }
+        if xb.wrapping_shl(1) == 0 {
+            return (f64::INFINITY, 1 - 2 * ((x.to_bits() >> 63) as i32));
+        }
+        if xb.wrapping_shl(12) == 0 {
+            return (f64::INFINITY, 1);
+        }
+    }
+
+    if is_integer(x) {
+        if x == 2. || x == 1. {
+            return (0., 1);
+        }
+        if x.is_sign_negative() {
+            let is_odd = (!is_odd_integer(x)) as i32;
+            return (f64::INFINITY, 1 - (is_odd << 1));
+        }
+    }
+
+    let (r, sign_gam) = lgamma_core(x);
+    (r.to_f64(), sign_gam)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::f_lgamma_r;
+
+    #[test]
+    fn test_lgamma_rf() {
+        assert_eq!(f_lgamma_r(-0.), (f64::INFINITY, -1));
+        assert_eq!(f_lgamma_r(f64::NEG_INFINITY), (f64::INFINITY, 1));
+        assert_eq!(f_lgamma_r(f64::INFINITY), (f64::INFINITY, 1));
+        assert_eq!(f_lgamma_r(0.), (f64::INFINITY, 1));
+        assert_eq!(f_lgamma_r(5.), (3.1780538303479458, 1));
+        assert_eq!(f_lgamma_r(-4.5), (-2.813084081769316, -1));
+        assert_eq!(f_lgamma_r(-2.0015738), (5.759666328573806, -1));
+    }
+}

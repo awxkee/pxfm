@@ -121,8 +121,8 @@ pub use exponents::{
 };
 pub use floor::{floor, floorf};
 pub use gamma::{
-    f_betaf, f_betaincf, f_digamma, f_digammaf, f_lgamma, f_lgamma_rf, f_lgammaf, f_lnbetaf,
-    f_tgamma, f_tgammaf, f_trigamma, f_trigammaf,
+    f_beta, f_betaf, f_betaincf, f_digamma, f_digammaf, f_lgamma, f_lgamma_r, f_lgamma_rf,
+    f_lgammaf, f_lnbeta, f_lnbetaf, f_tgamma, f_tgammaf, f_trigamma, f_trigammaf,
 };
 pub use hyperbolic::{
     f_acosh, f_acoshf, f_asinh, f_asinhf, f_atanh, f_atanhf, f_cosh, f_coshf, f_sinh, f_sinhf,

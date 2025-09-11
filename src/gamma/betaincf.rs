@@ -31,7 +31,7 @@ use crate::gamma::lnbetaf::lnbeta_core;
 use crate::{f_exp, f_log, f_log1p, f_pow, f_powf};
 
 /// Regularized incomplete beta
-pub fn f_betaincf(x: f32, a: f32, b: f32) -> f32 {
+pub fn f_betaincf(a: f32, b: f32, x: f32) -> f32 {
     let aa = a.to_bits();
     let ab = b.to_bits();
     let ax = x.to_bits();
@@ -116,12 +116,12 @@ pub fn f_betaincf(x: f32, a: f32, b: f32) -> f32 {
             1.0 /*First numerator is 1.0.*/
         } else if i % 2 == 0 {
             let m = m as f64;
-            let w0 = f_fmla(2.0, m, da);
-            (m * (db - m) * dx) / ((w0 - 1.0) * w0) /*Even term.*/
+            let c0 = f_fmla(2.0, m, da);
+            (m * (db - m) * dx) / ((c0 - 1.0) * c0) /*Even term.*/
         } else {
             let m = m as f64;
-            let w0 = f_fmla(2.0, m, da);
-            -((da + m) * (da + db + m) * dx) / (w0 * (w0 + 1.)) /*Odd term.*/
+            let c0 = f_fmla(2.0, m, da);
+            -((da + m) * (da + db + m) * dx) / (c0 * (c0 + 1.)) /*Odd term.*/
         };
 
         /*Do an iteration of Lentz's algorithm.*/
@@ -162,18 +162,19 @@ mod tests {
 
     #[test]
     fn test_betaincf() {
-        assert_eq!(f_betaincf(0.1312, 5., 1.4324), 8.872578e-5);
-        assert_eq!(f_betaincf(0.4324, 7., 42.), 0.99999547);
-        assert_eq!(f_betaincf(1., 0.5, 0.), 1.);
-        assert_eq!(f_betaincf(1., 5., 2.), 1.);
-        assert_eq!(f_betaincf(0., 5., 2.), 0.);
-        assert_eq!(f_betaincf(0.5, 5., 2.), 0.109375);
-        assert!(f_betaincf(-1., 5., 2.).is_nan());
-        assert!(f_betaincf(1.1, 5., 2.).is_nan());
-        assert!(f_betaincf(f32::INFINITY, 5., 2.).is_nan());
-        assert!(f_betaincf(f32::NEG_INFINITY, 5., 2.).is_nan());
-        assert!(f_betaincf(f32::NAN, 5., 2.).is_nan());
-        assert!(f_betaincf(0.432, -5., 2.).is_nan());
-        assert!(f_betaincf(0.432, 5., -2.).is_nan());
+        assert_eq!(f_betaincf(54221., 23124., 0.64534), 0.0);
+        assert_eq!(f_betaincf(5., 1.4324, 0.1312), 8.872578e-5);
+        assert_eq!(f_betaincf(7., 42., 0.4324), 0.99999547);
+        assert_eq!(f_betaincf(0.5, 0., 1.), 1.);
+        assert_eq!(f_betaincf(5., 2., 1.), 1.);
+        assert_eq!(f_betaincf(5., 2., 0.), 0.);
+        assert_eq!(f_betaincf(5., 2., 0.5), 0.109375);
+        assert!(f_betaincf(5., 2., -1.).is_nan());
+        assert!(f_betaincf(5., 2., 1.1).is_nan());
+        assert!(f_betaincf(5., 2., f32::INFINITY).is_nan());
+        assert!(f_betaincf(5., 2., f32::NEG_INFINITY).is_nan());
+        assert!(f_betaincf(5., 2., f32::NAN).is_nan());
+        assert!(f_betaincf(-5., 2., 0.432).is_nan());
+        assert!(f_betaincf(5., -2., 0.432).is_nan());
     }
 }
