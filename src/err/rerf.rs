@@ -227,5 +227,6 @@ mod tests {
         assert_eq!(f_rerf(2.000225067138672), 1.004695025872889);
         assert_eq!(f_rerf(0.), f64::INFINITY);
         assert_eq!(f_rerf(-0.), f64::NEG_INFINITY);
+        assert!(f_rerf(f64::NAN).is_nan());
     }
 }

@@ -42,7 +42,7 @@ pub fn f_tgamma(x: f64) -> f64 {
 
     if !x.is_normal() {
         if x == 0.0 {
-            return 1. / x;
+            return f64::INFINITY;
         }
 
         if x.is_nan() {
@@ -338,6 +338,7 @@ mod tests {
         assert_eq!(f_tgamma(6.4324324), 255.1369211339094);
         assert_eq!(f_tgamma(f64::INFINITY), f64::INFINITY);
         assert_eq!(f_tgamma(0.), f64::INFINITY);
+        assert_eq!(f_tgamma(-0.), f64::INFINITY);
         assert!(f_tgamma(f64::NAN).is_nan());
     }
 }

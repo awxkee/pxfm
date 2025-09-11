@@ -307,7 +307,8 @@ fn approx_digamma(x: f64) -> f64 {
 /// Computes digamma(x)
 pub fn f_digammaf(x: f32) -> f32 {
     let xb = x.to_bits();
-    if (xb & 0x0007_ffff) == 0 {
+    // filter out exceptional cases
+    if xb >= 0xffu32 << 23 || xb == 0 {
         if x.is_infinite() {
             return if x.is_sign_negative() {
                 f32::NAN
@@ -319,7 +320,7 @@ pub fn f_digammaf(x: f32) -> f32 {
             return f32::NAN;
         }
         if xb == 0 {
-            return 1. / x;
+            return f32::INFINITY;
         }
     }
 
@@ -407,6 +408,9 @@ mod tests {
         assert_eq!(f_digammaf(-31.06964), 17.582127);
         assert_eq!(f_digammaf(-0.000000000000001191123), 839543830000000.);
         assert_eq!(f_digammaf(f32::INFINITY), f32::INFINITY);
+        assert_eq!(f_digammaf(0.), f32::INFINITY);
+        assert_eq!(f_digammaf(-0.), f32::INFINITY);
         assert!(f_digammaf(f32::NEG_INFINITY).is_nan());
+        assert!(f_digammaf(f32::NAN).is_nan());
     }
 }
