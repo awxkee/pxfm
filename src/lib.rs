@@ -58,7 +58,6 @@ mod csc;
 mod cube_roots;
 mod double_double;
 mod dyadic_float;
-mod dyadic_float256;
 mod err;
 mod exponents;
 mod floor;
@@ -93,7 +92,6 @@ mod tangent;
 mod triangle;
 mod triple_double;
 mod trunc;
-mod u256;
 
 pub use acos::f_acos;
 pub use acosf::f_acosf;
