@@ -33,7 +33,10 @@ use crate::err::inverff::erfinv_core;
 /// Max ulp 0.5
 pub fn f_erfcinvf(x: f32) -> f32 {
     if !x.is_normal() {
-        if x.is_nan() || x.is_infinite() {
+        if x.is_nan() {
+            return x;
+        }
+        if x.is_infinite() {
             return f32::INFINITY;
         }
         if x == 0. {
@@ -68,6 +71,7 @@ pub fn f_erfcinvf(x: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::f_erfcinvf;
+
     #[test]
     fn m_test() {
         assert!(f_erfcinvf(-1.).is_nan());
@@ -78,5 +82,6 @@ mod tests {
         assert_eq!(f_erfcinvf(1.5), -0.47693628);
         assert_eq!(f_erfcinvf(0.002), 2.1851242);
         assert_eq!(f_erfcinvf(1.002), -0.0017724329);
+        assert!(f_erfcinvf(f32::NAN).is_nan());
     }
 }

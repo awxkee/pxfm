@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 8/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 9/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -26,64 +26,57 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::is_integerf;
+
 use crate::gamma::lgamma_rf::lgamma_coref;
 
-/// Computes log(gamma(x))
-///
-/// ulp 0.5
-pub fn f_lgammaf(x: f32) -> f32 {
-    let xb = x.to_bits();
-    if xb >= 0xffu32 << 23 || xb == 0 {
-        if x.is_infinite() {
-            return f32::INFINITY;
-        }
-        if x.is_nan() {
+/// Computes log(beta(x)) function
+pub fn f_lnbetaf(a: f32, b: f32) -> f32 {
+    let ax = a.to_bits();
+    let bx = b.to_bits();
+
+    if ax >= 0xffu32 << 23
+        || ax.wrapping_shl(1) == 0
+        || bx >= 0xffu32 << 23
+        || bx.wrapping_shl(1) == 0
+    {
+        if ax == 0 || bx == 0 {
+            // |a| == 0 || |b| == 0
             return f32::NAN;
         }
-        if xb.wrapping_shl(1) == 0 {
-            return f32::INFINITY;
+        if (ax >> 31) != 0 || (bx >> 31) != 0 {
+            // |a| < 0 or |b| < 0
+            return f32::NAN;
         }
-    }
-
-    if is_integerf(x) {
-        if x == 2. || x == 1. {
+        if ax.wrapping_shl(9) == 0 || bx.wrapping_shl(9) == 0 {
+            // |a| == inf or |b| == inf
             return 0.;
         }
-        if x.is_sign_negative() {
-            return f32::INFINITY;
-        }
+        return a + f32::NAN; // nan
     }
 
-    lgamma_coref(x).0 as f32
+    let (mut y, _) = lgamma_coref(a + b);
+    let (y1, _) = lgamma_coref(b);
+    y = y1 - y;
+    let (y1, _) = lgamma_coref(a);
+    y += y1;
+    y as f32
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::f_lnbetaf;
 
     #[test]
-    fn test_lgammaf() {
-        assert_eq!(
-            f_lgammaf(0.000000000000000000000000000000000000000015425),
-            93.97255
-        );
-        assert_eq!(f_lgammaf(0.0), f32::INFINITY);
-        assert_eq!(f_lgammaf(1.7506484), -0.0842405);
-        assert_eq!(f_lgammaf(7.095007e-8), 16.461288);
-        assert!(f_lgammaf(-12.).is_infinite());
-        assert_eq!(f_lgammaf(2.), 0.);
-        assert_eq!(f_lgammaf(1.), 0.);
-        assert_eq!(f_lgammaf(0.53), 0.5156078);
-        assert_eq!(f_lgammaf(1.53), -0.11927056);
-        assert_eq!(f_lgammaf(4.53), 2.4955146);
-        assert_eq!(f_lgammaf(11.77), 16.94281);
-        assert_eq!(f_lgammaf(22.77), 47.756233);
-        assert_eq!(f_lgammaf(-0.53), 1.2684484);
-        assert_eq!(f_lgammaf(-1.53), 0.84318066);
-        assert_eq!(f_lgammaf(-4.53), -2.8570588);
-        assert_eq!(f_lgammaf(-11.77), -17.850103);
-        assert_eq!(f_lgammaf(-22.77), -49.323418);
-        assert_eq!(f_lgammaf(f32::NEG_INFINITY), f32::INFINITY);
+    fn test_betaf() {
+        assert!(f_lnbetaf(-5., 15.).is_nan());
+        assert!(f_lnbetaf(5., -15.).is_nan());
+        assert!(f_lnbetaf(f32::NAN, 15.).is_nan());
+        assert!(f_lnbetaf(15., f32::NAN).is_nan());
+        assert!(f_lnbetaf(f32::INFINITY, 0.).is_nan());
+        assert_eq!(f_lnbetaf(f32::INFINITY, 1.), 0.);
+        assert_eq!(f_lnbetaf(1., f32::INFINITY), 0.);
+        assert_eq!(f_lnbetaf(5., 3.), -4.65396);
+        assert_eq!(f_lnbetaf(3., 5.), -4.65396);
+        assert_eq!(f_lnbetaf(12., 23.), -22.607338);
     }
 }

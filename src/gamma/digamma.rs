@@ -400,8 +400,9 @@ pub fn f_digamma(x: f64) -> f64 {
         if x.is_nan() {
             return f64::NAN;
         }
-        if xb == 0 {
-            return 1. / x;
+        if xb.wrapping_shl(1) == 0 {
+            // |x| == 0
+            return f64::INFINITY;
         }
     }
 
@@ -447,5 +448,8 @@ mod tests {
         assert_eq!(f_digamma(0.0019531200000040207), -512.5753182109892);
         assert_eq!(f_digamma(-13.999000000012591), -997.3224450000563);
         assert_eq!(f_digamma(13.999000000453323), 2.602844047257257);
+        assert_eq!(f_digamma(0.), f64::INFINITY);
+        assert_eq!(f_digamma(-0.), f64::INFINITY);
+        assert!(f_digamma(f64::NAN).is_nan());
     }
 }

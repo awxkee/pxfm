@@ -61,13 +61,20 @@ pub(crate) fn is_integerf(x: f32) -> bool {
 
 #[inline]
 pub(crate) fn is_odd_integerf(x: f32) -> bool {
-    let x_u = x.to_bits();
-    let x_e = (x_u & EXP_MASK_F32) >> 23;
-    let lsb = (x_u | EXP_MASK_F32).trailing_zeros();
-    const E_BIAS: u32 = (1u32 << (8 - 1u32)) - 1u32;
+    #[cfg(target_arch = "aarch64")]
+    {
+        (x as i32 & 1) != 0
+    }
+    #[cfg(not(target_arch = "aarch64"))]
+    {
+        let x_u = x.to_bits();
+        let x_e = (x_u & EXP_MASK_F32) >> 23;
+        let lsb = (x_u | EXP_MASK_F32).trailing_zeros();
+        const E_BIAS: u32 = (1u32 << (8 - 1u32)) - 1u32;
 
-    const UNIT_EXPONENT: u32 = E_BIAS + 23;
-    x_e + lsb == UNIT_EXPONENT
+        const UNIT_EXPONENT: u32 = E_BIAS + 23;
+        x_e + lsb == UNIT_EXPONENT
+    }
 }
 
 #[inline]

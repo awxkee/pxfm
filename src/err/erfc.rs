@@ -949,5 +949,8 @@ mod tests {
         assert_eq!(f_erfc(0.5), 0.4795001221869535);
         assert_eq!(f_erfc(0.000000005), 0.9999999943581042);
         assert_eq!(f_erfc(-0.00000000000065465465423305), 1.0000000000007387);
+        assert!(f_erfc(f64::NAN).is_nan());
+        assert_eq!(f_erfc(f64::INFINITY), 0.0);
+        assert_eq!(f_erfc(f64::NEG_INFINITY), 2.0);
     }
 }
