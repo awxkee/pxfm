@@ -50,7 +50,7 @@ pub fn f_betaf(a: f32, b: f32) -> f32 {
             }
             return f32::NAN;
         }
-        if ax.wrapping_shl(9) == 0 || bx.wrapping_shl(9) == 0 {
+        if a.is_infinite() || b.is_infinite() {
             // |a| == inf or |b| == inf
             return 0.;
         }

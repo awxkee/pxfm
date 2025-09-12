@@ -69,6 +69,7 @@ mod y1f;
 mod y1f_coeffs;
 
 pub use i0::f_i0;
+pub(crate) use i0::i0_exp;
 pub use i0ef::f_i0ef;
 pub use i0f::f_i0f;
 pub use i1::f_i1;

@@ -54,7 +54,7 @@ pub fn f_lnbeta(a: f64, b: f64) -> f64 {
             }
             return f64::NAN;
         }
-        if ax.wrapping_shl(12) == 0 || bx.wrapping_shl(12) == 0 {
+        if a.is_infinite() || b.is_infinite() {
             // |a| == inf or |b| == inf
             return f64::NEG_INFINITY;
         }
@@ -69,13 +69,13 @@ pub fn f_lnbeta(a: f64, b: f64) -> f64 {
     y.to_f64()
 }
 
-// pub(crate) fn lnbeta_core(a: f64, b: f64) -> DoubleDouble {
-//     let (mut y, _) = lgamma_core(DoubleDouble::from_full_exact_add(a, b).to_f64());
-//     let (y1, _) = lgamma_core(b);
-//     y = DoubleDouble::quick_dd_sub(y1, y);
-//     let (y1, _) = lgamma_core(a);
-//     DoubleDouble::quick_dd_add(y1, y)
-// }
+pub(crate) fn lnbeta_core(a: f64, b: f64) -> DoubleDouble {
+    let (mut y, _) = lgamma_core(DoubleDouble::from_full_exact_add(a, b).to_f64());
+    let (y1, _) = lgamma_core(b);
+    y = DoubleDouble::quick_dd_sub(y1, y);
+    let (y1, _) = lgamma_core(a);
+    DoubleDouble::quick_dd_add(y1, y)
+}
 
 #[cfg(test)]
 mod tests {

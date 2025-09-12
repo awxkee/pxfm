@@ -26,34 +26,41 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::i0_exp;
 use crate::common::f_fmla;
-use crate::gamma::lnbetaf::lnbetaf_core;
-use crate::{f_exp, f_log, f_log1p, f_pow, f_powf};
+use crate::double_double::DoubleDouble;
+use crate::f_pow;
+use crate::gamma::lnbeta::lnbeta_core;
+use crate::logs::{fast_log_dd, log1p_fast_dd};
 
 /// Regularized incomplete beta
-pub fn f_betainc_regf(a: f32, b: f32, x: f32) -> f32 {
+pub fn f_betainc_reg(a: f64, b: f64, x: f64) -> f64 {
     let aa = a.to_bits();
     let ab = b.to_bits();
     let ax = x.to_bits();
 
-    if aa >= 0xffu32 << 23
+    if aa >= 0x7ffu64 << 52
         || aa.wrapping_shl(1) == 0
-        || ab >= 0xffu32 << 23
+        || ab >= 0x7ffu64 << 52
         || ab.wrapping_shl(1) == 0
         || ax.wrapping_shl(1) == 0
-        || ax >= 0x3f800000
+        || ax >= 0x3ff0000000000000
     {
-        if (aa >> 31) != 0 || (ab >> 31) != 0 || (ax >> 31) != 0 {
+        if (aa >> 63) != 0 || (ab >> 63) != 0 || (ax >> 63) != 0 {
             // |a| < 0 or |b| < 0
-            return f32::NAN;
+            return f64::NAN;
         }
-        if ax >= 0x3f800000 {
+        if ax >= 0x3ff0000000000000 {
             // |x| > 1
-            if ax == 0x3f800000 {
-                // |x| == 1
+            if ax == 0x3ff0000000000000 {
+                // x == 1
                 return 1.;
             }
-            return f32::NAN;
+            return f64::NAN;
+        }
+        if ax.wrapping_shl(1) == 0 {
+            // |x| == 0
+            return 0.;
         }
         if aa.wrapping_shl(1) == 0 {
             // |a| == 0
@@ -61,10 +68,6 @@ pub fn f_betainc_regf(a: f32, b: f32, x: f32) -> f32 {
         }
         if ab.wrapping_shl(1) == 0 {
             // |b| == 0
-            return 0.;
-        }
-        if ax.wrapping_shl(1) == 0 {
-            // |x| == 0
             return 0.;
         }
         if a.is_infinite() {
@@ -75,43 +78,43 @@ pub fn f_betainc_regf(a: f32, b: f32, x: f32) -> f32 {
             // |b| == inf
             return 1.;
         }
-        return a + f32::NAN; // nan
+        return a + f64::NAN; // nan
     }
 
-    if aa == 0x3f800000 {
-        // a == 1
-        return (1. - f_pow(1. - x as f64, b as f64)) as f32;
-    }
-
-    if ab == 0x3f800000 {
+    if ab == 0x3ff0000000000000 {
         // b == 1
-        return f_powf(x, a);
+        return f_pow(x, a);
     }
 
     /*The continued fraction converges nicely for x < (a+1)/(a+b+2)*/
     /*Use the fact that beta is symmetrical.*/
     let mut return_inverse = false;
-    let mut dx = x as f64;
+    let mut dx = DoubleDouble::new(0., x);
     let mut a = a;
     let mut b = b;
     if x > (a + 1.0) / (a + b + 2.0) {
         std::mem::swap(&mut a, &mut b);
-        dx = 1.0 - dx;
+        dx = DoubleDouble::from_full_exact_sub(1.0, x);
         return_inverse = true;
     }
     /*Find the first part before the continued fraction.*/
-    let da = a as f64;
-    let db = b as f64;
-    let w0 = f_fmla(f_log(dx), da, f_fmla(f_log1p(-dx), db, -lnbetaf_core(a, b)));
-    let front = f_exp(w0) / da;
+    let da = a;
+    let db = b;
+    let ln_beta_ab = lnbeta_core(a, b);
+    let log_dx = fast_log_dd(dx);
+    let mut log1p_dx = log1p_fast_dd(-dx.hi);
+    log1p_dx.lo += -dx.lo / dx.hi;
+    let z1 = DoubleDouble::mul_f64_add(log1p_dx, db, -ln_beta_ab);
+    let w0 = DoubleDouble::mul_f64_add(log_dx, da, z1);
+    let front = DoubleDouble::div_dd_f64(i0_exp(w0.to_f64()), da);
 
     /*Use Lentz's algorithm to evaluate the continued fraction.*/
     let mut f = 1.0;
     let mut c = 1.0;
     let mut d = 0.0;
 
-    const TINY: f64 = 1.0e-30;
-    const STOP: f64 = 1.0e-8;
+    const TINY: f64 = 1.0e-31;
+    const STOP: f64 = f64::EPSILON;
 
     for i in 0..200 {
         let m = i / 2;
@@ -120,11 +123,11 @@ pub fn f_betainc_regf(a: f32, b: f32, x: f32) -> f32 {
         } else if i % 2 == 0 {
             let m = m as f64;
             let c0 = f_fmla(2.0, m, da);
-            (m * (db - m) * dx) / ((c0 - 1.0) * c0) /*Even term.*/
+            (m * (db - m) * dx.hi) / ((c0 - 1.0) * c0) /*Even term.*/
         } else {
             let m = m as f64;
             let c0 = f_fmla(2.0, m, da);
-            -((da + m) * (da + db + m) * dx) / (c0 * (c0 + 1.)) /*Odd term.*/
+            -((da + m) * (da + db + m) * dx.hi) / (c0 * (c0 + 1.)) /*Odd term.*/
         };
 
         /*Do an iteration of Lentz's algorithm.*/
@@ -144,18 +147,20 @@ pub fn f_betainc_regf(a: f32, b: f32, x: f32) -> f32 {
 
         /*Check for stop.*/
         if (1.0 - cd).abs() < STOP {
+            let r = DoubleDouble::from_full_exact_sub(f, 1.0);
             return if return_inverse {
-                f_fmla(-front, f - 1.0, 1.) as f32
+                DoubleDouble::mul_add_f64(-front, r, 1.).to_f64()
             } else {
-                (front * (f - 1.0)) as f32
+                DoubleDouble::quick_mult(front, r).to_f64()
             };
         }
     }
 
+    let r = DoubleDouble::from_full_exact_sub(f, 1.0);
     if return_inverse {
-        f_fmla(-front, f - 1.0, 1.) as f32
+        DoubleDouble::mul_add_f64(-front, r, 1.).to_f64()
     } else {
-        (front * (f - 1.0)) as f32
+        DoubleDouble::quick_mult(front, r).to_f64()
     }
 }
 
@@ -164,24 +169,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_betaincf() {
-        assert_eq!(f_betainc_regf(0.5, 2.5, 0.5), 0.9244131815783875);
-        assert_eq!(f_betainc_regf(2.5, 1.0, 0.5), 0.1767766952966368811);
-        assert_eq!(f_betainc_regf(0.5, 0.5, 0.5), 0.5);
-        assert_eq!(f_betainc_regf(54221., 23124., 0.64534), 0.0);
-        assert_eq!(f_betainc_regf(5., 1.4324, 0.1312), 8.872578e-5);
-        assert_eq!(f_betainc_regf(7., 42., 0.4324), 0.99999547);
-        assert_eq!(f_betainc_regf(0.5, 0., 1.), 1.);
-        assert_eq!(f_betainc_regf(5., 2., 1.), 1.);
-        assert_eq!(f_betainc_regf(5., 2., 0.), 0.);
-        assert_eq!(f_betainc_regf(5., 2., 0.5), 0.109375);
-        assert!(f_betainc_regf(5., 2., -1.).is_nan());
-        assert!(f_betainc_regf(5., 2., 1.1).is_nan());
-        assert!(f_betainc_regf(5., 2., f32::INFINITY).is_nan());
-        assert!(f_betainc_regf(5., 2., f32::NEG_INFINITY).is_nan());
-        assert!(f_betainc_regf(5., 2., f32::NAN).is_nan());
-        assert!(f_betainc_regf(-5., 2., 0.432).is_nan());
-        assert!(f_betainc_regf(5., -2., 0.432).is_nan());
-        assert!(f_betainc_regf(5., 2., -0.432).is_nan());
+    fn test_betainc() {
+        assert_eq!(f_betainc_reg(0.5, 2.5, 0.5), 0.9244131815783875);
+        assert_eq!(f_betainc_reg(2.5, 1.0, 0.5), 0.1767766952966368811);
+        assert_eq!(f_betainc_reg(0.5, 0., 1.), 1.);
+        assert_eq!(f_betainc_reg(5., 1.4324, 0.1312), 8.872581630413704e-5);
+        assert_eq!(f_betainc_reg(7., 42., 0.4324), 0.9999954480481231);
+        assert_eq!(f_betainc_reg(5., 2., 1.), 1.);
+        assert_eq!(f_betainc_reg(5., 2., 0.), 0.);
+        assert_eq!(f_betainc_reg(5., 2., 0.5), 0.10937500000000006);
+        assert!(f_betainc_reg(5., 2., -1.).is_nan());
+        assert!(f_betainc_reg(5., 2., 1.1).is_nan());
+        assert!(f_betainc_reg(5., 2., f64::INFINITY).is_nan());
+        assert!(f_betainc_reg(5., 2., f64::NEG_INFINITY).is_nan());
+        assert!(f_betainc_reg(5., 2., f64::NAN).is_nan());
+        assert!(f_betainc_reg(-5., 2., 0.432).is_nan());
+        assert!(f_betainc_reg(5., -2., 0.432).is_nan());
+        assert!(f_betainc_reg(5., 2., -0.432).is_nan());
     }
 }
