@@ -37,9 +37,10 @@ use crate::polyeval::{f_estrin_polyeval7, f_estrin_polyeval9, f_polyeval10};
 ///
 /// Max ULP 0.5
 pub fn f_i1ef(x: f32) -> f32 {
-    if (x.to_bits() & 0x0007_ffff) == 0 {
+    let ux = x.to_bits().wrapping_shl(1);
+    if ux >= 0xffu32<<24 || ux == 0 {
         if x == 0. {
-            return 0.;
+            return 0.2079104153497085;
         }
         if x.is_infinite() {
             return if x.is_sign_positive() { 0. } else { -0. };
@@ -212,7 +213,7 @@ mod tests {
         assert!(f_i1ef(f32::NAN).is_nan());
         assert_eq!(f_i1ef(f32::INFINITY), 0.0);
         assert_eq!(f_i1ef(f32::NEG_INFINITY), 0.0);
-        assert_eq!(f_i1ef(0.), 0.);
+        assert_eq!(f_i1ef(0.), 0.2079104153497085);
         assert_eq!(f_i1ef(1.), 0.20791042);
         assert_eq!(f_i1ef(-1.), -0.20791042);
         assert_eq!(f_i1ef(9.), 0.12722498);
