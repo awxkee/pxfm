@@ -50,7 +50,7 @@ pub fn f_lnbetaf(a: f32, b: f32) -> f32 {
             }
             return f32::NAN;
         }
-        if ax.wrapping_shl(9) == 0 || bx.wrapping_shl(9) == 0 {
+        if a.is_infinite() || b.is_infinite() {
             // |a| == inf or |b| == inf
             return f32::NEG_INFINITY;
         }
@@ -65,7 +65,7 @@ pub fn f_lnbetaf(a: f32, b: f32) -> f32 {
     y as f32
 }
 
-pub(crate) fn lnbeta_core(a: f32, b: f32) -> f64 {
+pub(crate) fn lnbetaf_core(a: f32, b: f32) -> f64 {
     let (mut y, _) = lgamma_coref(a + b);
     let (y1, _) = lgamma_coref(b);
     y = y1 - y;

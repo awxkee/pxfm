@@ -51,7 +51,7 @@ pub fn f_beta(a: f64, b: f64) -> f64 {
             }
             return f64::NAN;
         }
-        if ax.wrapping_shl(12) == 0 || bx.wrapping_shl(12) == 0 {
+        if a.is_infinite() || b.is_infinite() {
             // |a| == inf or |b| == inf
             return 0.;
         }

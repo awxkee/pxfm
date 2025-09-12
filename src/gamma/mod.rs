@@ -28,10 +28,13 @@
  */
 mod beta;
 mod betaf;
+mod betainc;
 mod betaincf;
 mod digamma;
 mod digamma_coeffs;
 mod digammaf;
+mod gamma_p;
+mod gamma_pf;
 mod lgamma;
 mod lgamma_r;
 mod lgamma_rf;
@@ -45,9 +48,12 @@ mod trigammaf;
 
 pub use beta::f_beta;
 pub use betaf::f_betaf;
-pub use betaincf::f_betaincf;
+pub use betainc::f_betainc_reg;
+pub use betaincf::f_betainc_regf;
 pub use digamma::f_digamma;
 pub use digammaf::f_digammaf;
+pub use gamma_p::f_gamma_p;
+pub use gamma_pf::f_gamma_pf;
 pub use lgamma::f_lgamma;
 pub use lgamma_r::f_lgamma_r;
 pub use lgamma_rf::f_lgamma_rf;
