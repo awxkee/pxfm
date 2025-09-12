@@ -26,71 +26,74 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-use crate::gamma::lgamma_rf::lgamma_coref;
+use crate::double_double::DoubleDouble;
+use crate::gamma::lgamma::lgamma_core;
 
 /// Computes log(beta(x)) function
-pub fn f_lnbetaf(a: f32, b: f32) -> f32 {
+pub fn f_lnbeta(a: f64, b: f64) -> f64 {
     let ax = a.to_bits();
     let bx = b.to_bits();
 
-    if ax >= 0xffu32 << 23
+    if ax >= 0x7ffu64 << 52
         || ax.wrapping_shl(1) == 0
-        || bx >= 0xffu32 << 23
+        || bx >= 0x7ffu64 << 52
         || bx.wrapping_shl(1) == 0
     {
-        if (ax >> 31) != 0 || (bx >> 31) != 0 {
+        if (ax >> 63) != 0 || (bx >> 63) != 0 {
             // |a| < 0 or |b| < 0
-            return f32::NAN;
+            return f64::NAN;
         }
         if ax.wrapping_shl(1) == 0 || bx.wrapping_shl(1) == 0 {
             // |a| == 0 || |b| == 0
-            if ax.wrapping_shl(1) != 0 || bx.wrapping_shl(1) != 0 {
-                return f32::INFINITY;
+            if ax == 0 || bx == 0 {
+                // |a| == 0 || |b| == 0
+                if ax.wrapping_shl(1) != 0 || bx.wrapping_shl(1) != 0 {
+                    return f64::INFINITY;
+                }
+                return f64::NAN;
             }
-            return f32::NAN;
+            return f64::NAN;
         }
-        if ax.wrapping_shl(9) == 0 || bx.wrapping_shl(9) == 0 {
+        if ax.wrapping_shl(12) == 0 || bx.wrapping_shl(12) == 0 {
             // |a| == inf or |b| == inf
-            return f32::NEG_INFINITY;
+            return f64::NEG_INFINITY;
         }
-        return a + f32::NAN; // nan
+        return a + f64::NAN; // nan
     }
 
-    let (mut y, _) = lgamma_coref(a + b);
-    let (y1, _) = lgamma_coref(b);
-    y = y1 - y;
-    let (y1, _) = lgamma_coref(a);
-    y += y1;
-    y as f32
+    let (mut y, _) = lgamma_core(DoubleDouble::from_full_exact_add(a, b).to_f64());
+    let (y1, _) = lgamma_core(b);
+    y = DoubleDouble::quick_dd_sub(y1, y);
+    let (y1, _) = lgamma_core(a);
+    y = DoubleDouble::quick_dd_add(y1, y);
+    y.to_f64()
 }
 
-pub(crate) fn lnbeta_core(a: f32, b: f32) -> f64 {
-    let (mut y, _) = lgamma_coref(a + b);
-    let (y1, _) = lgamma_coref(b);
-    y = y1 - y;
-    let (y1, _) = lgamma_coref(a);
-    y += y1;
-    y
-}
+// pub(crate) fn lnbeta_core(a: f64, b: f64) -> DoubleDouble {
+//     let (mut y, _) = lgamma_core(DoubleDouble::from_full_exact_add(a, b).to_f64());
+//     let (y1, _) = lgamma_core(b);
+//     y = DoubleDouble::quick_dd_sub(y1, y);
+//     let (y1, _) = lgamma_core(a);
+//     DoubleDouble::quick_dd_add(y1, y)
+// }
 
 #[cfg(test)]
 mod tests {
-    use crate::f_lnbetaf;
+    use crate::f_lnbeta;
 
     #[test]
-    fn test_betaf() {
-        assert_eq!(f_lnbetaf(1., f32::INFINITY), f32::NEG_INFINITY);
-        assert_eq!(f_lnbetaf(f32::INFINITY, 0.), f32::INFINITY);
-        assert!(f_lnbetaf(0., 0.).is_nan());
-        assert_eq!(f_lnbetaf(0., f32::INFINITY), f32::INFINITY);
-        assert!(f_lnbetaf(-5., 15.).is_nan());
-        assert!(f_lnbetaf(5., -15.).is_nan());
-        assert!(f_lnbetaf(f32::NAN, 15.).is_nan());
-        assert!(f_lnbetaf(15., f32::NAN).is_nan());
-        assert_eq!(f_lnbetaf(f32::INFINITY, 1.), f32::NEG_INFINITY);
-        assert_eq!(f_lnbetaf(5., 3.), -4.65396);
-        assert_eq!(f_lnbetaf(3., 5.), -4.65396);
-        assert_eq!(f_lnbetaf(12., 23.), -22.607338);
+    fn test_beta() {
+        assert_eq!(f_lnbeta(f64::INFINITY, 0.), f64::INFINITY);
+        assert!(f_lnbeta(0., 0.).is_nan());
+        assert_eq!(f_lnbeta(0., f64::INFINITY), f64::INFINITY);
+        assert!(f_lnbeta(-5., 15.).is_nan());
+        assert!(f_lnbeta(5., -15.).is_nan());
+        assert!(f_lnbeta(f64::NAN, 15.).is_nan());
+        assert!(f_lnbeta(15., f64::NAN).is_nan());
+        assert_eq!(f_lnbeta(f64::INFINITY, 1.), f64::NEG_INFINITY);
+        assert_eq!(f_lnbeta(1., f64::INFINITY), f64::NEG_INFINITY);
+        assert_eq!(f_lnbeta(5., 3.), -4.653960350157523);
+        assert_eq!(f_lnbeta(3., 5.), -4.653960350157523);
+        assert_eq!(f_lnbeta(12., 23.), -22.607338344488568);
     }
 }

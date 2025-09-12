@@ -235,7 +235,8 @@ pub fn f_lgamma_rf(x: f32) -> (f32, i32) {
             return (0., 1);
         }
         if x.is_sign_negative() {
-            return (f32::INFINITY, 1);
+            let is_odd = (!is_odd_integerf(x)) as i32;
+            return (f32::INFINITY, 1 - (is_odd << 1));
         }
     }
     let c_gamma = lgamma_coref(x);

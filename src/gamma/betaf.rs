@@ -39,12 +39,15 @@ pub fn f_betaf(a: f32, b: f32) -> f32 {
         || bx >= 0xffu32 << 23
         || bx.wrapping_shl(1) == 0
     {
-        if ax == 0 || bx == 0 {
-            // |a| == 0 || |b| == 0
-            return f32::NAN;
-        }
         if (ax >> 31) != 0 || (bx >> 31) != 0 {
             // |a| < 0 or |b| < 0
+            return f32::NAN;
+        }
+        if ax.wrapping_shl(1) == 0 || bx.wrapping_shl(1) == 0 {
+            // |a| == 0 || |b| == 0
+            if ax.wrapping_shl(1) != 0 || bx.wrapping_shl(1) != 0 {
+                return f32::INFINITY;
+            }
             return f32::NAN;
         }
         if ax.wrapping_shl(9) == 0 || bx.wrapping_shl(9) == 0 {
@@ -79,11 +82,14 @@ mod tests {
 
     #[test]
     fn test_betaf() {
+        assert_eq!(f_betaf(f32::INFINITY, 1.), 0.);
+        assert_eq!(f_betaf(f32::INFINITY, 0.), f32::INFINITY);
+        assert!(f_betaf(0., 0.).is_nan());
+        assert_eq!(f_betaf(0., f32::INFINITY), f32::INFINITY);
         assert!(f_betaf(-5., 15.).is_nan());
         assert!(f_betaf(5., -15.).is_nan());
         assert!(f_betaf(f32::NAN, 15.).is_nan());
         assert!(f_betaf(15., f32::NAN).is_nan());
-        assert!(f_betaf(f32::INFINITY, 0.).is_nan());
         assert_eq!(f_betaf(f32::INFINITY, 1.), 0.);
         assert_eq!(f_betaf(1., f32::INFINITY), 0.);
         assert_eq!(f_betaf(5., 3.), 0.00952381);
