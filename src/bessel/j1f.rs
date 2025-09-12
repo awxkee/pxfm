@@ -44,8 +44,10 @@ use crate::sincos_reduce::rem2pif_any;
 ///   have an error at least 0.72 ULP for any number with extended precision,
 ///   that would be represented in f32.
 pub fn f_j1f(x: f32) -> f32 {
-    if (x.to_bits() & 0x0007_ffff) == 0 {
-        if x == 0. {
+    let ux = x.to_bits().wrapping_shl(1);
+    if ux >= 0xffu32 << 24 || ux == 0 {
+        // |x| == 0, |x| == inf, |x| == NaN
+        if ux == 0 {
             return x;
         }
         if x.is_infinite() {

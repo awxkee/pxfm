@@ -14,6 +14,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{cmp, thread};
+use zbessel_rs::bessel_i;
 
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
     let r = x.to_string();
@@ -373,5 +374,18 @@ fn find_cutoff() {
 
 fn main() {
     // find_cutoff();
-    test_f32_against_mpfr_multithreaded();
+    let v = match bessel_i(
+        Complex {
+            re: 1.,
+            im: 0.,
+        },
+        0.,
+        2,
+        1,
+    ) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+    println!("{}", v.values[0].re);
+    // test_f32_against_mpfr_multithreaded();
 }

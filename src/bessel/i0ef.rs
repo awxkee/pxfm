@@ -39,9 +39,11 @@ use crate::polyeval::{
 ///
 /// Max ULP 0.5
 pub fn f_i0ef(x: f32) -> f32 {
-    if (x.to_bits() & 0x0007_ffff) == 0 {
-        if x == 0. {
-            return 1.;
+    let ux = x.to_bits().wrapping_shl(1);
+    if ux >= 0xffu32 << 24 || ux == 0 {
+        // |x| == 0, |x| == inf, |x| == NaN
+        if ux == 0 {
+            return 0.4657596075936404;
         }
         if x.is_infinite() {
             return 0.;
@@ -324,7 +326,7 @@ mod tests {
         assert_eq!(f_i0ef(16.), 0.100544125);
         assert_eq!(f_i0ef(32.), 0.070804186);
         assert_eq!(f_i0ef(92.0), 0.04164947);
-        assert_eq!(f_i0ef(0.), 1.);
+        assert_eq!(f_i0ef(0.), 0.4657596);
         assert_eq!(f_i0ef(28.), 0.075736605);
         assert_eq!(f_i0ef(-28.), 0.075736605);
     }

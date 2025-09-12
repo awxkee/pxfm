@@ -32,6 +32,7 @@ mod alpha1;
 mod beta0;
 mod beta1;
 mod i0;
+mod i0e;
 mod i0ef;
 mod i0f;
 mod i1;
@@ -70,6 +71,7 @@ mod y1f_coeffs;
 
 pub use i0::f_i0;
 pub(crate) use i0::i0_exp;
+pub use i0e::f_i0e;
 pub use i0ef::f_i0ef;
 pub use i0f::f_i0f;
 pub use i1::f_i1;

@@ -36,10 +36,10 @@ use crate::sincos_reduce::rem2pif_any;
 ///
 /// Max ulp 0.5
 pub fn f_j0f(x: f32) -> f32 {
-    let x_abs = x.to_bits() & 0x7fff_ffff;
-
-    if (x.to_bits() & 0x0007_ffff) == 0 {
-        if f32::from_bits(x_abs) == 0. {
+    let ux = x.to_bits().wrapping_shl(1);
+    if ux >= 0xffu32 << 24 || ux == 0 {
+        // |x| == 0, |x| == inf, |x| == NaN
+        if ux == 0 {
             // J0 value at 0
             return f64::from_bits(0x3ff0000000000000) as f32;
         }
@@ -50,6 +50,8 @@ pub fn f_j0f(x: f32) -> f32 {
             return x + x;
         }
     }
+
+    let x_abs = x.to_bits() & 0x7fff_ffff;
 
     if x_abs <= 0x4295999au32 {
         // 74.8
