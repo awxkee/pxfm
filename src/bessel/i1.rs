@@ -107,8 +107,8 @@ TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Nul
 **/
 #[inline]
 pub(crate) fn i1_0_to_7p75(x: f64) -> DoubleDouble {
-    const ONE_OVER_4: f64 = 1. / 4.;
-    let eval_x = DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_mult(x, x), ONE_OVER_4);
+    let half_x = x * 0.5; // this is exact
+    let eval_x = DoubleDouble::from_exact_mult(half_x, half_x);
 
     const P: [(u64, u64); 5] = [
         (0x3c55555555555555, 0x3fb5555555555555),

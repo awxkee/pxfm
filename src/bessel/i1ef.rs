@@ -42,7 +42,7 @@ pub fn f_i1ef(x: f32) -> f32 {
         // |x| == 0, |x| == inf, x == NaN
         if ux == 0 {
             // |x| == 0
-            return 0.2079104153497085;
+            return 0.;
         }
         if x.is_infinite() {
             return if x.is_sign_positive() { 0. } else { -0. };
@@ -209,14 +209,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_i1f() {
+    fn test_i1ef() {
         assert!(f_i1ef(f32::NAN).is_nan());
         assert_eq!(f_i1ef(f32::INFINITY), 0.0);
         assert_eq!(f_i1ef(f32::NEG_INFINITY), 0.0);
-        assert_eq!(f_i1ef(0.), 0.2079104153497085);
+        assert_eq!(f_i1ef(0.), 0.);
         assert_eq!(f_i1ef(1.), 0.20791042);
         assert_eq!(f_i1ef(-1.), -0.20791042);
         assert_eq!(f_i1ef(9.), 0.12722498);
         assert_eq!(f_i1ef(-9.), -0.12722498);
+        assert_eq!(f_i1ef(0.000000000543453), 2.717265e-10);
+        assert_eq!(f_i1ef(-0.000000000543453), -2.717265e-10);
     }
 }

@@ -45,7 +45,7 @@ pub fn f_i0e(x: f64) -> f64 {
         // |x| == 0, |x| == inf, x == NaN
         if ux == 0 {
             // |x| == 0
-            return 0.4657596075936404;
+            return 1.;
         }
         if x.is_infinite() {
             return 0.;
