@@ -41,13 +41,13 @@ pub fn f_i1ef(x: f32) -> f32 {
     if ux >= 0xffu32 << 24 || ux == 0 {
         // |x| == 0, |x| == inf, x == NaN
         if ux == 0 {
-            // |x| == NaN
+            // |x| == 0
             return 0.2079104153497085;
         }
         if x.is_infinite() {
             return if x.is_sign_positive() { 0. } else { -0. };
         }
-        return x + f32::NAN;
+        return x + f32::NAN; // |x| == NaN
     }
 
     let xb = x.to_bits() & 0x7fff_ffff;
@@ -57,6 +57,7 @@ pub fn f_i1ef(x: f32) -> f32 {
     let sign_scale = SIGN[x.is_sign_negative() as usize];
 
     if xb <= 0x40f80000u32 {
+        // |x| <= 7.75
         let core_expf = core_expf(-f32::from_bits(xb));
         if xb <= 0x34000000u32 {
             // |x| <= f32::EPSILON
@@ -86,7 +87,6 @@ pub fn f_i1ef(x: f32) -> f32 {
                 return f_fmla(dx, -half_x, half_x) as f32;
             }
         }
-        // |x| <= 7.75
         return i1ef_small(f32::from_bits(xb), sign_scale, core_expf) as f32;
     }
 

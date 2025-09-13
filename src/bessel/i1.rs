@@ -58,6 +58,7 @@ pub fn f_i1(x: f64) -> f64 {
     let xb = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
     if xb >= 0x40864fe69ff9fec8u64 {
+        // |x| >= 713.9876098185423
         return if x.is_sign_negative() {
             f64::NEG_INFINITY
         } else {
@@ -70,9 +71,9 @@ pub fn f_i1(x: f64) -> f64 {
     let sign_scale = SIGN[x.is_sign_negative() as usize];
 
     if xb < 0x401f000000000000u64 {
-        // 7.75
+        // |x| <= 7.75
         if xb <= 0x3cb0000000000000u64 {
-            // x <= f64::EPSILON
+            // |x| <= f64::EPSILON
             // Power series of I1(x) ~ x/2 + x^3/16 + O(x^4)
             const A0: f64 = 1. / 2.;
             const A1: f64 = 1. / 16.;

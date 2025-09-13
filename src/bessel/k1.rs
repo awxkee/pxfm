@@ -61,6 +61,7 @@ pub fn f_k1(x: f64) -> f64 {
     }
 
     if xb <= 0x3ff0000000000000 {
+        // x <= 1
         return k1_small(x);
     }
 

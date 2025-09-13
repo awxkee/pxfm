@@ -57,7 +57,7 @@ pub fn f_i1e(x: f64) -> f64 {
     let sign_scale = SIGN[x.is_sign_negative() as usize];
 
     if xb < 0x401f000000000000u64 {
-        // 7.75
+        // |x| <= 7.75
         if xb <= 0x3cb0000000000000u64 {
             // x <= f64::EPSILON
             // Power series of I1(x)*exp(-|x|) ~ x/2 - x^2/2 + O(x^3)

@@ -51,6 +51,7 @@ pub fn f_i2(x: f64) -> f64 {
     let xb = x.to_bits() & 0x7fff_ffff_ffff_ffffu64;
 
     if xb < 0x401f000000000000u64 {
+        // x < 7.75
         if xb <= 0x3cb0000000000000u64 {
             // x <= f64::EPSILON
             // Power series of I2(x) ~ x^2/8 + O(x^4)
@@ -58,7 +59,6 @@ pub fn f_i2(x: f64) -> f64 {
             let x2 = x * x * R;
             return x2;
         }
-        // x < 7.75
         return i2_small(f64::from_bits(xb));
     }
 

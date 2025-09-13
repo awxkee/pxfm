@@ -49,15 +49,15 @@ pub fn f_jincpif(x: f32) -> f32 {
         if x.is_infinite() {
             return 0.;
         }
-        return x + f32::NAN;
+        return x + f32::NAN; // x == NaN
     }
 
     let ax = x.to_bits() & 0x7fff_ffff;
 
     if ax < 0x429533c2u32 {
-        // 74.60109
+        // |x| < 74.60109
         if ax <= 0x3e800000u32 {
-            // 0.25
+            // |x| < 0.25
             if ax <= 0x34000000u32 {
                 // |x| <= f32::EPSILON
                 // use series here j1(x*Pi)/(x*Pi) ~ 1 - Pi^2*x^2/8 + O(x^4)

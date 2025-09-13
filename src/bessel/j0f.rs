@@ -40,21 +40,21 @@ pub fn f_j0f(x: f32) -> f32 {
     if ux >= 0xffu32 << 24 || ux == 0 {
         // |x| == 0, |x| == inf, |x| == NaN
         if ux == 0 {
-            // J0 value at 0
+            // |x| == 0
             return f64::from_bits(0x3ff0000000000000) as f32;
         }
         if x.is_infinite() {
             return 0.;
         }
-        return x + f32::NAN;
+        return x + f32::NAN; // x == NaN
     }
 
     let x_abs = x.to_bits() & 0x7fff_ffff;
 
     if x_abs <= 0x4295999au32 {
-        // 74.8
+        // |x| <= 74.8
         if x_abs <= 0x3e800000u32 {
-            // 0.25
+            // |x| <= 0.25
             if x_abs <= 0x34000000u32 {
                 // |x| < f32::EPSILON
                 // taylor series for J0(x) ~ 1 - x^2/4 + O(x^4)

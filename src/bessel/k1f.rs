@@ -50,12 +50,12 @@ pub fn f_k1f(x: f32) -> f32 {
     let xb = x.to_bits();
 
     if xb >= 0x42cbc779u32 {
-        // 101.889595
+        // x > 101.889595
         return 0.;
     }
 
     if xb <= 0x3f800000u32 {
-        // 1.0
+        // x <= 1.0
         if xb <= 0x34000000u32 {
             // |x| <= f32::EPSILON
             let dx = x as f64;

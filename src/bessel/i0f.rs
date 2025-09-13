@@ -47,18 +47,20 @@ pub fn f_i0f(x: f32) -> f32 {
         if x.is_infinite() {
             return f32::INFINITY;
         }
-        return x + f32::NAN;
+        return x + f32::NAN; // x == NaN
     }
 
     let xb = x.to_bits() & 0x7fff_ffff;
 
-    if xb >= 0x42b7cd32 {
+    if xb >= 0x42b7cd32u32 {
+        // |x| >= 91.90077
         return f32::INFINITY;
     }
 
     if xb < 0x40f00000u32 {
+        // |x| < 7.5
         if xb < 0x3f800000u32 {
-            // 1
+            // |x| < 1
             if xb <= 0x34000000u32 {
                 // |x| < f32::EPSILON
                 // taylor series for I0(x) ~ 1 + x^2/4 + O(x^4)
@@ -87,15 +89,13 @@ pub fn f_i0f(x: f32) -> f32 {
             }
             return i0f_small(f32::from_bits(xb)) as f32;
         } else if xb <= 0x40600000u32 {
-            // 3.5
+            // |x| < 3.5
             return i0f_1_to_3p5(f32::from_bits(xb));
         } else if xb <= 0x40c00000u32 {
-            // 6
+            // |x| < 6
             return i0f_3p5_to_6(f32::from_bits(xb));
-        } else if xb < 0x40f00000u32 {
-            // 7.5
-            return i0f_6_to_7p5(f32::from_bits(xb));
         }
+        return i0f_6_to_7p5(f32::from_bits(xb));
     }
 
     i0f_asympt(f32::from_bits(xb))

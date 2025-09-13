@@ -55,11 +55,12 @@ pub fn f_k0(x: f64) -> f64 {
     let xb = x.to_bits();
 
     if xb >= 0x40862e42fefa39f0u64 {
-        // 709.7827128933841
+        // x >= 709.7827128933841
         return 0.;
     }
 
     if xb <= 0x3ff0000000000000 {
+        // x <= 1
         return k0_small_dd(x);
     }
 

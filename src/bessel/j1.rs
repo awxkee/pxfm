@@ -71,9 +71,9 @@ pub fn f_j1(x: f64) -> f64 {
     let ax: u64 = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
     if ax < 0x4052a6784230fcf8u64 {
-        // 74.60109
+        // |x| < 74.60109
         if ax < 0x3feccccccccccccd {
-            // 0.9
+            // |x| < 0.9
             return j1_maclaurin_series_fast(x);
         }
         return j1_small_argument_fast(x);

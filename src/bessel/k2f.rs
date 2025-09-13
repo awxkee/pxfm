@@ -39,6 +39,7 @@ pub fn f_k2f(x: f32) -> f32 {
     if ux >= 0xffu32 << 23 || ux == 0 {
         // |x| == 0, |x| == inf, |x| == NaN, x < 0
         if ux.wrapping_shl(1) == 0 {
+            // |x| == 0
             return f32::INFINITY;
         }
         if x.is_infinite() {

@@ -28,11 +28,12 @@
  */
 use crate::common::f_fmla;
 use crate::exponents::core_expdf;
+use crate::gamma::gamma_pf::core_gamma_pf;
 use crate::gamma::lgamma_rf::lgamma_coref;
 use crate::logs::fast_logf;
 
-/// Regularized lower incomplete gamma
-pub fn f_gamma_pf(a: f32, x: f32) -> f32 {
+/// Regularized upper incomplete gamma
+pub fn f_gamma_qf(a: f32, x: f32) -> f32 {
     let aa = a.to_bits();
     let ax = x.to_bits();
 
@@ -63,15 +64,15 @@ pub fn f_gamma_pf(a: f32, x: f32) -> f32 {
         }
         return a + f32::NAN;
     }
-    core_gamma_pf(a, x) as f32
-}
 
-#[inline]
-pub(crate) fn core_gamma_pf(a: f32, x: f32) -> f64 {
+    const EPS: f64 = 1e-9;
+
     const BIG: f64 = 4503599627370496.0;
     const BIG_INV: f64 = 2.22044604925031308085e-16;
 
-    const EPS: f64 = 1e-9;
+    if x < 1.0 || x <= a {
+        return (1.0 - core_gamma_pf(a, x)) as f32;
+    }
 
     let da = a as f64;
     let dx = x as f64;
@@ -79,89 +80,69 @@ pub(crate) fn core_gamma_pf(a: f32, x: f32) -> f64 {
     let ax = f_fmla(da, fast_logf(x), -dx - lgamma_coref(a).0);
     if ax <= -104. {
         if a < x {
-            return 1.0;
+            return 0.0;
         }
-        return 0.0;
+        return 1.0;
     }
     if ax >= 89. {
-        return f64::INFINITY;
-    }
-
-    if x <= 1.0 || x <= a {
-        let mut r2 = da;
-        let mut c2 = 1.0;
-        let mut ans2 = 1.0;
-        for _ in 0..200 {
-            r2 += 1.0;
-            c2 *= dx / r2;
-            ans2 += c2;
-
-            if c2 / ans2 <= EPS {
-                break;
-            }
-        }
-        return core_expdf(ax) * ans2 / da;
+        return f32::INFINITY;
     }
 
     let mut y = 1.0 - da;
     let mut z = dx + y + 1.0;
-    let mut c = 0i32;
-
-    let mut p3 = 1.0;
-    let mut q3 = dx;
-    let mut p2 = dx + 1.0;
-    let mut q2 = z * dx;
-    let mut ans = p2 / q2;
-
+    let mut c = 0.0;
+    let mut pkm2 = 1.0;
+    let mut qkm2 = dx;
+    let mut pkm1 = dx + 1.0;
+    let mut qkm1 = z * dx;
+    let mut ans = pkm1 / qkm1;
     for _ in 0..200 {
         y += 1.0;
         z += 2.0;
-        c += 1;
-        let yc = y * c as f64;
+        c += 1.0;
+        let yc = y * c;
+        let pk = pkm1 * z - pkm2 * yc;
+        let qk = qkm1 * z - qkm2 * yc;
 
-        let p = p2 * z - p3 * yc;
-        let q = q2 * z - q3 * yc;
+        pkm2 = pkm1;
+        pkm1 = pk;
+        qkm2 = qkm1;
+        qkm1 = qk;
 
-        p3 = p2;
-        p2 = p;
-        q3 = q2;
-        q2 = q;
-
-        if p.abs() > BIG {
-            p3 *= BIG_INV;
-            p2 *= BIG_INV;
-            q3 *= BIG_INV;
-            q2 *= BIG_INV;
+        if pk.abs() > BIG {
+            pkm2 *= BIG_INV;
+            pkm1 *= BIG_INV;
+            qkm2 *= BIG_INV;
+            qkm1 *= BIG_INV;
         }
 
-        if q != 0.0 {
-            let nextans = p / q;
-            let error = ((ans - nextans) / nextans).abs();
-            ans = nextans;
+        if qk != 0.0 {
+            let r = pk / qk;
+            let t = ((ans - r) / r).abs();
+            ans = r;
 
-            if error <= EPS {
+            if t <= EPS {
                 break;
             }
         }
     }
-
-    f_fmla(-core_expdf(ax), ans, 1.0)
+    (ans * core_expdf(ax)) as f32
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn test_f_beta_pf() {
-        assert_eq!(f_gamma_pf(23.421, 41.), 0.9988695);
-        assert_eq!(f_gamma_pf(0.764, 0.432123), 0.47752997);
-        assert_eq!(f_gamma_pf(0.421, 1.), 0.8727869);
-        assert!(f_gamma_pf(-1., 12.).is_nan());
-        assert!(f_gamma_pf(1., -12.).is_nan());
-        assert!(f_gamma_pf(f32::NAN, 12.).is_nan());
-        assert!(f_gamma_pf(1., f32::NAN).is_nan());
-        assert_eq!(f_gamma_pf(1., f32::INFINITY), f32::INFINITY);
-        assert_eq!(f_gamma_pf(f32::INFINITY, f32::INFINITY), f32::INFINITY);
-        assert_eq!(f_gamma_pf(f32::INFINITY, 5.32), f32::INFINITY);
+    fn test_f_beta_qf() {
+        assert_eq!(f_gamma_qf(23.421, 41.), 0.001130525);
+        assert_eq!(f_gamma_qf(0.764, 0.432123), 0.52247006);
+        assert_eq!(f_gamma_qf(0.421, 1.), 0.12721314);
+        assert!(f_gamma_qf(-1., 12.).is_nan());
+        assert!(f_gamma_qf(1., -12.).is_nan());
+        assert!(f_gamma_qf(f32::NAN, 12.).is_nan());
+        assert!(f_gamma_qf(1., f32::NAN).is_nan());
+        assert_eq!(f_gamma_qf(1., f32::INFINITY), f32::INFINITY);
+        assert_eq!(f_gamma_qf(f32::INFINITY, f32::INFINITY), f32::INFINITY);
+        assert_eq!(f_gamma_qf(f32::INFINITY, 5.32), f32::INFINITY);
     }
 }

@@ -53,7 +53,7 @@ pub fn f_k0f(x: f32) -> f32 {
     let xb = x.to_bits();
 
     if xb >= 0x42cbc4fbu32 {
-        // 101.88473
+        // x > 101.88473
         return 0.;
     }
 
@@ -65,7 +65,7 @@ pub fn f_k0f(x: f32) -> f32 {
             const EULER_GAMMA_PLUS_LOG2: f64 = f64::from_bits(0x3fbdadb014541eb2);
             return (-log_x + EULER_GAMMA_PLUS_LOG2) as f32;
         }
-        // 1.0
+        // x <= 1.0
         return k0f_small(x);
     }
 

@@ -53,25 +53,25 @@ pub fn f_y0f(x: f32) -> f32 {
             return 0.;
         }
 
-        return x + f32::NAN;
+        return x + f32::NAN; // x == NaN
     }
 
     let xb = x.to_bits();
 
     if xb <= 0x3faccccdu32 {
-        // 1.35
+        // x <= 1.35
         return y0f_near_zero(f32::from_bits(xb));
     }
 
     // transient zone from 1.35 to 2 have bad behaviour for log poly already,
     // and not yet good to be easily covered, thus it use its own poly
     if xb <= 0x40000000u32 {
-        // 2
+        // x <= 2
         return y0_transient_area(x);
     }
 
     if xb <= 0x4296999au32 {
-        // 75.3
+        // x <= 75.3
         return y0f_small_argument_path(f32::from_bits(xb));
     }
 
