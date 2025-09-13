@@ -102,8 +102,8 @@ pub use asinf::f_asinf;
 pub use asinpi::f_asinpi;
 pub use asinpif::f_asinpif;
 pub use bessel::{
-    f_i0, f_i0e, f_i0ef, f_i0f, f_i1, f_i1ef, f_i1f, f_i2, f_i2f, f_j0, f_j0f, f_j1, f_j1f,
-    f_jincpi, f_jincpif, f_k0, f_k0ef, f_k0f, f_k1, f_k1f, f_k2f, f_y0, f_y0f, f_y1, f_y1f,
+    f_i0, f_i0e, f_i0ef, f_i0f, f_i1, f_i1e, f_i1ef, f_i1f, f_i2, f_i2f, f_j0, f_j0f, f_j1, f_j1f,
+    f_jincpi, f_jincpif, f_k0, f_k0e, f_k0ef, f_k0f, f_k1, f_k1f, f_k2f, f_y0, f_y0f, f_y1, f_y1f,
 };
 pub use ceil::{ceil, ceilf};
 pub use common::{copysignfk, copysignk};
@@ -122,8 +122,8 @@ pub use exponents::{
 pub use floor::{floor, floorf};
 pub use gamma::{
     f_beta, f_betaf, f_betainc_reg, f_betainc_regf, f_digamma, f_digammaf, f_gamma_p, f_gamma_pf,
-    f_lgamma, f_lgamma_r, f_lgamma_rf, f_lgammaf, f_lnbeta, f_lnbetaf, f_tgamma, f_tgammaf,
-    f_trigamma, f_trigammaf,
+    f_gamma_qf, f_lgamma, f_lgamma_r, f_lgamma_rf, f_lgammaf, f_lnbeta, f_lnbetaf, f_tgamma,
+    f_tgammaf, f_trigamma, f_trigammaf,
 };
 pub use hyperbolic::{
     f_acosh, f_acoshf, f_asinh, f_asinhf, f_atanh, f_atanhf, f_cosh, f_coshf, f_sinh, f_sinhf,

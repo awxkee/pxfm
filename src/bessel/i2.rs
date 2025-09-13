@@ -34,21 +34,24 @@ use crate::exponents::rational128_exp;
 
 /// Modified bessel of the first kind of order 2
 pub fn f_i2(x: f64) -> f64 {
-    if !x.is_normal() {
-        if x == 0. {
+    let e = (x.to_bits() >> 52) & 0x7ff;
+    let ux = x.to_bits().wrapping_shl(1);
+    if e == 0x7ff || ux == 0 {
+        // |x| == 0, |x| == inf, x == NaN
+        if ux == 0 {
+            // |x| == 0
             return 0.;
         }
         if x.is_infinite() {
             return f64::INFINITY;
         }
-        if x.is_nan() {
-            return f64::NAN;
-        }
+        return x + f64::NAN; // x = NaN
     }
 
     let xb = x.to_bits() & 0x7fff_ffff_ffff_ffffu64;
 
     if xb < 0x401f000000000000u64 {
+        // x < 7.75
         if xb <= 0x3cb0000000000000u64 {
             // x <= f64::EPSILON
             // Power series of I2(x) ~ x^2/8 + O(x^4)
@@ -56,7 +59,6 @@ pub fn f_i2(x: f64) -> f64 {
             let x2 = x * x * R;
             return x2;
         }
-        // x < 7.75
         return i2_small(f64::from_bits(xb));
     }
 

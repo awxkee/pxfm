@@ -39,20 +39,22 @@ use crate::round::RoundFinite;
 pub fn f_i0(x: f64) -> f64 {
     let xb = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
-    if !x.is_normal() {
-        if x == 0. {
+    let e = (x.to_bits() >> 52) & 0x7ff;
+    let ux = x.to_bits().wrapping_shl(1);
+    if e == 0x7ff || ux == 0 {
+        // |x| == 0, |x| == inf, x == NaN
+        if ux == 0 {
+            // |x| == 0
             return 1.;
         }
         if x.is_infinite() {
             return f64::INFINITY;
         }
-        if x.is_nan() {
-            return f64::NAN;
-        }
+        return x + f64::NAN; // x == NaN
     }
 
     if xb > 0x40864fe5304e83e4u64 {
-        // 713.9869085439682
+        // |x| > 713.9869085439682
         return f64::INFINITY;
     }
 
@@ -121,8 +123,8 @@ TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Nu
 **/
 #[inline]
 pub(crate) fn i0_0_to_3p6_dd(x: f64) -> DoubleDouble {
-    const ONE_OVER_4: f64 = 1. / 4.;
-    let eval_x = DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_mult(x, x), ONE_OVER_4);
+    let half_x = x * 0.5; // this is exact
+    let eval_x = DoubleDouble::from_exact_mult(half_x, half_x);
     const P: [(u64, u64); 8] = [
         (0xba93dec1e5396e30, 0x3ff0000000000000),
         (0xbc5d3d919a2b891a, 0x3fcb128f49a1f59f),
@@ -181,8 +183,8 @@ pub(crate) fn i0_0_to_3p6_dd(x: f64) -> DoubleDouble {
 // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
 #[inline]
 pub(crate) fn i0_3p6_to_7p5_dd(x: f64) -> DoubleDouble {
-    const ONE_OVER_4: f64 = 1. / 4.;
-    let eval_x = DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_mult(x, x), ONE_OVER_4);
+    let half_x = x * 0.5; // this is exact
+    let eval_x = DoubleDouble::from_exact_mult(half_x, half_x);
     const P: [(u64, u64); 10] = [
         (0xbae8195e94c833a1, 0x3ff0000000000000),
         (0xbc6f4db3a04cf778, 0x3fcbca374cf8efde),
@@ -252,8 +254,8 @@ pub(crate) fn i0_3p6_to_7p5_dd(x: f64) -> DoubleDouble {
 #[cold]
 #[inline(never)]
 pub(crate) fn eval_small_hard_3p6_to_7p5(x: f64) -> DoubleDouble {
-    const ONE_OVER_4: f64 = 1. / 4.;
-    let eval_x = DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_mult(x, x), ONE_OVER_4);
+    let half_x = x * 0.5; // this is exact
+    let eval_x = DoubleDouble::from_exact_mult(half_x, half_x);
     const P: [(u64, u64); 10] = [
         (0xbae8195e94c833a1, 0x3ff0000000000000),
         (0xbc6f4db3a04cf778, 0x3fcbca374cf8efde),
@@ -338,8 +340,8 @@ pub(crate) fn i0_0_to_3p6_exec(x: f64) -> f64 {
 #[cold]
 #[inline(never)]
 pub(crate) fn i0_0_to_3p6_hard(x: f64) -> DoubleDouble {
-    const ONE_OVER_4: f64 = 1. / 4.;
-    let eval_x = DoubleDouble::quick_mult_f64(DoubleDouble::from_exact_mult(x, x), ONE_OVER_4);
+    let half_x = x * 0.5; // this is exact
+    let eval_x = DoubleDouble::from_exact_mult(half_x, half_x);
     const P: [(u64, u64); 8] = [
         (0xba93dec1e5396e30, 0x3ff0000000000000),
         (0xbc5d3d919a2b891a, 0x3fcb128f49a1f59f),

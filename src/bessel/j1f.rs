@@ -48,27 +48,26 @@ pub fn f_j1f(x: f32) -> f32 {
     if ux >= 0xffu32 << 24 || ux == 0 {
         // |x| == 0, |x| == inf, |x| == NaN
         if ux == 0 {
+            // |x| == 0
             return x;
         }
         if x.is_infinite() {
             return 0.;
         }
-        if x.is_nan() {
-            return x + x;
-        }
+        return x + f32::NAN; // x == NaN
     }
 
     let ax = x.to_bits() & 0x7fff_ffff;
 
     if ax < 0x429533c2u32 {
-        // 74.60109
+        // |x| <= 74.60109
         if ax < 0x3e800000u32 {
+            // |x| <= 0.25
             if ax <= 0x34000000u32 {
                 // |x| <= f32::EPSILON
                 // taylor series for J1(x) ~ x/2 + O(x^3)
                 return x * 0.5;
             }
-            // 0.25
             return maclaurin_series(x);
         }
         return small_argument_path(x);
@@ -398,6 +397,10 @@ mod tests {
 
     #[test]
     fn test_f_j1f() {
+        assert_eq!(
+            f_j1f(-0.000000000000000000000000000000000000008827127),
+            -0.0000000000000000000000000000000000000044135635
+        );
         assert_eq!(
             f_j1f(0.000000000000000000000000000000000000008827127),
             0.0000000000000000000000000000000000000044135635

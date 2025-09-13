@@ -39,27 +39,23 @@ use crate::polyeval::{f_estrin_polyeval7, f_estrin_polyeval8};
 ///
 /// Max ULP 0.5
 pub fn f_k0ef(x: f32) -> f32 {
-    if x < 0. {
-        return f32::NAN;
-    }
-
-    let ux = x.to_bits().wrapping_shl(1);
-    if ux >= 0xffu32 << 24 || ux == 0 {
-        // |x| == 0, |x| == inf, |x| == NaN
-        if ux == 0 {
+    let ux = x.to_bits();
+    if ux >= 0xffu32 << 23 || ux == 0 {
+        // |x| == 0, |x| == inf, |x| == NaN, x < 0
+        if ux.wrapping_shl(1) == 0 {
+            // |x| == 0
             return f32::INFINITY;
         }
         if x.is_infinite() {
             return if x.is_sign_positive() { 0. } else { f32::NAN };
         }
-        if x.is_nan() {
-            return x + x;
-        }
+        return x + f32::NAN; // x == NaN
     }
 
     let xb = x.to_bits();
 
     if xb <= 0x3f800000u32 {
+        // x <= 1.0
         if xb <= 0x34000000u32 {
             // |x| <= f32::EPSILON
             // taylor series for K0(x)exp(x) ~ (-euler_gamma + log(2) - log(x)) + (-euler_gamma + log(2) - log(x)) * x
@@ -69,7 +65,6 @@ pub fn f_k0ef(x: f32) -> f32 {
             let c1 = -log_x + M_EULER_GAMMA_P_LOG2;
             return f_fmla(c1, dx, c1) as f32;
         }
-        // 1.0
         return k0ef_small(x);
     }
 

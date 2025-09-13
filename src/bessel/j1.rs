@@ -54,24 +54,26 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 ///   have 0.7 ULP for any number with extended precision that would be represented in f32
 ///   Same applies to J1(4.4501477170144018E-309) in double precision and some others subnormal numbers
 pub fn f_j1(x: f64) -> f64 {
-    if !x.is_normal() {
-        if x == 0. {
+    let e = (x.to_bits() >> 52) & 0x7ff;
+    let ux = x.to_bits().wrapping_shl(1);
+    if e == 0x7ff || ux == 0 {
+        // |x| == 0, |x| == inf, x == NaN
+        if ux == 0 {
+            // |x| == 0
             return x;
         }
         if x.is_infinite() {
             return 0.;
         }
-        if x.is_nan() {
-            return x + x;
-        }
+        return x + f64::NAN; // x == NaN
     }
 
     let ax: u64 = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
     if ax < 0x4052a6784230fcf8u64 {
-        // 74.60109
+        // |x| < 74.60109
         if ax < 0x3feccccccccccccd {
-            // 0.9
+            // |x| < 0.9
             return j1_maclaurin_series_fast(x);
         }
         return j1_small_argument_fast(x);

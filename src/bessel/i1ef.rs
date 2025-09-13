@@ -38,16 +38,16 @@ use crate::polyeval::{f_estrin_polyeval7, f_estrin_polyeval9, f_polyeval10};
 /// Max ULP 0.5
 pub fn f_i1ef(x: f32) -> f32 {
     let ux = x.to_bits().wrapping_shl(1);
-    if ux >= 0xffu32<<24 || ux == 0 {
-        if x == 0. {
-            return 0.2079104153497085;
+    if ux >= 0xffu32 << 24 || ux == 0 {
+        // |x| == 0, |x| == inf, x == NaN
+        if ux == 0 {
+            // |x| == 0
+            return 0.;
         }
         if x.is_infinite() {
             return if x.is_sign_positive() { 0. } else { -0. };
         }
-        if x.is_nan() {
-            return f32::NAN;
-        }
+        return x + f32::NAN; // |x| == NaN
     }
 
     let xb = x.to_bits() & 0x7fff_ffff;
@@ -57,6 +57,7 @@ pub fn f_i1ef(x: f32) -> f32 {
     let sign_scale = SIGN[x.is_sign_negative() as usize];
 
     if xb <= 0x40f80000u32 {
+        // |x| <= 7.75
         let core_expf = core_expf(-f32::from_bits(xb));
         if xb <= 0x34000000u32 {
             // |x| <= f32::EPSILON
@@ -86,7 +87,6 @@ pub fn f_i1ef(x: f32) -> f32 {
                 return f_fmla(dx, -half_x, half_x) as f32;
             }
         }
-        // |x| <= 7.75
         return i1ef_small(f32::from_bits(xb), sign_scale, core_expf) as f32;
     }
 
@@ -209,14 +209,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_i1f() {
+    fn test_i1ef() {
         assert!(f_i1ef(f32::NAN).is_nan());
         assert_eq!(f_i1ef(f32::INFINITY), 0.0);
         assert_eq!(f_i1ef(f32::NEG_INFINITY), 0.0);
-        assert_eq!(f_i1ef(0.), 0.2079104153497085);
+        assert_eq!(f_i1ef(0.), 0.);
         assert_eq!(f_i1ef(1.), 0.20791042);
         assert_eq!(f_i1ef(-1.), -0.20791042);
         assert_eq!(f_i1ef(9.), 0.12722498);
         assert_eq!(f_i1ef(-9.), -0.12722498);
+        assert_eq!(f_i1ef(0.000000000543453), 2.717265e-10);
+        assert_eq!(f_i1ef(-0.000000000543453), -2.717265e-10);
     }
 }

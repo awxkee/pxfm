@@ -39,6 +39,7 @@ pub fn f_i1f(x: f32) -> f32 {
     if ux >= 0xffu32 << 24 || ux == 0 {
         // |x| == 0, |x| == inf, |x| == NaN
         if ux == 0 {
+            // |x| == 0
             return 0.;
         }
         if x.is_infinite() {
@@ -48,15 +49,13 @@ pub fn f_i1f(x: f32) -> f32 {
                 f32::NEG_INFINITY
             };
         }
-        if x.is_nan() {
-            return f32::NAN;
-        }
+        return x + f32::NAN; // x == NaN
     }
 
     let xb = x.to_bits() & 0x7fff_ffff;
 
     if xb > 0x42b7d001 {
-        // 91.906261
+        // x > 91.906261
         return if x.is_sign_negative() {
             f32::NEG_INFINITY
         } else {
@@ -69,12 +68,12 @@ pub fn f_i1f(x: f32) -> f32 {
     let sign_scale = SIGN[x.is_sign_negative() as usize];
 
     if xb <= 0x40f80000u32 {
+        // |x| <= 7.75
         if xb <= 0x34000000u32 {
             // |x| <= f32::EPSILON
             // taylor series for I1(x) ~ x/2 + O(x^3)
             return x * 0.5;
         }
-        // |x| <= 7.75
         return i1f_small(f32::from_bits(xb), sign_scale) as f32;
     }
 

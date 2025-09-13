@@ -43,22 +43,21 @@ pub fn f_jincpif(x: f32) -> f32 {
     if ux >= 0xffu32 << 24 || ux == 0 {
         // |x| == 0, |x| == inf, |x| == NaN
         if ux == 0 {
+            // |x| == 0
             return 1.;
         }
         if x.is_infinite() {
             return 0.;
         }
-        if x.is_nan() {
-            return x + x;
-        }
+        return x + f32::NAN; // x == NaN
     }
 
     let ax = x.to_bits() & 0x7fff_ffff;
 
     if ax < 0x429533c2u32 {
-        // 74.60109
+        // |x| < 74.60109
         if ax <= 0x3e800000u32 {
-            // 0.25
+            // |x| < 0.25
             if ax <= 0x34000000u32 {
                 // |x| <= f32::EPSILON
                 // use series here j1(x*Pi)/(x*Pi) ~ 1 - Pi^2*x^2/8 + O(x^4)
@@ -230,6 +229,7 @@ mod tests {
 
     #[test]
     fn test_jincpif() {
+        assert_eq!(f_jincpif(-102.59484), 0.00024380769);
         assert_eq!(f_jincpif(102.59484), 0.00024380769);
         assert_eq!(f_jincpif(100.08199), -0.00014386141);
         assert_eq!(f_jincpif(0.27715185), 0.9081822);
@@ -241,6 +241,10 @@ mod tests {
         assert_eq!(f_jincpif(5.4), -0.010821743);
         assert_eq!(
             f_jincpif(77.743162408196766932633181568235159),
+            -0.00041799102
+        );
+        assert_eq!(
+            f_jincpif(-77.743162408196766932633181568235159),
             -0.00041799102
         );
         assert_eq!(

@@ -39,19 +39,21 @@ use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 ///
 /// Computes exp(-|x|)*I0(x)
 pub fn f_i0e(x: f64) -> f64 {
-    let xb = x.to_bits() & 0x7fff_ffff_ffff_ffff;
-
-    if !x.is_normal() {
-        if x == 0. {
-            return 0.4657596075936404;
+    let e = (x.to_bits() >> 52) & 0x7ff;
+    let ux = x.to_bits().wrapping_shl(1);
+    if e == 0x7ff || ux == 0 {
+        // |x| == 0, |x| == inf, x == NaN
+        if ux == 0 {
+            // |x| == 0
+            return 1.;
         }
         if x.is_infinite() {
-            return f64::INFINITY;
+            return 0.;
         }
-        if x.is_nan() {
-            return f64::NAN;
-        }
+        return x + f64::NAN; // x = NaN
     }
+
+    let xb = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
     if xb <= 0x4023000000000000u64 {
         // |x| <= 9.5
@@ -811,8 +813,8 @@ mod tests {
     fn test_i0e() {
         assert_eq!(f_i0e(9.500000000005492,), 0.13125126081422883);
         assert!(f_i0e(f64::NAN).is_nan());
-        assert_eq!(f_i0e(f64::INFINITY), f64::INFINITY);
-        assert_eq!(f_i0e(f64::NEG_INFINITY), f64::INFINITY);
+        assert_eq!(f_i0e(f64::INFINITY), 0.);
+        assert_eq!(f_i0e(f64::NEG_INFINITY), 0.);
         assert_eq!(f_i0e(7.500000000788034), 0.14831583006929877);
         assert_eq!(f_i0e(715.), 0.014922205745802662);
         assert_eq!(f_i0e(12.), 0.11642622121344044);
@@ -822,5 +824,6 @@ mod tests {
         assert_eq!(f_i0e(0.2), 0.8269385516343293);
         assert_eq!(f_i0e(7.5), 0.14831583007739552);
         assert_eq!(f_i0e(-1.5), 0.36743360905415834);
+        assert_eq!(i0e_asympt_hard(18.432), 0.09357372647647);
     }
 }

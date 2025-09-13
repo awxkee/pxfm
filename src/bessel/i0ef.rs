@@ -43,14 +43,13 @@ pub fn f_i0ef(x: f32) -> f32 {
     if ux >= 0xffu32 << 24 || ux == 0 {
         // |x| == 0, |x| == inf, |x| == NaN
         if ux == 0 {
-            return 0.4657596075936404;
+            // |x| == 0
+            return 1.;
         }
         if x.is_infinite() {
             return 0.;
         }
-        if x.is_nan() {
-            return f32::NAN;
-        }
+        return x + f32::NAN; // x == NaN
     }
 
     let xb = x.to_bits() & 0x7fff_ffff;
@@ -326,8 +325,11 @@ mod tests {
         assert_eq!(f_i0ef(16.), 0.100544125);
         assert_eq!(f_i0ef(32.), 0.070804186);
         assert_eq!(f_i0ef(92.0), 0.04164947);
-        assert_eq!(f_i0ef(0.), 0.4657596);
+        assert_eq!(f_i0ef(0.), 1.0);
         assert_eq!(f_i0ef(28.), 0.075736605);
         assert_eq!(f_i0ef(-28.), 0.075736605);
+        assert_eq!(f_i0ef(-32.), 0.070804186);
+        assert_eq!(f_i0ef(-92.0), 0.04164947);
+        assert_eq!(f_i0ef(-0.), 1.0);
     }
 }

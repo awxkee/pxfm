@@ -39,19 +39,11 @@ use crate::sincos_reduce::rem2pif_any;
 ///
 /// Max ULP 0.5
 pub fn f_y0f(x: f32) -> f32 {
-    if x < 0. {
-        return f32::NAN;
-    }
-
-    let ux = x.to_bits().wrapping_shl(1);
-    if ux >= 0xffu32 << 24 || ux == 0 {
-        // |x| == 0, |x| == inf, |x| == NaN
-        if ux == 0 {
+    let ux = x.to_bits();
+    if ux >= 0xffu32 << 23 || ux == 0 {
+        // |x| == 0, |x| == inf, |x| == NaN, x < 0
+        if ux.wrapping_shl(1) == 0 {
             return f32::NEG_INFINITY;
-        }
-
-        if x.is_nan() {
-            return x + x;
         }
 
         if x.is_infinite() {
@@ -60,24 +52,26 @@ pub fn f_y0f(x: f32) -> f32 {
             }
             return 0.;
         }
+
+        return x + f32::NAN; // x == NaN
     }
 
     let xb = x.to_bits();
 
     if xb <= 0x3faccccdu32 {
-        // 1.35
+        // x <= 1.35
         return y0f_near_zero(f32::from_bits(xb));
     }
 
     // transient zone from 1.35 to 2 have bad behaviour for log poly already,
     // and not yet good to be easily covered, thus it use its own poly
     if xb <= 0x40000000u32 {
-        // 2
+        // x <= 2
         return y0_transient_area(x);
     }
 
     if xb <= 0x4296999au32 {
-        // 75.3
+        // x <= 75.3
         return y0f_small_argument_path(f32::from_bits(xb));
     }
 
@@ -336,6 +330,7 @@ mod tests {
         assert_eq!(f_y0f(0.5), -0.44451874);
         assert!(f_y0f(-1.).is_nan());
         assert_eq!(f_y0f(0.), f32::NEG_INFINITY);
+        assert_eq!(f_y0f(-0.), f32::NEG_INFINITY);
         assert_eq!(f_y0f(f32::INFINITY), 0.);
         assert!(f_y0f(f32::NEG_INFINITY).is_nan());
     }

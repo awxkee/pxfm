@@ -46,17 +46,14 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the second kind of order 1 ( Y1 )
 pub fn f_y1(x: f64) -> f64 {
-    if x < 0. {
-        return f64::NAN;
-    }
+    let ux = x.to_bits().wrapping_shl(1);
+    let ix = x.to_bits();
 
-    if !x.is_normal() {
-        if x == 0. {
+    if ix >= 0x7ffu64 << 52 || ux == 0 {
+        // |x| == NaN, x == inf, |x| == 0, x < 0
+        if ux == 0 {
+            // |x| == 0
             return f64::NEG_INFINITY;
-        }
-
-        if x.is_nan() {
-            return x + x;
         }
 
         if x.is_infinite() {
@@ -65,24 +62,26 @@ pub fn f_y1(x: f64) -> f64 {
             }
             return 0.;
         }
+
+        return x + f64::NAN; // x == NaN
     }
 
     let xb = x.to_bits();
 
     if xb <= 0x3ff75c28f5c28f5cu64 {
-        // 1.46
+        // x <= 1.46
         return y1_near_zero_fast(x);
     }
 
     // transient zone from 1.46 to 2 have bad behaviour for log poly already,
     // and not yet good to be easily covered, thus it use its own poly
     if xb <= 0x4000000000000000u64 {
-        // 2
+        // x <= 2
         return y1_transient_zone_fast(x);
     }
 
     if xb <= 0x4049c00000000000u64 {
-        // 51.5
+        // x <= 51.5
         return y1_small_argument_fast(x);
     }
 
