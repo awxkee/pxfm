@@ -37,8 +37,12 @@ use crate::polyeval::{f_estrin_polyeval5, f_polyeval6};
 ///
 /// Max found ULP 0.5
 pub fn f_i1(x: f64) -> f64 {
-    if !x.is_normal() {
-        if x == 0. {
+    let e = (x.to_bits() >> 52) & 0x7ff;
+    let ux = x.to_bits().wrapping_shl(1);
+    if e == 0x7ff || ux == 0 {
+        // x is inf, NaN, or 0
+        if ux == 0 {
+            // |x| == 0
             return 0.;
         }
         if x.is_infinite() {
@@ -48,9 +52,7 @@ pub fn f_i1(x: f64) -> f64 {
                 f64::NEG_INFINITY
             };
         }
-        if x.is_nan() {
-            return f64::NAN;
-        }
+        return x + f64::NAN; // x == NaN
     }
 
     let xb = x.to_bits() & 0x7fff_ffff_ffff_ffff;

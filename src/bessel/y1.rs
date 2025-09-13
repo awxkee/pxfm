@@ -46,17 +46,14 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the second kind of order 1 ( Y1 )
 pub fn f_y1(x: f64) -> f64 {
-    if x < 0. {
-        return f64::NAN;
-    }
+    let ux = x.to_bits().wrapping_shl(1);
+    let ix = x.to_bits();
 
-    if !x.is_normal() {
-        if x == 0. {
+    if ix >= 0x7ffu64 << 52 || ux == 0 {
+        // |x| == NaN, x == inf, |x| == 0, x < 0
+        if ux == 0 {
+            // |x| == 0
             return f64::NEG_INFINITY;
-        }
-
-        if x.is_nan() {
-            return x + x;
         }
 
         if x.is_infinite() {
@@ -65,6 +62,8 @@ pub fn f_y1(x: f64) -> f64 {
             }
             return 0.;
         }
+
+        return x + f64::NAN; // x == NaN
     }
 
     let xb = x.to_bits();

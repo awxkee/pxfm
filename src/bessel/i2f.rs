@@ -43,9 +43,7 @@ pub fn f_i2f(x: f32) -> f32 {
         if x.is_infinite() {
             return f32::INFINITY;
         }
-        if x.is_nan() {
-            return f32::NAN;
-        }
+        return x + f32::NAN;
     }
 
     let xb = x.to_bits() & 0x7fff_ffff;

@@ -38,16 +38,15 @@ use crate::polyeval::{f_estrin_polyeval7, f_estrin_polyeval9, f_polyeval10};
 /// Max ULP 0.5
 pub fn f_i1ef(x: f32) -> f32 {
     let ux = x.to_bits().wrapping_shl(1);
-    if ux >= 0xffu32<<24 || ux == 0 {
-        if x == 0. {
+    if ux >= 0xffu32 << 24 || ux == 0 {
+        if ux == 0 {
+            // |x| == NaN
             return 0.2079104153497085;
         }
         if x.is_infinite() {
             return if x.is_sign_positive() { 0. } else { -0. };
         }
-        if x.is_nan() {
-            return f32::NAN;
-        }
+        return x + f32::NAN;
     }
 
     let xb = x.to_bits() & 0x7fff_ffff;

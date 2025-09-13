@@ -41,16 +41,18 @@ use crate::sin_helper::sin_dd_small_fast;
 
 /// Normalized jinc 2*J1(PI\*x)/(pi\*x)
 pub fn f_jincpi(x: f64) -> f64 {
-    if !x.is_normal() {
-        if x == 0. {
+    let e = (x.to_bits() >> 52) & 0x7ff;
+    let ux = x.to_bits().wrapping_shl(1);
+    if e == 0x7ff || ux == 0 {
+        // x is inf, NaN, or 0
+        if ux == 0 {
+            // |x| == 0
             return 1.0;
         }
         if x.is_infinite() {
             return 0.;
         }
-        if x.is_nan() {
-            return x + x;
-        }
+        return x + f64::NAN; // x = NaN
     }
 
     let ax: u64 = x.to_bits() & 0x7fff_ffff_ffff_ffff;

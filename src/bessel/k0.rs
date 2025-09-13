@@ -37,20 +37,19 @@ use crate::polyeval::f_polyeval3;
 ///
 /// Max ULP 0.5
 pub fn f_k0(x: f64) -> f64 {
-    if x < 0. {
-        return f64::NAN;
-    }
+    let ux = x.to_bits().wrapping_shl(1);
+    let ix = x.to_bits();
 
-    if !x.is_normal() {
-        if x == 0. {
+    if ix >= 0x7ffu64 << 52 || ux == 0 {
+        // |x| == NaN, x == inf, |x| == 0, x < 0
+        if ux == 0 {
+            // |x| == 0
             return f64::INFINITY;
         }
         if x.is_infinite() {
             return if x.is_sign_positive() { 0. } else { f64::NAN };
         }
-        if x.is_nan() {
-            return x + x;
-        }
+        return x + f64::NAN; // x == NaN
     }
 
     let xb = x.to_bits();

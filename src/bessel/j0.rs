@@ -45,20 +45,21 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the first kind of order 0
 pub fn f_j0(x: f64) -> f64 {
-    let x_abs = x.to_bits() & 0x7fff_ffff_ffff_ffff;
-
-    if !x.is_normal() {
-        if f64::from_bits(x_abs) == 0. {
+    let e = (x.to_bits() >> 52) & 0x7ff;
+    let ux = x.to_bits().wrapping_shl(1);
+    if e == 0x7ff || ux == 0 {
+        if ux == 0 {
+            // |x| == 0
             // J0 value at 0
             return f64::from_bits(0x3ff0000000000000);
         }
         if x.is_infinite() {
             return 0.;
         }
-        if x.is_nan() {
-            return x + x;
-        }
+        return x + f64::NAN; // x == NaN
     }
+
+    let x_abs = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
     let ax = f64::from_bits(x_abs);
 

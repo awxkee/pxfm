@@ -39,6 +39,7 @@ pub fn f_i1f(x: f32) -> f32 {
     if ux >= 0xffu32 << 24 || ux == 0 {
         // |x| == 0, |x| == inf, |x| == NaN
         if ux == 0 {
+            // |x| == 0
             return 0.;
         }
         if x.is_infinite() {
@@ -48,9 +49,7 @@ pub fn f_i1f(x: f32) -> f32 {
                 f32::NEG_INFINITY
             };
         }
-        if x.is_nan() {
-            return f32::NAN;
-        }
+        return x + f32::NAN; // x == NaN
     }
 
     let xb = x.to_bits() & 0x7fff_ffff;

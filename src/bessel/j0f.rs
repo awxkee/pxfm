@@ -46,9 +46,7 @@ pub fn f_j0f(x: f32) -> f32 {
         if x.is_infinite() {
             return 0.;
         }
-        if x.is_nan() {
-            return x + x;
-        }
+        return x + f32::NAN;
     }
 
     let x_abs = x.to_bits() & 0x7fff_ffff;
@@ -408,6 +406,9 @@ mod tests {
 
     #[test]
     fn test_j0f() {
+        assert_eq!(f_j0f(-3123.), 0.012329336);
+        assert_eq!(f_j0f(-0.1), 0.99750155);
+        assert_eq!(f_j0f(-15.1), -0.03456193);
         assert_eq!(f_j0f(3123.), 0.012329336);
         assert_eq!(f_j0f(0.1), 0.99750155);
         assert_eq!(f_j0f(15.1), -0.03456193);

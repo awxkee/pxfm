@@ -374,15 +374,7 @@ fn find_cutoff() {
 
 fn main() {
     // find_cutoff();
-    let v = match bessel_i(
-        Complex {
-            re: 1.,
-            im: 0.,
-        },
-        0.,
-        2,
-        1,
-    ) {
+    let v = match bessel_i(Complex { re: 1., im: 0. }, 0., 2, 1) {
         Ok(v) => v,
         Err(_) => return,
     };
