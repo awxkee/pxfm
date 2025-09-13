@@ -44,7 +44,7 @@ pub fn f_jincpi(x: f64) -> f64 {
     let e = (x.to_bits() >> 52) & 0x7ff;
     let ux = x.to_bits().wrapping_shl(1);
     if e == 0x7ff || ux == 0 {
-        // x is inf, NaN, or 0
+        // |x| == 0, |x| == inf, x == NaN
         if ux == 0 {
             // |x| == 0
             return 1.0;

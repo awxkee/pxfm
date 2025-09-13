@@ -39,6 +39,7 @@ use crate::polyeval::{f_estrin_polyeval7, f_estrin_polyeval9, f_polyeval10};
 pub fn f_i1ef(x: f32) -> f32 {
     let ux = x.to_bits().wrapping_shl(1);
     if ux >= 0xffu32 << 24 || ux == 0 {
+        // |x| == 0, |x| == inf, x == NaN
         if ux == 0 {
             // |x| == NaN
             return 0.2079104153497085;
