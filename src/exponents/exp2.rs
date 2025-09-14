@@ -221,8 +221,8 @@ mod tests {
         assert_eq!(f_exp2(2.0), 4.0);
         assert_eq!(f_exp2(3.0), 8.0);
         assert_eq!(f_exp2(4.0), 16.0);
-        assert!((f_exp2(0.35f64) - 0.35f64.exp2()).abs() < 1e-8);
-        assert!((f_exp2(-0.6f64) - (-0.6f64).exp2()).abs() < 1e-8);
+        assert_eq!(f_exp2(0.35f64), 1.2745606273192622);
+        assert_eq!(f_exp2(-0.6f64), 0.6597539553864471);
         assert_eq!(f_exp2(f64::INFINITY), f64::INFINITY);
         assert_eq!(f_exp2(f64::NEG_INFINITY), 0.);
         assert!(f_exp2(f64::NAN).is_nan());

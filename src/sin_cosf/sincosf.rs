@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
-use crate::polyeval::f_polyeval5;
+use crate::polyeval::f_estrin_polyeval5;
 use crate::sin_cosf::sincosf_eval::sincosf_eval;
 
 /// Sine and cosine
@@ -82,7 +82,7 @@ pub fn f_sincosf(x: f32) -> (f32, f32) {
 
         See ./notes/sincosf.sollya
          */
-        let p = f_polyeval5(
+        let p = f_estrin_polyeval5(
             xsqr,
             f64::from_bits(0x3ff0000000000000),
             f64::from_bits(0xbfc55555555554c6),
@@ -97,7 +97,7 @@ pub fn f_sincosf(x: f32) -> (f32, f32) {
         // f_cos_16 = cos(x);
         //
         // Q = fpminimax(f_cos_16, [|0, 2, 4, 6, 8|], [|1, D...|], [0, pi/16]);
-        let cf = f_polyeval5(
+        let cf = f_estrin_polyeval5(
             xsqr,
             f64::from_bits(0x3ff0000000000000),
             f64::from_bits(0xbfdffffffffffcea),
