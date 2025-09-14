@@ -32,20 +32,20 @@ use crate::polyeval::f_estrin_polyeval7;
 ///
 /// ulp 0.5
 pub fn f_log1pmxf(x: f32) -> f32 {
-    let ax = x.to_bits() & 0x7fff_ffffu32;
-    let xd = x as f64;
-
-    if !x.is_normal() {
-        if x.is_nan() {
-            return x + x;
+    let ux = x.to_bits().wrapping_shl(1);
+    if ux >= 0xffu32 << 24 || ux == 0 {
+        // |x| == 0, |x| == inf, x == NaN
+        if ux == 0 {
+            return x;
         }
         if x.is_infinite() {
             return f32::NAN;
         }
-        if x == 0. {
-            return x;
-        }
+        return x + f32::NAN;
     }
+
+    let ax = x.to_bits() & 0x7fff_ffffu32;
+    let xd = x as f64;
 
     // Use log1p(x) = log(1 + x) for |x| > 2^-6;
     if ax > 0x3c80_0000u32 {
@@ -97,5 +97,9 @@ mod tests {
             f_log1pmxf(-0.0000000000043243),
             -0.000000000000000000000009349785
         );
+        assert!(f_log1pmxf(f32::INFINITY).is_nan());
+        assert!(f_log1pmxf(f32::NAN).is_nan());
+        assert!(f_log1pmxf(f32::NEG_INFINITY).is_nan());
+        assert!(f_log1pmxf(-2.0).is_nan());
     }
 }
