@@ -47,7 +47,7 @@ pub fn f_k0f(x: f32) -> f32 {
         if x.is_infinite() {
             return if x.is_sign_positive() { 0. } else { f32::NAN };
         }
-        return x + f32::NAN;
+        return x + f32::NAN; // x == NaN
     }
 
     let xb = x.to_bits();

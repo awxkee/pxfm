@@ -55,6 +55,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("pxfm: i0e", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_i0e(i as f64 / 50.0));
+            }
+        })
+    });
+
     c.bench_function("pxfm: i0", |b| {
         b.iter(|| {
             for i in 1..1000 {
@@ -82,7 +90,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: k2f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_k2f(i as f32 / 500.0));
+                black_box(pxfm::f_k2f(i as f32 / 50.0));
             }
         })
     });
@@ -90,7 +98,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: k1f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_k1f(i as f32 / 500.0));
+                black_box(pxfm::f_k1f(i as f32 / 50.0));
             }
         })
     });
@@ -98,7 +106,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: k0ef", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_k0ef(i as f32 / 500.0));
+                black_box(pxfm::f_k0ef(i as f32 / 50.0));
             }
         })
     });
@@ -106,7 +114,15 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: k0f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_k0f(i as f32 / 500.0));
+                black_box(pxfm::f_k0f(i as f32 / 50.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: k0e", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_k0e(i as f64 / 50.0));
             }
         })
     });
@@ -114,7 +130,15 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: k0", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_k0(i as f64 / 100.0));
+                black_box(pxfm::f_k0(i as f64 / 50.0));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: k1e", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_k1e(i as f64 / 50.0));
             }
         })
     });
@@ -122,7 +146,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: k1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_k1(i as f64 / 10.0));
+                black_box(pxfm::f_k1(i as f64 / 50.0));
             }
         })
     });
