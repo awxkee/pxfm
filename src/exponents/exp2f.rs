@@ -49,7 +49,7 @@ for k in range(64):
 print("];")
 ```
 **/
-static EXP2F_TABLE: [u64; 64] = [
+pub(crate) static EXP2F_TABLE: [u64; 64] = [
     0x3ff0000000000000,
     0x3ff02c9a3e778061,
     0x3ff059b0d3158574,
