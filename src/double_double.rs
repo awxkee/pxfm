@@ -274,13 +274,13 @@ impl DoubleDouble {
         DoubleDouble::new(r + q, p)
     }
 
-    /// Accurate reciprocal: 1 / self
-    #[inline]
-    pub(crate) fn recip_raphson(self) -> DoubleDouble {
-        let y0 = DoubleDouble::recip(self);
-        let z = DoubleDouble::mul_add_f64(-self, y0, 1.0);
-        DoubleDouble::mul_add(y0, z, y0)
-    }
+    // /// Accurate reciprocal: 1 / self
+    // #[inline]
+    // pub(crate) fn recip_raphson(self) -> DoubleDouble {
+    //     let y0 = DoubleDouble::recip(self);
+    //     let z = DoubleDouble::mul_add_f64(-self, y0, 1.0);
+    //     DoubleDouble::mul_add(y0, z, y0)
+    // }
 
     /// Accurate reciprocal: 1 / self
     #[inline]

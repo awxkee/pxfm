@@ -341,7 +341,7 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
         && straight_path_precondition
     {
         let mut s = DoubleDouble::from_full_exact_add(1.0, x);
-        let mut iter_count = y.abs() as usize;
+        let mut iter_count = unsafe { y.abs().to_int_unchecked::<usize>() };
 
         // exponentiation by squaring: O(log(y)) complexity
         let mut acc = if iter_count % 2 != 0 {
@@ -404,7 +404,7 @@ fn mul_fixed_power_hard(x: f64, y: f64) -> f64 {
         mantissa: 0x80000000_00000000_00000000_00000000_u128,
     };
     let mut s = DyadicFloat128::new_from_f64(x) + ONE;
-    let mut iter_count = y.abs() as usize;
+    let mut iter_count = unsafe { y.abs().to_int_unchecked::<usize>() };
 
     // exponentiation by squaring: O(log(y)) complexity
     let mut acc = if iter_count % 2 != 0 { s } else { ONE };

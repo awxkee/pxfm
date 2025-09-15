@@ -543,7 +543,11 @@ fn exp_accurate(x_dd: DoubleDouble) -> Exp {
         0x3c6abfe1602308c9,
     ];
     const LOG2INV: f64 = f64::from_bits(0x3ff71547652b82fe);
-    let k: i32 = (x_dd.hi * LOG2INV).round_ties_even_finite() as i32;
+    let k: i32 = unsafe {
+        (x_dd.hi * LOG2INV)
+            .round_ties_even_finite()
+            .to_int_unchecked::<i32>()
+    };
 
     const LOG2_H: f64 = f64::from_bits(0x3fe62e42fefa39ef);
     /* we approximate LOG2Lacc ~ log(2) - LOG2H with 38 bits, so that

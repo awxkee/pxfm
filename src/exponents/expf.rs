@@ -64,11 +64,11 @@ pub const fn expf(d: f32) -> f32 {
 
 // Lookup table for exp(m) with m = -104, ..., 102.
 //   -104 = floor(log(single precision's min denormal))
-//    102 = ceil(log(single precision's max bessel K(n) that will be used))
+//    103 = ceil(log(single precision's max bessel K(n) that will be used))
 // Table is generated with SageMath as follows:
-// for r in range(-104, 102):
+// for r in range(-104, 103):
 //     print(double_to_hex(RealField(180)(r).exp()) + ",")
-static EXP_M1: [u64; 206] = [
+static EXP_M1: [u64; 207] = [
     0x368f1e6b68529e33,
     0x36a525be4e4e601d,
     0x36bcbe0a45f75eb1,
@@ -275,6 +275,7 @@ static EXP_M1: [u64; 206] = [
     0x48dc614fe2531841,
     0x48f3494a9b171bf5,
     0x490a36798b9d969b,
+    0x4921d03d8c0c04af,
 ];
 
 // Lookup table for exp(m * 2^(-7)) with m = 0, ..., 127.
@@ -463,7 +464,7 @@ pub fn f_expf(x: f32) -> f32 {
     let kf = (x * 128.).round_finite();
     // Subtract (hi + mid) from x to get lo.
     let xd = f_fmlaf(kf, -0.0078125 /* - 1/128 */, x) as f64;
-    let mut x_hi = kf as i32;
+    let mut x_hi = unsafe { kf.to_int_unchecked::<i32>() }; // it's already not indeterminate.
     x_hi += 104 << 7;
     // hi = x_hi >> 7
     let exp_hi = f64::from_bits(EXP_M1[(x_hi >> 7) as usize]);
@@ -491,7 +492,7 @@ pub(crate) fn core_expf(x: f32) -> f64 {
     let kf = (x * 128.).round_finite();
     // Subtract (hi + mid) from x to get lo.
     let xd = f_fmlaf(kf, -0.0078125 /* - 1/128 */, x) as f64;
-    let mut x_hi = kf as i32;
+    let mut x_hi = unsafe { kf.to_int_unchecked::<i32>() }; // it's already not indeterminate.
     x_hi += 104 << 7;
     // hi = x_hi >> 7
     let exp_hi = f64::from_bits(EXP_M1[(x_hi >> 7) as usize]);
@@ -519,7 +520,7 @@ pub(crate) fn core_expdf(x: f64) -> f64 {
     let kf = (x * 128.).round_finite();
     // Subtract (hi + mid) from x to get lo.
     let xd = f_fmla(kf, -0.0078125 /* - 1/128 */, x);
-    let mut x_hi = kf as i32;
+    let mut x_hi = unsafe { kf.to_int_unchecked::<i32>() }; // it's already not indeterminate.
     x_hi += 104 << 7;
     // hi = x_hi >> 7
     let exp_hi = f64::from_bits(EXP_M1[(x_hi >> 7) as usize]);

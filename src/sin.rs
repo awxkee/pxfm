@@ -63,7 +63,9 @@ pub(crate) fn range_reduction_small(x: f64) -> (DoubleDouble, u64) {
     // |x - k * pi/128| - (u.hi + u.lo) <= ulp(u.lo)
     //                                  <= ulp(max(ulp(u.hi), kd*MPI_OVER_128[2]))
     //                                  <= 2^(-7 - 104) = 2^-111.
-    (DoubleDouble::new(u_lo, u_hi), (kd as i64) as u64)
+    (DoubleDouble::new(u_lo, u_hi), unsafe {
+        kd.to_int_unchecked::<i64>() as u64 // indeterminate values is always filtered out before this call, as well only lowest bits are used
+    })
 }
 
 #[inline]

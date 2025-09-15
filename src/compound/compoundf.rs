@@ -395,7 +395,7 @@ fn exp2_fast(t: f64) -> f64 {
     The total absolute error is thus bounded by 2^-43.035 + 2^-41.208
     < 2^-40.849. */
     let mut err: u64 = 0x3d61d00000000000; // 2^-40.849 < 0x1.1dp-41
-    v = v.wrapping_add((k as i64).wrapping_shl(52) as u64); // scale v by 2^k
+    v = unsafe { v.wrapping_add(k.to_int_unchecked::<i64>().wrapping_shl(52) as u64) }; // scale v by 2^k, k is already integer
 
     // in case of potential underflow, we defer to the accurate path
     if f64::from_bits(v) < f64::from_bits(0x38100000000008e2) {
@@ -912,7 +912,7 @@ pub fn f_compoundf(x: f32, y: f32) -> f32 {
             return 1.0 + y * x;
         } // does it work for |x|<2^-29 and |y|<=16?
         let mut s = x as f64 + 1.;
-        let mut iter_count = y.abs() as usize;
+        let mut iter_count = unsafe { y.abs().to_int_unchecked::<usize>() };
 
         // exponentiation by squaring: O(log(y)) complexity
         let mut acc = if iter_count % 2 != 0 { s } else { 1. };

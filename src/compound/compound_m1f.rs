@@ -160,7 +160,7 @@ fn exp2m1_fast(t: f64) -> f64 {
     // now |r| <= 2^-6
     // 2^t = 2^k * exp2_U[i][0] * 2^r
     let mut s = f64::from_bits(COMPOUNDF_EXP2_U[i as usize].1);
-    let su = ((k as u64).wrapping_add(0x3ffu64)) << 52;
+    let su = unsafe { ((k.to_int_unchecked::<i64>() as u64).wrapping_add(0x3ffu64)) << 52 }; // k is already integer
     s *= f64::from_bits(su);
     let q_poly = compoundf_expf_poly(r);
     v = q_poly.to_bits();
@@ -326,7 +326,7 @@ pub fn f_compound_m1f(x: f32, y: f32) -> f32 {
             return 1.0 + y * x;
         } // does it work for |x|<2^-29 and |y|<=16?
         let mut s = x as f64 + 1.;
-        let mut iter_count = y.abs() as usize;
+        let mut iter_count = unsafe { y.abs().to_int_unchecked::<usize>() };
 
         // exponentiation by squaring: O(log(y)) complexity
         let mut acc = if iter_count % 2 != 0 { s } else { 1. };

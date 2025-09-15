@@ -40,9 +40,7 @@ pub fn f_sinmxf(x: f32) -> f32 {
             // For signed zeros.
             return x;
         }
-        if x.is_infinite() || x.is_nan() {
-            return f32::NAN;
-        }
+        return f32::NAN; // x == inf or x == NaN
     }
 
     // |x| <= pi/16
@@ -99,6 +97,7 @@ mod tests {
     fn f_sinf_test() {
         assert_eq!(f_sinmxf(0.00016344387), -0.00000000000072770376);
         assert_eq!(f_sinmxf(0.0), 0.0);
+        assert_eq!(f_sinmxf(-0.0), 0.0);
         assert_eq!(f_sinmxf(1.0), -0.15852901);
         assert_eq!(f_sinmxf(0.3), -0.004479794);
         assert_eq!(f_sinmxf(-1.0), 0.15852901);
@@ -106,5 +105,6 @@ mod tests {
         assert_eq!(f_sinmxf(std::f32::consts::PI / 2.), -0.5707964);
         assert!(f_sinmxf(f32::INFINITY).is_nan());
         assert!(f_sinmxf(f32::NEG_INFINITY).is_nan());
+        assert!(f_sinmxf(f32::NAN).is_nan());
     }
 }

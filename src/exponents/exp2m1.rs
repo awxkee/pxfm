@@ -215,7 +215,7 @@ fn exp1(x: DoubleDouble) -> DoubleDouble {
     let mut yz = DoubleDouble::from_exact_add(x.hi - zk.hi, x.lo);
     yz.lo -= zk.lo;
 
-    let ik: i64 = k as i64; /* Note: k is an integer, this is just a conversion. */
+    let ik: i64 = unsafe { k.to_int_unchecked::<i64>() }; /* Note: k is an integer, this is just a conversion. */
     let im: i64 = (ik >> 12).wrapping_add(0x3ff);
     let i2: i64 = (ik >> 6) & 0x3f;
     let i1: i64 = ik & 0x3f;
@@ -358,7 +358,9 @@ fn exp_2(x: f64) -> DoubleDouble {
     to use the accurate path of exp() */
     let ky = DoubleDouble::quick_f64_mult(yhh, DoubleDouble::new(LN2L, LN2H));
 
-    let ik = k as i64;
+    let ik: i64 = unsafe {
+        k.to_int_unchecked::<i64>() // k is already integer, this is just a conversion
+    };
     let im = (ik >> 12).wrapping_add(0x3ff);
     let i2 = (ik >> 6) & 0x3f;
     let i1 = ik & 0x3f;

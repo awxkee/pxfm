@@ -59,7 +59,9 @@ fn exp10_poly_dd(z: DoubleDouble) -> DoubleDouble {
 fn as_exp10_accurate(x: f64) -> f64 {
     let mut ix = x.to_bits();
     let t = (f64::from_bits(0x40ca934f0979a371) * x).round_ties_even_finite();
-    let jt: i64 = t as i64;
+    let jt: i64 = unsafe {
+        t.to_int_unchecked::<i64>() // t is already integer, this is just a conversion
+    };
     let i1 = jt & 0x3f;
     let i0 = (jt >> 6) & 0x3f;
     let ie = jt >> 12;
@@ -157,7 +159,7 @@ pub fn f_exp10(x: f64) -> f64 {
         return 1.0 + x; // |x| <= 2.41082e-17
     }
     let t = (f64::from_bits(0x40ca934f0979a371) * x).round_ties_even_finite();
-    let jt = t as i64;
+    let jt: i64 = unsafe { t.to_int_unchecked::<i64>() }; // t is already integer this is just a conversion
     let i1 = jt & 0x3f;
     let i0 = (jt >> 6) & 0x3f;
     let ie = jt >> 12;

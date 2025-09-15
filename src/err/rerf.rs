@@ -205,7 +205,8 @@ pub fn f_rerf(x: f64) -> f64 {
     }
 
     const SIXTEEN: u64 = 4 << 52;
-    let idx = f64::from_bits(z.to_bits().wrapping_add(SIXTEEN)) as usize;
+    let idx =
+        unsafe { f64::from_bits(z.to_bits().wrapping_add(SIXTEEN)).to_int_unchecked::<usize>() };
     let z2 = DoubleDouble::from_exact_mult(z, z);
     rerf_poly_hard(x, z2, idx)
 }

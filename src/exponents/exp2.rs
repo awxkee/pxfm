@@ -60,7 +60,9 @@ fn exp2_accurate(x: f64) -> f64 {
     let sx = 4096.0 * x;
     let fx = sx.round_ties_even_finite();
     let z = sx - fx;
-    let k: i64 = fx as i64;
+    let k: i64 = unsafe {
+        fx.to_int_unchecked::<i64>() // this is already finite here
+    };
     let i1 = k & 0x3f;
     let i0 = (k >> 6) & 0x3f;
     let ie = k >> 12;
@@ -159,7 +161,9 @@ pub fn f_exp2(x: f64) -> f64 {
     let fx = sx.round_ties_even_finite();
     let z = sx - fx;
     let z2 = z * z;
-    let k = fx as i64;
+    let k = unsafe {
+        fx.to_int_unchecked::<i64>() // this already finite here
+    };
     let i1 = k & 0x3f;
     let i0 = (k >> 6) & 0x3f;
     let ie = k >> 12;
@@ -221,8 +225,8 @@ mod tests {
         assert_eq!(f_exp2(2.0), 4.0);
         assert_eq!(f_exp2(3.0), 8.0);
         assert_eq!(f_exp2(4.0), 16.0);
-        assert!((f_exp2(0.35f64) - 0.35f64.exp2()).abs() < 1e-8);
-        assert!((f_exp2(-0.6f64) - (-0.6f64).exp2()).abs() < 1e-8);
+        assert_eq!(f_exp2(0.35f64), 1.2745606273192622);
+        assert_eq!(f_exp2(-0.6f64), 0.6597539553864471);
         assert_eq!(f_exp2(f64::INFINITY), f64::INFINITY);
         assert_eq!(f_exp2(f64::NEG_INFINITY), 0.);
         assert!(f_exp2(f64::NAN).is_nan());

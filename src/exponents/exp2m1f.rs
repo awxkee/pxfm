@@ -31,7 +31,7 @@ use crate::exponents::exp2f::EXP2F_TABLE;
 use crate::polyeval::f_polyeval3;
 use crate::round::RoundFinite;
 
-/// Computes 2^x-1
+/// Computes 2^x - 1
 ///
 /// Max found ULP 0.5
 #[inline]
@@ -99,7 +99,7 @@ pub fn f_exp2m1f(x: f32) -> f32 {
     let xd = x as f64;
 
     let kf = (x * 64.0).round_finite();
-    let k = kf as i32;
+    let k = unsafe { kf.to_int_unchecked::<i32>() }; // it's already not indeterminate.
     // dx = lo = x - (hi + mid) = x - kf * 2^(-6)
     let dx = f_fmla(f64::from_bits(0xbf90000000000000), kf as f64, xd);
 

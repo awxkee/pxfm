@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 7/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 9/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -26,40 +26,39 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#![deny(unreachable_pub)]
-mod auxiliary;
-mod exp;
-mod exp10;
-mod exp10f;
-mod exp10m1;
-mod exp10m1f;
-mod exp2;
-mod exp2f;
-mod exp2m1;
-mod exp2m1f;
-mod exp_f128;
-mod expf;
-mod expm1;
-mod expm1f;
-mod logisticf;
+use crate::logs::log1pf::{core_log1pf, core_logf};
 
-pub(crate) use auxiliary::{fast_ldexp, ldexp};
-pub(crate) use exp::{EXP_REDUCE_T0, EXP_REDUCE_T1};
-pub use exp::{exp, f_exp};
-pub(crate) use exp_f128::rational128_exp;
-pub use exp2::f_exp2;
-pub(crate) use exp2f::dirty_exp2f;
-pub use exp2f::f_exp2f;
-pub(crate) use exp2m1::exp2m1_accurate_tiny;
-pub use exp2m1::f_exp2m1;
-pub use exp2m1f::f_exp2m1f;
-pub use exp10::f_exp10;
-pub use exp10f::f_exp10f;
-pub use exp10m1::f_exp10m1;
-pub use exp10m1f::f_exp10m1f;
-pub(crate) use expf::{core_expdf, core_expf};
-pub use expf::{expf, f_expf};
-pub use expm1::f_expm1;
-pub(crate) use expm1::{EXPM1_T0, EXPM1_T1};
-pub use expm1f::f_expm1f;
-pub use logisticf::f_logisticf;
+pub fn f_logitf(x: f32) -> f32 {
+    let ux = x.to_bits();
+    if ux >= 0xffu32 << 23 || ux == 0 || ux >= 0x3f80_0000u32 {
+        // |x| == 0, |x| == inf, |x| == NaN, x < 0, x >= 1
+        if ux.wrapping_shl(1) == 0 {
+            return 0.;
+        }
+        if ux == 0x3f80_0000u32 {
+            // x == -1
+            return f32::INFINITY;
+        }
+        return f32::NAN;
+    }
+    let v0 = core_logf(x as f64);
+    let v1 = core_log1pf(-x);
+    (v0 - v1) as f32
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_logit() {
+        assert_eq!(f_logitf(0.234), -1.1858611);
+        assert_eq!(f_logitf(0.142112), -1.7978581);
+        assert_eq!(f_logitf(0.86543), 1.8611419);
+        assert_eq!(f_logitf(0.21312), -1.3062204);
+        assert_eq!(f_logitf(0.128765), -1.9119227);
+        assert_eq!(f_logitf(1.), f32::INFINITY);
+        assert!(f_logitf(-0.00123).is_nan());
+        assert!(f_logitf(f32::NAN).is_nan());
+    }
+}

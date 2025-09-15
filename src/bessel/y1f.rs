@@ -248,8 +248,8 @@ fn y1f_small_argument_path(x: f32) -> f32 {
 
     let fx = x_abs * INV_STEP;
     const Y1_ZEROS_COUNT: f64 = (Y1_ZEROS.len() - 1) as f64;
-    let idx0 = fx.min(Y1_ZEROS_COUNT) as usize;
-    let idx1 = fx.ceil().min(Y1_ZEROS_COUNT) as usize;
+    let idx0 = unsafe { fx.min(Y1_ZEROS_COUNT).to_int_unchecked::<usize>() };
+    let idx1 = unsafe { fx.ceil().min(Y1_ZEROS_COUNT).to_int_unchecked::<usize>() };
 
     let found_zero0 = DoubleDouble::from_bit_pair(Y1_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(Y1_ZEROS[idx1]);

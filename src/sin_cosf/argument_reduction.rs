@@ -65,7 +65,9 @@ impl ArgumentReducer {
         let kd = (self.x * f64::from_bits(THIRTYTWO_OVER_PI[0])).round_finite();
         let mut y = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[0]), -kd);
         y = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[1]), y);
-        (y, kd as i64)
+        (y, unsafe {
+            kd.to_int_unchecked::<i64>() // indeterminate values is always filtered out before this call, as well only lowest bits are used
+        })
     }
 
     // Return k and y, where
@@ -97,7 +99,9 @@ impl ArgumentReducer {
         let mut y = prod - kd;
         y = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[1]), y);
         y = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[2]), y);
-        (y, kd as i64)
+        (y, unsafe {
+            kd.to_int_unchecked::<i64>() // indeterminate values is always filtered out before this call, as well only lowest bits are used
+        })
     }
 
     // Return k and y, where

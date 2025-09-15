@@ -233,7 +233,7 @@ pub fn f_exp2f(x: f32) -> f32 {
 
     let x_d = x as f64;
     let kf = (x_d * 64.).round_finite();
-    let k = kf as i32;
+    let k = unsafe { kf.to_int_unchecked::<i32>() }; // it's already not indeterminate.
     // dx = lo = x - (hi + mid) = x - kf * 2^(-6)
     let dx = f_fmla(f64::from_bits(0xbf90000000000000), kf, x_d);
 
