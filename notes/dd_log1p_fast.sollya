@@ -6,7 +6,7 @@ d = [-0.0040283203125,0.0040283203125];
 f = log(1+x);
 p0 = x-x^2/2;
 w = 1;
-pf = p0+fpminimax(f-p0, [|3,4,5,6,7,8,9|], [|107, D...|], d, absolute, floating);
+pf = p0+fpminimax(f-p0, [|3,4,5,6,7,8,9|], [|D...|], d, absolute, floating);
 // err_p = -log2(dirtyinfnorm(pf*w-f, d));
 err_p = -log2(supnorm(pf, log(1+x), d, absolute, 2^(-10)));
 display = decimal;
@@ -21,3 +21,5 @@ err_p = -log2(supnorm(pf, log(1+x), d, relative, 2^(-10)));
 print ("relative error:", pretty(err_p));
 
 for i from 1 to degree(pf) do print(coeff(pf, i));
+
+for i from 1 to degree(pf) do printdouble(coeff(pf, i));
