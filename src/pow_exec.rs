@@ -391,7 +391,7 @@ pub(crate) fn pow_exp_dd(r: DoubleDouble, s: f64) -> DoubleDouble {
 
     let z = DoubleDouble::mul_f64_add(DoubleDouble::new(LOG2L, LOG2H), -k, r);
 
-    let bk = k as i64; /* Note: k is an integer, this is just a conversion. */
+    let bk = unsafe { k.to_int_unchecked::<i64>() }; /* Note: k is an integer, this is just a conversion. */
     let mk = (bk >> 12) + 0x3ff;
     let i2 = (bk >> 6) & 0x3f;
     let i1 = bk & 0x3f;
@@ -616,7 +616,7 @@ pub(crate) fn pow_expm1_1(r: DoubleDouble, s: f64) -> DoubleDouble {
 
     let z = DoubleDouble::mul_f64_add(DoubleDouble::new(LOG2L, LOG2H), -k, r);
 
-    let bk = k as i64; /* Note: k is an integer, this is just a conversion. */
+    let bk = unsafe { k.to_int_unchecked::<i64>() }; /* Note: k is an integer, this is just a conversion. */
     let mk = (bk >> 12) + 0x3ff;
     let i2 = (bk >> 6) & 0x3f;
     let i1 = bk & 0x3f;

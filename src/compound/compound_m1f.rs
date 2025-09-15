@@ -201,7 +201,7 @@ fn exp2m1_fast(t: f64) -> f64 {
     if f64::from_bits(v) < f64::from_bits(0x3d61d00000000000) {
         return -1.0;
     }
-    err = err.wrapping_add(((k as i64) << 52) as u64); // scale the error by 2^k too
+    err = unsafe { err.wrapping_add((k.to_int_unchecked::<i64>() << 52) as u64) }; // scale the error by 2^k too
     let lb = (f64::from_bits(v) - f64::from_bits(err)) as f32;
     let rb = (f64::from_bits(v) + f64::from_bits(err)) as f32;
     if lb != rb {
@@ -262,7 +262,11 @@ fn compoundf_exp2m1_accurate(x_dd: DoubleDouble, x: f32, y: f32) -> f32 {
 
     q = DoubleDouble::from_exact_add(q.hi, q.lo);
 
-    let mut du = (k as i64).wrapping_add(0x3ff).wrapping_shl(52) as u64;
+    let mut du = unsafe {
+        k.to_int_unchecked::<i64>()
+            .wrapping_add(0x3ff)
+            .wrapping_shl(52) as u64
+    };
     du = f64::from_bits(du).to_bits();
     let scale = f64::from_bits(du);
 
