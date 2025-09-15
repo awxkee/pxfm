@@ -1,8 +1,8 @@
 use num_complex::Complex;
 use pxfm::{
-    f_cos, f_cospi, f_cospif, f_cotpif, f_erfcx, f_exp2m1f, f_i0ef, f_i0f, f_i1ef, f_i1f, f_j0,
-    f_j0f, f_j1f, f_jincpi, f_jincpif, f_k0ef, f_k0f, f_k1ef, f_k1f, f_lgamma_rf, f_logisticf,
-    f_sin, f_sincpi, f_sincpif, f_sinpif, f_tanf, f_tanpif, f_y0f, floorf,
+    f_cos, f_cospi, f_cospif, f_cotpif, f_erfcx, f_exp2m1f, f_expm1f, f_i0ef, f_i0f, f_i1ef, f_i1f,
+    f_j0, f_j0f, f_j1f, f_jincpi, f_jincpif, f_k0ef, f_k0f, f_k1ef, f_k1f, f_lgamma_rf,
+    f_logisticf, f_sin, f_sincpi, f_sincpif, f_sinpif, f_tanf, f_tanpif, f_y0f, floorf,
 };
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -219,8 +219,8 @@ fn test_f32_against_mpfr_multithreaded() {
     });
     let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
 
-    let start_bits = (0.9f32).to_bits();
-    let end_bits = (1000f32).to_bits();
+    let start_bits = (0.00000001f32).to_bits();
+    let end_bits = 0.001f32.to_bits();
     println!("amount {}", end_bits - start_bits);
 
     // Exhaustive: 0..=u32::MAX
@@ -244,8 +244,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected_sin_pi = Float::with_val(53, statrs::function::logistic::logistic(x as f64));
-        let actual = f_logisticf(x);
+        let expected_sin_pi = Float::with_val(53, x).exp_m1();
+        let actual = f_expm1f(x);
         // if actual.is_infinite() {
         //     return;
         // }

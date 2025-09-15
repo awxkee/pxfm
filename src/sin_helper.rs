@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dyad_fmla, min_normal_f64};
+use crate::common::{f_fmla, min_normal_f64};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::DyadicFloat128;
 use crate::round::RoundFinite;
@@ -223,7 +223,7 @@ pub(crate) fn sin_small(z: f64) -> f64 {
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
 
     if x_e < E_BIAS - 26 {
-        return dyad_fmla(z, f64::from_bits(0xbc90000000000000), z);
+        return f_fmla(z, f64::from_bits(0xbc90000000000000), z);
     }
 
     let (angle_dd, k) = range_reduction_small(z);

@@ -68,7 +68,7 @@ pub const fn expf(d: f32) -> f32 {
 // Table is generated with SageMath as follows:
 // for r in range(-104, 103):
 //     print(double_to_hex(RealField(180)(r).exp()) + ",")
-static EXP_M1: [u64; 207] = [
+pub(crate) static EXP_M1: [u64; 207] = [
     0x368f1e6b68529e33,
     0x36a525be4e4e601d,
     0x36bcbe0a45f75eb1,
@@ -282,7 +282,7 @@ static EXP_M1: [u64; 207] = [
 // Table is generated with Sollya as follows:
 // > display = hexadecimal;
 // > for i from 0 to 127 do { D(exp(i / 128)); };
-static EXP_M2: [u64; 128] = [
+pub(crate) static EXP_M2: [u64; 128] = [
     0x3ff0000000000000,
     0x3ff0202015600446,
     0x3ff04080ab55de39,
