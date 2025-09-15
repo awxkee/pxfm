@@ -29,7 +29,7 @@
 use crate::double_double::DoubleDouble;
 use crate::logs::log_dd::log_poly;
 use crate::logs::log_dd_coeffs::LOG_NEG_DD;
-use crate::polyeval::{f_polyeval3, f_polyeval6};
+use crate::polyeval::{f_estrin_polyeval7, f_polyeval3};
 use crate::pow_tables::POW_INVERSE;
 
 #[inline(always)]
@@ -66,25 +66,20 @@ fn log1p_poly_fast(z: f64) -> DoubleDouble {
     // f = log(1+x);
     // p0 = x-x^2/2;
     // w = 1;
-    // pf = p0+fpminimax(f-p0, [|3,4,5,6,7,8,9|], [|107, D...|], d, absolute, floating);
+    // pf = p0+fpminimax(f-p0, [|3,4,5,6,7,8,9|], [|D...|], d, absolute, floating);
     // See ./notes/dd_log1p_fast.sollya
-    const Q: [f64; 6] = [
-        f64::from_bits(0xbfd0000000000002),
-        f64::from_bits(0x3fc9999999996a6d),
-        f64::from_bits(0xbfc5555555430087),
-        f64::from_bits(0x3fc24924ea570eb6),
-        f64::from_bits(0xbfc0001afd646804),
-        f64::from_bits(0x3fbc12e04e0de219),
+    const Q: [f64; 7] = [
+        f64::from_bits(0x3fd5555555555556),
+        f64::from_bits(0xbfcfffffffffffdc),
+        f64::from_bits(0x3fc99999998fd488),
+        f64::from_bits(0xbfc5555555d90fc7),
+        f64::from_bits(0x3fc24936d06d3bf8),
+        f64::from_bits(0xbfbfff46726d8e88),
+        f64::from_bits(0x3fa1847e2faea348),
     ];
     let x2 = DoubleDouble::from_exact_mult(z, z);
-    let p = f_polyeval6(z, Q[0], Q[1], Q[2], Q[3], Q[4], Q[5]);
-    let DoubleDouble { hi: h, lo: r } = DoubleDouble::from_exact_mult(z, p);
-    let DoubleDouble { hi: p, lo: q } = DoubleDouble::add_f64(
-        DoubleDouble::from_bit_pair((0x3c76235e52d6f15b, 0x3fd5555555555555)),
-        h,
-    );
-    let p = DoubleDouble::new(r + q, p);
-    let mut t = DoubleDouble::quick_mult(x2, p);
+    let p = f_estrin_polyeval7(z, Q[0], Q[1], Q[2], Q[3], Q[4], Q[5], Q[6]);
+    let mut t = DoubleDouble::quick_mult_f64(x2, p);
     t = DoubleDouble::quick_mult_f64(t, z);
     DoubleDouble::mul_f64_add(x2, -0.5, t)
 }

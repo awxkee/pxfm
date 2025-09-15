@@ -401,7 +401,7 @@ fn exp2_fast(t: f64) -> f64 {
     if f64::from_bits(v) < f64::from_bits(0x38100000000008e2) {
         return -1.0;
     }
-    err = err.wrapping_add(((k as i64) << 52) as u64); // scale the error by 2^k too
+    err = unsafe { err.wrapping_add((k.to_int_unchecked::<i64>() << 52) as u64) }; // scale the error by 2^k too
     let lb = (f64::from_bits(v) - f64::from_bits(err)) as f32;
     let rb = (f64::from_bits(v) + f64::from_bits(err)) as f32;
     if lb != rb {
@@ -837,7 +837,7 @@ fn compoundf_exp2_accurate(x_dd: DoubleDouble, x: f32, y: f32) -> f32 {
         let err = f64::from_bits(ERR[small as usize]);
 
         w = (q.hi + (q.lo + err)).to_bits();
-        w = w.wrapping_add((k as i64).wrapping_shl(52) as u64);
+        w = unsafe { w.wrapping_add(k.to_int_unchecked::<i64>().wrapping_shl(52) as u64) };
     }
 
     /* multiply qh+ql by 2^k: since 0.989 < qh_in < 1.011 and
@@ -848,7 +848,7 @@ fn compoundf_exp2_accurate(x_dd: DoubleDouble, x: f32, y: f32) -> f32 {
     if (w.wrapping_shl(36)) == 0 && f64::from_bits(v) == q.hi && q.lo != 0. {
         v = v.wrapping_add((if q.lo > 0. { 1i64 } else { -1i64 }) as u64); // simulate round to odd
     }
-    v = v.wrapping_add((k as i64).wrapping_shl(52) as u64);
+    v = unsafe { v.wrapping_add(k.to_int_unchecked::<i64>().wrapping_shl(52) as u64) };
     // there is no underflow/overflow in the scaling by 2^k since |k| <= 150
     f64::from_bits(v) as f32
 }
