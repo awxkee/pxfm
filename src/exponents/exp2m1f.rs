@@ -31,7 +31,7 @@ use crate::exponents::exp2f::EXP2F_TABLE;
 use crate::polyeval::f_polyeval3;
 use crate::round::RoundFinite;
 
-/// Computes 2^x-1
+/// Computes 2^x - 1
 ///
 /// Max found ULP 0.5
 #[inline]

@@ -127,5 +127,7 @@ mod tests {
         assert_eq!(f_cospif(-2.), 1.);
         assert_eq!(f_cospif(115.30706), -0.5696978);
         assert!(f_cospif(f32::INFINITY).is_nan());
+        assert!(f_cospif(f32::NAN).is_nan());
+        assert!(f_cospif(f32::NEG_INFINITY).is_nan());
     }
 }

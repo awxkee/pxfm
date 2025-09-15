@@ -118,7 +118,7 @@ pub use err::{
 };
 pub use exponents::{
     exp, expf, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
-    f_exp10m1f, f_expf, f_expm1, f_expm1f,
+    f_exp10m1f, f_expf, f_expm1, f_expm1f, f_logisticf,
 };
 pub use floor::{floor, floorf};
 pub use gamma::{
@@ -132,7 +132,7 @@ pub use hyperbolic::{
 };
 pub use logs::{
     f_log, f_log1p, f_log1pf, f_log1pmx, f_log1pmxf, f_log2, f_log2f, f_log2p1, f_log2p1f, f_log10,
-    f_log10f, f_log10p1, f_log10p1f, f_logf, log, logf,
+    f_log10f, f_log10p1, f_log10p1f, f_logf, f_logitf, log, logf,
 };
 pub use pow::{f_pow, pow};
 pub use powf::{dirty_powf, f_powf, powf};

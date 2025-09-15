@@ -64,11 +64,11 @@ pub const fn expf(d: f32) -> f32 {
 
 // Lookup table for exp(m) with m = -104, ..., 102.
 //   -104 = floor(log(single precision's min denormal))
-//    102 = ceil(log(single precision's max bessel K(n) that will be used))
+//    103 = ceil(log(single precision's max bessel K(n) that will be used))
 // Table is generated with SageMath as follows:
-// for r in range(-104, 102):
+// for r in range(-104, 103):
 //     print(double_to_hex(RealField(180)(r).exp()) + ",")
-static EXP_M1: [u64; 206] = [
+static EXP_M1: [u64; 207] = [
     0x368f1e6b68529e33,
     0x36a525be4e4e601d,
     0x36bcbe0a45f75eb1,
@@ -275,6 +275,7 @@ static EXP_M1: [u64; 206] = [
     0x48dc614fe2531841,
     0x48f3494a9b171bf5,
     0x490a36798b9d969b,
+    0x4921d03d8c0c04af,
 ];
 
 // Lookup table for exp(m * 2^(-7)) with m = 0, ..., 127.

@@ -206,7 +206,7 @@ fn as_atanpi_refine2(x: f64, a: f64) -> f64 {
     z0.to_f64()
 }
 
-/// Computes atan(x) / pi
+/// Computes atan(x)/pi
 ///
 /// Max ULP 0.5
 pub fn f_atanpi(x: f64) -> f64 {

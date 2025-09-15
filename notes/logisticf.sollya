@@ -1,0 +1,15 @@
+pretty = proc(u) {
+  return ~(floor(u*1000)/1000);
+};
+
+d = [-2^-5, 2^-5];
+f_logistic = 1/(1+exp(-x));
+Q = fpminimax(f_logistic, 5, [|D...|], d);
+
+err_p = -log2(dirtyinfnorm(Q-f_logistic, d));
+display = decimal;
+print (Q);
+display = decimal;
+print ("absolute error:", pretty(err_p));
+
+for i from 0 to degree(Q) by 1 do printdouble(coeff(Q, i));

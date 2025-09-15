@@ -63,6 +63,7 @@ mod log_range_reduction;
 mod log_td;
 mod log_td_table;
 mod logf;
+mod logitf;
 
 pub(crate) use fast_log::simple_fast_log;
 pub(crate) use fast_log_dd::{fast_log_d_to_dd, fast_log_dd};
@@ -98,3 +99,4 @@ pub use log10p1f::f_log10p1f;
 pub(crate) use logf::LOG_REDUCTION_F32;
 pub(crate) use logf::fast_logf;
 pub use logf::{f_logf, logf};
+pub use logitf::f_logitf;
