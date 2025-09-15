@@ -326,7 +326,9 @@ pub fn f_exp(x: f64) -> f64 {
     }
     const S: f64 = f64::from_bits(0x40b71547652b82fe);
     let t = (x * S).round_finite();
-    let jt: i64 = t as i64;
+    let jt: i64 = unsafe {
+        t.to_int_unchecked::<i64>() // this is already finite here
+    };
     let i0: i64 = (jt >> 6) & 0x3f;
     let i1 = jt & 0x3f;
     let ie: i64 = jt >> 12;

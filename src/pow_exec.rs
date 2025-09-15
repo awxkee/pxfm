@@ -269,7 +269,7 @@ pub(crate) fn pow_exp_1(r: DoubleDouble, s: f64) -> DoubleDouble {
     let zh = dd_fmla(LOG2H, -k, r.hi);
     let zl = dd_fmla(LOG2L, -k, r.lo);
 
-    let bk = k as i64; /* Note: k is an integer, this is just a conversion. */
+    let bk = unsafe { k.to_int_unchecked::<i64>() }; /* Note: k is an integer, this is just a conversion. */
     let mk = (bk >> 12) + 0x3ff;
     let i2 = (bk >> 6) & 0x3f;
     let i1 = bk & 0x3f;

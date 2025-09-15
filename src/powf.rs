@@ -494,7 +494,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
     // Clamp the exponent part into smaller range that fits double precision.
     // For those exponents that are out of range, the final conversion will round
     // them correctly to inf/max float or 0/min float accordingly.
-    let mut hm_i = hm as i64;
+    let mut hm_i = unsafe { hm.to_int_unchecked::<i64>() };
     hm_i = if hm_i > (1i64 << 15) {
         1 << 15
     } else if hm_i < (-(1i64 << 15)) {

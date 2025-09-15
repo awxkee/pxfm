@@ -464,7 +464,7 @@ pub fn f_expf(x: f32) -> f32 {
     let kf = (x * 128.).round_finite();
     // Subtract (hi + mid) from x to get lo.
     let xd = f_fmlaf(kf, -0.0078125 /* - 1/128 */, x) as f64;
-    let mut x_hi = kf as i32;
+    let mut x_hi = unsafe { kf.to_int_unchecked::<i32>() }; // it's already not indeterminate.
     x_hi += 104 << 7;
     // hi = x_hi >> 7
     let exp_hi = f64::from_bits(EXP_M1[(x_hi >> 7) as usize]);
@@ -492,7 +492,7 @@ pub(crate) fn core_expf(x: f32) -> f64 {
     let kf = (x * 128.).round_finite();
     // Subtract (hi + mid) from x to get lo.
     let xd = f_fmlaf(kf, -0.0078125 /* - 1/128 */, x) as f64;
-    let mut x_hi = kf as i32;
+    let mut x_hi = unsafe { kf.to_int_unchecked::<i32>() }; // it's already not indeterminate.
     x_hi += 104 << 7;
     // hi = x_hi >> 7
     let exp_hi = f64::from_bits(EXP_M1[(x_hi >> 7) as usize]);
@@ -520,7 +520,7 @@ pub(crate) fn core_expdf(x: f64) -> f64 {
     let kf = (x * 128.).round_finite();
     // Subtract (hi + mid) from x to get lo.
     let xd = f_fmla(kf, -0.0078125 /* - 1/128 */, x);
-    let mut x_hi = kf as i32;
+    let mut x_hi = unsafe { kf.to_int_unchecked::<i32>() }; // it's already not indeterminate.
     x_hi += 104 << 7;
     // hi = x_hi >> 7
     let exp_hi = f64::from_bits(EXP_M1[(x_hi >> 7) as usize]);

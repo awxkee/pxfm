@@ -348,5 +348,5 @@ pub(crate) fn range_reduction_small_dd(x: DoubleDouble) -> (DoubleDouble, i64) {
     q = DoubleDouble::f64_mul_f64_add(kd, p_lo, q);
     q = DoubleDouble::f64_mul_f64_add(kd, p_lo_lo, q);
 
-    (q, kd as i64)
+    (q, unsafe { kd.to_int_unchecked::<i64>() })
 }

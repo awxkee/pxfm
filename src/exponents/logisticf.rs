@@ -65,6 +65,7 @@ pub fn f_logisticf(x: f32) -> f32 {
                 all(target_arch = "aarch64", target_feature = "neon")
             )))]
             {
+                use crate::common::f_fmla;
                 return f_fmla(0.25, x as f64, 0.5) as f32;
             }
         }
@@ -85,14 +86,14 @@ pub fn f_logisticf(x: f32) -> f32 {
                 0.
             };
         }
-        if x.is_sign_positive() && x_u >= 0x42d00_000u32 {
+        if x.is_sign_positive() && x_u >= 0x42d0_0000u32 {
             // x >= 104
             if x.is_nan() {
                 return f32::NAN;
             }
             return 1.;
         }
-        if x.is_sign_negative() && x_u >= 0xc2cbfe00u32 {
+        if x.is_sign_negative() && x_u >= 0xc2cb_fe00u32 {
             // x <= -101.99609
             return 0.;
         }

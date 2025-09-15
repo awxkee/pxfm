@@ -41,7 +41,9 @@ impl ArgumentReducerPi {
     pub(crate) fn reduce(self) -> (f64, i64) {
         let kd = (self.x * 32.).round_finite();
         let y = f_fmla(self.x, 32.0, -kd);
-        (y, kd as i64)
+        (y, unsafe {
+            kd.to_int_unchecked::<i64>() // indeterminate values is always filtered out before this call, as well only lowest bits are used
+        })
     }
 
     // Return k and y, where
@@ -50,7 +52,9 @@ impl ArgumentReducerPi {
     pub(crate) fn reduce_0p25(self) -> (f64, i64) {
         let kd = (self.x + self.x).round_finite();
         let y = f_fmla(kd, -0.5, self.x);
-        (y, kd as i64)
+        (y, unsafe {
+            kd.to_int_unchecked::<i64>() // indeterminate values is always filtered out before this call, as well only lowest bits are used
+        })
     }
     //
     // // Return k and y, where

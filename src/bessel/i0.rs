@@ -753,7 +753,9 @@ pub(crate) fn i0_exp(r: f64) -> DoubleDouble {
 
     let zh = f_fmla(L2.lo, k, f_fmla(-L2.hi, k, r));
 
-    let bk = k as i64;
+    let bk = unsafe {
+        k.to_int_unchecked::<i64>() // k is already integer, this is just a conversion
+    };
     let mk = (bk >> 12) + 0x3ff;
     let i2 = (bk >> 6) & 0x3f;
     let i1 = bk & 0x3f;

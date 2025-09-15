@@ -94,7 +94,7 @@ pub(crate) fn exp_b_range_reduc(x: f32) -> ExpBReduc {
 
     // kd = round(log2(b) * x)
     let kd = (LOG2_B * xd).round_finite();
-    let k = kd as i32;
+    let k = unsafe { kd.to_int_unchecked::<i32>() }; // it's already not indeterminate.
 
     // hi = floor(kd / 2^MID_BITS)
     let exp_hi = (k.wrapping_shr(MID_BITS) as u64).wrapping_shl(52); // 52 = fraction bits in f64

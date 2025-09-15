@@ -60,7 +60,9 @@ fn exp2_accurate(x: f64) -> f64 {
     let sx = 4096.0 * x;
     let fx = sx.round_ties_even_finite();
     let z = sx - fx;
-    let k: i64 = fx as i64;
+    let k: i64 = unsafe {
+        fx.to_int_unchecked::<i64>() // this is already finite here
+    };
     let i1 = k & 0x3f;
     let i0 = (k >> 6) & 0x3f;
     let ie = k >> 12;
@@ -159,7 +161,9 @@ pub fn f_exp2(x: f64) -> f64 {
     let fx = sx.round_ties_even_finite();
     let z = sx - fx;
     let z2 = z * z;
-    let k = fx as i64;
+    let k = unsafe {
+        fx.to_int_unchecked::<i64>() // this already finite here
+    };
     let i1 = k & 0x3f;
     let i0 = (k >> 6) & 0x3f;
     let ie = k >> 12;

@@ -109,7 +109,9 @@ fn as_sinpi_zero(x: f64) -> f64 {
 pub(crate) fn reduce_pi_64(x: f64) -> (f64, i64) {
     let kd = (x * 64.).round_finite();
     let y = dd_fmla(kd, -1. / 64., x);
-    (y, kd as i64)
+    (y, unsafe {
+        kd.to_int_unchecked::<i64>() // indeterminate values is always filtered out before this call, as well only lowest bits are used
+    })
 }
 
 #[inline]

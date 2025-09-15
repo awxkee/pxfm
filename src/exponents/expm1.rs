@@ -380,7 +380,9 @@ pub fn f_expm1(x: f64) -> f64 {
         let fx = sx.round_ties_even_finite();
         let z = sx - fx;
         let z2 = z * z;
-        let i: i64 = fx as i64;
+        let i: i64 = unsafe {
+            fx.to_int_unchecked::<i64>() // fx is already integer, this is just a conversion
+        };
         let t = DoubleDouble::from_bit_pair(TZ[i.wrapping_add(32) as usize]);
         const C: [u64; 6] = [
             0x3f80000000000000,
@@ -435,7 +437,9 @@ pub fn f_expm1(x: f64) -> f64 {
 
         const S: f64 = f64::from_bits(0x40b71547652b82fe);
         let t = (x * S).round_ties_even_finite();
-        let jt: i64 = t as i64;
+        let jt: i64 = unsafe {
+            t.to_int_unchecked::<i64>() // t is already integer, this is just a conversion
+        };
         let i0 = (jt >> 6) & 0x3f;
         let i1 = jt & 0x3f;
         let ie = jt >> 12;

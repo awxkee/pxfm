@@ -706,8 +706,8 @@ pub(crate) fn y0_small_argument_fast(x: f64) -> f64 {
 
     let fx = x_abs * INV_STEP;
     const Y0_ZEROS_COUNT: f64 = (Y0_ZEROS.len() - 1) as f64;
-    let idx0 = fx.min(Y0_ZEROS_COUNT) as usize;
-    let idx1 = fx.ceil().min(Y0_ZEROS_COUNT) as usize;
+    let idx0 = unsafe { fx.min(Y0_ZEROS_COUNT).to_int_unchecked::<usize>() };
+    let idx1 = unsafe { fx.ceil().min(Y0_ZEROS_COUNT).to_int_unchecked::<usize>() };
 
     let found_zero0 = DoubleDouble::from_bit_pair(Y0_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(Y0_ZEROS[idx1]);
