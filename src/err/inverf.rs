@@ -440,25 +440,23 @@ fn inverf_asympt_long(z: DoubleDouble, zeta_sqrt: DoubleDouble, x: f64) -> f64 {
 pub fn f_erfinv(x: f64) -> f64 {
     let ax = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
-    if !x.is_normal() {
-        if x.is_nan() || x.is_infinite() {
-            return f64::NAN;
-        }
+    if ax >= 0x3ff0000000000000u64 || ax == 0 {
+        // |x| >= 1, |x| == 0
         if ax == 0 {
+            // |x| == 0
             return 0.;
         }
-    }
 
-    if ax >= 0x3ff0000000000000u64 {
         // |x| > 1
         if ax == 0x3ff0000000000000u64 {
+            // |x| == 1
             return if x.is_sign_negative() {
                 f64::NEG_INFINITY
             } else {
                 f64::INFINITY
             };
         }
-        return f64::NAN;
+        return f64::NAN; // x == NaN, x = Inf, x > 1
     }
 
     let z = f64::from_bits(ax);

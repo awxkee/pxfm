@@ -32,32 +32,25 @@ use crate::err::inverff::erfinv_core;
 ///
 /// Max ulp 0.5
 pub fn f_erfcinvf(x: f32) -> f32 {
-    if !x.is_normal() {
-        if x.is_nan() {
-            return x;
-        }
+    let ix = x.to_bits();
+    let ux = ix.wrapping_shl(1);
+    if ix >= 0x4000_0000u32 || ux == 0 {
         if x.is_infinite() {
             return f32::INFINITY;
         }
-        if x == 0. {
+        if ux == 0 {
             return f32::INFINITY;
         }
-    }
-    if x < 0. {
-        return f32::NAN;
-    }
 
-    if x >= 1. {
-        if x == 1. {
+        if ix == 0x3f80_0000u32 {
             return 0.;
         }
-        if x >= 2. {
-            // x > 2
-            if x == 2. {
-                return f32::NEG_INFINITY;
-            }
-            return f32::NAN;
+        // x > 2
+        if ix == 0x4000_0000u32 {
+            // x == 2.
+            return f32::NEG_INFINITY;
         }
+        return f32::NAN; // x == NaN, x < 0
     }
 
     let z = x as f64;
@@ -74,9 +67,9 @@ mod tests {
 
     #[test]
     fn m_test() {
+        assert_eq!(f_erfcinvf(2.), f32::NEG_INFINITY);
         assert!(f_erfcinvf(-1.).is_nan());
         assert_eq!(f_erfcinvf(0.), f32::INFINITY);
-        assert_eq!(f_erfcinvf(2.), f32::NEG_INFINITY);
         assert!(f_erfcinvf(2.1).is_nan());
         assert_eq!(f_erfcinvf(0.5), 0.47693628);
         assert_eq!(f_erfcinvf(1.5), -0.47693628);

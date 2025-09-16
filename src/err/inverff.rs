@@ -294,17 +294,13 @@ pub(crate) fn erfinv_core(z: f64, ax: u32, sign: f32) -> f32 {
 pub fn f_erfinvf(x: f32) -> f32 {
     let ax = x.to_bits() & 0x7fff_ffff;
 
-    if !x.is_normal() {
-        if x.is_nan() || x.is_infinite() {
-            return f32::NAN;
-        }
+    if ax >= 0x3f800000u32 || ax == 0 {
+        // |x| >= 1, |x| == 0
         if ax == 0 {
+            // |x| == 0
             return 0.;
         }
-    }
 
-    if ax >= 0x3f800000u32 {
-        // |x| > 1
         if ax == 0x3f800000u32 {
             // |x| == 1
             return if x.is_sign_negative() {
@@ -313,7 +309,9 @@ pub fn f_erfinvf(x: f32) -> f32 {
                 f32::INFINITY
             };
         }
-        return f32::NAN;
+
+        // |x| > 1
+        return f32::NAN; // |x| == NaN, |x| == Inf, |x| > 1
     }
 
     let z = f32::from_bits(ax) as f64;
