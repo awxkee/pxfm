@@ -101,13 +101,13 @@ pub fn f_tgammaf(x: f32) -> f32 {
         if x_a < f32::EPSILON {
             return (1. / x as f64) as f32;
         }
-        let y1 = x_a.trunc();
+        let y1 = x_a.floor_finite();
         let fraction = x_a - y1;
         if fraction != 0.0
         // is it an integer?
         {
             // is it odd or even?
-            if y1 != (y1 * 0.5).trunc() * 2.0 {
+            if y1 != (y1 * 0.5).floor_finite() * 2.0 {
                 parity = -1.0;
             }
             fact = -PI / fast_sinpif(fraction);

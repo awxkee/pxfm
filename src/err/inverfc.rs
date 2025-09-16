@@ -644,24 +644,18 @@ fn inverfc_extra_small(x: f64) -> DoubleDouble {
 
 /// Complementary inverse error function
 pub fn f_erfcinv(x: f64) -> f64 {
-    if !x.is_normal() {
-        if x.is_nan() || x.is_infinite() {
-            return f64::NAN;
-        }
-        if x == 0. {
+    let ux = x.to_bits().wrapping_shl(1);
+    let ix = x.to_bits();
+
+    if ix >= 0x4000000000000000u64 || ux == 0 {
+        // |x| == NaN, x == inf, |x| == 0, x < 0
+        if ux == 0 {
             return f64::INFINITY;
         }
-    }
-
-    if x < 0. {
-        return f64::NAN;
-    }
-
-    if x >= 2. {
-        if x == 2. {
+        if ix == 0x4000000000000000u64 {
             return f64::NEG_INFINITY;
         }
-        return f64::NAN;
+        return f64::NAN; // x == NaN, x == Inf, x > 2
     }
 
     if x == 1. {
@@ -695,11 +689,13 @@ mod tests {
 
     #[test]
     fn test_inverfc() {
+        assert_eq!(f_erfcinv(0.12), 1.0993909519492193);
         assert_eq!(f_erfcinv(1.0000000000027623e-13), 5.261512368864527);
         assert_eq!(f_erfcinv(1.0001200000182189), -0.00010634724760131264);
         assert_eq!(f_erfcinv(0.7001200000182189), 0.2723481758403576);
         assert_eq!(f_erfcinv(1.5231200000182189), -0.502985998867995);
         assert_eq!(f_erfcinv(1.99545434324323243), -2.0064739778442213);
+        assert_eq!(f_erfcinv(1.), 0.);
         assert!(f_erfcinv(2.05).is_nan());
         assert!(f_erfcinv(-0.01).is_nan());
         assert!(f_erfcinv(f64::NAN).is_nan());

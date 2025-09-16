@@ -156,7 +156,7 @@ pub fn f_tgamma(x: f64) -> f64 {
         // is it an integer?
         {
             // is it odd or even?
-            if y1 != (y1 * 0.5).trunc() * 2.0 {
+            if y1 != (y1 * 0.5).floor_finite() * 2.0 {
                 parity = -1.0;
             }
             fact = DoubleDouble::div(-PI, f_fast_sinpi_dd(fraction));

@@ -109,12 +109,10 @@ fn core_erfcx(x: f32) -> f64 {
 ///
 /// ulp 0.5
 pub fn f_erfcxf(x: f32) -> f32 {
-    let ax = x.to_bits() & 0x7fff_ffff;
-    if !x.is_normal() {
-        if x.is_nan() {
-            return f32::NAN;
-        }
-        if x == 0. {
+    let ux = x.to_bits().wrapping_shl(1);
+    if ux >= 0xffu32 << 24 || ux == 0 {
+        // |x| == 0, |x| == inf, |x| == NaN
+        if ux == 0 {
             return 1.;
         }
         if x.is_infinite() {
@@ -124,7 +122,9 @@ pub fn f_erfcxf(x: f32) -> f32 {
                 f32::INFINITY
             };
         }
+        return f32::NAN; // x == NaN
     }
+    let ax = x.to_bits() & 0x7fff_ffff;
     if x <= -9.382415 {
         // x <= -9.382415
         return f32::INFINITY;

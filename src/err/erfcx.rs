@@ -227,12 +227,14 @@ fn core_erfcx(x: f64) -> DoubleDouble {
 
 /// Scaled complementary error function (exp(x^2)*erfc(x))
 pub fn f_erfcx(x: f64) -> f64 {
+    let e = (x.to_bits() >> 52) & 0x7ff;
     let ax = x.to_bits() & 0x7fff_ffff_ffff_ffff;
-    if !x.is_normal() {
+    if e == 0x7ff || ax <= 0x3cb0000000000000u64 {
+        // x == NaN, x == inf, x == 0, |x| <= f64::EPSILON
         if x.is_nan() {
             return f64::NAN;
         }
-        if x == 0. {
+        if x.to_bits().wrapping_shl(1) == 0 {
             return 1.;
         }
         if x.is_infinite() {
@@ -242,12 +244,7 @@ pub fn f_erfcx(x: f64) -> f64 {
                 f64::INFINITY
             };
         }
-    }
-    if x.to_bits() >= 0xc03aa449ebc84dd6 {
-        // x <= -sqrt(709.783) ~ -26.6417
-        return f64::INFINITY;
-    }
-    if ax < 0x3cb0000000000000u64 {
+
         // |x| <= f64::EPSILON
         use crate::common::f_fmla;
         const M_TWO_OVER_SQRT_PI: DoubleDouble =
@@ -257,6 +254,11 @@ pub fn f_erfcx(x: f64) -> f64 {
             x,
             f_fmla(M_TWO_OVER_SQRT_PI.hi, x, 1.),
         );
+    }
+
+    if x.to_bits() >= 0xc03aa449ebc84dd6 {
+        // x <= -sqrt(709.783) ~ -26.6417
+        return f64::INFINITY;
     }
 
     if ax <= 0x3ff0000000000000u64 {
@@ -391,6 +393,7 @@ mod tests {
 
     #[test]
     fn test_erfcx() {
+        assert_eq!(f_erfcx(-173.), f64::INFINITY);
         assert_eq!(f_erfcx(-9.4324165432), 8.718049147018359e38);
         assert_eq!(f_erfcx(9.4324165432), 0.059483265496416374);
         assert_eq!(f_erfcx(-1.32432512125), 11.200579112797806);
@@ -398,7 +401,6 @@ mod tests {
         assert_eq!(f_erfcx(-0.532431235), 2.0560589406595384);
         assert_eq!(f_erfcx(0.532431235), 0.5994337293294584);
         assert_eq!(f_erfcx(1e-26), 1.0);
-        assert_eq!(f_erfcx(-173.), f64::INFINITY);
         assert_eq!(f_erfcx(-0.500000000023073), 1.952360489253639);
         assert_eq!(f_erfcx(-175.), f64::INFINITY);
         assert_eq!(f_erfcx(f64::INFINITY), 0.);
