@@ -26,11 +26,10 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, min_normal_f64};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::DyadicFloat128;
 use crate::round::RoundFinite;
-use crate::sin::{SinCos, get_sin_k_rational, range_reduction_small, sincos_eval};
+use crate::sin::{SinCos, get_sin_k_rational, sincos_eval};
 use crate::sin_table::SIN_K_PI_OVER_128;
 use crate::sincos_dyadic::{range_reduction_small_f128_f128, sincos_eval_dyadic};
 
@@ -215,67 +214,6 @@ pub(crate) fn cos_f128_small(z: DyadicFloat128) -> DyadicFloat128 {
     // cos(x) = cos((k * pi/128 + u)
     //        = cos(u) * cos(k*pi/128) - sin(u) * sin(k*pi/128)
     (cos_k_f128 * sin_cos.v_cos) + (msin_k_f128 * sin_cos.v_sin)
-}
-
-#[inline]
-pub(crate) fn sin_small(z: f64) -> f64 {
-    let x_e = (z.to_bits() >> 52) & 0x7ff;
-    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-
-    if x_e < E_BIAS - 26 {
-        return f_fmla(z, f64::from_bits(0xbc90000000000000), z);
-    }
-
-    let (angle_dd, k) = range_reduction_small(z);
-
-    let sin_cos = sincos_eval(angle_dd);
-
-    // Fast look up version, but needs 256-entry table.
-    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    let sk = SIN_K_PI_OVER_128[(k & 255) as usize];
-    let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
-
-    let sin_k = DoubleDouble::from_bit_pair(sk);
-    let cos_k = DoubleDouble::from_bit_pair(ck);
-
-    let sin_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, sin_k);
-    let cos_k_sin_y = DoubleDouble::quick_mult(sin_cos.v_sin, cos_k);
-
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
-    rr.to_f64()
-}
-
-#[inline]
-pub(crate) fn cos_small(z: f64) -> f64 {
-    let x_e = (z.to_bits() >> 52) & 0x7ff;
-    const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
-
-    if x_e < E_BIAS - 27 {
-        // Signed zeros.
-        if z == 0.0 {
-            return 1.0;
-        }
-        // For |x| < 2^-26, |sin(x) - x| < ulp(x)/2.
-        return 1.0 - min_normal_f64();
-    }
-
-    let (u_f128, k) = range_reduction_small(z);
-
-    let sin_cos = sincos_eval(u_f128);
-
-    // cos(k * pi/128) = sin(k * pi/128 + pi/2) = sin((k + 64) * pi/128).
-    let sk = SIN_K_PI_OVER_128[(k.wrapping_add(128) & 255) as usize];
-    let ck = SIN_K_PI_OVER_128[((k.wrapping_add(64)) & 255) as usize];
-    let msin_k = DoubleDouble::from_bit_pair(sk);
-    let cos_k = DoubleDouble::from_bit_pair(ck);
-
-    let sin_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, cos_k);
-    let cos_k_sin_y = DoubleDouble::quick_mult(sin_cos.v_sin, msin_k);
-
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
-    rr.to_f64()
 }
 
 #[inline]

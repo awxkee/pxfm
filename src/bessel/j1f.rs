@@ -28,9 +28,9 @@
  */
 use crate::bessel::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
 use crate::bessel::j1f_coeffs::J1F_COEFFS;
+use crate::bessel::trigo_bessel::sin_small;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval7, f_polyeval10, f_polyeval12, f_polyeval14};
-use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
 
 /// Bessel of the first kind of order 1
@@ -68,7 +68,7 @@ pub fn f_j1f(x: f32) -> f32 {
                 // taylor series for J1(x) ~ x/2 + O(x^3)
                 return x * 0.5;
             }
-            return maclaurin_series(x);
+            return poly_near_zero(x);
         }
         return small_argument_path(x);
     }
@@ -110,7 +110,7 @@ fn j1f_rsqrt(x: f64) -> f64 {
 fn j1f_asympt(x: f32) -> f64 {
     static SGN: [f64; 2] = [1., -1.];
     let sign_scale = SGN[x.is_sign_negative() as usize];
-    let x = x.abs();
+    let x = f32::from_bits(x.to_bits() & 0x7fff_ffff);
 
     let dx = x as f64;
 
@@ -311,7 +311,7 @@ for i from 0 to degree(pf) by 2 do {
 See ./notes/bessel_sollya/bessel_j1f_at_zero.sollya
 **/
 #[inline]
-fn maclaurin_series(x: f32) -> f32 {
+fn poly_near_zero(x: f32) -> f32 {
     let dx = x as f64;
     let x2 = dx * dx;
     let p = f_polyeval7(
@@ -358,7 +358,7 @@ fn small_argument_path(x: f32) -> f32 {
     };
 
     if idx == 0 {
-        return maclaurin_series(x);
+        return poly_near_zero(x);
     }
 
     // We hit exact zero, value, better to return it directly
@@ -398,6 +398,10 @@ mod tests {
     #[test]
     fn test_f_j1f() {
         assert_eq!(
+            f_j1f(77.743162408196766932633181568235159),
+            0.09049267898021947
+        );
+        assert_eq!(
             f_j1f(-0.000000000000000000000000000000000000008827127),
             -0.0000000000000000000000000000000000000044135635
         );
@@ -406,10 +410,6 @@ mod tests {
             0.0000000000000000000000000000000000000044135635
         );
         assert_eq!(f_j1f(5.4), -0.3453447907795863);
-        assert_eq!(
-            f_j1f(77.743162408196766932633181568235159),
-            0.09049267898021947
-        );
         assert_eq!(
             f_j1f(84.027189586293545175976760219782591),
             0.0870430264022591

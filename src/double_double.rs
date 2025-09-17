@@ -508,20 +508,20 @@ impl DoubleDouble {
         }
     }
 
-    /// Dekker division with one refinement step
-    #[inline]
-    pub(crate) fn div_dd_f64_newton_raphson(a: DoubleDouble, b: f64) -> Self {
-        // Initial estimate q = a / b
-        let q = DoubleDouble::div_dd_f64(a, b);
-
-        // One Newton-Raphson refinement step:
-        // e = a - q * b
-        let qb = DoubleDouble::quick_mult_f64(q, b);
-        let e = DoubleDouble::sub(a, qb);
-        let e_div_b = DoubleDouble::div_dd_f64(e, b);
-
-        DoubleDouble::add(q, e_div_b)
-    }
+    // /// Dekker division with one refinement step
+    // #[inline]
+    // pub(crate) fn div_dd_f64_newton_raphson(a: DoubleDouble, b: f64) -> Self {
+    //     // Initial estimate q = a / b
+    //     let q = DoubleDouble::div_dd_f64(a, b);
+    //
+    //     // One Newton-Raphson refinement step:
+    //     // e = a - q * b
+    //     let qb = DoubleDouble::quick_mult_f64(q, b);
+    //     let e = DoubleDouble::sub(a, qb);
+    //     let e_div_b = DoubleDouble::div_dd_f64(e, b);
+    //
+    //     DoubleDouble::add(q, e_div_b)
+    // }
 
     // /// Dekker division with two Newton-Raphson refinement steps
     // #[inline]

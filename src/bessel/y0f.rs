@@ -27,12 +27,12 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::bessel::j0f::{j0f_asympt_alpha, j0f_asympt_beta, j1f_rsqrt};
+use crate::bessel::trigo_bessel::sin_small;
 use crate::bessel::y0f_coeffs::{Y0_ZEROS, Y0_ZEROS_VALUES, Y0F_COEFFS};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::logs::fast_logf;
 use crate::polyeval::{f_polyeval10, f_polyeval18};
-use crate::sin_helper::sin_small;
 use crate::sincos_reduce::rem2pif_any;
 
 /// Bessel of the second kind of order 0 (Y0)
@@ -58,20 +58,19 @@ pub fn f_y0f(x: f32) -> f32 {
 
     let xb = x.to_bits();
 
-    if xb <= 0x3faccccdu32 {
-        // x <= 1.35
-        return y0f_near_zero(f32::from_bits(xb));
-    }
-
-    // transient zone from 1.35 to 2 have bad behaviour for log poly already,
-    // and not yet good to be easily covered, thus it use its own poly
-    if xb <= 0x40000000u32 {
-        // x <= 2
-        return y0_transient_area(x);
-    }
-
     if xb <= 0x4296999au32 {
         // x <= 75.3
+        if xb <= 0x40000000u32 {
+            // x <= 2
+            if xb <= 0x3faccccdu32 {
+                // x <= 1.35
+                return y0f_near_zero(f32::from_bits(xb));
+            }
+            // transient zone from 1.35 to 2 have bad behavior for log poly already,
+            // and not yet good to be easily covered, thus it use its own poly
+            return y0_transient_area(x);
+        }
+
         return y0f_small_argument_path(f32::from_bits(xb));
     }
 
