@@ -1,0 +1,15 @@
+pretty = proc(u) {
+  return ~(floor(u*1000)/1000);
+};
+
+d = [-0.015, 0.015];
+sqrt1pm1 = sqrt(x + 1) - 1;
+Q = fpminimax(sqrt1pm1, [|1,2,3,4,5,6|], [|D...|], d);
+
+err_p = -log2(dirtyinfnorm(Q-sqrt1pm1, d));
+display = decimal;
+print (Q);
+display = decimal;
+print ("absolute error:", pretty(err_p));
+
+for i from 1 to degree(Q) by 1 do printdouble(coeff(Q, i));
