@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::dyad_fmla;
+use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::DyadicFloat128;
 use crate::sin::{get_sin_k_rational, range_reduction_small, sincos_eval};
@@ -88,10 +88,9 @@ pub fn f_sinc(x: f64) -> f64 {
                 return x;
             }
 
-            // For |x| < 2^-26, |sin(x) - x| < ulp(x)/2.
-            let p = dyad_fmla(x, f64::from_bits(0xbc90000000000000), x);
-            let z = DoubleDouble::from_exact_div(p, x);
-            return z.to_f64();
+            // For |x| < 2^-26, sinc(x) ~ 1 - x^2/6
+            const M_ONE_OVER_6: f64 = f64::from_bits(0xbfc5555555555555);
+            return f_fmla(x, x * M_ONE_OVER_6, 1.);
         }
 
         // // Small range reduction.
@@ -123,7 +122,7 @@ pub fn f_sinc(x: f64) -> f64 {
     let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
 
-    rr = DoubleDouble::div_dd_f64_newton_raphson(rr, x);
+    rr = DoubleDouble::div_dd_f64(rr, x);
 
     let rlp = rr.lo + r_sincos.err;
     let rlm = rr.lo - r_sincos.err;
@@ -133,7 +132,7 @@ pub fn f_sinc(x: f64) -> f64 {
 
     // Ziv's accuracy test
     if r_upper == r_lower {
-        return DoubleDouble::from_exact_add(rr.hi, rr.lo).hi;
+        return r_upper;
     }
     sinc_refine(&mut argument_reduction, x, x_e, k)
 }

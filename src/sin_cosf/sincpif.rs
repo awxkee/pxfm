@@ -30,7 +30,7 @@ use crate::common::{f_fmla, is_integerf};
 use crate::polyeval::f_polyeval5;
 use crate::sin_cosf::sincosf_eval::sincospif_eval;
 
-/// Computes sin(PI*x)/(PI*x)
+/// Computes sin(PI\*x)/(PI\*x)
 ///
 /// Produces normalized sinc.
 ///

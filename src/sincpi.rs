@@ -68,7 +68,7 @@ fn as_sincpi_zero(x: f64) -> f64 {
     p.to_f64()
 }
 
-/// Computes sin(PI*x)/(PI*x)
+/// Computes sin(PI\*x)/(PI\*x)
 ///
 /// Produces normalized sinc.
 ///

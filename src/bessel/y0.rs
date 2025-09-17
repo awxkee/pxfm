@@ -68,20 +68,18 @@ pub fn f_y0(x: f64) -> f64 {
 
     let xb = x.to_bits();
 
-    if xb <= 0x3ff599999999999au64 {
-        // x < 1.35
-        return y0_near_zero_fast(x);
-    }
-
-    // transient zone from 1.46 to 2 have bad behaviour for log poly already,
-    // and not yet good to be easily covered, thus it use its own poly
-    if xb <= 0x4000000000000000u64 {
-        // x <= 2
-        return y0_transient_area_fast(x);
-    }
-
     if xb <= 0x4052d9999999999au64 {
         // x <= 75.4
+        if xb <= 0x4000000000000000u64 {
+            // x <= 2
+            if xb <= 0x3ff599999999999au64 {
+                // x < 1.35
+                return y0_near_zero_fast(x);
+            }
+            // transient zone from 1.46 to 2 have bad behavior for log poly already,
+            // and not yet good to be easily covered, thus it use its own poly
+            return y0_transient_area_fast(x);
+        }
         return y0_small_argument_fast(x);
     }
 

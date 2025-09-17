@@ -62,6 +62,7 @@ mod k1e;
 mod k1ef;
 mod k1f;
 mod k2f;
+mod trigo_bessel;
 mod y0;
 mod y0_coeffs;
 mod y0_coeffs_taylor;

@@ -1,0 +1,26 @@
+pretty = proc(u) {
+  return ~(floor(u*1000)/1000);
+};
+
+d = [0, pi/64];
+f_sin = sin(x)/x;
+Q = fpminimax(f_sin, [|0, 2, 4, 6|], [|D...|], d);
+
+err_p = -log2(dirtyinfnorm(Q-f_sin, d));
+display = decimal;
+print (Q);
+display = decimal;
+print ("absolute error:", pretty(err_p));
+
+for i from 0 to degree(Q) by 2 do printdouble(coeff(Q, i));
+
+f_cos = cos(x);
+Q = fpminimax(f_cos, [|0, 2, 4, 6|], [|1, D...|], d);
+
+err_p = -log2(dirtyinfnorm(Q-f_cos, d));
+display = decimal;
+print (Q);
+display = decimal;
+print ("absolute error:", pretty(err_p));
+
+for i from 0 to degree(Q) by 2 do printdouble(coeff(Q, i));

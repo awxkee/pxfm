@@ -219,12 +219,12 @@ fn test_f32_against_mpfr_multithreaded() {
     });
     let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
 
-    let start_bits = (0.00000001f32).to_bits();
-    let end_bits = 0.001f32.to_bits();
+    let start_bits = (79f32).to_bits();
+    let end_bits = f32::MAX.to_bits();
     println!("amount {}", end_bits - start_bits);
 
     // Exhaustive: 0..=u32::MAX
-    (0..u32::MAX).into_par_iter().for_each(|bits| {
+    (start_bits..end_bits).into_par_iter().for_each(|bits| {
         let x = f32::from_bits(bits);
 
         if !x.is_finite() {
@@ -244,8 +244,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected_sin_pi = Float::with_val(53, x).exp_m1();
-        let actual = f_expm1f(x);
+        let expected_sin_pi = Float::with_val(53, x).j0();
+        let actual = f_j0f(x);
         // if actual.is_infinite() {
         //     return;
         // }

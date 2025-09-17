@@ -29,11 +29,11 @@
 use crate::bessel::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
 use crate::bessel::j1f::{j1f_asympt_alpha, j1f_asympt_beta};
 use crate::bessel::j1f_coeffs::J1F_COEFFS;
+use crate::bessel::trigo_bessel::sin_small;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval6, f_polyeval14};
 use crate::round::RoundFinite;
-use crate::sin_helper::sin_small;
 
 /// Normalized jinc 2*J1(PI\*x)/(pi\*x)
 ///

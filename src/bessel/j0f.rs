@@ -27,9 +27,9 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::bessel::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE, J0F_COEFFS};
+use crate::bessel::trigo_bessel::cos_small;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval14};
-use crate::sin_helper::cos_small;
 use crate::sincos_reduce::rem2pif_any;
 
 /// Bessel of the first kind of order 0
@@ -107,7 +107,7 @@ pub fn f_j0f(x: f32) -> f32 {
         return f32::from_bits(0x27250206);
     }
 
-    j0f_asympt(x)
+    j0f_asympt(f32::from_bits(x_abs))
 }
 
 /**
@@ -230,8 +230,6 @@ pub(crate) fn j1f_rsqrt(x: f64) -> f64 {
 */
 #[inline]
 fn j0f_asympt(x: f32) -> f32 {
-    let x = x.abs();
-
     let dx = x as f64;
 
     let alpha = j0f_asympt_alpha(dx);
