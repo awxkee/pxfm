@@ -28,8 +28,10 @@
  */
 mod rsqrt;
 mod rsqrtf;
+mod sqrt1pm1f;
 mod sqrtf;
 
 pub use rsqrt::f_rsqrt;
 pub use rsqrtf::f_rsqrtf;
+pub use sqrt1pm1f::f_sqrt1pm1f;
 pub use sqrtf::sqrtf;
