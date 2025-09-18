@@ -188,7 +188,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::sin", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::sin(i as f64 / 50000.0));
+                black_box(libm::sin(i as f64 / 1000.0));
             }
         })
     });
@@ -196,7 +196,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: sin", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::sin(i as f64 / 50000.0));
+                black_box(f64::sin(i as f64 / 1000.0));
             }
         })
     });
@@ -204,7 +204,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_sin", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_sin(i as f64 / 50000.0));
+                black_box(f_sin(i as f64 / 1000.0));
             }
         })
     });
@@ -212,7 +212,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_csc", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_csc(i as f64 * 1000.0));
+                black_box(f_csc(i as f64 / 1000.0));
             }
         })
     });
@@ -220,7 +220,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::cos", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::cos(i as f64 * 1000.0));
+                black_box(libm::cos(i as f64 / 1000.0));
             }
         })
     });
@@ -228,7 +228,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: cos", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::cos(i as f64 * 1000.0));
+                black_box(f64::cos(i as f64 / 1000.0));
             }
         })
     });
@@ -236,7 +236,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: cos", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_cos(i as f64 * 1000.0));
+                black_box(f_cos(i as f64 / 1000.0));
             }
         })
     });
@@ -244,7 +244,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: cosm1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_cosm1(i as f64 * 1000.0));
+                black_box(f_cosm1(i as f64 / 1000.0));
             }
         })
     });

@@ -78,6 +78,7 @@ pub(crate) fn sin_dd_small(z: DoubleDouble) -> DoubleDouble {
     let sin_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, sin_k);
     let cos_k_sin_y = DoubleDouble::quick_mult(sin_cos.v_sin, cos_k);
 
+    // sin_k_cos_y is always >> cos_k_sin_y
     let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
     rr
@@ -106,6 +107,7 @@ pub(crate) fn sin_dd_small_fast(z: DoubleDouble) -> DoubleDouble {
     let sin_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, sin_k);
     let cos_k_sin_y = DoubleDouble::quick_mult(sin_cos.v_sin, cos_k);
 
+    // sin_k_cos_y is always >> cos_k_sin_y
     let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
     rr
@@ -153,11 +155,12 @@ pub(crate) fn cos_dd_small(z: DoubleDouble) -> DoubleDouble {
     let msin_k = DoubleDouble::from_bit_pair(sk);
     let cos_k = DoubleDouble::from_bit_pair(ck);
 
-    let sin_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, cos_k);
-    let cos_k_sin_y = DoubleDouble::quick_mult(sin_cos.v_sin, msin_k);
+    let cos_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, cos_k);
+    let cos_k_msin_y = DoubleDouble::quick_mult(sin_cos.v_sin, msin_k);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+    // cos_k_cos_y is always >> cos_k_msin_y
+    let mut rr = DoubleDouble::from_exact_add(cos_k_cos_y.hi, cos_k_msin_y.hi);
+    rr.lo += cos_k_cos_y.lo + cos_k_msin_y.lo;
 
     rr
 }
@@ -180,11 +183,12 @@ pub(crate) fn cos_dd_small_fast(z: DoubleDouble) -> DoubleDouble {
     let msin_k = DoubleDouble::from_bit_pair(sk);
     let cos_k = DoubleDouble::from_bit_pair(ck);
 
-    let sin_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, cos_k);
-    let cos_k_sin_y = DoubleDouble::quick_mult(sin_cos.v_sin, msin_k);
+    let cos_k_cos_y = DoubleDouble::quick_mult(sin_cos.v_cos, cos_k);
+    let cos_k_msin_y = DoubleDouble::quick_mult(sin_cos.v_sin, msin_k);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+    // cos_k_cos_y is always >> cos_k_msin_y
+    let mut rr = DoubleDouble::from_exact_add(cos_k_cos_y.hi, cos_k_msin_y.hi);
+    rr.lo += cos_k_cos_y.lo + cos_k_msin_y.lo;
 
     rr
 }

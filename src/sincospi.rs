@@ -430,7 +430,8 @@ pub(crate) fn f_fast_sinpi_dd(x: f64) -> DoubleDouble {
     let sin_k_cos_y = DoubleDouble::quick_mult(sin_k, r_sincos.v_cos);
     let cos_k_sin_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_sin);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    // sin_k_cos_y is always >> cos_k_sin_y
+    let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
     DoubleDouble::from_exact_add(rr.hi, rr.lo)
 }
@@ -563,7 +564,8 @@ pub fn f_sinpi(x: f64) -> f64 {
     let sin_k_cos_y = DoubleDouble::quick_mult(sin_k, r_sincos.v_cos);
     let cos_k_sin_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_sin);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    // sin_k_cos_y is always >> cos_k_sin_y
+    let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
 
     let ub = rr.hi + (rr.lo + r_sincos.err); // (rr.lo + ERR);
@@ -660,11 +662,12 @@ pub fn f_cospi(x: f64) -> f64 {
 
     let r_sincos = sincospi_eval(y);
 
-    let sin_k_cos_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_cos);
-    let cos_k_sin_y = DoubleDouble::quick_mult(msin_k, r_sincos.v_sin);
+    let cos_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, cos_k);
+    let cos_k_msin_y = DoubleDouble::quick_mult(r_sincos.v_sin, msin_k);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+    // cos_k_cos_y is always >> cos_k_msin_y
+    let mut rr = DoubleDouble::from_exact_add(cos_k_cos_y.hi, cos_k_msin_y.hi);
+    rr.lo += cos_k_cos_y.lo + cos_k_msin_y.lo;
 
     let ub = rr.hi + (rr.lo + r_sincos.err); // (rr.lo + ERR);
     let lb = rr.hi + (rr.lo - r_sincos.err); // (rr.lo - ERR);
@@ -861,17 +864,18 @@ pub fn f_sincospi(x: f64) -> (f64, f64) {
     let sin_k_cos_y = DoubleDouble::quick_mult(sin_k, r_sincos.v_cos);
     let cos_k_sin_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_sin);
 
-    let mut rr_sin = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    let cos_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, cos_k);
+    let msin_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, msin_k);
+
+    // sin_k_cos_y is always >> cos_k_sin_y
+    let mut rr_sin = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr_sin.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
 
     let sin_ub = rr_sin.hi + (rr_sin.lo + r_sincos.err); // (rr.lo + ERR);
     let sin_lb = rr_sin.hi + (rr_sin.lo - r_sincos.err); // (rr.lo - ERR);
 
-    let sin_k_cos_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_cos);
-    let cos_k_sin_y = DoubleDouble::quick_mult(msin_k, r_sincos.v_sin);
-
-    let mut rr_cos = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    rr_cos.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+    let mut rr_cos = DoubleDouble::from_exact_add(cos_k_cos_y.hi, msin_k_sin_y.hi);
+    rr_cos.lo += cos_k_cos_y.lo + msin_k_sin_y.lo;
 
     let cos_ub = rr_cos.hi + (rr_cos.lo + r_sincos.err); // (rr.lo + ERR);
     let cos_lb = rr_cos.hi + (rr_cos.lo - r_sincos.err); // (rr.lo - ERR);

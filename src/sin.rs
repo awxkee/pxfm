@@ -211,8 +211,7 @@ fn sin_accurate(y: DoubleDouble, sin_k: DoubleDouble, cos_k: DoubleDouble) -> f6
     let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, sin_k);
     let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, cos_k);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+    let rr = DoubleDouble::full_dd_add(sin_k_cos_y, cos_k_sin_y);
     rr.to_f64()
 }
 
@@ -331,7 +330,8 @@ pub fn f_sin(x: f64) -> f64 {
     let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, sin_k);
     let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, cos_k);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    // sin_k_cos_y is always >> cos_k_sin_y
+    let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
 
     let rlp = rr.lo + r_sincos.err;
@@ -361,8 +361,7 @@ fn cos_accurate(y: DoubleDouble, msin_k: DoubleDouble, cos_k: DoubleDouble) -> f
     let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, cos_k);
     let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, msin_k);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+    let rr = DoubleDouble::full_dd_add(sin_k_cos_y, cos_k_sin_y);
     rr.to_f64()
 }
 
@@ -476,11 +475,12 @@ pub fn f_cos(x: f64) -> f64 {
     let msin_k = DoubleDouble::from_bit_pair(sk);
     let cos_k = DoubleDouble::from_bit_pair(ck);
 
-    let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, cos_k);
-    let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, msin_k);
+    let cos_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, cos_k);
+    let cos_k_msin_y = DoubleDouble::quick_mult(r_sincos.v_sin, msin_k);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
+    // cos_k_cos_y is always >> cos_k_msin_y
+    let mut rr = DoubleDouble::from_exact_add(cos_k_cos_y.hi, cos_k_msin_y.hi);
+    rr.lo += cos_k_cos_y.lo + cos_k_msin_y.lo;
     let rlp = rr.lo + r_sincos.err;
     let rlm = rr.lo - r_sincos.err;
 

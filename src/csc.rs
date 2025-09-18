@@ -114,9 +114,11 @@ pub fn f_csc(x: f64) -> f64 {
     let sin_k_cos_y = DoubleDouble::quick_mult(r_sincos.v_cos, sin_k);
     let cos_k_sin_y = DoubleDouble::quick_mult(r_sincos.v_sin, cos_k);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    // sin_k_cos_y is always >> cos_k_sin_y
+    let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
 
+    rr = DoubleDouble::from_exact_add(rr.hi, rr.lo);
     rr = rr.recip();
 
     let rlp = rr.lo + r_sincos.err;
