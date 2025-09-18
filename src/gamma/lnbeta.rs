@@ -34,11 +34,7 @@ pub fn f_lnbeta(a: f64, b: f64) -> f64 {
     let ax = a.to_bits();
     let bx = b.to_bits();
 
-    if ax >= 0x7ffu64 << 52
-        || ax.wrapping_shl(1) == 0
-        || bx >= 0x7ffu64 << 52
-        || bx.wrapping_shl(1) == 0
-    {
+    if ax >= 0x7ffu64 << 52 || ax == 0 || bx >= 0x7ffu64 << 52 || bx == 0 {
         if (ax >> 63) != 0 || (bx >> 63) != 0 {
             // |a| < 0 or |b| < 0
             return f64::NAN;

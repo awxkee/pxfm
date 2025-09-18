@@ -122,6 +122,7 @@ pub fn f_sqrt1pm1f(x: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_sqrt1pm1f() {
         assert_eq!(f_sqrt1pm1f(-0.9), -0.6837722);

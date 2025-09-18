@@ -36,11 +36,7 @@ pub fn f_gamma_p(a: f64, x: f64) -> f64 {
     let aa = a.to_bits();
     let ax = x.to_bits();
 
-    if aa >= 0x7ffu64 << 52
-        || aa.wrapping_shl(1) == 0
-        || ax >= 0x7ffu64 << 52
-        || ax.wrapping_shl(1) == 0
-    {
+    if aa >= 0x7ffu64 << 52 || aa == 0 || ax >= 0x7ffu64 << 52 || ax == 0 {
         if (aa >> 63) != 0 || (ax >> 63) != 0 {
             // |a| < 0 or |b| < 0
             return f64::NAN;

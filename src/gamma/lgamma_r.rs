@@ -34,15 +34,15 @@ use crate::gamma::lgamma::lgamma_core;
 /// Returns gamma value + sign.
 pub fn f_lgamma_r(x: f64) -> (f64, i32) {
     // filter out exceptional cases
-    let xb = x.to_bits();
-    if xb >= 0x7ffu64 << 52 || xb.wrapping_shl(1) == 0 {
+    let xb = x.to_bits().wrapping_shl(1);
+    if xb >= 0x7ffu64 << 53 || xb == 0 {
         if x.is_nan() {
             return (f64::NAN, 1);
         }
-        if xb.wrapping_shl(1) == 0 {
+        if xb == 0 {
             return (f64::INFINITY, 1 - 2 * ((x.to_bits() >> 63) as i32));
         }
-        if xb.wrapping_shl(12) == 0 {
+        if xb.wrapping_shl(11) == 0 {
             return (f64::INFINITY, 1);
         }
     }

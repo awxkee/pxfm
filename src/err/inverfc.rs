@@ -644,12 +644,11 @@ fn inverfc_extra_small(x: f64) -> DoubleDouble {
 
 /// Complementary inverse error function
 pub fn f_erfcinv(x: f64) -> f64 {
-    let ux = x.to_bits().wrapping_shl(1);
     let ix = x.to_bits();
 
-    if ix >= 0x4000000000000000u64 || ux == 0 {
+    if ix >= 0x4000000000000000u64 || ix == 0 {
         // |x| == NaN, x == inf, |x| == 0, x < 0
-        if ux == 0 {
+        if ix.wrapping_shl(1) == 0 {
             return f64::INFINITY;
         }
         if ix == 0x4000000000000000u64 {

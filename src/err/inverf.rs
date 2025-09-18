@@ -440,11 +440,18 @@ fn inverf_asympt_long(z: DoubleDouble, zeta_sqrt: DoubleDouble, x: f64) -> f64 {
 pub fn f_erfinv(x: f64) -> f64 {
     let ax = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
-    if ax >= 0x3ff0000000000000u64 || ax == 0 {
-        // |x| >= 1, |x| == 0
+    if ax >= 0x3ff0000000000000u64 || ax <= 0x3cb0000000000000u64 {
+        // |x| >= 1, |x| == 0, |x| <= f64::EPSILON
         if ax == 0 {
             // |x| == 0
             return 0.;
+        }
+
+        if ax <= 0x3cb0000000000000u64 {
+            // |x| <= f64::EPSILON
+            // inverf(x) ~ Sqrt[Pi]x/2+O[x]^3
+            const SQRT_PI_OVER_2: f64 = f64::from_bits(0x3fec5bf891b4ef6b);
+            return x * SQRT_PI_OVER_2;
         }
 
         // |x| > 1
@@ -660,6 +667,7 @@ mod tests {
         assert!(f_erfinv(f64::NEG_INFINITY).is_nan());
         assert!(f_erfinv(f64::INFINITY).is_nan());
         assert!(f_erfinv(f64::NAN).is_nan());
+        assert_eq!(f_erfinv(f64::EPSILON), 1.9678190753608283e-16);
         assert_eq!(f_erfinv(-0.5435340000000265), -0.5265673336010599);
         assert_eq!(f_erfinv(0.5435340000000265), 0.5265673336010599);
         assert_eq!(f_erfinv(0.001000000000084706), 0.0008862271575416209);

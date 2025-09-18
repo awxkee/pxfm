@@ -45,13 +45,19 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
 /// Bessel of the first kind of order 0
 pub fn f_j0(x: f64) -> f64 {
-    let e = (x.to_bits() >> 52) & 0x7ff;
     let ux = x.to_bits().wrapping_shl(1);
-    if e == 0x7ff || ux == 0 {
-        // |x| == 0, |x| == inf, |x| == NaN
-        if ux == 0 {
-            // |x| == 0
-            return f64::from_bits(0x3ff0000000000000);
+
+    if ux >= 0x7ffu64 << 53 || ux <= 0x7960000000000000u64 {
+        // |x| <= f64::EPSILON, |x| == inf, |x| == NaN
+        if ux <= 0x77723ef88126da90u64 {
+            // |x| <= 0.00000000000000000000532
+            return 1.;
+        }
+        if ux <= 0x7960000000000000u64 {
+            // |x| <= f64::EPSILON
+            // J0(x) ~ 1-x^2/4+O[x]^4
+            let half_x = 0.5 * x; // exact.
+            return f_fmla(half_x, -half_x, 1.);
         }
         if x.is_infinite() {
             return 0.;
@@ -593,6 +599,9 @@ mod tests {
 
     #[test]
     fn test_j0() {
+        assert_eq!(f_j0(f64::EPSILON), 1.0);
+        assert_eq!(f_j0(-0.000000000000000000000532), 1.0);
+        assert_eq!(f_j0(0.0000000000000000000532), 1.0);
         assert_eq!(f_j0(-2.000976555054876), 0.22332760641907712);
         assert_eq!(f_j0(-2.3369499004222215E+304), -3.3630754230844632e-155);
         assert_eq!(

@@ -254,5 +254,7 @@ mod tests {
             f_powm1f(196560., 0.000000000000000000000000000000000000001193773),
             1.455057e-38
         );
+        assert!(f_powm1f(f32::NAN, f32::INFINITY).is_nan());
+        assert!(f_powm1f(f32::INFINITY, f32::NAN).is_nan());
     }
 }

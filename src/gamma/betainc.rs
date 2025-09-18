@@ -40,10 +40,10 @@ pub fn f_betainc_reg(a: f64, b: f64, x: f64) -> f64 {
     let ax = x.to_bits();
 
     if aa >= 0x7ffu64 << 52
-        || aa.wrapping_shl(1) == 0
+        || aa == 0
         || ab >= 0x7ffu64 << 52
-        || ab.wrapping_shl(1) == 0
-        || ax.wrapping_shl(1) == 0
+        || ab == 0
+        || ax == 0
         || ax >= 0x3ff0000000000000
     {
         if (aa >> 63) != 0 || (ab >> 63) != 0 || (ax >> 63) != 0 {

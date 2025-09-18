@@ -36,13 +36,18 @@ use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 ///
 /// Computes exp(-|x|)*I1(x)
 pub fn f_i1e(x: f64) -> f64 {
-    let e = (x.to_bits() >> 52) & 0x7ff;
     let ux = x.to_bits().wrapping_shl(1);
-    if e == 0x7ff || ux == 0 {
-        // |x| == 0, |x| == inf, x == NaN
-        if ux == 0 {
-            // |x| == 0
-            return 0.;
+
+    if ux >= 0x7ffu64 << 53 || ux <= 0x7960000000000000u64 {
+        // |x| <= f64::EPSILON, |x| == inf, x == NaN
+        if ux <= 0x760af31dc4611874u64 {
+            // |x| <= 2.2204460492503131e-24
+            return x * 0.5;
+        }
+        if ux <= 0x7960000000000000u64 {
+            // |x| <= f64::EPSILON
+            // Power series of I1(x)*exp(-|x|) ~ x/2 - x^2/2 + O(x^3)
+            return f_fmla(x, -x * 0.5, x * 0.5);
         }
         if x.is_infinite() {
             return 0.;
@@ -58,11 +63,6 @@ pub fn f_i1e(x: f64) -> f64 {
 
     if xb < 0x401f000000000000u64 {
         // |x| <= 7.75
-        if xb <= 0x3cb0000000000000u64 {
-            // x <= f64::EPSILON
-            // Power series of I1(x)*exp(-|x|) ~ x/2 - x^2/2 + O(x^3)
-            return f_fmla(x, -x * 0.5, x * 0.5);
-        }
         let v_exp = i0_exp(-f64::from_bits(xb));
         let vi1 = i1_0_to_7p75(f64::from_bits(xb));
         let r = DoubleDouble::quick_mult(vi1, v_exp);
@@ -441,6 +441,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_fi1e() {
+        assert_eq!(f_i1e(f64::EPSILON), 1.1102230246251563e-16);
         assert_eq!(f_i1e(7.750000000757874), 0.13605110007443239);
         assert_eq!(f_i1e(7.482812501363189), 0.13818116726273896);
         assert_eq!(f_i1e(-7.750000000757874), -0.13605110007443239);

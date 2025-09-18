@@ -41,12 +41,12 @@ use crate::sin_helper::sin_dd_small_fast;
 
 /// Normalized jinc 2*J1(PI\*x)/(pi\*x)
 pub fn f_jincpi(x: f64) -> f64 {
-    let e = (x.to_bits() >> 52) & 0x7ff;
     let ux = x.to_bits().wrapping_shl(1);
-    if e == 0x7ff || ux == 0 {
-        // |x| == 0, |x| == inf, x == NaN
-        if ux == 0 {
-            // |x| == 0
+
+    if ux >= 0x7ffu64 << 53 || ux <= 0x7960000000000000u64 {
+        // |x| <= f64::EPSILON, |x| == inf, x == NaN
+        if ux <= 0x7960000000000000u64 {
+            // |x| <= f64::EPSILON
             return 1.0;
         }
         if x.is_infinite() {
@@ -61,12 +61,6 @@ pub fn f_jincpi(x: f64) -> f64 {
         // |x| < 74.60109
         if ax < 0x3fd3333333333333 {
             // |x| < 0.3
-            if ax <= 0x3cb0000000000000u64 {
-                // |x| <= f64::EPSILON
-                // use series here j1(x*Pi)/(x*Pi) ~ 1 - Pi^2*x^2/8 + O(x^4)
-                const MSQR_PI_OVER_16: f64 = f64::from_bits(0xbff3bd3cc9be45de);
-                return f_fmla(MSQR_PI_OVER_16 * x, x, 1.);
-            }
             return jincpi_near_zero(f64::from_bits(ax));
         }
         let scaled_pix = f64::from_bits(ax) * std::f64::consts::PI; // just test boundaries
@@ -371,6 +365,7 @@ mod tests {
 
     #[test]
     fn test_jincpi() {
+        assert_eq!(f_jincpi(f64::EPSILON), 1.0);
         assert_eq!(f_jincpi(0.5000000000020244), 0.7217028449014163);
         assert_eq!(f_jincpi(73.81695991658546), -0.0004417546638317049);
         assert_eq!(f_jincpi(0.01), 0.9998766350182722);

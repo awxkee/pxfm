@@ -149,7 +149,7 @@ pub use sincos::f_sincos;
 pub use sincospi::{f_cospi, f_sincospi, f_sinpi};
 pub use sincpi::f_sincpi;
 pub use sinmx::f_sinmx;
-pub use square_root::{f_rsqrt, f_rsqrtf, f_sqrt1pm1f, sqrtf};
+pub use square_root::{f_rsqrt, f_rsqrtf, f_sqrt1pm1, f_sqrt1pm1f, sqrtf};
 pub use tangent::{
     f_atan, f_atan2, f_atan2f, f_atan2pi, f_atan2pif, f_atanf, f_atanpi, f_atanpif, f_cot, f_cotf,
     f_cotpi, f_cotpif, f_tan, f_tanf, f_tanpi, f_tanpif,

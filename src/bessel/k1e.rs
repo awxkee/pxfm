@@ -35,12 +35,11 @@ use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 ///
 /// Computes K1(x)exp(x)
 pub fn f_k1e(x: f64) -> f64 {
-    let ux = x.to_bits().wrapping_shl(1);
     let ix = x.to_bits();
 
-    if ix >= 0x7ffu64 << 52 || ux == 0 {
+    if ix >= 0x7ffu64 << 52 || ix == 0 {
         // |x| == NaN, x == inf, |x| == 0, x < 0
-        if ux == 0 {
+        if ix.wrapping_shl(1) == 0 {
             // |x| == 0
             return f64::INFINITY;
         }

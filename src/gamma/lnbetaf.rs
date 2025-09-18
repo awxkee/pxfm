@@ -34,11 +34,7 @@ pub fn f_lnbetaf(a: f32, b: f32) -> f32 {
     let ax = a.to_bits();
     let bx = b.to_bits();
 
-    if ax >= 0xffu32 << 23
-        || ax.wrapping_shl(1) == 0
-        || bx >= 0xffu32 << 23
-        || bx.wrapping_shl(1) == 0
-    {
+    if ax >= 0xffu32 << 23 || ax == 0 || bx >= 0xffu32 << 23 || bx == 0 {
         if (ax >> 31) != 0 || (bx >> 31) != 0 {
             // |a| < 0 or |b| < 0
             return f32::NAN;

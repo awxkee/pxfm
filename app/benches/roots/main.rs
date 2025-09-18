@@ -14,6 +14,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.warm_up_time(Duration::new(1, 100));
     c.sample_size(15);
 
+    c.bench_function("pxfm: sqrt1pm1", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_sqrt1pm1(black_box(i as f64)));
+            }
+        })
+    });
+
     c.bench_function("pxfm: sqrt1pm1f", |b| {
         b.iter(|| {
             for i in 1..1000 {

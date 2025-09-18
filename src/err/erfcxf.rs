@@ -110,9 +110,10 @@ fn core_erfcx(x: f32) -> f64 {
 /// ulp 0.5
 pub fn f_erfcxf(x: f32) -> f32 {
     let ux = x.to_bits().wrapping_shl(1);
-    if ux >= 0xffu32 << 24 || ux == 0 {
-        // |x| == 0, |x| == inf, |x| == NaN
-        if ux == 0 {
+    if ux >= 0xffu32 << 24 || ux <= 0x6499_999au32 {
+        // |x| == 0, |x| == inf, |x| == NaN, |x| <= 1.19209290e-08
+        if ux <= 0x6499_999au32 {
+            // |x| == 0, |x| <= 1.19209290e-08
             return 1.;
         }
         if x.is_infinite() {
@@ -212,6 +213,9 @@ mod tests {
     use super::*;
     #[test]
     fn test_erfcx() {
+        assert_eq!(f_erfcxf(5.19209290e-09), 1.0);
+        assert_eq!(f_erfcxf(1.19209290e-08), 1.0);
+        assert_eq!(f_erfcxf(f32::EPSILON), 0.9999999);
         assert_eq!(f_erfcxf(12.1), 0.046469606);
         assert_eq!(f_erfcxf(7.1), 0.07869752);
         assert_eq!(f_erfcxf(1.1), 0.40173045);
