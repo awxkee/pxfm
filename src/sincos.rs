@@ -163,8 +163,10 @@ pub fn f_sincos(x: f64) -> (f64, f64) {
     let cos_k_cos_y = DoubleDouble::quick_mult(cos_y, cos_k);
     let msin_k_sin_y = DoubleDouble::quick_mult(sin_y, msin_k);
 
-    let mut sin_dd = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
-    let mut cos_dd = DoubleDouble::from_full_exact_add(cos_k_cos_y.hi, msin_k_sin_y.hi);
+    // cos_k_sin_y is always >> sin_k_cos_y
+    let mut sin_dd = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    // cos_k_cos_y is always >> msin_k_sin_y
+    let mut cos_dd = DoubleDouble::from_exact_add(cos_k_cos_y.hi, msin_k_sin_y.hi);
     sin_dd.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
     cos_dd.lo += msin_k_sin_y.lo + cos_k_cos_y.lo;
 

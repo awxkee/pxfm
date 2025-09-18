@@ -259,9 +259,9 @@ pub fn f_sincpi(x: f64) -> f64 {
     let sin_k_cos_y = DoubleDouble::quick_mult(sin_k, r_sincos.v_cos);
     let cos_k_sin_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_sin);
 
-    let mut rr = DoubleDouble::from_full_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
+    // sin_k_cos_y is always >> cos_k_sin_y
+    let mut rr = DoubleDouble::from_exact_add(sin_k_cos_y.hi, cos_k_sin_y.hi);
     rr.lo += sin_k_cos_y.lo + cos_k_sin_y.lo;
-    rr = DoubleDouble::from_exact_add(rr.hi, rr.lo);
     rr = DoubleDouble::div(rr, scale);
 
     let ub = rr.hi + (rr.lo + r_sincos.err); // (rr.lo + ERR);
