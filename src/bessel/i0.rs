@@ -37,21 +37,27 @@ use crate::round::RoundFinite;
 ///
 /// Max ULP 0.5
 pub fn f_i0(x: f64) -> f64 {
-    let xb = x.to_bits() & 0x7fff_ffff_ffff_ffff;
-
-    let e = (x.to_bits() >> 52) & 0x7ff;
     let ux = x.to_bits().wrapping_shl(1);
-    if e == 0x7ff || ux == 0 {
-        // |x| == 0, |x| == inf, x == NaN
-        if ux == 0 {
-            // |x| == 0
+
+    if ux >= 0x7ffu64 << 53 || ux <= 0x7960000000000000u64 {
+        // |x| <= f64::EPSILON, |x| == inf, x == NaN
+        if ux <= 0x760af31dc4611874u64 {
+            // |x| <= 2.2204460492503131e-24
             return 1.;
+        }
+        if ux <= 0x7960000000000000u64 {
+            // |x| <= f64::EPSILON
+            // Power series of I0(x) ~ 1 + x^2/4 + O(x^4)
+            let half_x = x * 0.5;
+            return f_fmla(half_x, half_x, 1.);
         }
         if x.is_infinite() {
             return f64::INFINITY;
         }
         return x + f64::NAN; // x == NaN
     }
+
+    let xb = x.to_bits() & 0x7fff_ffff_ffff_ffff;
 
     if xb > 0x40864fe5304e83e4u64 {
         // |x| > 713.9869085439682
@@ -62,13 +68,6 @@ pub fn f_i0(x: f64) -> f64 {
         // |x| <= 9.5
         if xb <= 0x400ccccccccccccdu64 {
             // |x| <= 3.6
-            if xb <= 0x3cb0000000000000u64 {
-                // |x| <= f64::EPSILON
-                // Power series of I0(x) ~ 1 + x^2/4 + O(x^4)
-                const R: f64 = 1. / 4.;
-                let r = f_fmla(x, x * R, 1.);
-                return r;
-            }
             return i0_0_to_3p6_exec(f64::from_bits(xb));
         } else if xb <= 0x401e000000000000u64 {
             // |x| <= 7.5
@@ -1151,6 +1150,8 @@ mod tests {
 
     #[test]
     fn test_i0() {
+        assert_eq!(f_i0(2.2204460492503131e-24f64), 1.0);
+        assert_eq!(f_i0(f64::EPSILON), 1.0);
         assert_eq!(f_i0(9.500000000005492,), 1753.4809905364318);
         assert!(f_i0(f64::NAN).is_nan());
         assert_eq!(f_i0(f64::INFINITY), f64::INFINITY);

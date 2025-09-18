@@ -37,11 +37,7 @@ pub fn f_gamma_qf(a: f32, x: f32) -> f32 {
     let aa = a.to_bits();
     let ax = x.to_bits();
 
-    if aa >= 0xffu32 << 23
-        || aa.wrapping_shl(1) == 0
-        || ax >= 0xffu32 << 23
-        || ax.wrapping_shl(1) == 0
-    {
+    if aa >= 0xffu32 << 23 || aa == 0 || ax >= 0xffu32 << 23 || ax == 0 {
         if (aa >> 31) != 0 || (ax >> 31) != 0 {
             // |a| < 0 or |b| < 0
             return f32::NAN;

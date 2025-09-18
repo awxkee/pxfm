@@ -217,15 +217,15 @@ pub(crate) fn lgamma_coref(x: f32) -> (f64, i32) {
 /// ulp 0.5
 pub fn f_lgamma_rf(x: f32) -> (f32, i32) {
     // filter out exceptional cases
-    let xb = x.to_bits();
-    if xb >= 0xffu32 << 23 || xb == 0 {
+    let xb = x.to_bits().wrapping_shl(1);
+    if xb >= 0xffu32 << 24 || xb == 0 {
         if x.is_infinite() {
             return (f32::INFINITY, 1);
         }
         if x.is_nan() {
             return (f32::NAN, 1);
         }
-        if x == 0. {
+        if xb == 0 {
             return (f32::INFINITY, 1 - 2 * (x.to_bits() >> 31) as i32);
         }
     }

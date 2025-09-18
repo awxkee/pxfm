@@ -34,9 +34,9 @@ use crate::exponents::rational128_exp;
 
 /// Modified bessel of the first kind of order 2
 pub fn f_i2(x: f64) -> f64 {
-    let e = (x.to_bits() >> 52) & 0x7ff;
     let ux = x.to_bits().wrapping_shl(1);
-    if e == 0x7ff || ux == 0 {
+
+    if ux >= 0x7ffu64 << 53 || ux == 0 {
         // |x| == 0, |x| == inf, x == NaN
         if ux == 0 {
             // |x| == 0
@@ -51,9 +51,9 @@ pub fn f_i2(x: f64) -> f64 {
     let xb = x.to_bits() & 0x7fff_ffff_ffff_ffffu64;
 
     if xb < 0x401f000000000000u64 {
-        // x < 7.75
+        // |x| < 7.75
         if xb <= 0x3cb0000000000000u64 {
-            // x <= f64::EPSILON
+            // |x| <= f64::EPSILON
             // Power series of I2(x) ~ x^2/8 + O(x^4)
             const R: f64 = 1. / 8.;
             let x2 = x * x * R;

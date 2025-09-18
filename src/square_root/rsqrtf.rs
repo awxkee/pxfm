@@ -40,9 +40,11 @@ pub fn f_rsqrtf(x: f32) -> f32 {
             return 1.0 / x; // +/-0
         }
         if (ix >> 31) != 0 {
+            // x < 0
             return f32::NAN;
         }
         if ix.wrapping_shl(9) == 0 {
+            // |x| == Inf
             return 0.;
         }
         return x + x; // nan

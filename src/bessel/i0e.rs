@@ -39,13 +39,18 @@ use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 ///
 /// Computes exp(-|x|)*I0(x)
 pub fn f_i0e(x: f64) -> f64 {
-    let e = (x.to_bits() >> 52) & 0x7ff;
     let ux = x.to_bits().wrapping_shl(1);
-    if e == 0x7ff || ux == 0 {
-        // |x| == 0, |x| == inf, x == NaN
-        if ux == 0 {
-            // |x| == 0
+
+    if ux >= 0x7ffu64 << 53 || ux <= 0x7960000000000000u64 {
+        // |x| <= f64::EPSILON, |x| == inf, x == NaN
+        if ux <= 0x760af31dc4611874u64 {
+            // |x| <= 2.2204460492503131e-24f64
             return 1.;
+        }
+        if ux <= 0x7960000000000000u64 {
+            // |x| <= f64::EPSILON
+            // Power series of I0(x)Exp[-x] ~ 1 - x + O(x^2)
+            return 1. - x;
         }
         if x.is_infinite() {
             return 0.;
@@ -59,11 +64,6 @@ pub fn f_i0e(x: f64) -> f64 {
         // |x| <= 9.5
         if xb <= 0x400ccccccccccccdu64 {
             // |x| <= 3.6
-            if xb <= 0x3cb0000000000000u64 {
-                // |x| <= f64::EPSILON
-                // Power series of I0(x)Exp[-x] ~ 1 - x + O(x^2)
-                return 1. - x;
-            }
             return i0e_0_to_3p6_exec(f64::from_bits(xb));
         } else if xb <= 0x401e000000000000u64 {
             // |x| <= 7.5
@@ -811,6 +811,8 @@ mod tests {
     use super::*;
     #[test]
     fn test_i0e() {
+        assert_eq!(f_i0e(0.00000000000000000000000000052342), 1.0);
+        assert_eq!(f_i0e(f64::EPSILON), 0.9999999999999998);
         assert_eq!(f_i0e(9.500000000005492,), 0.13125126081422883);
         assert!(f_i0e(f64::NAN).is_nan());
         assert_eq!(f_i0e(f64::INFINITY), 0.);

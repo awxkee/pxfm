@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::j0f::j1f_rsqrt;
 use crate::bessel::j1_coeffs::{J1_ZEROS, J1_ZEROS_VALUE};
 use crate::bessel::j1f::{j1f_asympt_alpha, j1f_asympt_beta};
 use crate::bessel::j1f_coeffs::J1F_COEFFS;
@@ -40,9 +41,9 @@ use crate::round::RoundFinite;
 /// ULP 0.5
 pub fn f_jincpif(x: f32) -> f32 {
     let ux = x.to_bits().wrapping_shl(1);
-    if ux >= 0xffu32 << 24 || ux == 0 {
-        // |x| == 0, |x| == inf, |x| == NaN
-        if ux == 0 {
+    if ux >= 0xffu32 << 24 || ux <= 0x6800_0000u32 {
+        // |x| <= f32::EPSILON, |x| == inf, |x| == NaN
+        if ux <= 0x6800_0000u32 {
             // |x| == 0
             return 1.;
         }
@@ -58,14 +59,6 @@ pub fn f_jincpif(x: f32) -> f32 {
         // |x| < 74.60109
         if ax <= 0x3e800000u32 {
             // |x| < 0.25
-            if ax <= 0x34000000u32 {
-                // |x| <= f32::EPSILON
-                // use series here j1(x*Pi)/(x*Pi) ~ 1 - Pi^2*x^2/8 + O(x^4)
-                let dx = x as f64;
-                let x2 = dx * dx;
-                const MSQR_PI_OVER_16: f64 = f64::from_bits(0xbff3bd3cc9be45de);
-                return f_fmla(MSQR_PI_OVER_16, x2, 1.) as f32;
-            }
             return jincf_near_zero(f32::from_bits(ax));
         }
         let scaled_pix = f32::from_bits(ax) * std::f32::consts::PI; // just test boundaries
@@ -75,11 +68,6 @@ pub fn f_jincpif(x: f32) -> f32 {
     }
 
     jincpif_asympt(f32::from_bits(ax)) as f32
-}
-
-#[inline]
-fn j1f_rsqrt(x: f64) -> f64 {
-    (1. / x) * x.sqrt()
 }
 
 #[inline]
@@ -234,6 +222,8 @@ mod tests {
         assert_eq!(f_jincpif(100.08199), -0.00014386141);
         assert_eq!(f_jincpif(0.27715185), 0.9081822);
         assert_eq!(f_jincpif(0.007638072), 0.99992806);
+        assert_eq!(f_jincpif(-f32::EPSILON), 1.0);
+        assert_eq!(f_jincpif(f32::EPSILON), 1.0);
         assert_eq!(
             f_jincpif(0.000000000000000000000000000000000000008827127),
             1.0

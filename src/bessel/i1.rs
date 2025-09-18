@@ -37,13 +37,22 @@ use crate::polyeval::{f_estrin_polyeval5, f_polyeval6};
 ///
 /// Max found ULP 0.5
 pub fn f_i1(x: f64) -> f64 {
-    let e = (x.to_bits() >> 52) & 0x7ff;
     let ux = x.to_bits().wrapping_shl(1);
-    if e == 0x7ff || ux == 0 {
-        // |x| == 0, |x| == inf, x == NaN
-        if ux == 0 {
-            // |x| == 0
-            return 0.;
+
+    if ux >= 0x7ffu64 << 53 || ux <= 0x7960000000000000u64 {
+        // |x| <= f64::EPSILON, |x| == inf, x == NaN
+        if ux <= 0x760af31dc4611874u64 {
+            // Power series of I1(x) ~ x/2 + O(x^3)
+            // |x| <= 2.2204460492503131e-24
+            return x * 0.5;
+        }
+        if ux <= 0x7960000000000000u64 {
+            // |x| <= f64::EPSILON
+            // Power series of I1(x) ~ x/2 + x^3/16 + O(x^4)
+            const A0: f64 = 1. / 2.;
+            const A1: f64 = 1. / 16.;
+            let r0 = f_fmla(x, x * A1, A0);
+            return r0 * x;
         }
         if x.is_infinite() {
             return if x.is_sign_positive() {
@@ -72,14 +81,6 @@ pub fn f_i1(x: f64) -> f64 {
 
     if xb < 0x401f000000000000u64 {
         // |x| <= 7.75
-        if xb <= 0x3cb0000000000000u64 {
-            // |x| <= f64::EPSILON
-            // Power series of I1(x) ~ x/2 + x^3/16 + O(x^4)
-            const A0: f64 = 1. / 2.;
-            const A1: f64 = 1. / 16.;
-            let r0 = f_fmla(x, x * A1, A0);
-            return r0 * x;
-        }
         return f64::copysign(i1_0_to_7p75(f64::from_bits(xb)).to_f64(), sign_scale);
     }
 
@@ -635,6 +636,10 @@ mod tests {
     use super::*;
     #[test]
     fn test_fi1() {
+        assert_eq!(
+            f_i1(0.0000000000000000000000000000000006423424234121),
+            3.2117121170605e-34
+        );
         assert_eq!(f_i1(7.750000000757874), 315.8524811496668);
         assert_eq!(f_i1(7.482812501363189), 245.58002285881892);
         assert_eq!(f_i1(-7.750000000757874), -315.8524811496668);

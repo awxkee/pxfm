@@ -37,10 +37,10 @@ pub fn f_betainc_regf(a: f32, b: f32, x: f32) -> f32 {
     let ax = x.to_bits();
 
     if aa >= 0xffu32 << 23
-        || aa.wrapping_shl(1) == 0
+        || aa == 0
         || ab >= 0xffu32 << 23
-        || ab.wrapping_shl(1) == 0
-        || ax.wrapping_shl(1) == 0
+        || ab == 0
+        || ax == 0
         || ax >= 0x3f800000
     {
         if (aa >> 31) != 0 || (ab >> 31) != 0 || (ax >> 31) != 0 {

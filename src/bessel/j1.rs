@@ -54,13 +54,20 @@ use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 ///   have 0.7 ULP for any number with extended precision that would be represented in f32
 ///   Same applies to J1(4.4501477170144018E-309) in double precision and some others subnormal numbers
 pub fn f_j1(x: f64) -> f64 {
-    let e = (x.to_bits() >> 52) & 0x7ff;
     let ux = x.to_bits().wrapping_shl(1);
-    if e == 0x7ff || ux == 0 {
-        // |x| == 0, |x| == inf, x == NaN
-        if ux == 0 {
-            // |x| == 0
-            return x;
+
+    if ux >= 0x7ffu64 << 53 || ux <= 0x7960000000000000u64 {
+        // |x| <= f64::EPSILON, |x| == inf, x == NaN
+        if ux <= 0x72338c9356bb0314u64 {
+            // |x| <= 0.000000000000000000000000000000001241
+            // J1(x) ~ x/2+O[x]^3
+            return x * 0.5;
+        }
+        if ux <= 0x7960000000000000u64 {
+            // |x| <= f64::EPSILON
+            // J1(x) ~ x/2-x^3/16+O[x]^5
+            let quad_part_x = x * 0.125; // exact. x / 8
+            return f_fmla(quad_part_x, -quad_part_x, 0.5) * x;
         }
         if x.is_infinite() {
             return 0.;
@@ -653,6 +660,9 @@ mod tests {
 
     #[test]
     fn test_j1() {
+        assert_eq!(f_j1(0.000000000000000000000000000000001241), 6.205e-34);
+        assert_eq!(f_j1(0.0000000000000000000000000000004321), 2.1605e-31);
+        assert_eq!(f_j1(0.00000000000000000004321), 2.1605e-20);
         assert_eq!(f_j1(73.81695991658546), -0.06531447184607607);
         assert_eq!(f_j1(0.01), 0.004999937500260416);
         assert_eq!(f_j1(0.9), 0.4059495460788057);
