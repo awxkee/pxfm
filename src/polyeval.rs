@@ -242,6 +242,23 @@ pub(crate) fn f_polyeval4<T: PolyevalMla + Copy>(x: T, a0: T, a1: T, a2: T, a3: 
 
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]
+pub(crate) fn f_estrin_polyeval4<T: PolyevalMla + Copy + Mul<T, Output = T>>(
+    x: T,
+    a0: T,
+    a1: T,
+    a2: T,
+    a3: T,
+) -> T {
+    let x2 = x * x;
+
+    let p01 = T::polyeval_mla(x, a1, a0);
+    let p23 = T::polyeval_mla(x, a3, a2);
+
+    T::polyeval_mla(x2, p23, p01)
+}
+
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn f_polyeval13<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     x: T,
     a0: T,

@@ -64,6 +64,7 @@ mod tests {
 
     #[test]
     fn test_lgammaf() {
+        assert_eq!(f_lgammaf(0.006919047), 4.969523);
         assert_eq!(
             f_lgammaf(0.000000000000000000000000000000000000000015425),
             93.97255
