@@ -234,7 +234,7 @@ fn exp_poly_dd(z: DoubleDouble) -> DoubleDouble {
     r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[3]));
     r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[2]));
     r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[1]));
-    DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[0]))
+    DoubleDouble::quick_mul_add_f64(r, z, f64::from_bits(0x3ff0000000000000))
 }
 
 #[cold]

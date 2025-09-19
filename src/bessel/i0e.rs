@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::bessel::bessel_exp::i0_exp_accurate;
 use crate::bessel::i0::{
     bessel_rsqrt_hard, eval_small_hard_3p6_to_7p5, i0_0_to_3p6_dd, i0_0_to_3p6_hard,
     i0_3p6_to_7p5_dd,
@@ -92,11 +93,12 @@ fn i0e3p6_to_7p5(x: f64) -> f64 {
     );
     let ub = r.hi + (r.lo + err);
     let lb = r.hi + (r.lo - err);
-    if ub != lb {
-        let v = eval_small_hard_3p6_to_7p5(x);
-        return DoubleDouble::quick_mult(v, v_exp).to_f64();
+    if ub == lb {
+        return ub;
     }
-    r.to_f64()
+    let v = eval_small_hard_3p6_to_7p5(x);
+    let v_exp_accurate = i0_exp_accurate(-x);
+    DoubleDouble::quick_mult(v, v_exp_accurate).to_f64()
 }
 
 #[inline]
@@ -114,10 +116,11 @@ fn i0e_0_to_3p6_exec(x: f64) -> f64 {
     let ub = r.hi + (r.lo + err);
     let lb = r.hi + (r.lo - err);
     if ub == lb {
-        return r.to_f64();
+        return ub;
     }
     let v = i0_0_to_3p6_hard(x);
-    DoubleDouble::quick_mult(v, v_exp).to_f64()
+    let v_exp_accurate = i0_exp_accurate(-x);
+    DoubleDouble::quick_mult(v, v_exp_accurate).to_f64()
 }
 
 /**
