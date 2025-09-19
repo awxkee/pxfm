@@ -29,6 +29,7 @@
 #![deny(unreachable_pub)]
 mod alpha0;
 mod alpha1;
+mod bessel_exp;
 mod beta0;
 mod beta1;
 mod i0;
@@ -74,8 +75,8 @@ mod y1_coeffs_taylor;
 mod y1f;
 mod y1f_coeffs;
 
+pub(crate) use bessel_exp::i0_exp;
 pub use i0::f_i0;
-pub(crate) use i0::i0_exp;
 pub use i0e::f_i0e;
 pub use i0ef::f_i0ef;
 pub use i0f::f_i0f;

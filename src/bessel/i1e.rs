@@ -26,7 +26,8 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::bessel::i0::{bessel_rsqrt_hard, i0_exp};
+use crate::bessel::i0::bessel_rsqrt_hard;
+use crate::bessel::i0_exp;
 use crate::bessel::i1::i1_0_to_7p75;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;

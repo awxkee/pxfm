@@ -128,10 +128,10 @@ pub fn f_logisticf(x: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
-    fn test_logistic() {
+    fn test_logisticf() {
         assert_eq!(f_logisticf(-89.), 2.227364e-39);
-        assert!(f_logisticf(f32::NAN).is_nan());
         assert_eq!(f_logisticf(-104.), 0.);
         assert_eq!(f_logisticf(-103.), 0.);
         assert_eq!(f_logisticf(-88.9), 2.461613e-39);
@@ -141,7 +141,6 @@ mod tests {
         assert_eq!(f_logisticf(-40.), 4.248354e-18);
         assert_eq!(f_logisticf(-20.), 2.0611537e-9);
         assert_eq!(f_logisticf(-1.591388e29), 0.);
-        assert_eq!(f_logisticf(f32::NEG_INFINITY), 0.);
         assert_eq!(f_logisticf(-3.), 0.047425874);
         assert_eq!(f_logisticf(3.), 0.95257413);
         assert_eq!(f_logisticf(20.), 1.);
@@ -154,5 +153,9 @@ mod tests {
         assert_eq!(f_logisticf(-0.02), 0.49500015);
         assert_eq!(f_logisticf(90.), 1.);
         assert_eq!(f_logisticf(105.), 1.);
+        assert_eq!(f_logisticf(150.), 1.);
+        assert_eq!(f_logisticf(f32::INFINITY), 1.0);
+        assert_eq!(f_logisticf(f32::NEG_INFINITY), 0.);
+        assert!(f_logisticf(f32::NAN).is_nan());
     }
 }

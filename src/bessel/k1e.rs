@@ -26,7 +26,8 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::bessel::i0::{bessel_rsqrt_hard, i0_exp};
+use crate::bessel::i0::bessel_rsqrt_hard;
+use crate::bessel::i0_exp;
 use crate::bessel::k1::k1_small;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};

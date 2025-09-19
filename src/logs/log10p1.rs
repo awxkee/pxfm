@@ -55,7 +55,7 @@ fn log10p1_accurate_tiny(x: f64) -> f64 {
 
 fn log10p1_accurate_small(x: f64) -> f64 {
     /* the following is a degree-17 polynomial approximating log10p1(x) for
-    |x| <= 2^-5 with relative error < 2^-105.067, cf log10p1_accurate.sollya */
+    |x| <= 2^-5 with relative error < 2^-105.067*/
 
     static P_ACC: [u64; 25] = [
         0x3fdbcb7b1526e50e,
@@ -181,42 +181,7 @@ fn log10p1_fast(x: f64, e: i32) -> (DoubleDouble, f64) {
         let p_lo = p.lo;
         p = DoubleDouble::from_exact_add(x, p.hi);
         p.lo += p_lo;
-
-        /* from analyze_x_plus_p1a(rel=true,Xmax=2^-5.) in the accompanying file
-        log1p.sage, the relative error is bounded by 2^-61.14 with respect to
-        h. We use the fact that we don't need the return value err to be
-        positive, since we add/subtract it in the rounding test.
-        We also get that the ratio |l/h| is bounded by 2^-50.96. */
-        /* now we multiply h+l by 1/log(2) */
         p = DoubleDouble::quick_mult(p, INV_LOG10_DD);
-        /* the d_mul() call decomposes into:
-         a_mul (h_out, l1, h, INVLOG10H)
-         l2 = __builtin_fma (h, INVLOG10L, l1)
-         l_out = __builtin_fma (l, INVLOG10H, l2)
-         we have |l1| <= ulp(h_out)
-         since |INVLOG10L/INVLOG10H| < 2^-55, then |h*INVLOG10L| <= 2^-55*|h_out|
-         and since |x| < 2^53*ulp(x): |h*INVLOG10L| <= ulp(h_out)/4
-         thus |l2| <= 5/4*ulp(h_out).
-         Now since |l/h| < 2^-50.96, |l*INVLOG10H| < 2^-50.96*|h*INVLOG10H|
-         < 2^-50.96*(1+2^-52)*|h_out| < 2^-50.95*|h_out| < 4.15*ulp(h_out),
-         thus |l_out| < o(4.15*ulp(h_out)+5/4*ulp(h_out)) < 5.5*ulp(h_out).
-         The rounding errors are bounded by ulp(l2)+ulp(l_out)
-         <= ulp(5/4*ulp(h_out)) + ulp(5.5*ulp(h_out))
-         <= 2^-52*(5/4*ulp(h_out)+5.5*ulp(h_out)) [using ulp(x) <= 2^-52*|x|]
-         <= 2^-49.2*ulp(h_out)
-         We also have to take into account the ignored term l*INVLOG10L:
-         |l*INVLOG10L| < 2^-50.96*|h|*2^-55.97*|INVLOG10H|
-                       < 2^-106.93*(1+2^-52)*|h_out|
-                       < 2^-106.92*|h_out|
-                       < 2^-51.92*ulp(h_out) [using |x| < 2^53*ulp(x)]
-        and the approximation error in INVLOG10H+INVLOG10L:
-        |INVLOG10H + INVLOG10L - 1/log(10)| < 2^-109.84/log(10)
-        The total error of d_mul() is thus bounded by:
-        (2^-49.2+2^-51.92)*ulp(h_out) < 2^-48.99*ulp(h_out) < 2^-100.99*|h_out|,
-        using again ulp(x) <= 2^-52*|x|.
-
-        The relative error is thus bounded by
-        (1+2^-61.14)*(1+2^-100.99)*(1+2^-109.84)-1 < 2^-61.13 */
         return (p, f64::from_bits(0x3c1d400000000000) * p.hi); /* 2^-61.13 < 0x1.d4p-62 */
     }
 
@@ -239,39 +204,9 @@ fn log10p1_fast(x: f64, e: i32) -> (DoubleDouble, f64) {
     thus |c| < 2^-52, and since |log(1+x)-x| < x^2 for |x| < 0.5,
     we have |log(1+c)-c)| < c^2 < 2^-104. */
     p.lo += c;
-    /* Since |l_in| < 2^-18.69 (from the analysis of cr_log_fast, see file
-    ../log/log.c), and |c| < 2^-52, we have |l| < 2^-18.68, thus the
-    rounding error in *l += c is bounded by ulp(2^-18.68) = 2^-71.
-    The total absolute error is thus bounded by:
-    0x1.b6p-69 + 2^-104 + 2^-71 < 2^-68.02. */
 
     /* now multiply h+l by 1/log(2) */
     p = DoubleDouble::quick_mult(p, INV_LOG10_DD);
-    /* the d_mul() call decomposes into:
-       a_mul (h_out, l1, h, INVLOG10H)
-       l2 = __builtin_fma (h, INVLOG10L, l1)
-       l_out = __builtin_fma (l, INVLOG10H, l2)
-       We have three errors:
-       * the rounding error in l2 = __builtin_fma (h, INVLOG10L, l1)
-       * the rounding error in l_out = __builtin_fma (l, INVLOG10H, l2)
-       * the ignored term l * INVLOG10L
-       We have |h| < 745 thus |h*INVLOG10H| < 324 thus |h_out| <= 324
-       and |l1| <= ulp(h_out) <= 2^-44.
-       Then |h*INVLOG10L+l1| <= 745*INVLOG2L+2^-44 < 2^-43.6
-       thus |l2| < 2^-43.6*(1+2^-52) < 2^-43.5
-       and the first rounding error is bounded by ulp(2^-43.5) = 2^-96.
-       Now |l*INVLOG10H+l2| < 2^-18.68*INVLOG10H+2^-43.5 < 2^-19.8
-       thus |l_out| < 2^-19.8*(1+2^-52) < 2^-19.7
-       and the second rounding error is bounded by ulp(2^-19.7) = 2^-72.
-       The ignored term is bounded by |l*INVLOG10L| < 2^-18.68*INVLOG10L
-       < 2^-75.0.
-       Thus the absolute error from d_mul() is bounded by:
-       2^-96 + 2^-72 + 2^-75.0 < 2^-71.83.
-
-       Adding to the maximal absolute error of 2^-68.02 before d_mul(),
-       we get 2^-68.02 + 2^-71.83 < 2^-67.92.
-    */
-
     (p, f64::from_bits(0x3bb0a00000000000)) /* 2^-67.92 < 0x1.0ap-68 */
 }
 

@@ -234,7 +234,7 @@ fn exp_poly_dd(z: DoubleDouble) -> DoubleDouble {
     r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[3]));
     r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[2]));
     r = DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[1]));
-    DoubleDouble::quick_mul_add(r, z, DoubleDouble::from_bit_pair(C[0]))
+    DoubleDouble::quick_mul_add_f64(r, z, f64::from_bits(0x3ff0000000000000))
 }
 
 #[cold]
@@ -316,7 +316,7 @@ pub fn f_exp(x: f64) -> f64 {
         }
         if (ix >> 63) == 0 {
             // x >= 709.783
-            let z = f64::from_bits(0x7fe0000000000000);
+            let z = std::hint::black_box(f64::from_bits(0x7fe0000000000000));
             return z * z;
         }
         if aix >= 0x40874910d52d3052u64 {

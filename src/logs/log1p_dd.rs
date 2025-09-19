@@ -26,6 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::common::dd_fmla;
 use crate::double_double::DoubleDouble;
 use crate::logs::log_dd::log_poly;
 use crate::logs::log_dd_coeffs::LOG_NEG_DD;
@@ -240,7 +241,7 @@ pub(crate) fn log1p_fast_dd(z: f64) -> DoubleDouble {
     let r = f64::from_bits(POW_INVERSE[(i - 181) as usize]);
     let log_r = DoubleDouble::from_bit_pair(LOG_NEG_DD[(i - 181) as usize]);
 
-    let z = f64::mul_add(r, t, -1.0);
+    let z = dd_fmla(r, t, -1.0);
 
     const LOG2_DD: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3c7abc9e3b39803f),

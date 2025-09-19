@@ -105,6 +105,11 @@ pub fn f_sincpi(x: f64) -> f64 {
         // |x| <= 0.03515625
 
         if ax < 0x3c90000000000000u64 {
+            // |x| < f64::EPSILON
+            if ax <= 0x3b05798ee2308c3au64 {
+                // |x| <= 2.2204460492503131e-24
+                return 1.;
+            }
             // Small values approximated with Taylor poly
             // sincpi(x) ~ 1 - x^2*Pi^2/6 + O(x^4)
             #[cfg(any(
@@ -288,6 +293,7 @@ mod tests {
 
     #[test]
     fn test_sincpi_zero() {
+        assert_eq!(f_sincpi(2.2204460492503131e-24), 1.0);
         assert_eq!(f_sincpi(f64::EPSILON), 1.0);
         assert_eq!(f_sincpi(0.007080019335262543), 0.9999175469662566);
         assert_eq!(f_sincpi(0.05468860710998057), 0.9950875152844803);
