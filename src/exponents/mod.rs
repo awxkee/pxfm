@@ -41,6 +41,7 @@ mod exp_f128;
 mod expf;
 mod expm1;
 mod expm1f;
+mod logistic;
 mod logisticf;
 
 pub(crate) use auxiliary::{fast_ldexp, ldexp};
@@ -62,4 +63,5 @@ pub use expf::{expf, f_expf};
 pub use expm1::f_expm1;
 pub(crate) use expm1::{EXPM1_T0, EXPM1_T1};
 pub use expm1f::f_expm1f;
+pub use logistic::f_logistic;
 pub use logisticf::f_logisticf;

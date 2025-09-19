@@ -316,7 +316,7 @@ pub fn f_exp(x: f64) -> f64 {
         }
         if (ix >> 63) == 0 {
             // x >= 709.783
-            let z = f64::from_bits(0x7fe0000000000000);
+            let z = std::hint::black_box(f64::from_bits(0x7fe0000000000000));
             return z * z;
         }
         if aix >= 0x40874910d52d3052u64 {
