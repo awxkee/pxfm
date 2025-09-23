@@ -34,7 +34,8 @@ use crate::bessel::trigo_bessel::sin_small;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval6, f_polyeval14};
-use crate::round::RoundFinite;
+use crate::rounding::CpuCeil;
+use crate::rounding::CpuRound;
 
 /// Normalized jinc 2*J1(PI\*x)/(pi\*x)
 ///
@@ -123,7 +124,11 @@ fn jincpif_small_argument(ox: f32) -> f32 {
     let fx = x_abs * INV_STEP;
     const J1_ZEROS_COUNT: f64 = (J1_ZEROS.len() - 1) as f64;
     let idx0 = unsafe { fx.min(J1_ZEROS_COUNT).to_int_unchecked::<usize>() };
-    let idx1 = unsafe { fx.ceil().min(J1_ZEROS_COUNT).to_int_unchecked::<usize>() };
+    let idx1 = unsafe {
+        fx.cpu_ceil()
+            .min(J1_ZEROS_COUNT)
+            .to_int_unchecked::<usize>()
+    };
 
     let found_zero0 = DoubleDouble::from_bit_pair(J1_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(J1_ZEROS[idx1]);
@@ -195,7 +200,7 @@ pub(crate) fn jincpif_asympt(x: f32) -> f64 {
 
     // argument reduction assuming x here value is already multiple of PI.
     // k = round((x*Pi) / (pi*2))
-    let kd = (dox * 0.5).round_finite();
+    let kd = (dox * 0.5).cpu_round();
     //  y = (x * Pi) - k * 2
     let angle = f_fmla(kd, -2., dox) * PI;
 

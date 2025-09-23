@@ -28,7 +28,7 @@
  */
 use crate::common::{f_fmla, f_fmlaf};
 use crate::polyeval::f_polyeval7;
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 
 pub(crate) struct ExpBReduc {
     pub(crate) hi: f64,
@@ -93,7 +93,7 @@ pub(crate) fn exp_b_range_reduc(x: f32) -> ExpBReduc {
     let xd = x as f64;
 
     // kd = round(log2(b) * x)
-    let kd = (LOG2_B * xd).round_finite();
+    let kd = (LOG2_B * xd).cpu_round();
     let k = unsafe { kd.to_int_unchecked::<i32>() }; // it's already not indeterminate.
 
     // hi = floor(kd / 2^MID_BITS)

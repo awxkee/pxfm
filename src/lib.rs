@@ -50,7 +50,6 @@ mod asinpi;
 mod asinpif;
 mod bessel;
 mod bits;
-mod ceil;
 mod common;
 mod compound;
 mod cosm1;
@@ -60,7 +59,6 @@ mod double_double;
 mod dyadic_float;
 mod err;
 mod exponents;
-mod floor;
 mod gamma;
 mod hyperbolic;
 mod logs;
@@ -70,8 +68,7 @@ mod pow_exec;
 mod pow_tables;
 mod powf;
 mod powf_tables;
-mod round;
-mod round_ties_even;
+mod rounding;
 mod sec;
 mod shared_eval;
 mod sin;
@@ -91,7 +88,6 @@ mod square_root;
 mod tangent;
 mod triangle;
 mod triple_double;
-mod trunc;
 
 pub use acos::f_acos;
 pub use acosf::f_acosf;
@@ -106,7 +102,6 @@ pub use bessel::{
     f_jincpi, f_jincpif, f_k0, f_k0e, f_k0ef, f_k0f, f_k1, f_k1e, f_k1ef, f_k1f, f_k2f, f_y0,
     f_y0f, f_y1, f_y1f,
 };
-pub use ceil::{ceil, ceilf};
 pub use common::{copysignfk, copysignk};
 pub use compound::{f_compound, f_compound_m1, f_compound_m1f, f_compoundf, f_powm1, f_powm1f};
 pub use cosm1::f_cosm1;
@@ -120,7 +115,6 @@ pub use exponents::{
     exp, expf, f_exp, f_exp2, f_exp2f, f_exp2m1, f_exp2m1f, f_exp10, f_exp10f, f_exp10m1,
     f_exp10m1f, f_expf, f_expm1, f_expm1f, f_logistic, f_logisticf,
 };
-pub use floor::{floor, floorf};
 pub use gamma::{
     f_beta, f_betaf, f_betainc_reg, f_betainc_regf, f_digamma, f_digammaf, f_gamma_p, f_gamma_pf,
     f_gamma_q, f_gamma_qf, f_lgamma, f_lgamma_r, f_lgamma_rf, f_lgammaf, f_lnbeta, f_lnbetaf,
@@ -136,8 +130,10 @@ pub use logs::{
 };
 pub use pow::{f_pow, pow};
 pub use powf::{dirty_powf, f_powf, powf};
-pub use round::{round, roundf};
-pub use round_ties_even::{round_ties_even, roundf_ties_even};
+pub use rounding::{ceil, ceilf};
+pub use rounding::{floor, floorf};
+pub use rounding::{rint, rintf, round, roundf, trunc, truncf};
+pub use rounding::{round_ties_even, roundf_ties_even};
 pub use sec::f_sec;
 pub use sin::{f_cos, f_sin};
 pub use sin_cosf::{
@@ -155,4 +151,3 @@ pub use tangent::{
     f_cotpi, f_cotpif, f_tan, f_tanf, f_tanpi, f_tanpif,
 };
 pub use triangle::{f_cathetus, f_cathetusf, f_hypot, f_hypot3f, f_hypotf};
-pub use trunc::{trunc, truncf};

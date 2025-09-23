@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, f_fmlaf};
-use crate::round_ties_even::RoundTiesEven;
+use crate::rounding::CpuRoundTiesEven;
 use std::hint::black_box;
 
 static TB: [u64; 32] = [
@@ -146,7 +146,7 @@ pub fn f_coshf(x: f32) -> f32 {
         return f_fmla(z2, f_fmla(z4, w1, w0), 1.0) as f32;
     }
     let a = I_LN2 * z;
-    let ia = a.round_ties_even_finite();
+    let ia = a.cpu_round_ties_even();
     let h = a - ia;
     let h2 = h * h;
     let ja = (ia + f64::from_bits(0x4338000000000000)).to_bits();

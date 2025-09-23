@@ -36,7 +36,8 @@ use crate::bessel::j1_coeffs_taylor::J1_COEFFS_TAYLOR;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval9, f_polyeval19};
-use crate::round::RoundFinite;
+use crate::rounding::CpuCeil;
+use crate::rounding::CpuRound;
 use crate::sin_helper::sin_dd_small_fast;
 
 /// Normalized jinc 2*J1(PI\*x)/(pi\*x)
@@ -102,7 +103,7 @@ fn jinc_asympt_fast(ox: f64) -> f64 {
 
     // argument reduction assuming x here value is already multiple of PI.
     // k = round((x*Pi) / (pi*2))
-    let kd = (ox * 0.5).round_finite();
+    let kd = (ox * 0.5).cpu_round();
     //  y = (x * Pi) - k * 2
     let rem = f_fmla(kd, -2., ox);
     let angle = DoubleDouble::quick_mult_f64(PI, rem);
@@ -237,7 +238,11 @@ pub(crate) fn jinc_small_argument_fast(x: f64) -> f64 {
     let fx = dx.hi * INV_STEP;
     const J1_ZEROS_COUNT: f64 = (J1_ZEROS.len() - 1) as f64;
     let idx0 = unsafe { fx.min(J1_ZEROS_COUNT).to_int_unchecked::<usize>() };
-    let idx1 = unsafe { fx.ceil().min(J1_ZEROS_COUNT).to_int_unchecked::<usize>() };
+    let idx1 = unsafe {
+        fx.cpu_ceil()
+            .min(J1_ZEROS_COUNT)
+            .to_int_unchecked::<usize>()
+    };
 
     let found_zero0 = DoubleDouble::from_bit_pair(J1_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(J1_ZEROS[idx1]);
@@ -303,7 +308,9 @@ pub(crate) fn jinc_small_argument_fast(x: f64) -> f64 {
     z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[1]));
     z = DoubleDouble::mul_add(z, r, DoubleDouble::from_bit_pair(c[0]));
 
-    z = DoubleDouble::quick_mult_f64(DoubleDouble::div(z, dx), 2.);
+    z = DoubleDouble::div(z, dx);
+    z.hi *= 2.;
+    z.lo *= 2.;
 
     let err = f_fmla(
         z.hi,
@@ -355,8 +362,10 @@ fn j1_small_argument_dd(r: DoubleDouble, c0: &[(u64, u64); 24], inv_scale: Doubl
     p_e = DoubleDouble::mul_add(p_e, r, DoubleDouble::from_bit_pair(c[0]));
 
     let p = DoubleDouble::from_exact_add(p_e.hi, p_e.lo);
-    let z = DoubleDouble::div(p, inv_scale);
-    DoubleDouble::quick_mult_f64(z, 2.).to_f64()
+    let mut z = DoubleDouble::div(p, inv_scale);
+    z.hi *= 2.;
+    z.lo *= 2.;
+    z.to_f64()
 }
 
 #[cfg(test)]

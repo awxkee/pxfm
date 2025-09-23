@@ -32,7 +32,7 @@ use crate::asin_eval_dyadic::asin_eval_dyadic;
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 
 /// Computes asin(x)/PI
 ///
@@ -116,7 +116,7 @@ pub fn f_asinpi(x: f64) -> f64 {
         // Ziv's accuracy test failed, perform 128-bit calculation.
 
         // Recalculate mod 1/64.
-        let idx = (x_sq.hi * f64::from_bits(0x4050000000000000)).round_finite() as usize;
+        let idx = (x_sq.hi * f64::from_bits(0x4050000000000000)).cpu_round() as usize;
 
         // Get x^2 - idx/64 exactly.  When FMA is available, double-double
         // multiplication will be correct for all rounding modes. Otherwise, we use
@@ -273,7 +273,7 @@ pub fn f_asinpi(x: f64) -> f64 {
 
     // Ziv's accuracy test failed, we redo the computations in Float128.
     // Recalculate mod 1/64.
-    let idx = (u * f64::from_bits(0x4050000000000000)).round_finite() as usize;
+    let idx = (u * f64::from_bits(0x4050000000000000)).cpu_round() as usize;
 
     // After the first step of Newton-Raphson approximating v = sqrt(u), we have
     // that:

@@ -28,9 +28,9 @@
  */
 use crate::common::{f_fmla, is_integer};
 use crate::f_exp;
-use crate::floor::FloorFinite;
 use crate::logs::simple_fast_log;
 use crate::polyeval::{f_polyeval5, f_polyeval18};
+use crate::rounding::CpuFloor;
 use crate::sin_cosf::fast_sinpif;
 
 /// True gamma function
@@ -62,7 +62,7 @@ pub fn f_tgammaf(x: f32) -> f32 {
         return f32::INFINITY;
     } else if x.is_sign_negative() && x_a.to_bits() >= 0x421a67dau32 {
         // x <= -38.601418
-        if x == x.floor_finite() {
+        if x == x.cpu_floor() {
             // integer where x < 0
             return f32::NAN;
         }
@@ -101,13 +101,13 @@ pub fn f_tgammaf(x: f32) -> f32 {
         if x_a < f32::EPSILON {
             return (1. / x as f64) as f32;
         }
-        let y1 = x_a.floor_finite();
+        let y1 = x_a.cpu_floor();
         let fraction = x_a - y1;
         if fraction != 0.0
         // is it an integer?
         {
             // is it odd or even?
-            if y1 != (y1 * 0.5).floor_finite() * 2.0 {
+            if y1 != (y1 * 0.5).cpu_floor() * 2.0 {
                 parity = -1.0;
             }
             fact = -PI / fast_sinpif(fraction);

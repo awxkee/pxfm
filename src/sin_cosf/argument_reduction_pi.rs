@@ -27,7 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ArgumentReducerPi {
@@ -39,7 +39,7 @@ impl ArgumentReducerPi {
     // k = round(x * 32 / pi) and y = (x * 32 / pi) - k.
     #[inline]
     pub(crate) fn reduce(self) -> (f64, i64) {
-        let kd = (self.x * 32.).round_finite();
+        let kd = (self.x * 32.).cpu_round();
         let y = f_fmla(self.x, 32.0, -kd);
         (y, unsafe {
             kd.to_int_unchecked::<i64>() // indeterminate values is always filtered out before this call, as well only lowest bits are used
@@ -50,7 +50,7 @@ impl ArgumentReducerPi {
     // k = round(x * 2 / pi) and y = (x * 2 / pi) - k.
     #[inline]
     pub(crate) fn reduce_0p25(self) -> (f64, i64) {
-        let kd = (self.x + self.x).round_finite();
+        let kd = (self.x + self.x).cpu_round();
         let y = f_fmla(kd, -0.5, self.x);
         (y, unsafe {
             kd.to_int_unchecked::<i64>() // indeterminate values is always filtered out before this call, as well only lowest bits are used

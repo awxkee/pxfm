@@ -30,7 +30,7 @@ use crate::common::{dd_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::exponents::auxiliary::fast_ldexp;
 use crate::exponents::exp::{EXP_REDUCE_T0, EXP_REDUCE_T1, to_denormal};
-use crate::round_ties_even::RoundTiesEven;
+use crate::rounding::CpuRoundTiesEven;
 
 #[inline]
 fn exp2_poly_dd(z: f64) -> DoubleDouble {
@@ -58,7 +58,7 @@ fn exp2_poly_dd(z: f64) -> DoubleDouble {
 fn exp2_accurate(x: f64) -> f64 {
     let mut ix = x.to_bits();
     let sx = 4096.0 * x;
-    let fx = sx.round_ties_even_finite();
+    let fx = sx.cpu_round_ties_even();
     let z = sx - fx;
     let k: i64 = unsafe {
         fx.to_int_unchecked::<i64>() // this is already finite here
@@ -158,7 +158,7 @@ pub fn f_exp2(x: f64) -> f64 {
     let ex = (ax >> 53).wrapping_sub(0x3ff);
     let frac = ex >> 63 | m << (ex & 63);
     let sx = 4096.0 * x;
-    let fx = sx.round_ties_even_finite();
+    let fx = sx.cpu_round_ties_even();
     let z = sx - fx;
     let z2 = z * z;
     let k = unsafe {

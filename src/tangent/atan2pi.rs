@@ -30,7 +30,7 @@ use crate::acospi::{INV_PI_DD, INV_PI_F128};
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::DyadicFloat128;
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 use crate::tangent::atan2::{ATAN_I, atan_eval, atan2_hard};
 
 /// If one of arguments is too huge or too small, extended precision is required for
@@ -201,7 +201,7 @@ pub fn f_atan2pi(y: f64, x: f64) -> f64 {
         return p.to_f64();
     }
 
-    let mut k = (64.0 * num / den).round_finite();
+    let mut k = (64.0 * num / den).cpu_round();
     let idx = k as u64;
     // k = idx / 64
     k *= f64::from_bits(0x3f90000000000000);

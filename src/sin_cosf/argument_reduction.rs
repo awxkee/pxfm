@@ -28,7 +28,7 @@
  */
 use crate::bits::get_exponent_f32;
 use crate::common::f_fmla;
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ArgumentReducer {
@@ -62,7 +62,7 @@ impl ArgumentReducer {
         const THIRTYTWO_OVER_PI: [u64; 3] =
             [0x40245f306dc9c883, 0xbcc6b01ec5417056, 0xb966447e493ad4ce];
 
-        let kd = (self.x * f64::from_bits(THIRTYTWO_OVER_PI[0])).round_finite();
+        let kd = (self.x * f64::from_bits(THIRTYTWO_OVER_PI[0])).cpu_round();
         let mut y = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[0]), -kd);
         y = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[1]), y);
         (y, unsafe {
@@ -95,7 +95,7 @@ impl ArgumentReducer {
         const THIRTYTWO_OVER_PI: [u64; 3] =
             [0x40245f306e000000, 0xbe3b1bbeae000000, 0x3c63f84eb0000000];
         let prod = self.x * f64::from_bits(THIRTYTWO_OVER_PI[0]);
-        let kd = prod.round_finite();
+        let kd = prod.cpu_round();
         let mut y = prod - kd;
         y = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[1]), y);
         y = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[2]), y);
@@ -155,10 +155,10 @@ impl ArgumentReducer {
                         0xffffffffffffffff
                     }),
             ); // |x| < 2^55
-            let k_hi = prod_hi.round_finite();
+            let k_hi = prod_hi.cpu_round();
             let truncated_prod = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[0]), -k_hi);
             let prod_lo = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[1]), truncated_prod);
-            let k_lo = prod_lo.round_finite();
+            let k_lo = prod_lo.cpu_round();
             let mut y = f_fmla(
                 self.x,
                 f64::from_bits(THIRTYTWO_OVER_PI[1]),
@@ -185,10 +185,10 @@ impl ArgumentReducer {
                     0xffffffffffffffff
                 }),
         ); // |x| < 2^110
-        let k_hi = prod_hi.round_finite();
+        let k_hi = prod_hi.cpu_round();
         let truncated_prod = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[1]), -k_hi);
         let prod_lo = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[2]), truncated_prod);
-        let k_lo = prod_lo.round_finite();
+        let k_lo = prod_lo.cpu_round();
         let mut y = f_fmla(
             self.x,
             f64::from_bits(THIRTYTWO_OVER_PI[2]),
@@ -265,11 +265,11 @@ impl ArgumentReducer {
 
         let prod_hi = self.x * f64::from_bits(THIRTYTWO_OVER_PI[idx]);
         // Get the integral part of x * THIRTYTWO_OVER_PI_28[idx]
-        let k_hi = prod_hi.round_finite();
+        let k_hi = prod_hi.cpu_round();
         // Get the fractional part of x * THIRTYTWO_OVER_PI_28[idx]
         let frac = prod_hi - k_hi;
         let prod_lo = f_fmla(self.x, f64::from_bits(THIRTYTWO_OVER_PI[idx + 1]), frac);
-        let k_lo = prod_lo.round_finite();
+        let k_lo = prod_lo.cpu_round();
 
         // Now y is the fractional parts.
         let mut y = prod_lo - k_lo;

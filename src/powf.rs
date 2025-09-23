@@ -35,7 +35,7 @@ use crate::logs::LOG2_R;
 use crate::polyeval::{f_polyeval3, f_polyeval6, f_polyeval10};
 use crate::pow_tables::EXP2_MID1;
 use crate::powf_tables::{LOG2_R_TD, LOG2_R2_DD, POWF_R2};
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 
 /// Power function for given value for const context.
 /// This is simplified version just to make a good approximation on const context.
@@ -79,7 +79,7 @@ fn powf_dd(idx_x: i32, dx: f64, y6: f64, lo6_hi: f64, exp2_hi_mid: DoubleDouble)
         f64::from_bits(0x40d0000000000000),
         f64::from_bits(0x4050000000000000),
     )
-    .round_finite() as usize;
+    .cpu_round() as usize;
     let dx2 = f_fmla(1.0 + dx, f64::from_bits(POWF_R2[idx2]), -1.0); // Exact
 
     const COEFFS: [(u64, u64); 6] = [
@@ -468,7 +468,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
     //   hm  = 2^6 * (hi + mid) = round(2^6 * y * log2(x)) ~ round(y6 * s)
     //   lo6 = 2^6 * lo = 2^6 * (y - (hi + mid)) = y6 * log2(x) - hm.
     let y6 = (y * f32::from_bits(0x42800000)) as f64; // Exact.
-    let hm = (s * y6).round_finite();
+    let hm = (s * y6).cpu_round();
 
     // let log2_rr = LOG2_R2_DD[idx_x as usize];
 

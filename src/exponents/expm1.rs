@@ -29,7 +29,7 @@
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::exponents::fast_ldexp;
-use crate::round_ties_even::RoundTiesEven;
+use crate::rounding::CpuRoundTiesEven;
 use crate::shared_eval::poly_dekker_generic;
 use std::hint::black_box;
 
@@ -321,7 +321,7 @@ fn as_expm1_accurate(x: f64) -> f64 {
         v3.hi + v2.hi
     } else {
         const S: f64 = f64::from_bits(0x40b71547652b82fe);
-        let t = (x * S).round_ties_even_finite();
+        let t = (x * S).cpu_round_ties_even();
         let jt: i64 = t as i64;
         let i0 = (jt >> 6) & 0x3f;
         let i1 = jt & 0x3f;
@@ -377,7 +377,7 @@ pub fn f_expm1(x: f64) -> f64 {
             return dyad_fmla(f64::from_bits(0x3c90000000000000), x.abs(), x);
         }
         let sx = f64::from_bits(0x4060000000000000) * x;
-        let fx = sx.round_ties_even_finite();
+        let fx = sx.cpu_round_ties_even();
         let z = sx - fx;
         let z2 = z * z;
         let i: i64 = unsafe {
@@ -436,7 +436,7 @@ pub fn f_expm1(x: f64) -> f64 {
         }
 
         const S: f64 = f64::from_bits(0x40b71547652b82fe);
-        let t = (x * S).round_ties_even_finite();
+        let t = (x * S).cpu_round_ties_even();
         let jt: i64 = unsafe {
             t.to_int_unchecked::<i64>() // t is already integer, this is just a conversion
         };

@@ -28,7 +28,7 @@
  */
 use crate::common::{dd_fmla, is_integerf};
 use crate::double_double::DoubleDouble;
-use crate::round_ties_even::RoundTiesEven;
+use crate::rounding::CpuRoundTiesEven;
 use std::hint::black_box;
 
 #[cold]
@@ -377,7 +377,7 @@ where t is an approximation of y*log2(1+x) with absolute error < 2^-40.680,
 assuming 0x1.7154759a0df53p-24 <= |t| <= 150
 exact is non-zero iff (1+x)^y is exact or midpoint */
 fn exp2_fast(t: f64) -> f64 {
-    let k = t.round_ties_even_finite(); // 0 <= |k| <= 150
+    let k = t.cpu_round_ties_even(); // 0 <= |k| <= 150
     let mut r = t - k; // |r| <= 1/2, exact
     let mut v: u64 = (3.015625 + r).to_bits(); // 2.5 <= v <= 3.5015625
     // we add 2^-6 so that i is rounded to nearest
@@ -777,7 +777,7 @@ fn compoundf_exp2_accurate(x_dd: DoubleDouble, x: f32, y: f32) -> f32 {
         let res = 1.0 + x;
         return res;
     }
-    let k = x_dd.hi.round_ties_even_finite(); // |k| <= 150
+    let k = x_dd.hi.cpu_round_ties_even(); // |k| <= 150
 
     // check easy cases h+l is tiny thus 2^(h+l) rounds to 1, 1- or 1+
     if k == 0. && x_dd.hi.abs() <= f64::from_bits(0x3e6715476af0d4c8) {

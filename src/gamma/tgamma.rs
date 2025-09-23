@@ -28,10 +28,10 @@
  */
 use crate::common::{f_fmla, is_integer};
 use crate::double_double::DoubleDouble;
-use crate::floor::FloorFinite;
 use crate::logs::fast_log_dd;
 use crate::polyeval::{f_polyeval6, f_polyeval7, f_polyeval8};
 use crate::pow_exec::exp_dd_fast;
+use crate::rounding::CpuFloor;
 use crate::sincospi::f_fast_sinpi_dd;
 
 /// Computes gamma(x)
@@ -146,17 +146,17 @@ pub fn f_tgamma(x: f64) -> f64 {
 
     // reflection
     if dy.hi < 0. {
-        if dy.hi.floor_finite() == dy.hi {
+        if dy.hi.cpu_floor() == dy.hi {
             return f64::NAN;
         }
         dy.hi = f64::from_bits(dy.hi.to_bits() & 0x7fff_ffff_ffff_ffff);
-        let y1 = x_a.floor_finite();
+        let y1 = x_a.cpu_floor();
         let fraction = x_a - y1;
         if fraction != 0.0
         // is it an integer?
         {
             // is it odd or even?
-            if y1 != (y1 * 0.5).floor_finite() * 2.0 {
+            if y1 != (y1 * 0.5).cpu_floor() * 2.0 {
                 parity = -1.0;
             }
             fact = DoubleDouble::div(-PI, f_fast_sinpi_dd(fraction));

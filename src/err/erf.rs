@@ -29,7 +29,7 @@
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::err::erf_poly::{ERF_POLY, ERF_POLY_C2};
-use crate::floor::FloorFinite;
+use crate::rounding::CpuFloor;
 /* double-double approximation of 2/sqrt(pi) to nearest */
 const TWO_OVER_SQRT_PI: DoubleDouble = DoubleDouble::new(
     f64::from_bits(0x3c71ae3a914fed80),
@@ -103,7 +103,7 @@ pub(crate) fn erf_accurate(x: f64) -> DoubleDouble {
         return cr_erf_accurate_tiny(x);
     }
 
-    let v = (8.0 * x).floor_finite();
+    let v = (8.0 * x).cpu_floor();
     let i: u32 = (8.0 * x) as u32;
     let z = (x - 0.0625) - 0.125 * v;
     /* now |z| <= 1/16 */
@@ -186,7 +186,7 @@ pub(crate) fn erf_fast(x: f64) -> Erf {
         }; /* err < 2.48658249618372e-21, cf Analyze0() */
     }
 
-    let v = (16.0 * x).floor_finite();
+    let v = (16.0 * x).cpu_floor();
     let i: u32 = (16.0 * x) as u32;
     /* i/16 <= z < (i+1)/16 */
     /* For 0.0625 0 <= z <= 0x1.7afb48dc96626p+2, z - 0.03125 is exact:

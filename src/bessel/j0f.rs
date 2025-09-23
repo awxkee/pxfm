@@ -30,6 +30,7 @@ use crate::bessel::j0f_coeffs::{J0_ZEROS, J0_ZEROS_VALUE, J0F_COEFFS};
 use crate::bessel::trigo_bessel::cos_small;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval9, f_polyeval10, f_polyeval12, f_polyeval14};
+use crate::rounding::CpuCeil;
 use crate::sincos_reduce::rem2pif_any;
 
 /// Bessel of the first kind of order 0
@@ -173,7 +174,11 @@ fn small_argument_path(x: f32) -> f32 {
     let fx = x_abs * INV_STEP;
     const J0_ZEROS_COUNT: f64 = (J0_ZEROS.len() - 1) as f64;
     let idx0 = unsafe { fx.min(J0_ZEROS_COUNT).to_int_unchecked::<usize>() };
-    let idx1 = unsafe { fx.ceil().min(J0_ZEROS_COUNT).to_int_unchecked::<usize>() };
+    let idx1 = unsafe {
+        fx.cpu_ceil()
+            .min(J0_ZEROS_COUNT)
+            .to_int_unchecked::<usize>()
+    };
 
     let found_zero0 = DoubleDouble::from_bit_pair(J0_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(J0_ZEROS[idx1]);
