@@ -23,7 +23,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_asinpi", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_asinpi(i as f64 / 1000.0));
+                black_box(f_asinpi(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -31,7 +31,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_acospi", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_acospi(i as f64 / 1000.0));
+                black_box(f_acospi(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -39,7 +39,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_atanpi", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_atanpi(i as f64 / 1000.0));
+                black_box(f_atanpi(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -47,7 +47,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_atan2pif", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_atan2pif(i as f32 / 1000.0, i as f32 / 1000.0 + 0.5));
+                black_box(f_atan2pif(
+                    black_box(i as f32 / 1000.0),
+                    black_box(i as f32 / 1000.0 + 0.5),
+                ));
             }
         })
     });
@@ -55,7 +58,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_atanpif", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_atanpif(i as f32 / 1000.0));
+                black_box(f_atanpif(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -63,7 +66,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_acospif", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_acospif(i as f32 / 1000.0));
+                black_box(f_acospif(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -71,7 +74,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_asinpif", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_asinpif(i as f32 / 1000.0));
+                black_box(f_asinpif(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -79,7 +82,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::atan2", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::atan2(i as f64 / 1000.0, i as f64 / 1000.0 + 0.5));
+                black_box(libm::atan2(
+                    black_box(i as f64 / 1000.0),
+                    black_box(i as f64 / 1000.0 + 0.5),
+                ));
             }
         })
     });
@@ -87,7 +93,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: atan2", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::atan2(i as f64 / 1000.0, i as f64 / 1000.0 + 0.5));
+                black_box(f64::atan2(
+                    black_box(i as f64 / 1000.0),
+                    black_box(i as f64 / 1000.0 + 0.5),
+                ));
             }
         })
     });
@@ -95,7 +104,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_atan2pi", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_atan2pi(i as f64 / 1000.0, i as f64 / 1000.0 + 0.5));
+                black_box(f_atan2pi(
+                    black_box(i as f64 / 1000.0),
+                    black_box(i as f64 / 1000.0 + 0.5),
+                ));
             }
         })
     });
@@ -103,7 +115,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: atan2", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_atan2(i as f64 / 1000.0, i as f64 / 1000.0 + 0.5));
+                black_box(f_atan2(
+                    black_box(i as f64 / 1000.0),
+                    black_box(i as f64 / 1000.0 + 0.5),
+                ));
             }
         })
     });
@@ -111,7 +126,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::atan2f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::atan2f(i as f32 / 1000.0, i as f32 / 1000.0 + 0.5));
+                black_box(libm::atan2f(
+                    black_box(i as f32 / 1000.0),
+                    black_box(i as f32 / 1000.0 + 0.5),
+                ));
             }
         })
     });
@@ -119,7 +137,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: atan2f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f32::atan2(i as f32 / 1000.0, i as f32 / 1000.0 + 0.5));
+                black_box(f32::atan2(
+                    black_box(i as f32 / 1000.0),
+                    black_box(i as f32 / 1000.0 + 0.5),
+                ));
             }
         })
     });
@@ -127,7 +148,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: atan2f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_atan2f(i as f32 / 1000.0, i as f32 / 1000.0 + 0.5));
+                black_box(f_atan2f(
+                    black_box(i as f32 / 1000.0),
+                    black_box(i as f32 / 1000.0 + 0.5),
+                ));
             }
         })
     });
@@ -135,7 +159,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::acos", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::acos(i as f64 / 1000.0));
+                black_box(libm::acos(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -143,7 +167,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: acos", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::acos(i as f64 / 1000.0));
+                black_box(f64::acos(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -151,7 +175,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: acos", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_acos(i as f64 / 1000.0));
+                black_box(f_acos(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -159,7 +183,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::asinf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::asinf(i as f32 / 1000.0));
+                black_box(libm::asinf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -167,7 +191,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system::asinf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f32::asin(i as f32 / 1000.0));
+                black_box(f32::asin(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -175,7 +199,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: FMA asinf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_asinf(i as f32 / 1000.0));
+                black_box(f_asinf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -183,7 +207,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::acosf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::acosf(i as f32 / 1000.0));
+                black_box(libm::acosf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -191,7 +215,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system::acosf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f32::acos(i as f32 / 1000.0));
+                black_box(f32::acos(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -199,7 +223,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: FMA acosf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_acosf(i as f32 / 1000.0));
+                black_box(f_acosf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -207,7 +231,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::asin", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::asin(i as f64 / 100.0));
+                black_box(libm::asin(black_box(i as f64 / 100.0)));
             }
         })
     });
@@ -215,7 +239,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: asin", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::asin(i as f64 / 100.0));
+                black_box(f64::asin(black_box(i as f64 / 100.0)));
             }
         })
     });
@@ -223,7 +247,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: FMA asin", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_asin(i as f64 / 100.0));
+                black_box(f_asin(black_box(i as f64 / 100.0)));
             }
         })
     });
@@ -231,7 +255,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::atan", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::atan(i as f64 / 100.0));
+                black_box(libm::atan(black_box(i as f64 / 100.0)));
             }
         })
     });
@@ -239,7 +263,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: atan", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::atan(i as f64 / 100.0));
+                black_box(f64::atan(black_box(i as f64 / 100.0)));
             }
         })
     });
@@ -247,7 +271,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: FMA atan", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_atan(i as f64 / 100.0));
+                black_box(f_atan(black_box(i as f64 / 100.0)));
             }
         })
     });
@@ -255,7 +279,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::atanf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::atanf(i as f32));
+                black_box(libm::atanf(black_box(i as f32)));
             }
         })
     });
@@ -263,7 +287,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: atanf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f32::atan(i as f32));
+                black_box(f32::atan(black_box(i as f32)));
             }
         })
     });
@@ -271,7 +295,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: FMA atanf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_atanf(i as f32));
+                black_box(f_atanf(black_box(i as f32)));
             }
         })
     });

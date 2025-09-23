@@ -8,6 +8,7 @@ use pxfm::{
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use rug::float::Constant;
+use rug::ops::Pow;
 use rug::{Assign, Float};
 use std::ops::{Div, Mul, Sub};
 use std::process::Command;
@@ -15,7 +16,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{cmp, thread};
-use rug::ops::Pow;
 use zbessel_rs::{bessel_i, bessel_k};
 
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
@@ -248,8 +248,24 @@ fn power_1_over_2p4(x: f32) -> f32 {
 
         fmlaf(x2, v0, u2)
     }
-    let p = f_polyeval6(x, f32::from_bits(P[0]), f32::from_bits(P[1]), f32::from_bits(P[2]), f32::from_bits(P[3]), f32::from_bits(P[4]), f32::from_bits(P[5]));
-    let q = f_polyeval6(x, f32::from_bits(Q[0]), f32::from_bits(Q[1]), f32::from_bits(Q[2]), f32::from_bits(Q[3]), f32::from_bits(Q[4]), f32::from_bits(Q[5]));
+    let p = f_polyeval6(
+        x,
+        f32::from_bits(P[0]),
+        f32::from_bits(P[1]),
+        f32::from_bits(P[2]),
+        f32::from_bits(P[3]),
+        f32::from_bits(P[4]),
+        f32::from_bits(P[5]),
+    );
+    let q = f_polyeval6(
+        x,
+        f32::from_bits(Q[0]),
+        f32::from_bits(Q[1]),
+        f32::from_bits(Q[2]),
+        f32::from_bits(Q[3]),
+        f32::from_bits(Q[4]),
+        f32::from_bits(Q[5]),
+    );
     p / q
 }
 
@@ -307,7 +323,7 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected_sin_pi = Float::with_val(53, x).pow(&Float::with_val(53, 1./2.4));
+        let expected_sin_pi = Float::with_val(53, x).pow(&Float::with_val(53, 1. / 2.4));
         let actual = power_1_over_2p4(x);
         // if actual.is_infinite() {
         //     return;

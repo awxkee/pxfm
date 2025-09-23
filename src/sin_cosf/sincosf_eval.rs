@@ -166,7 +166,7 @@ pub(crate) fn sincosf_eval(x: f64, x_abs: u32) -> SinCosf {
     }
 }
 
-#[inline]
+#[inline(always)]
 pub(crate) fn sincospif_eval(x: f64) -> SinCosf {
     let argument_reduction = ArgumentReducerPi { x };
 
