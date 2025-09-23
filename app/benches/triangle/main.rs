@@ -17,7 +17,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: hypotf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f32::hypot(i as f32 / 1000., i as f32 / 324.));
+                black_box(f32::hypot(
+                    black_box(i as f32 / 1000.),
+                    black_box(i as f32 / 324.),
+                ));
             }
         })
     });
@@ -25,7 +28,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_hypotf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_hypotf(i as f32 / 1000.0, i as f32 / 324.));
+                black_box(pxfm::f_hypotf(
+                    black_box(i as f32 / 1000.0),
+                    black_box(i as f32 / 324.),
+                ));
             }
         })
     });
@@ -33,7 +39,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_cathetusf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_cathetusf(i as f32 / 1000.0, i as f32 / 324.));
+                black_box(pxfm::f_cathetusf(
+                    black_box(i as f32 / 1000.0),
+                    black_box(i as f32 / 324.),
+                ));
             }
         })
     });
@@ -41,7 +50,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm: hypot", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::hypot(i as f64 / 1000.0, i as f64 / 324.));
+                black_box(libm::hypot(
+                    black_box(i as f64 / 1000.0),
+                    black_box(i as f64 / 324.),
+                ));
             }
         })
     });
@@ -49,7 +61,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: hypot", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::hypot(i as f64 / 1000., i as f64 / 324.));
+                black_box(f64::hypot(
+                    black_box(i as f64 / 1000.),
+                    black_box(i as f64 / 324.),
+                ));
             }
         })
     });
@@ -57,7 +72,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_hypot", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_hypot(i as f64 / 1000.0, i as f64 / 324.));
+                black_box(pxfm::f_hypot(
+                    black_box(i as f64 / 1000.0),
+                    black_box(i as f64 / 324.),
+                ));
             }
         })
     });
@@ -65,7 +83,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_cathethus", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_cathetus(i as f64 / 1000.0, i as f64 / 324.));
+                black_box(pxfm::f_cathetus(
+                    black_box(i as f64 / 1000.0),
+                    black_box(i as f64 / 324.),
+                ));
             }
         })
     });

@@ -1,8 +1,9 @@
 use num_complex::Complex;
 use pxfm::{
-    f_cos, f_cospi, f_cospif, f_cotpif, f_erfcx, f_exp2m1f, f_expm1f, f_i0ef, f_i0f, f_i1ef, f_i1f,
-    f_j0, f_j0f, f_j1f, f_jincpi, f_jincpif, f_k0ef, f_k0f, f_k1ef, f_k1f, f_lgamma_rf, f_lgammaf,
-    f_logisticf, f_sin, f_sincpi, f_sincpif, f_sinpif, f_tanf, f_tanpif, f_y0f, floorf,
+    f_cbrtf, f_cos, f_cospi, f_cospif, f_cotpif, f_erfcx, f_exp2m1f, f_expm1f, f_i0ef, f_i0f,
+    f_i1ef, f_i1f, f_j0, f_j0f, f_j1f, f_jincpi, f_jincpif, f_k0ef, f_k0f, f_k1ef, f_k1f,
+    f_lgamma_rf, f_lgammaf, f_logisticf, f_sin, f_sincpi, f_sincpif, f_sinpif, f_tanf, f_tanpif,
+    f_y0f, floorf,
 };
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -14,6 +15,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{cmp, thread};
+use rug::ops::Pow;
 use zbessel_rs::{bessel_i, bessel_k};
 
 fn compute_besselk(x: f64) -> Result<Float, Box<dyn std::error::Error>> {
@@ -190,6 +192,67 @@ fn cathethus(x: f64, y: f64) -> Float {
         .sqrt()
 }
 
+#[inline(always)]
+pub(crate) fn fmlaf(a: f32, b: f32, c: f32) -> f32 {
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        target_arch = "aarch64"
+    ))]
+    {
+        f32::mul_add(a, b, c)
+    }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        target_arch = "aarch64"
+    )))]
+    {
+        a * b + c
+    }
+}
+
+fn power_1_over_2p4(x: f32) -> f32 {
+    // <<FunctionApproximations`
+    // ClearAll["Global`*"]
+    // f[x_]:=x^(1/2.4)
+    // {err,approx}=MiniMaxApproximation[f[x],{x,{0.0031308,1},5,5},WorkingPrecision->120]
+    // poly=Numerator[approx][[1]];
+    // coeffs=CoefficientList[poly,x];
+    // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+    // poly=Denominator[approx][[1]];
+    // coeffs=CoefficientList[poly,x];
+    // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+
+    // {(0.0289338010459052768667829149000052753343873331610775276582557678250851411234301218465061660352860953295187058758737912162+53.8623763009617827238804917522486374010590522684609844916014721001247959077817057340461311250842991318301379035219977324 x+8461.66353644535730096787657341327383515294183720807166590641979127794213938139114937567679471650463944535822518303170833 x^2+211128.049488272220422036251872130329956832786987819720589556696955655573725068505543545903583186876442851765586421440421 x^3+900313.518840443904876317689759512896411972559937409425974431130627993863616349335036691645384583492243036482496509529713 x^4+492315.307389668369449762240479335126870840793920889759480547361599802163460950922479829770546763836543288961586364795476 x^5)/(1+564.074027620019536981196523902363185281203265251643728891604383764379752662060776624555299302071834364195384627871876281 x+40001.4751754530351018342773752031877898539860304695946652893823712363377779862830093570314799330771927269626977941502951 x^2+481502.165256419970578502904463056896789378927643242864543258820988720081861499820733694542963854146311003501446078552596 x^3+934232.440283741344491840394012151287524709719415465841614934991382211082112980461022109810287512020640854392423290894099 x^4+155984.639070076857760721626042860907787145662041895286887431732348206040358627511992445378871099253349296424713626537253 x^5),-8.40481927933470710194099105449220633672892953521701393192821980736071525155554362532804325719077695781594081505798762639*10^-6}}
+    const P: [u32; 6] = [
+        0x3ced0694, 0x42577313, 0x460436a7, 0x484e2e03, 0x495bcd98, 0x48f0636a,
+    ];
+    const Q: [u32; 6] = [
+        0x3f800000, 0x440d04bd, 0x471c417a, 0x48eb1bc5, 0x49641587, 0x48185429,
+    ];
+    #[inline(always)]
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn f_polyeval6(x: f32, a0: f32, a1: f32, a2: f32, a3: f32, a4: f32, a5: f32) -> f32 {
+        let x2 = x * x;
+
+        let u0 = fmlaf(x, a5, a4);
+        let u1 = fmlaf(x, a3, a2);
+        let u2 = fmlaf(x, a1, a0);
+
+        let v0 = fmlaf(x2, u0, u1);
+
+        fmlaf(x2, v0, u2)
+    }
+    let p = f_polyeval6(x, f32::from_bits(P[0]), f32::from_bits(P[1]), f32::from_bits(P[2]), f32::from_bits(P[3]), f32::from_bits(P[4]), f32::from_bits(P[5]));
+    let q = f_polyeval6(x, f32::from_bits(Q[0]), f32::from_bits(Q[1]), f32::from_bits(Q[2]), f32::from_bits(Q[3]), f32::from_bits(Q[4]), f32::from_bits(Q[5]));
+    p / q
+}
+
 #[allow(static_mut_refs)]
 
 fn test_f32_against_mpfr_multithreaded() {
@@ -219,8 +282,8 @@ fn test_f32_against_mpfr_multithreaded() {
     });
     let mut exceptions = Arc::new(Mutex::new(Vec::<f32>::new()));
 
-    let start_bits = (0.000001f32).to_bits();
-    let end_bits = 0.1f32.to_bits();
+    let start_bits = (0.9f32).to_bits();
+    let end_bits = 0.95f32.to_bits();
     println!("amount {}", end_bits - start_bits);
 
     // Exhaustive: 0..=u32::MAX
@@ -244,8 +307,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected_sin_pi = Float::with_val(53, x).ln_abs_gamma().0;
-        let actual = f_lgammaf(x);
+        let expected_sin_pi = Float::with_val(53, x).pow(&Float::with_val(53, 1./2.4));
+        let actual = power_1_over_2p4(x);
         // if actual.is_infinite() {
         //     return;
         // }

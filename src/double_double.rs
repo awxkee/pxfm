@@ -290,7 +290,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let y = 1. / self.hi;
@@ -304,7 +304,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let y = 1.0 / self.hi;
@@ -326,7 +326,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let x_hi = 1.0 / b;
@@ -339,7 +339,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let x_hi = 1.0 / b;
@@ -357,7 +357,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let h = 1.0 / b;
@@ -369,7 +369,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let h = 1.0 / b;
@@ -387,7 +387,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let q_hi = a / b;
@@ -401,7 +401,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let q_hi = a / b;
@@ -431,7 +431,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let h = x.sqrt();
@@ -448,7 +448,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let h = x.sqrt();
@@ -480,7 +480,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let q1 = a.hi / b;
@@ -495,7 +495,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let th = a.hi / b;
@@ -584,7 +584,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let e_hi = f_fmla(b.hi, -r_hi, a.hi);
@@ -598,7 +598,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let b_hi_r_hi = DoubleDouble::from_exact_mult(b.hi, -r_hi);
@@ -617,7 +617,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let r_hi = a * b;
@@ -629,7 +629,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let splat = DoubleDouble::split(a);
@@ -771,7 +771,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let mut r = DoubleDouble::from_exact_mult(a.hi, b.hi);
@@ -785,7 +785,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b.hi);
@@ -804,7 +804,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b.hi);
@@ -819,7 +819,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b.hi);
@@ -838,7 +838,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b);
@@ -850,7 +850,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b);
@@ -873,7 +873,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let h = b * a.hi;
@@ -885,7 +885,7 @@ impl DoubleDouble {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let DoubleDouble { hi: ch, lo: cl1 } = DoubleDouble::from_exact_mult(a.hi, b);
