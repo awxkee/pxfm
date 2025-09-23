@@ -90,12 +90,13 @@ fn jinc_asympt_fast(ox: f64) -> f64 {
         f64::from_bits(0x400921fb54442d18),
     );
 
-    let x = DoubleDouble::quick_mult_f64(PI, ox);
+    let px = DoubleDouble::quick_mult_f64(PI, ox);
 
-    const SQRT_2_OVER_PI: DoubleDouble = DoubleDouble::new(
-        f64::from_bits(0xbc8cbc0d30ebfd15),
-        f64::from_bits(0x3fe9884533d43651),
-    );
+    // 2^(3/2)/(Pi^2)
+    // reduce argument 2*sqrt(2/(PI*(x*PI))) = 2*sqrt(2)/PI
+    // adding additional pi from division then 2*sqrt(2)/PI^2
+    const Z2_3_2_OVER_PI_SQR: DoubleDouble =
+        DoubleDouble::from_bit_pair((0xbc76213a285b8094, 0x3fd25751e5614413));
     const MPI_OVER_4: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0xbc81a62633145c07),
         f64::from_bits(0xbfe921fb54442d18),
@@ -108,7 +109,7 @@ fn jinc_asympt_fast(ox: f64) -> f64 {
     let rem = f_fmla(kd, -2., ox);
     let angle = DoubleDouble::quick_mult_f64(PI, rem);
 
-    let recip = x.recip();
+    let recip = px.recip();
 
     let alpha = bessel_1_asympt_alpha_fast(recip);
     let beta = bessel_1_asympt_beta_fast(recip);
@@ -119,11 +120,12 @@ fn jinc_asympt_fast(ox: f64) -> f64 {
 
     let m_sin = sin_dd_small_fast(r0);
     let z0 = DoubleDouble::quick_mult(beta, m_sin);
-    let dx_sqrt = x.fast_sqrt();
-    let scale = DoubleDouble::div(SQRT_2_OVER_PI, dx_sqrt);
+    let ox_recip = DoubleDouble::from_quick_recip(ox);
+    let dx_sqrt = ox_recip.fast_sqrt();
+    let scale = DoubleDouble::quick_mult(Z2_3_2_OVER_PI_SQR, dx_sqrt);
     let p = DoubleDouble::quick_mult(scale, z0);
 
-    DoubleDouble::quick_mult(p, recip).to_f64() * 2.
+    DoubleDouble::quick_mult(p, ox_recip).to_f64()
 }
 
 #[inline]

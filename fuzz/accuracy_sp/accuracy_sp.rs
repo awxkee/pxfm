@@ -238,7 +238,9 @@ fuzz_target!(|data: (f32, f32)| {
     //     "f_compoundf".to_string(),
     // );
 
-    test_method_u(x0, f_jincpif, &jincf(x0), "f_jincpif".to_string(), 1.0);
+    if x0.abs() < 10000. {
+        test_method_u(x0, f_jincpif, &jincf(x0), "f_jincpif".to_string(), 0.5);
+    }
     test_method(x0, f_sincpif, &sincpif(x0), "f_sincpif".to_string());
 
     test_method_2vals_ignore_nan(

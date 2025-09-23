@@ -39,7 +39,6 @@ use crate::rounding::CpuRound;
 
 /// Normalized jinc 2*J1(PI\*x)/(pi\*x)
 ///
-/// ULP 0.5
 pub fn f_jincpif(x: f32) -> f32 {
     let ux = x.to_bits().wrapping_shl(1);
     if ux >= 0xffu32 << 24 || ux <= 0x6800_0000u32 {
@@ -193,8 +192,6 @@ pub(crate) fn jincpif_asympt(x: f32) -> f64 {
     let dox = x as f64;
     let dx = dox * PI;
 
-    let inv_scale = dx;
-
     let alpha = j1f_asympt_alpha(dx);
     let beta = j1f_asympt_beta(dx);
 
@@ -204,7 +201,10 @@ pub(crate) fn jincpif_asympt(x: f32) -> f64 {
     //  y = (x * Pi) - k * 2
     let angle = f_fmla(kd, -2., dox) * PI;
 
-    const SQRT_2_OVER_PI: f64 = f64::from_bits(0x3fe9884533d43651);
+    // 2^(3/2)/(Pi^2)
+    // reduce argument 2*sqrt(2/(PI*(x*PI))) = 2*sqrt(2)/PI
+    // adding additional pi from division then 2*sqrt(2)/PI^2
+    const Z2_3_2_OVER_PI_SQR: f64 = f64::from_bits(0x3fd25751e5614413);
     const MPI_OVER_4: f64 = f64::from_bits(0xbfe921fb54442d18);
 
     let x0pi34 = MPI_OVER_4 - alpha;
@@ -213,10 +213,10 @@ pub(crate) fn jincpif_asympt(x: f32) -> f64 {
     let m_sin = sin_small(r0);
 
     let z0 = beta * m_sin;
-    let scale = SQRT_2_OVER_PI * j1f_rsqrt(dx);
+    let scale = Z2_3_2_OVER_PI_SQR * j1f_rsqrt(dox);
 
     let j1pix = scale * z0;
-    (j1pix / inv_scale) * 2.
+    j1pix / dox
 }
 
 #[cfg(test)]
