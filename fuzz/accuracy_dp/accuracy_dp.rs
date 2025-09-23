@@ -311,6 +311,17 @@ fn mpfr_cosm1(x: f64) -> Float {
     r.mul(Float::with_val(100, -2))
 }
 
+fn jinc(x: f64) -> Float {
+    if x == 0. {
+        return Float::with_val(90, 1.);
+    }
+    Float::with_val(500, x)
+        .mul(Float::with_val(500, Constant::Pi))
+        .j1()
+        .div(Float::with_val(500, x).mul(&Float::with_val(500, Constant::Pi)))
+        .mul(&Float::with_val(500, 2))
+}
+
 static mut MAX_ULP: f64 = 0.;
 
 fuzz_target!(|data: (f64, f64)| {
@@ -348,6 +359,10 @@ fuzz_target!(|data: (f64, f64)| {
         "f_cathethus".to_string(),
         1.1,
     );
+
+    if x0.abs() > 2e-12 && x0.abs() < 1e10 {
+        test_method(x0, f_jincpi, &jinc(x0), "f_jincpi".to_string(), 1.0);
+    }
 
     if x0.abs() > 2e-6 && x1.abs() > 2e-6 && x0.abs() < 20. && x1.abs() < 20. {
         test_method_2vals_ignore_nan(x0, x1, f_powm1, &powm1(x0, x1), "f_powm1".to_string(), 1.0);

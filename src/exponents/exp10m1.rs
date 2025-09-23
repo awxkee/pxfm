@@ -543,7 +543,7 @@ pub fn f_exp10m1(d: f64) -> f64 {
 
     /* 10^x-1 is exact for x integer, 1 <= x <= 15 */
     if ux << 15 == 0 {
-        let i = x.cpu_floor() as i32;
+        let i = unsafe { x.cpu_floor().to_int_unchecked::<i32>() };
         if x == i as f64 && 1 <= i && i <= 15 {
             static EXP10_1_15: [u64; 16] = [
                 0x0000000000000000,

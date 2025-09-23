@@ -629,7 +629,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
 
     /* 2^x-1 is exact for x integer, -53 <= x <= 53 */
     if ux.wrapping_shl(17) == 0 {
-        let i = x.cpu_floor() as i32;
+        let i = unsafe { x.cpu_floor().to_int_unchecked::<i32>() };
         if x == i as f64 && -53 <= i && i <= 53 {
             return if i >= 0 {
                 ((1u64 << i) - 1) as f64

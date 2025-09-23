@@ -303,7 +303,7 @@ fn test_f32_against_mpfr_multithreaded() {
     println!("amount {}", end_bits - start_bits);
 
     // Exhaustive: 0..=u32::MAX
-    (start_bits..end_bits).into_par_iter().for_each(|bits| {
+    (1000000..u32::MAX).into_par_iter().for_each(|bits| {
         let x = f32::from_bits(bits);
 
         if !x.is_finite() {
@@ -323,8 +323,8 @@ fn test_f32_against_mpfr_multithreaded() {
         //     Err(_) => return,
         // };
 
-        let expected_sin_pi = Float::with_val(53, x).pow(&Float::with_val(53, 1. / 2.4));
-        let actual = power_1_over_2p4(x);
+        let expected_sin_pi = jincf(x);
+        let actual = f_jincpif(x);
         // if actual.is_infinite() {
         //     return;
         // }
