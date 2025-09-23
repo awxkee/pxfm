@@ -29,7 +29,7 @@
 use crate::common::{dyad_fmla, f_fmla, min_normal_f64};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 use crate::sin_helper::sincos_eval_dd;
 use crate::sin_table::SIN_K_PI_OVER_128;
 use crate::sincos_dyadic::SIN_K_PI_OVER_128_F128;
@@ -46,7 +46,7 @@ pub(crate) fn range_reduction_small(x: f64) -> (DoubleDouble, u64) {
     const MPI_OVER_128: [u64; 3] = [0xbf9921fb54400000, 0xbd70b4611a600000, 0xbb43198a2e037073];
     const ONE_TWENTY_EIGHT_OVER_PI_D: f64 = f64::from_bits(0x40445f306dc9c883);
     let prod_hi = x * ONE_TWENTY_EIGHT_OVER_PI_D;
-    let kd = prod_hi.round_finite();
+    let kd = prod_hi.cpu_round();
 
     // Let y = x - k * (pi/128)
     // Then |y| < pi / 256

@@ -7,10 +7,10 @@ use pxfm::{
     f_acosf, f_acoshf, f_acospif, f_asinf, f_asinhf, f_asinpif, f_atan2f, f_atan2pif, f_atanhf,
     f_atanpif, f_cathetusf, f_cbrtf, f_cosf, f_coshf, f_cospif, f_cotf, f_cotpif, f_cscf,
     f_digammaf, f_erfcf, f_erff, f_exp2f, f_exp2m1f, f_exp10f, f_exp10m1f, f_expf, f_expm1f,
-    f_hypotf, f_i0f, f_i1f, f_j0f, f_j1f, f_k0f, f_k1f, f_lgammaf, f_log1pf, f_log1pmxf, f_log2f,
-    f_log2p1f, f_log10f, f_log10p1f, f_logf, f_powf, f_powm1f, f_rcbrtf, f_rerff, f_rsqrtf, f_secf,
-    f_sincf, f_sincpif, f_sinf, f_sinhf, f_sinmxf, f_sinpif, f_tanf, f_tanhf, f_tanpif, f_tgammaf,
-    f_y0f, f_y1f,
+    f_hypotf, f_i0f, f_i1f, f_j0f, f_j1f, f_jincpif, f_k0f, f_k1f, f_lgammaf, f_log1pf, f_log1pmxf,
+    f_log2f, f_log2p1f, f_log10f, f_log10p1f, f_logf, f_powf, f_powm1f, f_rcbrtf, f_rerff,
+    f_rsqrtf, f_secf, f_sincf, f_sincpif, f_sinf, f_sinhf, f_sinmxf, f_sinpif, f_tanf, f_tanhf,
+    f_tanpif, f_tgammaf, f_y0f, f_y1f,
 };
 use rug::float::Constant;
 use rug::ops::Pow;
@@ -58,6 +58,25 @@ fn test_method(value: f32, method: fn(f32) -> f32, mpfr_value: &Float, method_na
     let ulp = count_ulp(xr, mpfr_value);
     assert!(
         ulp <= 0.5,
+        "ULP should be less than 0.5, but it was {}, on {}, result {xr} using {method_name} on {value} and MPFR {}",
+        ulp,
+        value,
+        mpfr_value.to_f32(),
+    );
+}
+
+#[track_caller]
+fn test_method_u(
+    value: f32,
+    method: fn(f32) -> f32,
+    mpfr_value: &Float,
+    method_name: String,
+    ulp: f32,
+) {
+    let xr = method(value);
+    let ulp = count_ulp(xr, mpfr_value);
+    assert!(
+        ulp <= ulp,
         "ULP should be less than 0.5, but it was {}, on {}, result {xr} using {method_name} on {value} and MPFR {}",
         ulp,
         value,
@@ -182,6 +201,17 @@ fn compound_m1_mpfr(x: f32, y: f32) -> Float {
     exp
 }
 
+fn jincf(x: f32) -> Float {
+    if x == 0. {
+        return Float::with_val(100, 1.);
+    }
+    Float::with_val(100, x)
+        .mul(Float::with_val(100, Constant::Pi))
+        .j1()
+        .div(Float::with_val(100, x).mul(&Float::with_val(100, Constant::Pi)))
+        .mul(&Float::with_val(100, 2))
+}
+
 fuzz_target!(|data: (f32, f32)| {
     let x0 = data.0;
     let x1 = data.1;
@@ -208,6 +238,9 @@ fuzz_target!(|data: (f32, f32)| {
     //     "f_compoundf".to_string(),
     // );
 
+    if x0.abs() < 10000. {
+        test_method_u(x0, f_jincpif, &jincf(x0), "f_jincpif".to_string(), 0.5);
+    }
     test_method(x0, f_sincpif, &sincpif(x0), "f_sincpif".to_string());
 
     test_method_2vals_ignore_nan(

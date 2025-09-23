@@ -18,7 +18,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_erfinvc", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_erfcinv(i as f64 / 1000.0));
+                black_box(pxfm::f_erfcinv(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -26,7 +26,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_erfinv", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_erfinv(i as f64 / 1000.0));
+                black_box(pxfm::f_erfinv(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -34,7 +34,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_erfinvf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_erfinvf(i as f32 / 1000.0));
+                black_box(pxfm::f_erfinvf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -42,7 +42,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_erfcinvf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_erfcinvf(i as f32 / 1000.0));
+                black_box(pxfm::f_erfcinvf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -50,7 +50,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: erfcx", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_erfcx(black_box(i as f64 / 1000.0 + 8.)));
+                black_box(pxfm::f_erfcx(black_box(black_box(i as f64 / 1000.0 + 8.))));
             }
         })
     });
@@ -58,7 +58,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: erfcxf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_erfcxf(black_box(i as f32 / 100.0)));
+                black_box(pxfm::f_erfcxf(black_box(black_box(i as f32 / 100.0))));
             }
         })
     });
@@ -66,7 +66,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm: erfc", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::erfc(i as f64 / 1000.0));
+                black_box(libm::erfc(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -82,7 +82,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_erfc", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_erfc(i as f64 / 1000.0));
+                black_box(f_erfc(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -90,7 +90,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm: erfcf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::erfcf(i as f32 / 1000.0));
+                black_box(libm::erfcf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -106,7 +106,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_erfcf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_erfcf(i as f32 / 1000.0));
+                black_box(f_erfcf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -114,7 +114,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm: erf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::erf(i as f64 / 1000.0));
+                black_box(libm::erf(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -130,7 +130,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_erf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_erf(i as f64 / 1000.0));
+                black_box(f_erf(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -138,7 +138,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm: erff", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::erff(i as f32 / 1000.0));
+                black_box(libm::erff(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -146,7 +146,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: rerf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_rerf(i as f64 / 1000.0));
+                black_box(pxfm::f_rerf(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -162,7 +162,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_erff", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_erff(i as f32 / 1000.0));
+                black_box(f_erff(black_box(i as f32 / 1000.0)));
             }
         })
     });

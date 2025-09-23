@@ -33,8 +33,8 @@ use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, ldexp};
 use crate::exponents::{EXPM1_T0, EXPM1_T1};
 use crate::polyeval::{f_polyeval6, f_polyeval8};
 use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC, POW_INVERSE, POW_LOG_INV};
-use crate::round::RoundFinite;
-use crate::round_ties_even::RoundTiesEven;
+use crate::rounding::CpuRound;
+use crate::rounding::CpuRoundTiesEven;
 
 #[inline(always)]
 pub(crate) fn log_poly_1(z: f64) -> DoubleDouble {
@@ -261,7 +261,7 @@ pub(crate) fn pow_exp_1(r: DoubleDouble, s: f64) -> DoubleDouble {
     }
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r.hi * INVLOG2).round_finite();
+    let k = (r.hi * INVLOG2).cpu_round();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
@@ -293,7 +293,7 @@ pub(crate) fn pow_exp_1(r: DoubleDouble, s: f64) -> DoubleDouble {
 pub(crate) fn exp_dd_fast(r: DoubleDouble) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r.hi * INVLOG2).round_finite();
+    let k = (r.hi * INVLOG2).cpu_round();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
@@ -301,7 +301,7 @@ pub(crate) fn exp_dd_fast(r: DoubleDouble) -> DoubleDouble {
     let mut z = DoubleDouble::mul_f64_add(DoubleDouble::new(LOG2L, LOG2H), -k, r);
     z = DoubleDouble::from_exact_add(z.hi, z.lo);
 
-    let bk = k as i64; /* Note: k is an integer, this is just a conversion. */
+    let bk = unsafe { k.to_int_unchecked::<i64>() }; /* Note: k is an integer, this is just a conversion. */
     let mk = (bk >> 12) + 0x3ff;
     let i2 = (bk >> 6) & 0x3f;
     let i1 = bk & 0x3f;
@@ -384,7 +384,7 @@ pub(crate) fn pow_exp_dd(r: DoubleDouble, s: f64) -> DoubleDouble {
     }
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r.hi * INVLOG2).round_finite();
+    let k = (r.hi * INVLOG2).cpu_round();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
@@ -612,7 +612,7 @@ pub(crate) fn pow_expm1_1(r: DoubleDouble, s: f64) -> DoubleDouble {
 
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r.hi * INVLOG2).round_ties_even_finite();
+    let k = (r.hi * INVLOG2).cpu_round_ties_even();
 
     let z = DoubleDouble::mul_f64_add(DoubleDouble::new(LOG2L, LOG2H), -k, r);
 

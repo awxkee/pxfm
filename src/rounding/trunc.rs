@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 9/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -28,51 +28,37 @@
  */
 
 #[inline]
-pub(crate) const fn get_exponent_f32(x: f32) -> i32 {
-    let bits = x.to_bits();
-    (((bits >> 23) & 0xFF) as i32).wrapping_sub(127)
-}
-
-// #[inline]
-// pub(crate) const fn mantissa_f32(x: f32) -> u32 {
-//     x.to_bits() & ((1u32 << 23) - 1)
-// }
-
-#[inline]
-pub(crate) const fn mantissa_f64(x: f64) -> u64 {
-    x.to_bits() & ((1u64 << 52) - 1)
-}
-
-#[inline]
-pub(crate) const fn get_exponent_f64(x: f64) -> i64 {
-    ((x.to_bits() as i64 & EXP_MASK as i64) >> 52).wrapping_sub(1023)
-}
-
-#[inline]
-pub(crate) const fn biased_exponent_f64(x: f64) -> i64 {
-    (x.to_bits() as i64 & EXP_MASK as i64) >> 52
-}
-
-#[inline]
-pub(crate) const fn mask_trailing_ones(len: u64) -> u64 {
-    if len >= 64 {
-        u64::MAX
-    } else {
-        (1u64 << len).wrapping_sub(1)
+pub const fn trunc(x: f64) -> f64 {
+    let i0 = x.to_bits() as i64;
+    let sx = i0 & (0x8000000000000000u64 as i64);
+    let j0 = ((i0 >> 52) & 0x7ff) - 0x3ff;
+    if j0 < 52 {
+        return if j0 < 0 {
+            /* The magnitude of the number is < 1 so the result is +-0.  */
+            f64::from_bits(sx as u64)
+        } else {
+            f64::from_bits((sx | (i0 & (!(0x000fffffffffffffu64 >> j0) as i64))) as u64)
+        };
+    } else if j0 == 0x400 {
+        /* x is inf or NaN.  */
+        return x + x;
     }
+
+    x
 }
 
-pub(crate) const EXP_MASK: u64 = mask_trailing_ones(11) << 52;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[inline]
-pub(crate) fn set_exponent_f64(x: u64, new_exp: u64) -> u64 {
-    let encoded_mask = new_exp.wrapping_shl(52) & EXP_MASK;
-    x ^ ((x ^ encoded_mask) & EXP_MASK)
-}
-
-#[inline]
-pub(crate) const fn min_normal_f32(sign: bool) -> f32 {
-    let sign_bit = if sign { 1u32 << 31 } else { 0 };
-    let exponent = 1u32 << 23;
-    f32::from_bits(sign_bit | exponent)
+    #[test]
+    fn test_trunc() {
+        assert_eq!(trunc(-1.0), -1.0);
+        assert_eq!(trunc(1.0), 1.0);
+        assert_eq!(trunc(1.234211), 1.0);
+        assert_eq!(trunc(-1.234211), -1.0);
+        assert_eq!(trunc(f64::INFINITY), f64::INFINITY);
+        assert_eq!(trunc(f64::NEG_INFINITY), f64::NEG_INFINITY);
+        assert!(trunc(f64::NAN).is_nan());
+    }
 }

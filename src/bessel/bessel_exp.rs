@@ -29,7 +29,7 @@
 use crate::common::{dd_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1};
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 
 #[inline(always)]
 fn exp_poly(z: f64) -> DoubleDouble {
@@ -55,7 +55,7 @@ fn exp_poly(z: f64) -> DoubleDouble {
 pub(crate) fn i0_exp(r: f64) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r * INVLOG2).round_finite();
+    let k = (r * INVLOG2).cpu_round();
 
     const LOG_2E: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3d0718432a1b0e26),
@@ -117,7 +117,7 @@ fn exp_poly_dd(z: DoubleDouble) -> DoubleDouble {
 pub(crate) fn i0_exp_accurate(r: f64) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe);
 
-    let k = (r * INVLOG2).round_finite();
+    let k = (r * INVLOG2).cpu_round();
 
     const L2: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3d0718432a1b0e26),

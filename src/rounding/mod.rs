@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 9/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -26,53 +26,24 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+mod ceil;
+mod floor;
+mod rint;
+mod rintf;
+mod round;
+mod round_ties_even;
+mod trunc;
+mod truncf;
 
-#[inline]
-pub(crate) const fn get_exponent_f32(x: f32) -> i32 {
-    let bits = x.to_bits();
-    (((bits >> 23) & 0xFF) as i32).wrapping_sub(127)
-}
-
-// #[inline]
-// pub(crate) const fn mantissa_f32(x: f32) -> u32 {
-//     x.to_bits() & ((1u32 << 23) - 1)
-// }
-
-#[inline]
-pub(crate) const fn mantissa_f64(x: f64) -> u64 {
-    x.to_bits() & ((1u64 << 52) - 1)
-}
-
-#[inline]
-pub(crate) const fn get_exponent_f64(x: f64) -> i64 {
-    ((x.to_bits() as i64 & EXP_MASK as i64) >> 52).wrapping_sub(1023)
-}
-
-#[inline]
-pub(crate) const fn biased_exponent_f64(x: f64) -> i64 {
-    (x.to_bits() as i64 & EXP_MASK as i64) >> 52
-}
-
-#[inline]
-pub(crate) const fn mask_trailing_ones(len: u64) -> u64 {
-    if len >= 64 {
-        u64::MAX
-    } else {
-        (1u64 << len).wrapping_sub(1)
-    }
-}
-
-pub(crate) const EXP_MASK: u64 = mask_trailing_ones(11) << 52;
-
-#[inline]
-pub(crate) fn set_exponent_f64(x: u64, new_exp: u64) -> u64 {
-    let encoded_mask = new_exp.wrapping_shl(52) & EXP_MASK;
-    x ^ ((x ^ encoded_mask) & EXP_MASK)
-}
-
-#[inline]
-pub(crate) const fn min_normal_f32(sign: bool) -> f32 {
-    let sign_bit = if sign { 1u32 << 31 } else { 0 };
-    let exponent = 1u32 << 23;
-    f32::from_bits(sign_bit | exponent)
-}
+pub(crate) use ceil::CpuCeil;
+pub use ceil::{ceil, ceilf};
+pub(crate) use floor::CpuFloor;
+pub use floor::{floor, floorf};
+pub use rint::rint;
+pub use rintf::rintf;
+pub(crate) use round::CpuRound;
+pub use round::{round, roundf};
+pub(crate) use round_ties_even::CpuRoundTiesEven;
+pub use round_ties_even::{round_ties_even, roundf_ties_even};
+pub use trunc::trunc;
+pub use truncf::truncf;

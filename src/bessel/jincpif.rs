@@ -34,11 +34,11 @@ use crate::bessel::trigo_bessel::sin_small;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval6, f_polyeval14};
-use crate::round::RoundFinite;
+use crate::rounding::CpuCeil;
+use crate::rounding::CpuRound;
 
 /// Normalized jinc 2*J1(PI\*x)/(pi\*x)
 ///
-/// ULP 0.5
 pub fn f_jincpif(x: f32) -> f32 {
     let ux = x.to_bits().wrapping_shl(1);
     if ux >= 0xffu32 << 24 || ux <= 0x6800_0000u32 {
@@ -76,19 +76,22 @@ fn jincf_near_zero(x: f32) -> f32 {
     // Generated in Wolfram Mathematica:
     // <<FunctionApproximations`
     // ClearAll["Global`*"]
-    // f[x_]:=BesselJ[1,x*Pi]/(x*Pi)
-    // {err,approx}=MiniMaxApproximation[f[z],{z,{2^-23,0.3},6,0},WorkingPrecision->60]
+    // f[x_]:=2*BesselJ[1,x*Pi]/(x*Pi)
+    // {err,approx}=MiniMaxApproximation[f[z],{z,{2^-23,0.3},5,5},WorkingPrecision->60]
     // poly=Numerator[approx][[1]];
+    // coeffs=CoefficientList[poly,z];
+    // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+    // poly=Denominator[approx][[1]];
     // coeffs=CoefficientList[poly,z];
     // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
     let p_num = f_polyeval6(
         dx,
-        f64::from_bits(0x3fe0000000000002),
-        f64::from_bits(0xbfd46cd1822a5aa0),
-        f64::from_bits(0xbfde583c923dc6f4),
-        f64::from_bits(0x3fd3834f47496519),
-        f64::from_bits(0x3fb8118468756e6f),
-        f64::from_bits(0xbfafaff09f13df88),
+        f64::from_bits(0x3ff0000000000002),
+        f64::from_bits(0xbfe46cd1822a5aa0),
+        f64::from_bits(0xbfee583c923dc6f4),
+        f64::from_bits(0x3fe3834f47496519),
+        f64::from_bits(0x3fc8118468756e6f),
+        f64::from_bits(0xbfbfaff09f13df88),
     );
     let p_den = f_polyeval6(
         dx,
@@ -99,7 +102,7 @@ fn jincf_near_zero(x: f32) -> f32 {
         f64::from_bits(0x3fa0cf182218e448),
         f64::from_bits(0xbf939ab46c3f7a7d),
     );
-    (p_num / p_den * 2.) as f32
+    (p_num / p_den) as f32
 }
 
 /// This method on small range searches for nearest zero or extremum.
@@ -120,7 +123,11 @@ fn jincpif_small_argument(ox: f32) -> f32 {
     let fx = x_abs * INV_STEP;
     const J1_ZEROS_COUNT: f64 = (J1_ZEROS.len() - 1) as f64;
     let idx0 = unsafe { fx.min(J1_ZEROS_COUNT).to_int_unchecked::<usize>() };
-    let idx1 = unsafe { fx.ceil().min(J1_ZEROS_COUNT).to_int_unchecked::<usize>() };
+    let idx1 = unsafe {
+        fx.cpu_ceil()
+            .min(J1_ZEROS_COUNT)
+            .to_int_unchecked::<usize>()
+    };
 
     let found_zero0 = DoubleDouble::from_bit_pair(J1_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(J1_ZEROS[idx1]);
@@ -185,18 +192,19 @@ pub(crate) fn jincpif_asympt(x: f32) -> f64 {
     let dox = x as f64;
     let dx = dox * PI;
 
-    let inv_scale = dx;
-
     let alpha = j1f_asympt_alpha(dx);
     let beta = j1f_asympt_beta(dx);
 
     // argument reduction assuming x here value is already multiple of PI.
     // k = round((x*Pi) / (pi*2))
-    let kd = (dox * 0.5).round_finite();
+    let kd = (dox * 0.5).cpu_round();
     //  y = (x * Pi) - k * 2
     let angle = f_fmla(kd, -2., dox) * PI;
 
-    const SQRT_2_OVER_PI: f64 = f64::from_bits(0x3fe9884533d43651);
+    // 2^(3/2)/(Pi^2)
+    // reduce argument 2*sqrt(2/(PI*(x*PI))) = 2*sqrt(2)/PI
+    // adding additional pi from division then 2*sqrt(2)/PI^2
+    const Z2_3_2_OVER_PI_SQR: f64 = f64::from_bits(0x3fd25751e5614413);
     const MPI_OVER_4: f64 = f64::from_bits(0xbfe921fb54442d18);
 
     let x0pi34 = MPI_OVER_4 - alpha;
@@ -205,10 +213,10 @@ pub(crate) fn jincpif_asympt(x: f32) -> f64 {
     let m_sin = sin_small(r0);
 
     let z0 = beta * m_sin;
-    let scale = SQRT_2_OVER_PI * j1f_rsqrt(dx);
+    let scale = Z2_3_2_OVER_PI_SQR * j1f_rsqrt(dox);
 
     let j1pix = scale * z0;
-    (j1pix / inv_scale) * 2.
+    j1pix / dox
 }
 
 #[cfg(test)]

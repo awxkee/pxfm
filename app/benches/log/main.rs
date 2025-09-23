@@ -21,7 +21,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_log10p1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log10p1(i as f64 / 1000.0));
+                black_box(f_log10p1(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -29,7 +29,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_log2p1", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log2p1(i as f64 / 1000.0));
+                black_box(f_log2p1(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -37,7 +37,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm: log1p", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::log1p(i as f64 / 1000.0));
+                black_box(libm::log1p(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -45,7 +45,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: ln_1p", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::ln_1p(i as f64 / 1000.0));
+                black_box(f64::ln_1p(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -53,7 +53,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_log1p", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log1p(i as f64 / 1000.0));
+                black_box(f_log1p(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -61,7 +61,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_log10p1f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log10p1f(i as f32 / 1000.0));
+                black_box(f_log10p1f(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -69,7 +69,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_log2p1f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log2p1f(i as f32 / 1000.0));
+                black_box(f_log2p1f(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -77,7 +77,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: ln_1pf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f32::ln_1p(i as f32 / 1000.0));
+                black_box(f32::ln_1p(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -85,7 +85,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_log1pf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log1pf(i as f32 / 1000.0));
+                black_box(f_log1pf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -93,7 +93,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: f_log1pmxf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(pxfm::f_log1pmxf(i as f32 / 1000.0));
+                black_box(pxfm::f_log1pmxf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -101,7 +101,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::log10", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::log10(i as f64 / 1000.0));
+                black_box(libm::log10(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -109,7 +109,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: log10", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::log10(i as f64 / 1000.0));
+                black_box(f64::log10(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -117,7 +117,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: log10", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log10(i as f64 / 1000.0));
+                black_box(f_log10(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -125,7 +125,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::log10f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::log10f(i as f32));
+                black_box(libm::log10f(black_box(i as f32)));
             }
         })
     });
@@ -133,7 +133,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: log10f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f32::log10(i as f32));
+                black_box(f32::log10(black_box(i as f32)));
             }
         })
     });
@@ -141,7 +141,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: FMA log10f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log10f(i as f32));
+                black_box(f_log10f(black_box(i as f32)));
             }
         })
     });
@@ -149,7 +149,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::log2f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::log2f(i as f32));
+                black_box(libm::log2f(black_box(i as f32)));
             }
         })
     });
@@ -157,7 +157,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system::log2f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f32::log2(i as f32));
+                black_box(f32::log2(black_box(i as f32)));
             }
         })
     });
@@ -165,7 +165,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: FMA log2f", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log2f(i as f32));
+                black_box(f_log2f(black_box(i as f32)));
             }
         })
     });
@@ -173,7 +173,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::log2", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::log2(i as f64));
+                black_box(libm::log2(black_box(i as f64)));
             }
         })
     });
@@ -181,7 +181,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system::log2", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::log2(i as f64));
+                black_box(f64::log2(black_box(i as f64)));
             }
         })
     });
@@ -189,7 +189,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: log2", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log2(i as f64));
+                black_box(f_log2(black_box(i as f64)));
             }
         })
     });
@@ -197,7 +197,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::log", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::log(i as f64 / 1000.0));
+                black_box(libm::log(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -205,7 +205,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system: log", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f64::ln(i as f64 / 1000.0));
+                black_box(f64::ln(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -213,7 +213,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: log", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_log(i as f64 / 1000.0));
+                black_box(f_log(black_box(i as f64 / 1000.0)));
             }
         })
     });
@@ -221,7 +221,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("libm::logf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(libm::logf(i as f32));
+                black_box(libm::logf(black_box(i as f32)));
             }
         })
     });
@@ -229,7 +229,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("system::logf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box((i as f32).ln());
+                black_box(black_box(i as f32).ln());
             }
         })
     });
@@ -237,7 +237,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: FMA logf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_logf(i as f32));
+                black_box(f_logf(black_box(i as f32)));
             }
         })
     });

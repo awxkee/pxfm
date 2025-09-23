@@ -42,6 +42,7 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::polyeval::{f_polyeval8, f_polyeval9, f_polyeval12, f_polyeval19};
+use crate::rounding::CpuCeil;
 use crate::sin_helper::{sin_dd_small, sin_dd_small_fast, sin_f128_small};
 use crate::sincos_reduce::{AngleReduced, rem2pi_any, rem2pi_f128};
 
@@ -468,7 +469,11 @@ pub(crate) fn j1_small_argument_fast(x: f64) -> f64 {
     let fx = x_abs * INV_STEP;
     const J1_ZEROS_COUNT: f64 = (J1_ZEROS.len() - 1) as f64;
     let idx0 = unsafe { fx.min(J1_ZEROS_COUNT).to_int_unchecked::<usize>() };
-    let idx1 = unsafe { fx.ceil().min(J1_ZEROS_COUNT).to_int_unchecked::<usize>() };
+    let idx1 = unsafe {
+        fx.cpu_ceil()
+            .min(J1_ZEROS_COUNT)
+            .to_int_unchecked::<usize>()
+    };
 
     let found_zero0 = DoubleDouble::from_bit_pair(J1_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(J1_ZEROS[idx1]);

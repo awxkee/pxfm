@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 4/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 9/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -27,25 +27,25 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/// Round to integer towards minus infinity
 #[inline]
-pub const fn floorf(x: f32) -> f32 {
-    let mut i0 = x.to_bits() as i32;
+pub const fn ceilf(x: f32) -> f32 {
+    /* Use generic implementation.  */
+    let mut i0: i32 = x.to_bits() as i32;
     let j0 = ((i0 >> 23) & 0xff) - 0x7f;
     if j0 < 23 {
         if j0 < 0 {
             /* return 0 * sign (x) if |x| < 1  */
-            if i0 >= 0 {
-                i0 = 0;
-            } else if (i0 & 0x7fffffff) != 0 {
-                i0 = 0xbf800000u32 as i32;
+            if i0 < 0 {
+                i0 = 0x80000000u32 as i32;
+            } else if i0 != 0 {
+                i0 = 0x3f800000u32 as i32;
             }
         } else {
             let i = (0x007fffff) >> j0;
             if (i0 & i) == 0 {
                 return x; /* x is integral  */
             }
-            if i0 < 0 {
+            if i0 > 0 {
                 i0 = i0.wrapping_add((0x00800000) >> j0);
             }
             i0 &= !i;
@@ -60,44 +60,45 @@ pub const fn floorf(x: f32) -> f32 {
     f32::from_bits(i0 as u32)
 }
 
-/// Floors value
 #[inline]
-pub const fn floor(x: f64) -> f64 {
-    let mut i0 = x.to_bits() as i64;
-    let j0 = (((i0 >> 52) & 0x7ff) as i32) - 0x3ff;
-    let mut x = x;
-    if j0 < 52 {
+pub const fn ceil(x: f64) -> f64 {
+    let mut i0: i64 = x.to_bits() as i64;
+    let j0: i32 = (((i0 >> 52) & 0x7ff) - 0x3ff) as i32;
+    if j0 <= 51 {
         if j0 < 0 {
-            /* return 0 * sign (x) if |x| < 1  */
-            if i0 >= 0 {
-                i0 = 0;
-            } else if (i0 & 0x7fffffffffffffffi64) != 0 {
-                i0 = 0xbff0000000000000u64 as i64;
+            /* return 0 * sign(x) if |x| < 1  */
+            if i0 < 0 {
+                i0 = 0x8000000000000000u64 as i64;
+            } else if i0 != 0 {
+                i0 = 0x3ff0000000000000u64 as i64;
             }
         } else {
-            let i = 0x000fffffffffffffi64 >> j0;
+            let i = (0x000fffffffffffffu64 as i64) >> j0;
             if (i0 & i) == 0 {
-                return x; /* x is integral */
+                return x; /* x is integral  */
             }
-            if i0 < 0 {
+            if i0 > 0 {
                 i0 = i0.wrapping_add((0x0010000000000000u64 >> j0) as i64);
             }
             i0 &= !i;
         }
-        x = f64::from_bits(i0 as u64);
-    } else if j0 == 0x400 {
-        return x + x; /* inf or NaN */
+    } else {
+        return if j0 == 0x400 {
+            x + x /* inf or NaN  */
+        } else {
+            x /* x is integral  */
+        };
     }
-    x
+    f64::from_bits(i0 as u64)
 }
 
-pub(crate) trait FloorFinite {
-    fn floor_finite(self) -> Self;
+pub(crate) trait CpuCeil {
+    fn cpu_ceil(self) -> Self;
 }
 
-impl FloorFinite for f32 {
+impl CpuCeil for f32 {
     #[inline]
-    fn floor_finite(self) -> Self {
+    fn cpu_ceil(self) -> Self {
         #[cfg(any(
             all(
                 any(target_arch = "x86", target_arch = "x86_64"),
@@ -106,7 +107,7 @@ impl FloorFinite for f32 {
             target_arch = "aarch64"
         ))]
         {
-            self.floor()
+            self.ceil()
         }
         #[cfg(not(any(
             all(
@@ -116,14 +117,14 @@ impl FloorFinite for f32 {
             target_arch = "aarch64"
         )))]
         {
-            floorf(self)
+            ceilf(self)
         }
     }
 }
 
-impl FloorFinite for f64 {
+impl CpuCeil for f64 {
     #[inline]
-    fn floor_finite(self) -> Self {
+    fn cpu_ceil(self) -> Self {
         #[cfg(any(
             all(
                 any(target_arch = "x86", target_arch = "x86_64"),
@@ -132,7 +133,7 @@ impl FloorFinite for f64 {
             target_arch = "aarch64"
         ))]
         {
-            self.floor()
+            self.ceil()
         }
         #[cfg(not(any(
             all(
@@ -142,7 +143,7 @@ impl FloorFinite for f64 {
             target_arch = "aarch64"
         )))]
         {
-            floor(self)
+            ceil(self)
         }
     }
 }
@@ -152,30 +153,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_floorf() {
-        assert_eq!(floorf(-1.0), -1.0);
-        assert_eq!(floorf(1.0), 1.0);
-        assert_eq!(floorf(0.0), 0.0);
-        assert_eq!(floorf(0.324), 0.0);
-        assert_eq!(floorf(-0.324), -1.0);
-        assert_eq!(floorf(1.234211), 1.0);
-        assert_eq!(floorf(-1.234211), -2.0);
-        assert_eq!(floorf(f32::INFINITY), f32::INFINITY);
-        assert_eq!(floorf(f32::NEG_INFINITY), f32::NEG_INFINITY);
-        assert!(floorf(f32::NAN).is_nan());
+    fn test_ceilf() {
+        assert_eq!(ceilf(0.0), 0.0);
+        assert_eq!(ceilf(10.0), 10.0);
+        assert_eq!(ceilf(10.1), 11.0);
+        assert_eq!(ceilf(-9.0), -9.0);
+        assert_eq!(ceilf(-9.5), -9.0);
     }
 
     #[test]
-    fn test_floor() {
-        assert_eq!(floor(-1.0), -1.0);
-        assert_eq!(floor(1.0), 1.0);
-        assert_eq!(floor(0.0), 0.0);
-        assert_eq!(floor(0.324), 0.0);
-        assert_eq!(floor(-0.324), -1.0);
-        assert_eq!(floor(1.234211), 1.0);
-        assert_eq!(floor(-1.234211), -2.0);
-        assert_eq!(floor(f64::INFINITY), f64::INFINITY);
-        assert_eq!(floor(f64::NEG_INFINITY), f64::NEG_INFINITY);
-        assert!(floor(f64::NAN).is_nan());
+    fn test_ceil() {
+        assert_eq!(ceil(0.0), 0.0);
+        assert_eq!(ceil(10.0), 10.0);
+        assert_eq!(ceil(10.1), 11.0);
+        assert_eq!(ceil(-9.0), -9.0);
+        assert_eq!(ceil(-9.5), -9.0);
     }
 }

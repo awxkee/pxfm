@@ -123,7 +123,7 @@ pub(crate) fn is_odd_integer(x: f64) -> bool {
         any(target_arch = "x86", target_arch = "x86_64"),
         target_feature = "fma"
     ),
-    all(target_arch = "aarch64", target_feature = "neon")
+    target_arch = "aarch64"
 ))]
 #[inline(always)]
 pub(crate) fn mlaf<T: Copy + Mul<T, Output = T> + Add<T, Output = T> + MulAdd<T, Output = T>>(
@@ -140,7 +140,7 @@ pub(crate) fn mlaf<T: Copy + Mul<T, Output = T> + Add<T, Output = T> + MulAdd<T,
         any(target_arch = "x86", target_arch = "x86_64"),
         target_feature = "fma"
     ),
-    all(target_arch = "aarch64", target_feature = "neon")
+    target_arch = "aarch64"
 )))]
 pub(crate) fn mlaf<T: Copy + Mul<T, Output = T> + Add<T, Output = T> + MulAdd<T, Output = T>>(
     acc: T,
@@ -167,7 +167,7 @@ pub(crate) fn f_fmlaf(a: f32, b: f32, c: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         f32::mul_add(a, b, c)
@@ -177,7 +177,7 @@ pub(crate) fn f_fmlaf(a: f32, b: f32, c: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         a * b + c
@@ -192,7 +192,7 @@ pub(crate) fn f_fmla(a: f64, b: f64, c: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         f64::mul_add(a, b, c)
@@ -202,7 +202,7 @@ pub(crate) fn f_fmla(a: f64, b: f64, c: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         a * b + c
@@ -223,7 +223,7 @@ pub(crate) fn dd_fmla(a: f64, b: f64, c: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         f_fmla(a, b, c)
@@ -233,7 +233,7 @@ pub(crate) fn dd_fmla(a: f64, b: f64, c: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::double_double::DoubleDouble;
@@ -250,7 +250,7 @@ pub(crate) fn dyad_fmla(a: f64, b: f64, c: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         f_fmla(a, b, c)
@@ -260,7 +260,7 @@ pub(crate) fn dyad_fmla(a: f64, b: f64, c: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::dyadic_float::DyadicFloat128;
@@ -281,7 +281,7 @@ pub(crate) fn dd_fmlaf(a: f32, b: f32, c: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         f_fmlaf(a, b, c)
@@ -291,7 +291,7 @@ pub(crate) fn dd_fmlaf(a: f32, b: f32, c: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         (a as f64 * b as f64 + c as f64) as f32

@@ -29,8 +29,8 @@
 use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::exponents::fast_ldexp;
-use crate::floor::FloorFinite;
-use crate::round_ties_even::RoundTiesEven;
+use crate::rounding::CpuFloor;
+use crate::rounding::CpuRoundTiesEven;
 
 const LN2H: f64 = f64::from_bits(0x3fe62e42fefa39ef);
 const LN2L: f64 = f64::from_bits(0x3c7abc9e3b39803f);
@@ -205,7 +205,7 @@ fn q_1(dz: DoubleDouble) -> DoubleDouble {
 #[inline]
 fn exp1(x: DoubleDouble) -> DoubleDouble {
     const INVLOG2: f64 = f64::from_bits(0x40b71547652b82fe); /* |INVLOG2-2^12/log(2)| < 2^-43.4 */
-    let k = (x.hi * INVLOG2).round_ties_even_finite();
+    let k = (x.hi * INVLOG2).cpu_round_ties_even();
 
     const LOG2H: f64 = f64::from_bits(0x3f262e42fefa39ef);
     const LOG2L: f64 = f64::from_bits(0x3bbabc9e3b39803f);
@@ -349,7 +349,7 @@ fn q_2(dz: DoubleDouble) -> DoubleDouble {
 // returns a double-double approximation hi+lo of exp(x*log(2)) for |x| < 745
 #[inline]
 fn exp_2(x: f64) -> DoubleDouble {
-    let k = (x * f64::from_bits(0x40b0000000000000)).round_ties_even_finite();
+    let k = (x * f64::from_bits(0x40b0000000000000)).cpu_round_ties_even();
     // since |x| <= 745 we have k <= 3051520
 
     let yhh = f_fmla(-k, f64::from_bits(0x3f30000000000000), x); // exact, |yh| <= 2^-13
@@ -629,7 +629,7 @@ pub fn f_exp2m1(d: f64) -> f64 {
 
     /* 2^x-1 is exact for x integer, -53 <= x <= 53 */
     if ux.wrapping_shl(17) == 0 {
-        let i = x.floor_finite() as i32;
+        let i = unsafe { x.cpu_floor().to_int_unchecked::<i32>() };
         if x == i as f64 && -53 <= i && i <= 53 {
             return if i >= 0 {
                 ((1u64 << i) - 1) as f64

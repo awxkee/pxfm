@@ -27,9 +27,9 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::{f_fmla, is_integerf, is_odd_integerf};
-use crate::floor::FloorFinite;
 use crate::logs::simple_fast_log;
 use crate::polyeval::{f_estrin_polyeval4, f_polyeval5, f_polyeval7, f_polyeval8};
+use crate::rounding::CpuFloor;
 use crate::sin_cosf::fast_sinpif;
 
 #[inline]
@@ -53,7 +53,7 @@ pub(crate) fn lgamma_coref(x: f32) -> (f64, i32) {
     // lgamma(x) = log(|Gamma(x)|)
     //  = log(pi/(|x*sin(pi*x)|)) - lgamma(-x);
     if !is_positive {
-        let y1 = ax.floor_finite();
+        let y1 = ax.cpu_floor();
         let fraction = ax - y1; // excess over the boundary
 
         let a = fast_sinpif(fraction);

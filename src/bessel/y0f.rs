@@ -33,6 +33,7 @@ use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::logs::fast_logf;
 use crate::polyeval::{f_polyeval10, f_polyeval18};
+use crate::rounding::CpuCeil;
 use crate::sincos_reduce::rem2pif_any;
 
 /// Bessel of the second kind of order 0 (Y0)
@@ -237,7 +238,11 @@ fn y0f_small_argument_path(x: f32) -> f32 {
     let fx = x_abs * INV_STEP;
     const Y0_ZEROS_COUNT: f64 = (Y0_ZEROS.len() - 1) as f64;
     let idx0 = unsafe { fx.min(Y0_ZEROS_COUNT).to_int_unchecked::<usize>() };
-    let idx1 = unsafe { fx.ceil().min(Y0_ZEROS_COUNT).to_int_unchecked::<usize>() };
+    let idx1 = unsafe {
+        fx.cpu_ceil()
+            .min(Y0_ZEROS_COUNT)
+            .to_int_unchecked::<usize>()
+    };
 
     let found_zero0 = DoubleDouble::from_bit_pair(Y0_ZEROS[idx0]);
     let found_zero1 = DoubleDouble::from_bit_pair(Y0_ZEROS[idx1]);

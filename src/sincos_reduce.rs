@@ -30,7 +30,7 @@ use crate::bits::set_exponent_f64;
 use crate::common::{dd_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 use crate::sincos_reduce_tables::ONE_TWENTY_EIGHT_OVER_PI;
 
 #[derive(Debug)]
@@ -132,7 +132,7 @@ impl LargeArgumentReduction {
         let pl = DoubleDouble::from_exact_mult(self.x_reduced, f64::from_bits(one_pi.2));
         // Extract integral parts and fractional parts of (ph.lo + pm.hi).
         let sum_hi = ph.lo + pm.hi;
-        let kd = sum_hi.round_finite();
+        let kd = sum_hi.cpu_round();
 
         // x * 128/pi mod 1 ~ y_hi + y_mid + y_lo
         self.y_hi = (ph.lo - kd) + pm.hi; // Exact
@@ -363,7 +363,7 @@ fn rem2pif_small(x: f32) -> f64 {
     const ONE_OVER_PI_2: f64 = f64::from_bits(0x3fc45f306dc9c883);
     const TWO_PI: [u64; 3] = [0x401921fb54440000, 0x3da68c234c4c0000, 0x3b498a2e03707345];
     let dx = x as f64;
-    let kd = (dx * ONE_OVER_PI_2).round_finite();
+    let kd = (dx * ONE_OVER_PI_2).cpu_round();
     let mut y = dd_fmla(-kd, f64::from_bits(TWO_PI[0]), dx);
     y = dd_fmla(-kd, f64::from_bits(TWO_PI[1]), y);
     y = dd_fmla(-kd, f64::from_bits(TWO_PI[2]), y);

@@ -1,5 +1,5 @@
 /*
- * // Copyright (c) Radzivon Bartoshyk 6/2025. All rights reserved.
+ * // Copyright (c) Radzivon Bartoshyk 9/2025. All rights reserved.
  * //
  * // Redistribution and use in source and binary forms, with or without modification,
  * // are permitted provided that the following conditions are met:
@@ -107,13 +107,13 @@ pub const fn round_ties_even(x: f64) -> f64 {
     f64::from_bits(ix)
 }
 
-pub(crate) trait RoundTiesEven {
-    fn round_ties_even_finite(self) -> Self;
+pub(crate) trait CpuRoundTiesEven {
+    fn cpu_round_ties_even(self) -> Self;
 }
 
-impl RoundTiesEven for f32 {
+impl CpuRoundTiesEven for f32 {
     #[inline]
-    fn round_ties_even_finite(self) -> Self {
+    fn cpu_round_ties_even(self) -> Self {
         #[cfg(any(
             all(
                 any(target_arch = "x86", target_arch = "x86_64"),
@@ -137,9 +137,9 @@ impl RoundTiesEven for f32 {
     }
 }
 
-impl RoundTiesEven for f64 {
+impl CpuRoundTiesEven for f64 {
     #[inline]
-    fn round_ties_even_finite(self) -> Self {
+    fn cpu_round_ties_even(self) -> Self {
         #[cfg(any(
             all(
                 any(target_arch = "x86", target_arch = "x86_64"),

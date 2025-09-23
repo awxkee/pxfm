@@ -29,7 +29,7 @@
 use crate::common::{f_fmla, fmla, pow2i, rintk};
 use crate::double_double::DoubleDouble;
 use crate::exponents::auxiliary::fast_ldexp;
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 
 /// Exp for given value for const context.
 /// This is simplified version just to make a good approximation on const context.
@@ -325,7 +325,7 @@ pub fn f_exp(x: f64) -> f64 {
         }
     }
     const S: f64 = f64::from_bits(0x40b71547652b82fe);
-    let t = (x * S).round_finite();
+    let t = (x * S).cpu_round();
     let jt: i64 = unsafe {
         t.to_int_unchecked::<i64>() // this is already finite here
     };

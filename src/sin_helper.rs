@@ -28,7 +28,7 @@
  */
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::DyadicFloat128;
-use crate::round::RoundFinite;
+use crate::rounding::CpuRound;
 use crate::sin::{SinCos, get_sin_k_rational, sincos_eval};
 use crate::sin_table::SIN_K_PI_OVER_128;
 use crate::sincos_dyadic::{range_reduction_small_f128_f128, sincos_eval_dyadic};
@@ -278,7 +278,7 @@ pub(crate) fn range_reduction_small_dd(x: DoubleDouble) -> (DoubleDouble, i64) {
     ];
     const ONE_TWENTY_EIGHT_OVER_PI_D: f64 = f64::from_bits(0x40445f306dc9c883);
     let prod_hi = DoubleDouble::quick_mult_f64(x, ONE_TWENTY_EIGHT_OVER_PI_D);
-    let kd = prod_hi.to_f64().round_finite();
+    let kd = prod_hi.to_f64().cpu_round();
 
     let p_hi = f64::from_bits(MPI_OVER_128[0]); // hi
     let p_mid = f64::from_bits(MPI_OVER_128[1]); // mid

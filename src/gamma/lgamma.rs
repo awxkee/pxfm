@@ -29,9 +29,9 @@
 use crate::common::{f_fmla, is_integer, is_odd_integer};
 use crate::double_double::DoubleDouble;
 use crate::f_log;
-use crate::floor::FloorFinite;
 use crate::logs::{fast_log_d_to_dd, fast_log_dd, log_dd};
 use crate::polyeval::{f_polyeval4, f_polyeval5, f_polyeval6, f_polyeval10};
+use crate::rounding::CpuFloor;
 use crate::sincospi::f_fast_sinpi_dd;
 
 #[inline]
@@ -558,7 +558,7 @@ pub(crate) fn lgamma_core(x: f64) -> (DoubleDouble, i32) {
     // Hence, for x<0, signgam = sign(sin(pi*x)) and
     // lgamma(x) = log(|Gamma(x)|) = log(pi/(|x*sin(pi*x)|)) - lgamma(-x);
     if !is_positive {
-        let y1 = ax.floor_finite();
+        let y1 = ax.cpu_floor();
         let fraction = ax - y1; // excess over the boundary
 
         let a = f_fast_sinpi_dd(fraction);
