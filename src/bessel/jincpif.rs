@@ -76,19 +76,22 @@ fn jincf_near_zero(x: f32) -> f32 {
     // Generated in Wolfram Mathematica:
     // <<FunctionApproximations`
     // ClearAll["Global`*"]
-    // f[x_]:=BesselJ[1,x*Pi]/(x*Pi)
-    // {err,approx}=MiniMaxApproximation[f[z],{z,{2^-23,0.3},6,0},WorkingPrecision->60]
+    // f[x_]:=2*BesselJ[1,x*Pi]/(x*Pi)
+    // {err,approx}=MiniMaxApproximation[f[z],{z,{2^-23,0.3},5,5},WorkingPrecision->60]
     // poly=Numerator[approx][[1]];
+    // coeffs=CoefficientList[poly,z];
+    // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
+    // poly=Denominator[approx][[1]];
     // coeffs=CoefficientList[poly,z];
     // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50},ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
     let p_num = f_polyeval6(
         dx,
-        f64::from_bits(0x3fe0000000000002),
-        f64::from_bits(0xbfd46cd1822a5aa0),
-        f64::from_bits(0xbfde583c923dc6f4),
-        f64::from_bits(0x3fd3834f47496519),
-        f64::from_bits(0x3fb8118468756e6f),
-        f64::from_bits(0xbfafaff09f13df88),
+        f64::from_bits(0x3ff0000000000002),
+        f64::from_bits(0xbfe46cd1822a5aa0),
+        f64::from_bits(0xbfee583c923dc6f4),
+        f64::from_bits(0x3fe3834f47496519),
+        f64::from_bits(0x3fc8118468756e6f),
+        f64::from_bits(0xbfbfaff09f13df88),
     );
     let p_den = f_polyeval6(
         dx,
@@ -99,7 +102,7 @@ fn jincf_near_zero(x: f32) -> f32 {
         f64::from_bits(0x3fa0cf182218e448),
         f64::from_bits(0xbf939ab46c3f7a7d),
     );
-    (p_num / p_den * 2.) as f32
+    (p_num / p_den) as f32
 }
 
 /// This method on small range searches for nearest zero or extremum.
