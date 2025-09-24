@@ -82,7 +82,7 @@ pub(crate) fn log_dyadic(x: f64) -> DyadicFloat128 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         u = f_fmla(r, m, -1.0); // exact
@@ -92,7 +92,7 @@ pub(crate) fn log_dyadic(x: f64) -> DyadicFloat128 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::logs::log2::LOG_CD;
@@ -224,7 +224,7 @@ pub fn f_log(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         u = f_fmla(r, m, -1.0); // exact
@@ -234,7 +234,7 @@ pub fn f_log(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::logs::log2::LOG_CD;

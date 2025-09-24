@@ -143,7 +143,7 @@ pub(crate) fn sincos_eval(u: DoubleDouble) -> SinCos {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         v_hi = f_fmla(u.hi, u_hi_neg_half, 1.0);
@@ -156,7 +156,7 @@ pub(crate) fn sincos_eval(u: DoubleDouble) -> SinCos {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let u_hi_sq_neg_half = DoubleDouble::from_exact_mult(u.hi, u_hi_neg_half);

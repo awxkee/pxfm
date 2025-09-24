@@ -36,8 +36,8 @@ use crate::double_double::DoubleDouble;
 /// Domain: requires `|x| >= |y|`. Returns NaN if the input
 /// is outside this range.
 pub fn f_cathetus(x: f64, y: f64) -> f64 {
-    let x_abs = x.abs();
-    let y_abs = y.abs();
+    let x_abs = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffffu64);
+    let y_abs = f64::from_bits(y.to_bits() & 0x7fff_ffff_ffff_ffffu64);
 
     let x_bits = x_abs.to_bits();
     let y_bits = y_abs.to_bits();

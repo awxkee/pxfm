@@ -315,7 +315,7 @@ static LOG2_DD: [(u64, u64); 128] = [
         any(target_arch = "x86", target_arch = "x86_64"),
         target_feature = "fma"
     ),
-    all(target_arch = "aarch64", target_feature = "neon")
+    target_arch = "aarch64"
 )))]
 pub(crate) static LOG_CD: [u64; 128] = [
     0x0000000000000000,
@@ -514,7 +514,7 @@ pub fn f_log2(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         u = f_fmla(r, m, -1.0); // exact   
@@ -524,7 +524,7 @@ pub fn f_log2(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let c_m = x_m & 0x3FFF_E000_0000_0000u64;

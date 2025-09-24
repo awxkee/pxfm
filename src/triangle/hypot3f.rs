@@ -59,7 +59,7 @@ pub fn f_hypot3f(x: f32, y: f32, z: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         let ad = x as f64;
@@ -80,7 +80,7 @@ pub fn f_hypot3f(x: f32, y: f32, z: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let ad = x_abs as f64;

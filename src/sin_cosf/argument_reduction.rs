@@ -44,7 +44,7 @@ impl ArgumentReducer {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     #[inline]
     pub(crate) fn reduce_small(self) -> (f64, i64) {
@@ -77,7 +77,7 @@ impl ArgumentReducer {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     #[inline]
     pub(crate) fn reduce_small(self) -> (f64, i64) {
@@ -111,7 +111,7 @@ impl ArgumentReducer {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     #[inline]
     pub(crate) fn reduce_large(self, exponent: i32) -> (f64, i64) {
@@ -207,7 +207,7 @@ impl ArgumentReducer {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     #[inline]
     pub(crate) fn reduce_large(self, exponent: i32) -> (f64, i64) {
@@ -286,7 +286,7 @@ impl ArgumentReducer {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         const SMALL_PASS_BOUND: u32 = 0x5600_0000u32;
         #[cfg(not(any(
@@ -294,7 +294,7 @@ impl ArgumentReducer {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         const SMALL_PASS_BOUND: u32 = 0x4a80_0000u32;
         if self.x_abs < SMALL_PASS_BOUND {

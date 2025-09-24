@@ -422,7 +422,7 @@ pub fn f_log2p1f(x: f32) -> f32 {
         let m = tp & 0x000fffffffffffff;
         let mut e: i32 = (tp >> 52).wrapping_sub(0x3ff) as i32;
         let j: i32 = ((m as i64).wrapping_add(1i64 << (52 - 8)) >> (52 - 7)) as i32;
-        let k = if j > 53 { 1 } else { 0 };
+        let k = (j > 53) as i32;
         e += k;
         let xd = m | 0x3ffu64 << 52;
         z = f_fmla(f64::from_bits(xd), f64::from_bits(IX[j as usize]), -1.0);

@@ -87,7 +87,7 @@ fn f_powi(x: f64, y: f64) -> f64 {
 #[cold]
 #[inline(never)]
 fn f_powi_hard(x: f64, y: f64) -> f64 {
-    let mut iter_count = y.abs() as usize;
+    let mut iter_count = unsafe { y.abs().to_int_unchecked::<usize>() };
 
     let mut s = TripleDouble::new(0., 0., x);
 
