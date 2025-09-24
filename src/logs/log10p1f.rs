@@ -271,7 +271,7 @@ pub fn f_log10p1f(x: f32) -> f32 {
 
     let ax = x.to_bits() & 0x7fff_ffffu32;
 
-    // Use log10p(x) = log10(1 + x) for |x| > 2^-6;
+    // Use log10p1(x) = log10(1 + x) for |x| > 2^-6;
     if ax > 0x3c80_0000u32 {
         if x == -1. {
             return f32::NEG_INFINITY;
