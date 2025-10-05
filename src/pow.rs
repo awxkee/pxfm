@@ -87,7 +87,7 @@ fn f_powi(x: f64, y: f64) -> f64 {
 #[cold]
 #[inline(never)]
 fn f_powi_hard(x: f64, y: f64) -> f64 {
-    let mut iter_count = y.abs() as usize;
+    let mut iter_count = unsafe { y.abs().to_int_unchecked::<usize>() };
 
     let mut s = TripleDouble::new(0., 0., x);
 
@@ -176,7 +176,7 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
                             any(target_arch = "x86", target_arch = "x86_64"),
                             target_feature = "fma"
                         ),
-                        all(target_arch = "aarch64", target_feature = "neon")
+                        target_arch = "aarch64"
                     ))]
                     {
                         let r = x.sqrt() / x;
@@ -191,7 +191,7 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
                             any(target_arch = "x86", target_arch = "x86_64"),
                             target_feature = "fma"
                         ),
-                        all(target_arch = "aarch64", target_feature = "neon")
+                        target_arch = "aarch64"
                     )))]
                     {
                         let r = x.sqrt() / x;
@@ -330,7 +330,7 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         if is_y_integer
             && y_a <= 0x4059800000000000u64
@@ -344,7 +344,7 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         if is_y_integer
             && y_a <= 0x4059800000000000u64
@@ -445,9 +445,6 @@ pub fn f_pow(x: f64, y: f64) -> f64 {
 
 #[cold]
 fn pow_rational128(x: f64, y: f64, s: f64) -> f64 {
-    /* the idea of returning res_max instead of res_min is due to Laurent
-    Théry: it is better in case of underflow since res_max = +0 always. */
-
     let f_y = DyadicFloat128::new_from_f64(y);
 
     let r = log_dyadic(x) * f_y;

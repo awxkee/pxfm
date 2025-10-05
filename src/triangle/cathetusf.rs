@@ -36,8 +36,8 @@ use crate::common::EXP_MASK_F32;
 /// Domain: requires `|x| >= |y|`. Returns NaN if the input
 /// is outside this range.
 pub fn f_cathetusf(x: f32, y: f32) -> f32 {
-    let x_abs = x.abs();
-    let y_abs = y.abs();
+    let x_abs = f32::from_bits(x.to_bits() & 0x7fff_ffffu32);
+    let y_abs = f32::from_bits(y.to_bits() & 0x7fff_ffffu32);
 
     let x_bits = x_abs.to_bits();
     let y_bits = y_abs.to_bits();
@@ -75,7 +75,7 @@ pub fn f_cathetusf(x: f32, y: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         use crate::common::f_fmla;
@@ -92,7 +92,7 @@ pub fn f_cathetusf(x: f32, y: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::double_double::DoubleDouble;

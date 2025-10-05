@@ -261,7 +261,7 @@ pub fn f_logf(x: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         v = f_fmlaf(u, f32::from_bits(LOG_REDUCTION_F32.0[index as usize]), -1.0) as f64; // Exact.
@@ -271,7 +271,7 @@ pub fn f_logf(x: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::logs::log2::LOG_RANGE_REDUCTION;
@@ -325,7 +325,7 @@ pub(crate) fn fast_logf(x: f32) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         v = f_fmlaf(u, f32::from_bits(LOG_REDUCTION_F32.0[index as usize]), -1.0) as f64; // Exact.
@@ -335,7 +335,7 @@ pub(crate) fn fast_logf(x: f32) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::logs::log2::LOG_RANGE_REDUCTION;

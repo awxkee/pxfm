@@ -67,7 +67,7 @@ pub fn f_i1ef(x: f32) -> f32 {
                     any(target_arch = "x86", target_arch = "x86_64"),
                     target_feature = "fma"
                 ),
-                all(target_arch = "aarch64", target_feature = "neon")
+                target_arch = "aarch64"
             ))]
             {
                 use crate::common::f_fmlaf;
@@ -79,7 +79,7 @@ pub fn f_i1ef(x: f32) -> f32 {
                     any(target_arch = "x86", target_arch = "x86_64"),
                     target_feature = "fma"
                 ),
-                all(target_arch = "aarch64", target_feature = "neon")
+                target_arch = "aarch64"
             )))]
             {
                 let dx = x as f64;

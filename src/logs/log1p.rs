@@ -177,7 +177,7 @@ pub(crate) static R1: [u64; 129] = [
         any(target_arch = "x86", target_arch = "x86_64"),
         target_feature = "fma"
     ),
-    all(target_arch = "aarch64", target_feature = "neon")
+    target_arch = "aarch64"
 )))]
 pub(crate) static RCM1: [u64; 129] = [
     0x0000000000000000,
@@ -514,7 +514,7 @@ pub(crate) fn log1p_f64_dyadic(x: f64) -> DyadicFloat128 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         v_hi = f_fmla(f64::from_bits(r), m_dd.hi, -1.0); // Exact.
@@ -525,7 +525,7 @@ pub(crate) fn log1p_f64_dyadic(x: f64) -> DyadicFloat128 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let c = f64::from_bits(
@@ -705,7 +705,7 @@ pub fn f_log1p(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         v_hi = f_fmla(f64::from_bits(r), m_dd.hi, -1.0); // Exact.
@@ -716,7 +716,7 @@ pub fn f_log1p(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let c = f64::from_bits(

@@ -263,7 +263,7 @@ pub fn f_asin(x: f64) -> f64 {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             // u = x^2 - idx/64
@@ -280,7 +280,7 @@ pub fn f_asin(x: f64) -> f64 {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             let x_sq_f128 = x_f128.quick_mul(&x_f128);
@@ -334,7 +334,7 @@ pub fn f_asin(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         h = f_fmla(v_hi, -v_hi, u);
@@ -344,7 +344,7 @@ pub fn f_asin(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let v_hi_sq = DoubleDouble::from_exact_mult(v_hi, v_hi);
@@ -376,7 +376,7 @@ pub fn f_asin(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         r_upper = f_fmla(r.hi, x_sign, f_fmla(r_lo, x_sign, err));
@@ -387,7 +387,7 @@ pub fn f_asin(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let r_lo = r_lo * x_sign;
@@ -429,7 +429,7 @@ pub fn f_asin(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         vl_lo = f_fmla(-v_hi, vl, h) / v_hi;
@@ -439,7 +439,7 @@ pub fn f_asin(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let vh_vl = DoubleDouble::from_exact_mult(v_hi, vl);

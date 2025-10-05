@@ -88,7 +88,7 @@ pub fn f_sqrt1pm1(x: f64) -> f64 {
                     any(target_arch = "x86", target_arch = "x86_64"),
                     target_feature = "fma"
                 ),
-                all(target_arch = "aarch64", target_feature = "neon")
+                target_arch = "aarch64"
             ))]
             {
                 return f_fmla(-0.25 * x, 0.25 * x, x * 0.5);
@@ -98,7 +98,7 @@ pub fn f_sqrt1pm1(x: f64) -> f64 {
                     any(target_arch = "x86", target_arch = "x86_64"),
                     target_feature = "fma"
                 ),
-                all(target_arch = "aarch64", target_feature = "neon")
+                target_arch = "aarch64"
             )))]
             {
                 use crate::common::dyad_fmla;
@@ -169,7 +169,7 @@ pub fn f_sqrt1pm1(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         let r = DoubleDouble::from_full_exact_add(x, 1.0);
@@ -182,7 +182,7 @@ pub fn f_sqrt1pm1(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::double_double::two_product_compatible;

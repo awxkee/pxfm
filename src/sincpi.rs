@@ -117,7 +117,7 @@ pub fn f_sincpi(x: f64) -> f64 {
                     any(target_arch = "x86", target_arch = "x86_64"),
                     target_feature = "fma"
                 ),
-                all(target_arch = "aarch64", target_feature = "neon")
+                target_arch = "aarch64"
             ))]
             {
                 const M_SQR_PI_OVER_6: f64 = f64::from_bits(0xbffa51a6625307d3);
@@ -129,7 +129,7 @@ pub fn f_sincpi(x: f64) -> f64 {
                     any(target_arch = "x86", target_arch = "x86_64"),
                     target_feature = "fma"
                 ),
-                all(target_arch = "aarch64", target_feature = "neon")
+                target_arch = "aarch64"
             )))]
             {
                 use crate::common::min_normal_f64;
@@ -194,7 +194,7 @@ pub fn f_sincpi(x: f64) -> f64 {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         ))]
         {
             let num = if t == 0 {
@@ -214,7 +214,7 @@ pub fn f_sincpi(x: f64) -> f64 {
                 any(target_arch = "x86", target_arch = "x86_64"),
                 target_feature = "fma"
             ),
-            all(target_arch = "aarch64", target_feature = "neon")
+            target_arch = "aarch64"
         )))]
         {
             use crate::double_double::two_product_compatible;

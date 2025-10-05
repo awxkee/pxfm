@@ -131,13 +131,55 @@ pub fn f_sinhf(x: f32) -> f32 {
             // |x| <= 0.000558942
             if ux < 0x66000000u32 {
                 // |x| < 5.96046e-08
-                return f_fmlaf(x, x.abs(), x);
+                #[cfg(any(
+                    all(
+                        any(target_arch = "x86", target_arch = "x86_64"),
+                        target_feature = "fma"
+                    ),
+                    target_arch = "aarch64"
+                ))]
+                {
+                    use crate::common::f_fmlaf;
+                    return f_fmlaf(x, x.abs(), x);
+                }
+                #[cfg(not(any(
+                    all(
+                        any(target_arch = "x86", target_arch = "x86_64"),
+                        target_feature = "fma"
+                    ),
+                    target_arch = "aarch64"
+                )))]
+                {
+                    let dx = x as f64;
+                    return f_fmla(dx, dx.abs(), dx) as f32;
+                }
             }
             if ST[0].0 == ux {
                 let sgn = f32::copysign(1.0, x);
                 return f_fmlaf(sgn, f32::from_bits(ST[0].1), sgn * f32::from_bits(ST[0].2));
             }
-            return f_fmlaf(x * f64::from_bits(0x3fc5555560000000) as f32, x * x, x);
+            #[cfg(any(
+                all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    target_feature = "fma"
+                ),
+                target_arch = "aarch64"
+            ))]
+            {
+                use crate::common::f_fmlaf;
+                return f_fmlaf(x * f64::from_bits(0x3fc5555560000000) as f32, x * x, x);
+            }
+            #[cfg(not(any(
+                all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    target_feature = "fma"
+                ),
+                target_arch = "aarch64"
+            )))]
+            {
+                let dx = x as f64;
+                return f_fmla(dx * f64::from_bits(0x3fc5555560000000), dx * dx, dx) as f32;
+            }
         }
         const CP: [u64; 4] = [
             0x3fc5555555555555,

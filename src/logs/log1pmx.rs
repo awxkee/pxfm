@@ -153,7 +153,7 @@ fn log1pmx_big(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         v_hi = f_fmla(f64::from_bits(r), m_dd.hi, -1.0); // Exact.
@@ -164,7 +164,7 @@ fn log1pmx_big(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::logs::log1p::RCM1;

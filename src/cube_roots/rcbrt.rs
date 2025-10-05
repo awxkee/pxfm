@@ -133,7 +133,7 @@ pub fn f_rcbrt(a: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         // decompose double-double in linear FMA sums
@@ -147,7 +147,7 @@ pub fn f_rcbrt(a: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let m_hb = DoubleDouble::full_add_f64(-hb, 1.0);

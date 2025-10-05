@@ -162,7 +162,7 @@ static LOG10_R: [u64; 128] = [
 
 /// Logarithm of base 10
 ///
-/// Max found ULP 0.49999943
+/// Max found ULP 0.5
 #[inline]
 pub fn f_log10f(x: f32) -> f32 {
     let mut x_u = x.to_bits();
@@ -201,7 +201,7 @@ pub fn f_log10f(x: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         v = f_fmlaf(
@@ -215,7 +215,7 @@ pub fn f_log10f(x: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         v = f_fmla(

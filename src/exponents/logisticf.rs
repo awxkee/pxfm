@@ -51,7 +51,7 @@ pub fn f_logisticf(x: f32) -> f32 {
                     any(target_arch = "x86", target_arch = "x86_64"),
                     target_feature = "fma"
                 ),
-                all(target_arch = "aarch64", target_feature = "neon")
+                target_arch = "aarch64"
             ))]
             {
                 use crate::common::f_fmlaf;
@@ -62,7 +62,7 @@ pub fn f_logisticf(x: f32) -> f32 {
                     any(target_arch = "x86", target_arch = "x86_64"),
                     target_feature = "fma"
                 ),
-                all(target_arch = "aarch64", target_feature = "neon")
+                target_arch = "aarch64"
             )))]
             {
                 use crate::common::f_fmla;

@@ -321,7 +321,7 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     let straight_path_precondition: bool = true;
     #[cfg(not(any(
@@ -329,7 +329,7 @@ pub fn f_compound_m1(x: f64, y: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     let straight_path_precondition: bool = y.is_sign_positive();
     // this is correct only for positive exponent number without FMA,

@@ -30,23 +30,6 @@ use crate::common::f_fmla;
 use crate::logs::{LOG_R_DD, LOG_RANGE_REDUCTION};
 use crate::polyeval::{f_estrin_polyeval8, f_polyeval6};
 
-#[cold]
-pub(crate) fn special_logf(x: f32) -> f32 {
-    let t = x.to_bits();
-    if t == 0xbf800000u32 {
-        // +0.0
-        return f32::NEG_INFINITY;
-    }
-    if t == 0x7f800000u32 {
-        return x;
-    } // +inf
-    let ax: u32 = t.wrapping_shl(1);
-    if ax > 0xff000000u32 {
-        return x + x;
-    } // nan
-    f32::NAN
-}
-
 #[inline]
 pub(crate) fn core_logf(x: f64) -> f64 {
     let x_u = x.to_bits();
@@ -88,7 +71,7 @@ pub(crate) fn core_logf(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         u = f_fmla(r, m, -1.0); // exact
@@ -98,7 +81,7 @@ pub(crate) fn core_logf(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::logs::LOG_CD;

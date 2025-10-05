@@ -62,7 +62,7 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         let ad = x as f64;
@@ -81,7 +81,7 @@ pub fn f_hypotf(x: f32, y: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let ad = f32::from_bits(a_bits) as f64;

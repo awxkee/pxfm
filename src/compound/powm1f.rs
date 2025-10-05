@@ -214,7 +214,7 @@ pub(crate) fn powm1_exp2m1_fast(t: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         v = f_fmla(v, s, s - 1f64);
@@ -224,7 +224,7 @@ pub(crate) fn powm1_exp2m1_fast(t: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::double_double::DoubleDouble;

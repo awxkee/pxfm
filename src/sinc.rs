@@ -62,15 +62,6 @@ fn sinc_refine(argument_reduction: &mut LargeArgumentReduction, x: f64, x_e: u64
 ///
 /// Max ULP 0.5
 pub fn f_sinc(x: f64) -> f64 {
-    if !x.is_finite() {
-        return f64::NAN;
-    }
-
-    let x_abs = f64::from_bits(x.to_bits() & 0x7fff_ffff_ffff_ffff);
-    if x_abs.to_bits() == 0 {
-        return 1.0;
-    }
-
     let x_e = (x.to_bits() >> 52) & 0x7ff;
     const E_BIAS: u64 = (1u64 << (11 - 1u64)) - 1u64;
 
@@ -85,7 +76,7 @@ pub fn f_sinc(x: f64) -> f64 {
         if x_e < E_BIAS - 26 {
             // Signed zeros.
             if x == 0.0 {
-                return x;
+                return 1.0;
             }
 
             // For |x| < 2^-26, sinc(x) ~ 1 - x^2/6

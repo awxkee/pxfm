@@ -152,7 +152,7 @@ pub fn f_acos(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         h = f_fmla(v_hi, -v_hi, u);
@@ -162,7 +162,7 @@ pub fn f_acos(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let v_hi_sq = DoubleDouble::from_exact_mult(v_hi, v_hi);
@@ -238,7 +238,7 @@ fn acos_hard(x: f64, u: f64, v_hi: f64, h: f64, vh: f64, vl: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         vl_lo = f_fmla(-v_hi, vl, h) / v_hi;
@@ -248,7 +248,7 @@ fn acos_hard(x: f64, u: f64, v_hi: f64, h: f64, vh: f64, vl: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let vh_vl = DoubleDouble::from_exact_mult(v_hi, vl);
@@ -304,7 +304,7 @@ fn acos_less_0p5_hard(x: f64, x_sq: DoubleDouble) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         // u = x^2 - idx/64
@@ -321,7 +321,7 @@ fn acos_less_0p5_hard(x: f64, x_sq: DoubleDouble) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         let x_sq_f128 = x_f128.quick_mul(&x_f128);
