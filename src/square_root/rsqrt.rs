@@ -73,7 +73,7 @@ pub fn f_rsqrt(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         let d2x = DoubleDouble::from_exact_mult(r, x);
@@ -87,7 +87,7 @@ pub fn f_rsqrt(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::double_double::two_product_compatible;
@@ -109,7 +109,7 @@ pub fn f_rsqrt(x: f64) -> f64 {
         any(target_arch = "x86", target_arch = "x86_64"),
         target_feature = "fma"
     ),
-    all(target_arch = "aarch64", target_feature = "neon")
+    target_arch = "aarch64"
 )))]
 #[cold]
 #[inline(never)]

@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, f_fmlaf};
+use crate::common::f_fmla;
 
 /// Hyperbolic tangent
 ///
@@ -51,11 +51,55 @@ pub fn f_tanhf(x: f32) -> f32 {
             if ux.wrapping_shl(1) == 0 {
                 return x;
             }
-            let res = f_fmlaf(-x, x.abs(), x);
-            return res;
+            #[cfg(any(
+                all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    target_feature = "fma"
+                ),
+                target_arch = "aarch64"
+            ))]
+            {
+                use crate::common::f_fmlaf;
+                let res = f_fmlaf(-x, x.abs(), x);
+                return res;
+            }
+            #[cfg(not(any(
+                all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    target_feature = "fma"
+                ),
+                target_arch = "aarch64"
+            )))]
+            {
+                let dx = x as f64;
+                let res = crate::common::f_fmla(-dx, dx.abs(), dx);
+                return res as f32;
+            }
         }
-        let x2 = x * x;
-        return f_fmlaf(x, -f64::from_bits(0x3fd5555560000000) as f32 * x2, x);
+        #[cfg(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            target_arch = "aarch64"
+        ))]
+        {
+            use crate::common::f_fmlaf;
+            let x2 = x * x;
+            return f_fmlaf(x, -f64::from_bits(0x3fd5555560000000) as f32 * x2, x);
+        }
+        #[cfg(not(any(
+            all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "fma"
+            ),
+            target_arch = "aarch64"
+        )))]
+        {
+            let dx = x as f64;
+            let x2 = dx * dx;
+            return f_fmla(dx, -f64::from_bits(0x3fd5555560000000) * x2, dx) as f32;
+        }
     }
     if ux.wrapping_shl(1) > (0x41102cb3u32 << 1) {
         return f32::copysign(1.0, x) - f32::copysign(f64::from_bits(0x3e60000000000000) as f32, x);

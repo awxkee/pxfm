@@ -82,7 +82,7 @@ pub use log1pmxf::f_log1pmxf;
         any(target_arch = "x86", target_arch = "x86_64"),
         target_feature = "fma"
     ),
-    all(target_arch = "aarch64", target_feature = "neon")
+    target_arch = "aarch64"
 )))]
 pub(crate) use log2::LOG_CD;
 pub use log2::f_log2;

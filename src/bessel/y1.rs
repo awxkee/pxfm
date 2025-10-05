@@ -218,7 +218,7 @@ fn y1_near_zero_fast(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         m_two_over_pi_div_x = DoubleDouble::div_dd_f64(MINUS_TWO_OVER_PI, x)
@@ -228,7 +228,7 @@ fn y1_near_zero_fast(x: f64) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::double_double::two_product_compatible;
@@ -385,7 +385,7 @@ fn y1_near_zero(x: f64, w_log: DoubleDouble) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         m_two_over_pi_div_x = DoubleDouble::div_dd_f64(MINUS_TWO_OVER_PI, x)
@@ -395,7 +395,7 @@ fn y1_near_zero(x: f64, w_log: DoubleDouble) -> f64 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::double_double::two_product_compatible;

@@ -391,7 +391,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     {
         use crate::logs::LOG_REDUCTION_F32;
@@ -406,7 +406,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     {
         use crate::logs::LOG_RANGE_REDUCTION;
@@ -554,7 +554,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     ))]
     const ERR: u64 = 64;
     #[cfg(not(any(
@@ -562,7 +562,7 @@ pub fn f_powf(x: f32, y: f32) -> f32 {
             any(target_arch = "x86", target_arch = "x86_64"),
             target_feature = "fma"
         ),
-        all(target_arch = "aarch64", target_feature = "neon")
+        target_arch = "aarch64"
     )))]
     const ERR: u64 = 128;
 

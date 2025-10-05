@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, f_fmlaf};
+use crate::common::f_fmla;
 use crate::rounding::CpuRoundTiesEven;
 use std::hint::black_box;
 
@@ -129,9 +129,51 @@ pub fn f_coshf(x: f32) -> f32 {
             // |x| < 0.000488281
             if ax < 0x66000000u32 {
                 // |x| < 5.96046e-08
-                return f_fmlaf(x.abs(), f64::from_bits(0x3e60000000000000) as f32, 1.0);
+                #[cfg(any(
+                    all(
+                        any(target_arch = "x86", target_arch = "x86_64"),
+                        target_feature = "fma"
+                    ),
+                    target_arch = "aarch64"
+                ))]
+                {
+                    use crate::common::f_fmlaf;
+                    return f_fmlaf(x.abs(), f64::from_bits(0x3e60000000000000) as f32, 1.0);
+                }
+                #[cfg(not(any(
+                    all(
+                        any(target_arch = "x86", target_arch = "x86_64"),
+                        target_feature = "fma"
+                    ),
+                    target_arch = "aarch64"
+                )))]
+                {
+                    let dx = x as f64;
+                    return f_fmla(dx.abs(), f64::from_bits(0x3e60000000000000), 1.0) as f32;
+                }
             }
-            return f_fmlaf(0.5 * x, x, 1.0);
+            #[cfg(any(
+                all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    target_feature = "fma"
+                ),
+                target_arch = "aarch64"
+            ))]
+            {
+                use crate::common::f_fmlaf;
+                return f_fmlaf(0.5 * x, x, 1.0);
+            }
+            #[cfg(not(any(
+                all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    target_feature = "fma"
+                ),
+                target_arch = "aarch64"
+            )))]
+            {
+                let dx = x as f64;
+                return f_fmla(0.5 * dx, dx, 1.0) as f32;
+            }
         }
         const CP: [u64; 4] = [
             0x3fdfffffffffffe3,

@@ -31,7 +31,7 @@ use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, ldexp};
 use crate::exponents::{EXPM1_T0, EXPM1_T1};
-use crate::polyeval::{f_polyeval6, f_polyeval8};
+use crate::polyeval::f_polyeval6;
 use crate::pow_tables::{EXP_T1_2_DYADIC, EXP_T2_2_DYADIC, POW_INVERSE, POW_LOG_INV};
 use crate::rounding::CpuRound;
 use crate::rounding::CpuRoundTiesEven;
@@ -695,9 +695,11 @@ fn exp_dyadic_poly(x: DyadicFloat128) -> DyadicFloat128 {
             mantissa: 0xd00d_00cd_9841_6862_0000_0000_0000_0000_u128,
         },
     ];
-    f_polyeval8(
-        x, Q_2[0], Q_2[1], Q_2[2], Q_2[3], Q_2[4], Q_2[5], Q_2[6], Q_2[7],
-    )
+    let mut p = Q_2[7];
+    for i in (0..7).rev() {
+        p = x * p + Q_2[i];
+    }
+    p
 }
 
 /* put in r an approximation of exp(x), for |x| < 744.45,
