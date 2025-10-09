@@ -187,7 +187,6 @@ static LOG_R: [u64; 128] = [
 /// Natural logarithm
 ///
 /// Max found ULP 0.4999988
-#[inline]
 pub fn f_logf(x: f32) -> f32 {
     let mut x_u = x.to_bits();
 

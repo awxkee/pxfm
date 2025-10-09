@@ -163,7 +163,6 @@ static LOG10_R: [u64; 128] = [
 /// Logarithm of base 10
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_log10f(x: f32) -> f32 {
     let mut x_u = x.to_bits();
 

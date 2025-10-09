@@ -39,7 +39,6 @@ use crate::rounding::CpuRound;
 
 /// Power function for given value for const context.
 /// This is simplified version just to make a good approximation on const context.
-#[inline]
 pub const fn powf(d: f32, n: f32) -> f32 {
     let value = d.abs();
     let c = expf(n * logf(value));
@@ -175,7 +174,6 @@ fn powf_dd(idx_x: i32, dx: f64, y6: f64, lo6_hi: f64, exp2_hi_mid: DoubleDouble)
 /// Power function
 ///
 /// Max found ULP 0.5
-#[inline]
 pub fn f_powf(x: f32, y: f32) -> f32 {
     let mut x_u = x.to_bits();
     let x_abs = x_u & 0x7fff_ffff;
