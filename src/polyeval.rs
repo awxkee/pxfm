@@ -93,6 +93,21 @@ pub(crate) fn f_polyeval6<T: PolyevalMla + Copy + Mul<T, Output = T>>(
 }
 
 #[inline(always)]
+#[allow(unused)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn d_polyeval6(x: f64, a0: f64, a1: f64, a2: f64, a3: f64, a4: f64, a5: f64) -> f64 {
+    let x2 = x * x;
+
+    let u0 = f64::mul_add(x, a5, a4);
+    let u1 = f64::mul_add(x, a3, a2);
+    let u2 = f64::mul_add(x, a1, a0);
+
+    let v0 = f64::mul_add(x2, u0, u1);
+
+    f64::mul_add(x2, v0, u2)
+}
+
+#[inline(always)]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn f_polyeval9<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     x: T,
@@ -217,11 +232,26 @@ pub(crate) fn f_polyeval3<T: PolyevalMla + Copy>(x: T, a0: T, a1: T, a2: T) -> T
 }
 
 #[inline(always)]
+#[allow(unused)]
+pub(crate) fn d_polyeval3(x: f64, a0: f64, a1: f64, a2: f64) -> f64 {
+    f64::mul_add(x, f64::mul_add(x, a2, a1), a0)
+}
+
+#[inline(always)]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn f_polyeval4<T: PolyevalMla + Copy>(x: T, a0: T, a1: T, a2: T, a3: T) -> T {
     let t2 = T::polyeval_mla(x, a3, a2);
     let t5 = T::polyeval_mla(x, t2, a1);
     T::polyeval_mla(x, t5, a0)
+}
+
+#[inline(always)]
+#[allow(unused)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn d_polyeval4(x: f64, a0: f64, a1: f64, a2: f64, a3: f64) -> f64 {
+    let t2 = f64::mul_add(x, a3, a2);
+    let t5 = f64::mul_add(x, t2, a1);
+    f64::mul_add(x, t5, a0)
 }
 
 #[inline(always)]
@@ -406,6 +436,32 @@ pub(crate) fn f_estrin_polyeval7<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     T::polyeval_mla(x4, c1, c0)
 }
 
+#[inline(always)]
+#[allow(unused)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn d_estrin_polyeval7(
+    x: f64,
+    a0: f64,
+    a1: f64,
+    a2: f64,
+    a3: f64,
+    a4: f64,
+    a5: f64,
+    a6: f64,
+) -> f64 {
+    let x2 = x * x;
+    let x4 = x2 * x2;
+
+    let b0 = f64::mul_add(x, a1, a0);
+    let b1 = f64::mul_add(x, a3, a2);
+    let b2 = f64::mul_add(x, a5, a4);
+
+    let c0 = f64::mul_add(x2, b1, b0);
+    let c1 = f64::mul_add(x2, a6, b2);
+
+    f64::mul_add(x4, c1, c0)
+}
+
 #[allow(clippy::too_many_arguments)]
 #[inline(always)]
 pub(crate) fn f_polyeval5<T: PolyevalMla + Copy>(x: T, a0: T, a1: T, a2: T, a3: T, a4: T) -> T {
@@ -414,6 +470,17 @@ pub(crate) fn f_polyeval5<T: PolyevalMla + Copy>(x: T, a0: T, a1: T, a2: T, a3: 
     acc = T::polyeval_mla(x, acc, a2);
     acc = T::polyeval_mla(x, acc, a1);
     T::polyeval_mla(x, acc, a0)
+}
+
+#[allow(clippy::too_many_arguments)]
+#[inline(always)]
+#[allow(unused)]
+pub(crate) fn d_polyeval5(x: f64, a0: f64, a1: f64, a2: f64, a3: f64, a4: f64) -> f64 {
+    let mut acc = a4;
+    acc = f64::mul_add(x, acc, a3);
+    acc = f64::mul_add(x, acc, a2);
+    acc = f64::mul_add(x, acc, a1);
+    f64::mul_add(x, acc, a0)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -431,6 +498,17 @@ pub(crate) fn f_estrin_polyeval5<T: PolyevalMla + Copy + Mul<T, Output = T>>(
     let p23 = T::polyeval_mla(x, a3, a2);
     let t = T::polyeval_mla(x2, a4, p23);
     T::polyeval_mla(x2, t, p01)
+}
+
+#[allow(clippy::too_many_arguments)]
+#[inline(always)]
+#[allow(unused)]
+pub(crate) fn d_estrin_polyeval5(x: f64, a0: f64, a1: f64, a2: f64, a3: f64, a4: f64) -> f64 {
+    let x2 = x * x;
+    let p01 = f64::mul_add(x, a1, a0);
+    let p23 = f64::mul_add(x, a3, a2);
+    let t = f64::mul_add(x2, a4, p23);
+    f64::mul_add(x2, t, p01)
 }
 
 #[inline(always)]

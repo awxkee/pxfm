@@ -112,7 +112,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             }
         })
     });
-
+    //
     c.bench_function("pxfm: f_cospif", |b| {
         b.iter(|| {
             for i in 1..1000 {
@@ -268,7 +268,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: sincosf", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_sincosf(black_box(i as f32)));
+                black_box(f_sincosf(black_box(i as f32 / 1000.0)));
             }
         })
     });
@@ -276,7 +276,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pxfm: sincospif", |b| {
         b.iter(|| {
             for i in 1..1000 {
-                black_box(f_sincospif(black_box(i as f32)));
+                black_box(f_sincospif(black_box(i as f32 / 1000.0)));
             }
         })
     });

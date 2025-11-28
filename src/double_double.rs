@@ -257,6 +257,17 @@ impl DoubleDouble {
     /// `a*b+c`
     ///
     /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    #[inline(always)]
+    #[allow(unused)]
+    pub(crate) fn mul_add_f64_fma(a: DoubleDouble, b: DoubleDouble, c: f64) -> DoubleDouble {
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_fma(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::from_full_exact_add(c, h);
+        DoubleDouble::new(r + q, p)
+    }
+
+    /// `a*b+c`
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
     #[inline]
     pub(crate) fn quick_mul_add_f64(a: DoubleDouble, b: DoubleDouble, c: f64) -> DoubleDouble {
         let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult(a, b);
@@ -350,6 +361,14 @@ impl DoubleDouble {
         }
     }
 
+    #[inline(always)]
+    #[allow(unused)]
+    pub(crate) fn from_quick_recip_fma(b: f64) -> Self {
+        let h = 1.0 / b;
+        let hl = f64::mul_add(h, -b, 1.) * h;
+        DoubleDouble::new(hl, h)
+    }
+
     #[inline]
     pub(crate) fn from_quick_recip(b: f64) -> Self {
         #[cfg(any(
@@ -417,7 +436,7 @@ impl DoubleDouble {
 
     // Resistant to overflow without FMA
     #[inline]
-    pub(crate) fn from_exact_safe_div(a: f64, b: f64) -> Self {
+    pub(crate) fn from_exact_div_fma(a: f64, b: f64) -> Self {
         let q_hi = a / b;
         let r = f64::mul_add(-q_hi, b, a);
         let q_lo = r / b;
@@ -563,17 +582,30 @@ impl DoubleDouble {
         DoubleDouble::new(q2, q1)
     }
 
-    // #[inline]
-    // pub(crate) fn mla_f64(a: Dekker, b: f64, c: f64) -> Self {
-    //     let q = Dekker::mult_f64(a, b);
-    //     Dekker::add_f64(q, c)
-    // }
-    //
-    // #[inline]
-    // pub(crate) fn mla_dd_f64(a: Dekker, b: Dekker, c: f64) -> Self {
-    //     let q = Dekker::quick_mult(a, b);
-    //     Dekker::add_f64(q, c)
-    // }
+    #[inline(always)]
+    #[allow(unused)]
+    pub(crate) fn from_f64_div_dd_fma(a: f64, b: DoubleDouble) -> Self {
+        let q1 = a / b.hi;
+
+        let prod = DoubleDouble::from_exact_mult_fma(q1, b.hi);
+        let prod_lo = f64::mul_add(q1, b.lo, prod.lo);
+        let rem = f64::mul_add(-1.0, prod.hi, a) - prod_lo;
+
+        let q2 = rem / b.hi;
+
+        DoubleDouble::new(q2, q1)
+    }
+
+    #[inline(always)]
+    #[allow(unused)]
+    pub(crate) fn div_fma(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
+        let q = 1.0 / b.hi;
+        let r_hi = a.hi * q;
+        let e_hi = f64::mul_add(b.hi, -r_hi, a.hi);
+        let e_lo = f64::mul_add(b.lo, -r_hi, a.lo);
+        let r_lo = q * (e_hi + e_lo);
+        DoubleDouble::new(r_lo, r_hi)
+    }
 
     #[inline]
     pub(crate) fn div(a: DoubleDouble, b: DoubleDouble) -> DoubleDouble {
@@ -635,6 +667,14 @@ impl DoubleDouble {
             let splat = DoubleDouble::split(a);
             DoubleDouble::from_exact_mult_impl_non_fma(splat, a, b)
         }
+    }
+
+    #[inline(always)]
+    #[allow(unused)]
+    pub(crate) fn from_exact_mult_fma(a: f64, b: f64) -> Self {
+        let r_hi = a * b;
+        let r_lo = f64::mul_add(a, b, -r_hi);
+        DoubleDouble::new(r_lo, r_hi)
     }
 
     // #[inline]
@@ -797,6 +837,16 @@ impl DoubleDouble {
         }
     }
 
+    #[inline(always)]
+    #[allow(unused)]
+    pub(crate) fn quick_mult_fma(a: DoubleDouble, b: DoubleDouble) -> Self {
+        let mut r = DoubleDouble::from_exact_mult_fma(a.hi, b.hi);
+        let t1 = f64::mul_add(a.hi, b.lo, r.lo);
+        let t2 = f64::mul_add(a.lo, b.hi, t1);
+        r.lo = t2;
+        r
+    }
+
     #[inline]
     pub(crate) fn mult(a: DoubleDouble, b: DoubleDouble) -> Self {
         #[cfg(any(
@@ -893,6 +943,14 @@ impl DoubleDouble {
             let cl3 = cl1 + cl2;
             DoubleDouble::new(cl3, ch)
         }
+    }
+
+    #[inline(always)]
+    #[allow(unused)]
+    pub(crate) fn quick_mult_f64_fma(a: DoubleDouble, b: f64) -> Self {
+        let h = b * a.hi;
+        let l = f64::mul_add(b, a.lo, f64::mul_add(b, a.hi, -h));
+        Self { lo: l, hi: h }
     }
 
     // /// Double-double multiplication safe to overflow without FMA
