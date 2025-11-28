@@ -35,6 +35,13 @@ pub(crate) fn halley_refine_d(x: f64, a: f64) -> f64 {
 }
 
 #[inline(always)]
+#[allow(unused)]
+pub(crate) fn halley_refine_d_fma(x: f64, a: f64) -> f64 {
+    let tx = x * x * x;
+    x * f64::mul_add(2., a, tx) / f64::mul_add(2., tx, a)
+}
+
+#[inline(always)]
 const fn halley_refine(x: f32, a: f32) -> f32 {
     let tx = x * x * x;
     x * (tx + 2f32 * a) / (2f32 * tx + a)
@@ -69,11 +76,8 @@ pub const fn cbrtf(x: f32) -> f32 {
     halley_refine(t, x)
 }
 
-/// Computes cube root
-///
-/// Peak ULP on 64 bit = 0.49999577
-#[inline]
-pub fn f_cbrtf(x: f32) -> f32 {
+#[inline(always)]
+fn cbrtf_gen_impl(x: f32) -> f32 {
     let u = x.to_bits();
     let au = u.wrapping_shl(1);
     if au < (1u32 << 24) || au >= (0xffu32 << 24) {
@@ -109,6 +113,72 @@ pub fn f_cbrtf(x: f32) -> f32 {
     let dx = x as f64;
     t = halley_refine_d(t, dx);
     halley_refine_d(t, dx) as f32
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx", enable = "fma")]
+unsafe fn cbrtf_fma_impl(x: f32) -> f32 {
+    let u = x.to_bits();
+    let au = u.wrapping_shl(1);
+    if au < (1u32 << 24) || au >= (0xffu32 << 24) {
+        if au >= (0xffu32 << 24) {
+            return x + x; /* inf, nan */
+        }
+        if au == 0 {
+            return x; /* +-0 */
+        }
+    }
+
+    let mut ui: u32 = x.to_bits();
+    let mut hx: u32 = ui & 0x7fffffff;
+
+    if hx < 0x00800000 {
+        /* zero or subnormal? */
+        if hx == 0 {
+            return x; /* cbrt(+-0) is itself */
+        }
+        const TWO_EXP_24: f32 = f32::from_bits(0x4b800000);
+        ui = (x * TWO_EXP_24).to_bits();
+        hx = ui & 0x7fffffff;
+        const B2: u32 = 642849266;
+        hx = (hx / 3).wrapping_add(B2);
+    } else {
+        const B1: u32 = 709958130;
+        hx = (hx / 3).wrapping_add(B1);
+    }
+    ui &= 0x80000000;
+    ui |= hx;
+
+    let mut t = f32::from_bits(ui) as f64;
+    let dx = x as f64;
+    t = halley_refine_d_fma(t, dx);
+    halley_refine_d_fma(t, dx) as f32
+}
+
+/// Computes cube root
+///
+/// Peak ULP on 64 bit = 0.49999577
+#[inline]
+pub fn f_cbrtf(x: f32) -> f32 {
+    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+    {
+        cbrtf_gen_impl(x)
+    }
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        use std::sync::OnceLock;
+        static EXECUTOR: OnceLock<unsafe fn(f32) -> f32> = OnceLock::new();
+        let q = EXECUTOR.get_or_init(|| {
+            if std::arch::is_x86_feature_detected!("avx")
+                && std::arch::is_x86_feature_detected!("fma")
+            {
+                cbrtf_fma_impl
+            } else {
+                cbrtf_gen_impl
+            }
+        });
+        unsafe { q(x) }
+    }
 }
 
 #[cfg(test)]
