@@ -15,6 +15,22 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.warm_up_time(Duration::new(1, 100));
     c.sample_size(15);
 
+    c.bench_function("pxfm: f_jincpi", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_jincpi(black_box(i as f64 / 500.0)));
+            }
+        })
+    });
+
+    c.bench_function("pxfm: f_jincpif", |b| {
+        b.iter(|| {
+            for i in 1..1000 {
+                black_box(pxfm::f_jincpif(black_box(i as f32 / 10.0)));
+            }
+        })
+    });
+
     c.bench_function("pxfm: i2f", |b| {
         b.iter(|| {
             for i in 1..1000 {
@@ -203,22 +219,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| {
             for i in 1..1000 {
                 black_box(f_y1f(black_box(i as f32 / 10.)));
-            }
-        })
-    });
-
-    c.bench_function("pxfm: f_jincpi", |b| {
-        b.iter(|| {
-            for i in 1..1000 {
-                black_box(pxfm::f_jincpi(black_box(i as f64 / 500.0)));
-            }
-        })
-    });
-
-    c.bench_function("pxfm: f_jincpif", |b| {
-        b.iter(|| {
-            for i in 1..1000 {
-                black_box(pxfm::f_jincpif(black_box(i as f32 / 10.0)));
             }
         })
     });

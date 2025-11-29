@@ -72,7 +72,11 @@ fn halleys_div_free_fma(x: f64, a: f64) -> f64 {
 }
 
 #[inline(always)]
-fn rcbrtf_gen_impl(x: f32) -> f32 {
+fn rcbrtf_gen_impl<Halley: Fn(f64, f64) -> f64, NewtonRaphson: Fn(f64, f64) -> f64>(
+    x: f32,
+    halley: Halley,
+    rapshon: NewtonRaphson,
+) -> f32 {
     let u = x.to_bits();
     let au = u.wrapping_shl(1);
     if au < (1u32 << 24) || au >= (0xffu32 << 24) {
@@ -112,58 +116,16 @@ fn rcbrtf_gen_impl(x: f32) -> f32 {
 
     let t = f32::from_bits(ui) as f64;
     let dx = x as f64;
-    let mut t = halleys_div_free(t, dx);
-    t = halleys_div_free(t, dx);
-    t = rapshon_refine_inv_cbrt(t, dx);
+    let mut t = halley(t, dx);
+    t = halley(t, dx);
+    t = rapshon(t, dx);
     t as f32
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx", enable = "fma")]
 unsafe fn rcbrtf_fma_impl(x: f32) -> f32 {
-    let u = x.to_bits();
-    let au = u.wrapping_shl(1);
-    if au < (1u32 << 24) || au >= (0xffu32 << 24) {
-        if x.is_infinite() {
-            return if x.is_sign_negative() { -0.0 } else { 0.0 };
-        }
-        if au >= (0xffu32 << 24) {
-            return x + x; /* inf, nan */
-        }
-        if x == 0. {
-            return if x.is_sign_positive() {
-                f32::INFINITY
-            } else {
-                f32::NEG_INFINITY
-            }; /* +-inf */
-        }
-    }
-
-    let mut ui: u32 = x.to_bits();
-    let mut hx: u32 = ui & 0x7fffffff;
-
-    if hx < 0x00800000 {
-        /* zero or subnormal? */
-        if hx == 0 {
-            return x; /* cbrt(+-0) is itself */
-        }
-        const TWO_EXP_24: f32 = f32::from_bits(0x4b800000);
-        ui = (x * TWO_EXP_24).to_bits();
-        hx = ui & 0x7fffffff;
-        const B: u32 = 0x54a21d2au32 + (8u32 << 23);
-        hx = B.wrapping_sub(hx / 3);
-    } else {
-        hx = 0x54a21d2au32.wrapping_sub(hx / 3);
-    }
-    ui &= 0x80000000;
-    ui |= hx;
-
-    let t = f32::from_bits(ui) as f64;
-    let dx = x as f64;
-    let mut t = halleys_div_free_fma(t, dx);
-    t = halleys_div_free_fma(t, dx);
-    t = rapshon_refine_inv_cbrt_fma(t, dx);
-    t as f32
+    rcbrtf_gen_impl(x, halleys_div_free_fma, rapshon_refine_inv_cbrt_fma)
 }
 
 /// Computes 1/cbrt(x)
@@ -173,7 +135,7 @@ unsafe fn rcbrtf_fma_impl(x: f32) -> f32 {
 pub fn f_rcbrtf(x: f32) -> f32 {
     #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     {
-        rcbrtf_gen_impl(x)
+        rcbrtf_gen_impl(x, halleys_div_free, rapshon_refine_inv_cbrt)
     }
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     {
@@ -186,7 +148,7 @@ pub fn f_rcbrtf(x: f32) -> f32 {
                 rcbrtf_fma_impl
             } else {
                 fn def_rcbrtf(x: f32) -> f32 {
-                    rcbrtf_gen_impl(x)
+                    rcbrtf_gen_impl(x, halleys_div_free, rapshon_refine_inv_cbrt)
                 }
                 def_rcbrtf
             }

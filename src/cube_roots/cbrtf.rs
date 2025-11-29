@@ -27,6 +27,7 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::common::f_fmla;
+use crate::cube_roots::cbrt::{CbrtBackend, GenericCbrtBackend};
 
 #[inline(always)]
 pub(crate) fn halley_refine_d(x: f64, a: f64) -> f64 {
@@ -77,7 +78,7 @@ pub const fn cbrtf(x: f32) -> f32 {
 }
 
 #[inline(always)]
-fn cbrtf_gen_impl(x: f32) -> f32 {
+fn cbrtf_gen_impl<B: CbrtBackend>(x: f32, backend: B) -> f32 {
     let u = x.to_bits();
     let au = u.wrapping_shl(1);
     if au < (1u32 << 24) || au >= (0xffu32 << 24) {
@@ -111,48 +112,15 @@ fn cbrtf_gen_impl(x: f32) -> f32 {
 
     let mut t = f32::from_bits(ui) as f64;
     let dx = x as f64;
-    t = halley_refine_d(t, dx);
-    halley_refine_d(t, dx) as f32
+    t = backend.halley(t, dx);
+    backend.halley(t, dx) as f32
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx", enable = "fma")]
 unsafe fn cbrtf_fma_impl(x: f32) -> f32 {
-    let u = x.to_bits();
-    let au = u.wrapping_shl(1);
-    if au < (1u32 << 24) || au >= (0xffu32 << 24) {
-        if au >= (0xffu32 << 24) {
-            return x + x; /* inf, nan */
-        }
-        if au == 0 {
-            return x; /* +-0 */
-        }
-    }
-
-    let mut ui: u32 = x.to_bits();
-    let mut hx: u32 = ui & 0x7fffffff;
-
-    if hx < 0x00800000 {
-        /* zero or subnormal? */
-        if hx == 0 {
-            return x; /* cbrt(+-0) is itself */
-        }
-        const TWO_EXP_24: f32 = f32::from_bits(0x4b800000);
-        ui = (x * TWO_EXP_24).to_bits();
-        hx = ui & 0x7fffffff;
-        const B2: u32 = 642849266;
-        hx = (hx / 3).wrapping_add(B2);
-    } else {
-        const B1: u32 = 709958130;
-        hx = (hx / 3).wrapping_add(B1);
-    }
-    ui &= 0x80000000;
-    ui |= hx;
-
-    let mut t = f32::from_bits(ui) as f64;
-    let dx = x as f64;
-    t = halley_refine_d_fma(t, dx);
-    halley_refine_d_fma(t, dx) as f32
+    use crate::cube_roots::cbrt::FmaCbrtBackend;
+    cbrtf_gen_impl(x, FmaCbrtBackend {})
 }
 
 /// Computes cube root
@@ -162,7 +130,7 @@ unsafe fn cbrtf_fma_impl(x: f32) -> f32 {
 pub fn f_cbrtf(x: f32) -> f32 {
     #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     {
-        cbrtf_gen_impl(x)
+        cbrtf_gen_impl(x, GenericCbrtBackend {})
     }
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     {
@@ -174,7 +142,10 @@ pub fn f_cbrtf(x: f32) -> f32 {
             {
                 cbrtf_fma_impl
             } else {
-                cbrtf_gen_impl
+                fn def_cbrt(x: f32) -> f32 {
+                    cbrtf_gen_impl(x, GenericCbrtBackend {})
+                }
+                def_cbrt
             }
         });
         unsafe { q(x) }

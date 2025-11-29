@@ -153,7 +153,7 @@ unsafe fn cscf_fma_impl(x: f32) -> f32 {
             f64::from_bits(0x3f2b85bfd4188934),
             f64::from_bits(0x3ef697a32ebe822d),
         );
-        return f_fmla(xd, p, 1. / xd) as f32;
+        return f64::mul_add(xd, p, 1. / xd) as f32;
     }
 
     if x_abs >= 0x7f80_0000u32 {
