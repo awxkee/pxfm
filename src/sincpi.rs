@@ -29,7 +29,7 @@
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
 use crate::polyeval::f_estrin_polyeval5;
-use crate::sincospi::reduce_pi_64;
+use crate::sincospi::{GenSinCosPiBackend, SinCosPiBackend, reduce_pi_64};
 use crate::sincospi_tables::SINPI_K_PI_OVER_64;
 
 /**
@@ -44,7 +44,7 @@ Q = fpminimax(f_sincpi, [|0, 2, 4, 6, 8, 10, 12|], [|107...|], d, relative, floa
 See ./notes/sincpi_at_zero_dd.sollya
 **/
 #[cold]
-fn as_sincpi_zero(x: f64) -> f64 {
+fn as_sincpi_zero<B: SinCosPiBackend>(x: f64, backend: &B) -> f64 {
     const C: [(u64, u64); 7] = [
         (0xb9d3080000000000, 0x3ff0000000000000),
         (0xbc81873d86314302, 0xbffa51a6625307d3),
@@ -54,17 +54,17 @@ fn as_sincpi_zero(x: f64) -> f64 {
         (0x3c0dbda368edfa40, 0xbf633816a3399d4e),
         (0xbbcf22ccc18f27a9, 0x3f23736e6a59edd9),
     ];
-    let x2 = DoubleDouble::from_exact_mult(x, x);
-    let mut p = DoubleDouble::quick_mul_add(
+    let x2 = backend.exact_mult(x, x);
+    let mut p = backend.quick_mul_add(
         x2,
         DoubleDouble::from_bit_pair(C[6]),
         DoubleDouble::from_bit_pair(C[5]),
     );
-    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[4]));
-    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[3]));
-    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
-    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
-    p = DoubleDouble::quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
+    p = backend.quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[4]));
+    p = backend.quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[3]));
+    p = backend.quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
+    p = backend.quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[1]));
+    p = backend.quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
     p.to_f64()
 }
 
@@ -174,7 +174,7 @@ fn sincpi_gen_impl(x: f64) -> f64 {
         if lb == ub {
             return lb;
         }
-        return as_sincpi_zero(x);
+        return as_sincpi_zero(x, &GenSinCosPiBackend {});
     }
 
     let si = e.wrapping_sub(1011);
@@ -252,7 +252,7 @@ fn sincpi_gen_impl(x: f64) -> f64 {
         SINPI_K_PI_OVER_64[((k as u64).wrapping_add(32) & 127) as usize],
     );
 
-    let r_sincos = crate::sincospi::sincospi_eval(y);
+    let r_sincos = crate::sincospi::sincospi_eval(y, &GenSinCosPiBackend {});
 
     const PI: DoubleDouble = DoubleDouble::from_bit_pair((0x3ca1a62633145c07, 0x400921fb54442d18));
     let scale = DoubleDouble::quick_mult_f64(PI, x);
@@ -271,12 +271,13 @@ fn sincpi_gen_impl(x: f64) -> f64 {
     if ub == lb {
         return rr.to_f64();
     }
-    sincpi_dd(y, sin_k, cos_k, scale)
+    sincpi_dd(y, sin_k, cos_k, scale, &GenSinCosPiBackend {})
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx", enable = "fma")]
 unsafe fn sincpi_fma_impl(x: f64) -> f64 {
+    use crate::sincospi::FmaSinCosPiBackend;
     let ix = x.to_bits();
     let ax = ix & 0x7fff_ffff_ffff_ffff;
     if ax == 0 {
@@ -361,7 +362,7 @@ unsafe fn sincpi_fma_impl(x: f64) -> f64 {
         if lb == ub {
             return lb;
         }
-        return as_sincpi_zero(x);
+        return as_sincpi_zero(x, &FmaSinCosPiBackend {});
     }
 
     let si = e.wrapping_sub(1011);
@@ -394,7 +395,7 @@ unsafe fn sincpi_fma_impl(x: f64) -> f64 {
         SINPI_K_PI_OVER_64[((k as u64).wrapping_add(32) & 127) as usize],
     );
 
-    let r_sincos = crate::sincospi::sincospi_eval_fma(y);
+    let r_sincos = crate::sincospi::sincospi_eval(y, &FmaSinCosPiBackend {});
 
     const PI: DoubleDouble = DoubleDouble::from_bit_pair((0x3ca1a62633145c07, 0x400921fb54442d18));
     let scale = DoubleDouble::quick_mult_f64_fma(PI, x);
@@ -413,7 +414,7 @@ unsafe fn sincpi_fma_impl(x: f64) -> f64 {
     if ub == lb {
         return rr.to_f64();
     }
-    sincpi_dd(y, sin_k, cos_k, scale)
+    sincpi_dd(y, sin_k, cos_k, scale, &FmaSinCosPiBackend {})
 }
 
 /// Computes sin(PI\*x)/(PI\*x)
@@ -447,11 +448,18 @@ pub fn f_sincpi(x: f64) -> f64 {
 }
 
 #[cold]
-fn sincpi_dd(x: f64, sin_k: DoubleDouble, cos_k: DoubleDouble, scale: DoubleDouble) -> f64 {
-    let r_sincos = crate::sincospi::sincospi_eval_dd(x);
-    let cos_k_sin_y = DoubleDouble::quick_mult(cos_k, r_sincos.v_sin);
-    let mut rr = DoubleDouble::mul_add(sin_k, r_sincos.v_cos, cos_k_sin_y);
-    rr = DoubleDouble::div(rr, scale);
+#[inline(always)]
+fn sincpi_dd<B: SinCosPiBackend>(
+    x: f64,
+    sin_k: DoubleDouble,
+    cos_k: DoubleDouble,
+    scale: DoubleDouble,
+    backend: &B,
+) -> f64 {
+    let r_sincos = crate::sincospi::sincospi_eval_dd(x, backend);
+    let cos_k_sin_y = backend.quick_mult(cos_k, r_sincos.v_sin);
+    let mut rr = backend.mul_add(sin_k, r_sincos.v_cos, cos_k_sin_y);
+    rr = backend.div(rr, scale);
     rr.to_f64()
 }
 

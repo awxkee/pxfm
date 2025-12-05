@@ -794,12 +794,37 @@ impl DoubleDouble {
     /// `a*b+c`
     ///
     /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    #[inline(always)]
+    #[allow(unused)]
+    pub(crate) fn mul_add_fma(a: DoubleDouble, b: DoubleDouble, c: DoubleDouble) -> Self {
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_fma(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::full_add_f64(c, h);
+        DoubleDouble::new(r + q, p)
+    }
+
+    /// `a*b+c`
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
     ///
     /// *Correctness*
     /// |c.hi| > |a.hi * b.hi|
     #[inline]
     pub(crate) fn quick_mul_add(a: DoubleDouble, b: DoubleDouble, c: DoubleDouble) -> Self {
         let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult(a, b);
+        let DoubleDouble { hi: p, lo: q } = DoubleDouble::add_f64(c, h);
+        DoubleDouble::new(r + q, p)
+    }
+
+    /// `a*b+c`
+    ///
+    /// *Accurate dot product (Ogita, Rump and Oishi 2004)*
+    ///
+    /// *Correctness*
+    /// |c.hi| > |a.hi * b.hi|
+    #[inline(always)]
+    #[allow(unused)]
+    pub(crate) fn quick_mul_add_fma(a: DoubleDouble, b: DoubleDouble, c: DoubleDouble) -> Self {
+        let DoubleDouble { hi: h, lo: r } = DoubleDouble::quick_mult_fma(a, b);
         let DoubleDouble { hi: p, lo: q } = DoubleDouble::add_f64(c, h);
         DoubleDouble::new(r + q, p)
     }
@@ -911,7 +936,7 @@ impl DoubleDouble {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub(crate) fn quick_f64_mult(a: f64, b: DoubleDouble) -> DoubleDouble {
         DoubleDouble::quick_mult_f64(b, a)
     }
