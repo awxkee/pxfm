@@ -24,7 +24,7 @@ jobs:
       matrix:
         rust: [ "1.85.0", stable ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.rust }}
@@ -39,7 +39,7 @@ jobs:
     name: Tests
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test
 
@@ -47,7 +47,7 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test
 
@@ -55,7 +55,7 @@ jobs:
     name: Clippy x86 Stable
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo clippy -- -D warnings
 
@@ -63,7 +63,7 @@ jobs:
     name: Clippy x86 Nightly
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
       - run: rustup component add clippy
       - run: cargo clippy -- -D warnings
@@ -72,7 +72,7 @@ jobs:
     name: Clippy ARM
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo clippy -- -D warnings
 
@@ -80,7 +80,7 @@ jobs:
     name: Fuzzing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
       - run: cargo install cargo-fuzz
       - run: cargo fuzz run math -- -max_total_time=25 -max_len=128
