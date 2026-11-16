@@ -29,9 +29,9 @@
 use crate::bessel::i0_exp;
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
-use crate::f_pow;
 use crate::gamma::lnbeta::lnbeta_core;
 use crate::logs::{fast_log_dd, log1p_fast_dd};
+use crate::{f_exp, f_log, f_pow};
 
 /// Regularized incomplete beta
 pub fn f_betainc_reg(a: f64, b: f64, x: f64) -> f64 {
@@ -106,7 +106,6 @@ pub fn f_betainc_reg(a: f64, b: f64, x: f64) -> f64 {
     log1p_dx.lo += -dx.lo / dx.hi;
     let z1 = DoubleDouble::mul_f64_add(log1p_dx, db, -ln_beta_ab);
     let w0 = DoubleDouble::mul_f64_add(log_dx, da, z1);
-    let front = DoubleDouble::div_dd_f64(i0_exp(w0.to_f64()), da);
 
     /*Use Lentz's algorithm to evaluate the continued fraction.*/
     let mut f = 1.0;
@@ -147,16 +146,33 @@ pub fn f_betainc_reg(a: f64, b: f64, x: f64) -> f64 {
 
         /*Check for stop.*/
         if (1.0 - cd).abs() < STOP {
-            let r = DoubleDouble::from_full_exact_sub(f, 1.0);
-            return if return_inverse {
-                DoubleDouble::mul_add_f64(-front, r, 1.).to_f64()
-            } else {
-                DoubleDouble::quick_mult(front, r).to_f64()
-            };
+            break;
         }
     }
 
     let r = DoubleDouble::from_full_exact_sub(f, 1.0);
+    let exponent = w0.to_f64();
+    const LOG_MIN_NORMAL: f64 = -708.3964185322641;
+    let exp = if exponent < LOG_MIN_NORMAL {
+        DoubleDouble::default()
+    } else {
+        i0_exp(exponent)
+    };
+    // Combine in log space when the exponential or its quotient would be
+    // subnormal. Keep the residual of the log in the final multiplication.
+    if exp.hi <= da * f64::MIN_POSITIVE {
+        let log_multiplier = f_log(r.to_f64()) - f_log(da);
+        let log_tail = DoubleDouble::quick_dd_add(w0, DoubleDouble::new(0., log_multiplier));
+        let tail = f_exp(log_tail.hi);
+        let tail = if tail.is_finite() {
+            f64::mul_add(tail, log_tail.lo, tail)
+        } else {
+            tail
+        };
+        return if return_inverse { 1.0 - tail } else { tail };
+    }
+
+    let front = DoubleDouble::div_dd_f64(exp, da);
     if return_inverse {
         DoubleDouble::mul_add_f64(-front, r, 1.).to_f64()
     } else {
@@ -186,5 +202,21 @@ mod tests {
         assert!(f_betainc_reg(-5., 2., 0.432).is_nan());
         assert!(f_betainc_reg(5., -2., 0.432).is_nan());
         assert!(f_betainc_reg(5., 2., -0.432).is_nan());
+    }
+
+    #[test]
+    fn test_betainc_subnormal_tail() {
+        assert_eq!(f_betainc_reg(496.7, 52.0, 0.17), 1.1956759935e-314);
+        assert_eq!(f_betainc_reg(510.0, 52.0, 0.17), f64::from_bits(1));
+        assert_eq!(f_betainc_reg(511.0, 52.0, 0.17), 0.0);
+        assert_eq!(f_betainc_reg(52.0, 496.7, 0.83), 1.0);
+
+        // Dividing the normal exponential by a gives a subnormal quotient.
+        let value = f_betainc_reg(1e6, 2.0, 0.9992787037398628);
+        let expected = 3.095284631839e-311_f64;
+        assert!(
+            value.to_bits().abs_diff(expected.to_bits()) <= 4,
+            "{value:e}"
+        );
     }
 }

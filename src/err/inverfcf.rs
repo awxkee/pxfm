@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::err::inverff::erfinv_core;
+use crate::err::{f_erfcinv, inverff::erfinv_core};
 
 /// Complementary inverse error function
 ///
@@ -53,12 +53,19 @@ pub fn f_erfcinvf(x: f32) -> f32 {
         return f32::NAN; // x == NaN, x < 0
     }
 
-    let z = x as f64;
-    static SIGN: [f32; 2] = [1.0, -1.0];
-    // inferfc(x) = -inverf(1-x)
-    // ax doesn't need to be extremely accurate,
-    // it's just boundary detection so will do subtraction in f32
-    erfinv_core(1. - z, (1. - x).abs().to_bits(), SIGN[(x > 1.) as usize])
+    // erfcinv(2 - x) = -erfcinv(x). Keep the complement for the logarithm
+    // in the tail, where 1 - (1 - x) can lose significant bits.
+    let (q, sign) = if x > 1. {
+        (2. - x as f64, -1.)
+    } else {
+        (x as f64, 1.)
+    };
+    if q < f32::EPSILON as f64 * 0.5 {
+        // Beyond the range of the single-precision erfinv approximation.
+        return (f_erfcinv(q) as f32).copysign(sign);
+    }
+    let z = 1. - q;
+    erfinv_core(z, (z as f32).to_bits(), q, sign)
 }
 
 #[cfg(test)]
@@ -73,7 +80,11 @@ mod tests {
         assert!(f_erfcinvf(2.1).is_nan());
         assert_eq!(f_erfcinvf(0.5), 0.47693628);
         assert_eq!(f_erfcinvf(1.5), -0.47693628);
+        assert_eq!(f_erfcinvf(1.95).to_bits(), 0xbfb1654e);
+        assert_eq!(f_erfcinvf(f32::from_bits(0x3fffffff)).to_bits(), 0xc06f9c68);
         assert_eq!(f_erfcinvf(0.002), 2.1851242);
+        assert_eq!(f_erfcinvf(1e-30).to_bits(), 0x410260bb);
+        assert_eq!(f_erfcinvf(f32::from_bits(1)).to_bits(), 0x4120513e);
         assert_eq!(f_erfcinvf(1.002), -0.0017724329);
         assert!(f_erfcinvf(f32::NAN).is_nan());
     }

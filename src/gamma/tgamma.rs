@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{f_fmla, is_integer};
+use crate::common::is_integer;
 use crate::double_double::DoubleDouble;
 use crate::logs::fast_log_dd;
 use crate::polyeval::{f_polyeval6, f_polyeval7, f_polyeval8};
@@ -42,7 +42,7 @@ pub fn f_tgamma(x: f64) -> f64 {
 
     if !x.is_normal() {
         if x == 0.0 {
-            return f64::INFINITY;
+            return f64::INFINITY.copysign(x);
         }
 
         if x.is_nan() {
@@ -57,7 +57,9 @@ pub fn f_tgamma(x: f64) -> f64 {
         }
     }
 
-    if x >= 171.624 {
+    // The first binary64 input whose positive gamma overflows.
+    const OVERFLOW_THRESHOLD: f64 = 171.62437695630274;
+    if x >= OVERFLOW_THRESHOLD {
         return f64::INFINITY;
     }
 
@@ -241,9 +243,6 @@ pub fn f_tgamma(x: f64) -> f64 {
             }
         }
     } else {
-        if x > 171.624e+0 {
-            return f64::INFINITY;
-        }
         // Stirling's approximation of Log(Gamma) and then Exp[Log[Gamma]]
         let y_recip = dy.recip();
         let y_sqr = DoubleDouble::mult(y_recip, y_recip);
@@ -298,21 +297,12 @@ pub fn f_tgamma(x: f64) -> f64 {
                 result = DoubleDouble::from_exact_add(result.hi, result.lo);
                 result = DoubleDouble::div(fact, result);
                 result = DoubleDouble::div(result, exp_result);
-            } else {
-                result = DoubleDouble::quick_mult(result, exp_result);
-            }
-
-            let err = f_fmla(
-                result.hi.abs(),
-                f64::from_bits(0x3c20000000000000), // 2^-61
-                f64::from_bits(0x3bd0000000000000), // 2^-65
-            );
-            let ub = result.hi + (result.lo + err);
-            let lb = result.hi + (result.lo - err);
-            if ub == lb {
                 return result.to_f64();
             }
-            return result.to_f64();
+
+            // Keep the intermediate products in the non-FMA path below overflow.
+            let half_result = DoubleDouble::new(result.lo * 0.5, result.hi * 0.5);
+            return DoubleDouble::quick_mult(half_result, exp_result).to_f64() * 2.0;
         }
         result = exp_dd_fast(log_gamma);
     }
@@ -338,7 +328,14 @@ mod tests {
         assert_eq!(f_tgamma(6.4324324), 255.1369211339094);
         assert_eq!(f_tgamma(f64::INFINITY), f64::INFINITY);
         assert_eq!(f_tgamma(0.), f64::INFINITY);
-        assert_eq!(f_tgamma(-0.), f64::INFINITY);
+        assert_eq!(f_tgamma(-0.), f64::NEG_INFINITY);
         assert!(f_tgamma(f64::NAN).is_nan());
+    }
+
+    #[test]
+    fn test_tgamma_overflow_boundary() {
+        assert_eq!(f_tgamma(171.624), 1.7942117599248104e308);
+        assert_eq!(f_tgamma(171.6243769563027), 1.7976931348622299e308);
+        assert_eq!(f_tgamma(171.62437695630274), f64::INFINITY);
     }
 }

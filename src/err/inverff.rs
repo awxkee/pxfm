@@ -33,7 +33,7 @@ use crate::polyeval::{
 };
 
 #[inline]
-pub(crate) fn erfinv_core(z: f64, ax: u32, sign: f32) -> f32 {
+pub(crate) fn erfinv_core(z: f64, ax: u32, complement: f64, sign: f32) -> f32 {
     if ax <= 0x3c1ba5e3u32 {
         // 0.0095
         // for small |x| using taylor series first 3 terms
@@ -259,7 +259,7 @@ pub(crate) fn erfinv_core(z: f64, ax: u32, sign: f32) -> f32 {
         // poly=den;
         // coeffs=CoefficientList[poly,z];
         // TableForm[Table[Row[{"'",NumberForm[coeffs[[i+1]],{50,50}, ExponentFunction->(Null&)],"',"}],{i,0,Length[coeffs]-1}]]
-        let zeta = -simple_fast_log(1. - z);
+        let zeta = -simple_fast_log(complement);
         let zeta_sqrt = zeta.sqrt();
         let rcp_zeta = (1. / zeta) * zeta_sqrt;
         let p_num = f_estrin_polyeval8(
@@ -298,7 +298,7 @@ pub fn f_erfinvf(x: f32) -> f32 {
         // |x| >= 1, |x| == 0, |x| <= f32::EPSILON
         if ax == 0 {
             // |x| == 0
-            return 0.;
+            return x;
         }
 
         if ax <= 0x3400_0000u32 {
@@ -322,7 +322,7 @@ pub fn f_erfinvf(x: f32) -> f32 {
     }
 
     let z = f32::from_bits(ax) as f64;
-    erfinv_core(z, ax, x)
+    erfinv_core(z, ax, 1. - z, x)
 }
 
 #[cfg(test)]
@@ -331,6 +331,7 @@ mod tests {
 
     #[test]
     fn f_test_inv_erff() {
+        assert_eq!(f_erfinvf(-0.0).to_bits(), (-0.0f32).to_bits());
         assert!(f_erfinvf(f32::NEG_INFINITY).is_nan());
         assert!(f_erfinvf(f32::INFINITY).is_nan());
         assert!(f_erfinvf(-1.1).is_nan());
