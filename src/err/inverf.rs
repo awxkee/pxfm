@@ -444,7 +444,7 @@ pub fn f_erfinv(x: f64) -> f64 {
         // |x| >= 1, |x| == 0, |x| <= f64::EPSILON
         if ax == 0 {
             // |x| == 0
-            return 0.;
+            return x;
         }
 
         if ax <= 0x3cb0000000000000u64 {
@@ -664,6 +664,7 @@ mod tests {
 
     #[test]
     fn test_erfinv() {
+        assert_eq!(f_erfinv(-0.0).to_bits(), (-0.0f64).to_bits());
         assert!(f_erfinv(f64::NEG_INFINITY).is_nan());
         assert!(f_erfinv(f64::INFINITY).is_nan());
         assert!(f_erfinv(f64::NAN).is_nan());

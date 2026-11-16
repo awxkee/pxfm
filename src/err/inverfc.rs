@@ -28,6 +28,7 @@
  */
 use crate::common::f_fmla;
 use crate::double_double::DoubleDouble;
+use crate::err::f_erfcx;
 use crate::logs::{fast_log_d_to_dd, fast_log_dd};
 use crate::polyeval::{f_polyeval4, f_polyeval5};
 
@@ -626,20 +627,33 @@ fn erf_core(x: DoubleDouble) -> DoubleDouble {
 }
 
 #[cold]
-fn inverfc_extra_small(x: f64) -> DoubleDouble {
-    // Reversed order for erfinv with direct identity without subtraction.
-    let q = x;
-
-    let mut zeta = fast_log_d_to_dd(q);
+fn inverfc_extra_small(x: f64) -> f64 {
+    let mut zeta = fast_log_d_to_dd(x);
     zeta = DoubleDouble::from_exact_add(zeta.hi, zeta.lo);
     zeta = -zeta;
     let zeta_sqrt = zeta.fast_sqrt();
     let rz = zeta_sqrt.recip();
-    if x >= 0.0001 {
+    let mut y = if x >= 0.0001 {
         inverf_asympt_small(rz, zeta_sqrt)
     } else {
         inverf_asympt_long(rz, zeta_sqrt)
     }
+    .to_f64();
+
+    if x < 1.4e-11 {
+        // The rational fit ends at roughly exp(-25). Refine its extrapolation
+        // with Newton steps on log(erfc(y)) = log(erfcx(y)) - y².
+        // The derivative of log(erfc(y)) is -2 / (sqrt(pi) * erfcx(y)).
+        const SQRT_PI_OVER_2: f64 = f64::from_bits(0x3fec5bf891b4ef6b);
+        for _ in 0..2 {
+            let scaled = f_erfcx(y);
+            let log_scaled = fast_log_d_to_dd(scaled);
+            let residual = DoubleDouble::sub(zeta, DoubleDouble::from_exact_mult(y, y));
+            let residual = DoubleDouble::add(residual, log_scaled).to_f64();
+            y = f_fmla(residual, scaled * SQRT_PI_OVER_2, y);
+        }
+    }
+    y
 }
 
 /// Complementary inverse error function
@@ -662,12 +676,12 @@ pub fn f_erfcinv(x: f64) -> f64 {
     }
 
     // we compute erfcinv through identity
-    // erfcinv(x) = -erfinv(1-x)
+    // erfcinv(x) = erfinv(1-x)
 
     static SIGN: [f64; 2] = [1.0, -1.0];
 
     if x < 0.1 {
-        return inverfc_extra_small(x).to_f64();
+        return inverfc_extra_small(x);
     }
 
     let dx = if x > 1. {
@@ -700,5 +714,14 @@ mod tests {
         assert!(f_erfcinv(f64::NAN).is_nan());
         assert!(f_erfcinv(f64::NEG_INFINITY).is_nan());
         assert!(f_erfcinv(f64::INFINITY).is_nan());
+    }
+
+    #[test]
+    fn test_inverfc_tail() {
+        assert_eq!(f_erfcinv(1e-20), 6.601580622355143);
+        assert_eq!(f_erfcinv(1e-30), 8.148616223169865);
+        assert_eq!(f_erfcinv(1e-80), 13.454826697932685);
+        assert_eq!(f_erfcinv(1e-300), 26.209469960516124);
+        assert_eq!(f_erfcinv(f64::from_bits(1)), 27.21329321081295);
     }
 }
