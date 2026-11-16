@@ -27,14 +27,12 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #![allow(clippy::too_many_arguments)]
-use crate::bits::biased_exponent_f64;
 use crate::common::*;
 use crate::double_double::DoubleDouble;
-use crate::exponents::expf;
+use crate::exponents::{EXP_REDUCE_T0, expf};
 use crate::logf;
 use crate::logs::LOG2_R;
-use crate::pow_tables::EXP2_MID1;
-use crate::powf_tables::{LOG2_R_TD, LOG2_R2_DD, POWF_R2};
+use crate::powf_tables::{EXP2_MID_LO_CORRECTION, LOG2_R_TD, LOG2_R2_DD, POWF_R2};
 use crate::rounding::CpuRound;
 
 /// Power function for given value for const context.
@@ -58,7 +56,6 @@ pub(crate) trait PowfBackend {
     fn fma(&self, x: f64, y: f64, z: f64) -> f64;
     fn polyeval3(&self, x: f64, a0: f64, a1: f64, a2: f64) -> f64;
     fn integerf(&self, x: f32) -> bool;
-    fn odd_integerf(&self, x: f32) -> bool;
     fn round(&self, x: f64) -> f64;
     fn quick_mult(&self, x: DoubleDouble, y: DoubleDouble) -> DoubleDouble;
     fn quick_mult_f64(&self, x: DoubleDouble, y: f64) -> DoubleDouble;
@@ -112,11 +109,6 @@ impl PowfBackend for GenPowfBackend {
     #[inline(always)]
     fn integerf(&self, x: f32) -> bool {
         is_integerf(x)
-    }
-
-    #[inline(always)]
-    fn odd_integerf(&self, x: f32) -> bool {
-        is_odd_integerf(x)
     }
 
     #[inline(always)]
@@ -229,11 +221,6 @@ impl PowfBackend for FmaPowfBackend {
     }
 
     #[inline(always)]
-    fn odd_integerf(&self, x: f32) -> bool {
-        is_odd_integerf(x)
-    }
-
-    #[inline(always)]
     fn round(&self, x: f64) -> f64 {
         x.round()
     }
@@ -287,11 +274,6 @@ impl PowfBackend for FmaPowfBackend {
     const ERR: u64 = 64;
 }
 
-#[inline]
-const fn larger_exponent(a: f64, b: f64) -> bool {
-    biased_exponent_f64(a) >= biased_exponent_f64(b)
-}
-
 // Calculate 2^(y * log2(x)) in double-double precision.
 // At this point we can reuse the following values:
 //   idx_x: index for extra precision of log2 for the middle part of log2(x).
@@ -314,11 +296,10 @@ fn powf_dd<B: PowfBackend>(
     //   dx2 = (1 + dx) * r2 - 1
     // Output range:
     //   -0x1.3ffcp-15 <= dx2 <= 0x1.3e3dp-15
-    let idx2 = backend.round(backend.fma(
-        dx,
-        f64::from_bits(0x40d0000000000000),
-        f64::from_bits(0x4050000000000000),
-    )) as usize;
+    // dx is on the 2^-31 grid, so both index expressions are exact in
+    // binary64. The unrounded index lies in [0, 192), where rounding ties
+    // away from zero equals adding 1/2 and truncating.
+    let idx2 = backend.fma(dx, 16384.0, 64.5) as usize;
     let dx2 = backend.fma(1.0 + dx, f64::from_bits(POWF_R2[idx2]), -1.0); // Exact
 
     const COEFFS: [(u64, u64); 6] = [
@@ -347,22 +328,15 @@ fn powf_dd<B: PowfBackend>(
     // -log2(r2) + lower part of (e_x - log2(r1))
     let log2_x_m = DoubleDouble::add(DoubleDouble::from_bit_pair(LOG2_R2_DD[idx2]), log2_x_mid);
     // log2(1 + dx2) - log2(r2) + lower part of (e_x - log2(r1))
-    // Since we don't know which one has larger exponent to apply Fast2Sum
-    // algorithm, we need to check them before calling double-double addition.
-    let log2_x = if larger_exponent(log2_x_m.hi, log2_x_lo.hi) {
-        DoubleDouble::add(log2_x_m, log2_x_lo)
-    } else {
-        DoubleDouble::add(log2_x_lo, log2_x_m)
-    };
+    // DoubleDouble::add uses TwoSum, whose exact high-limb residual is
+    // symmetric. Both sums here have magnitude below 2^47, so their
+    // intermediate differences stay well inside the finite binary64 range.
+    let log2_x = DoubleDouble::add(log2_x_m, log2_x_lo);
     let lo6_hi_dd = DoubleDouble::new(0.0, lo6_hi);
     // 2^6 * y * (log2(1 + dx2) - log2(r2) + lower part of (e_x - log2(r1)))
     let prod = backend.quick_mult_f64(log2_x, y6);
     // 2^6 * (y * log2(x) - (hi + mid)) = 2^6 * lo
-    let lo6 = if larger_exponent(prod.hi, lo6_hi) {
-        DoubleDouble::add(prod, lo6_hi_dd)
-    } else {
-        DoubleDouble::add(lo6_hi_dd, prod)
-    };
+    let lo6 = DoubleDouble::add(prod, lo6_hi_dd);
 
     const EXP2_COEFFS: [(u64, u64); 10] = [
         (0x0000000000000000, 0x3ff0000000000000),
@@ -409,6 +383,17 @@ fn powf_dd<B: PowfBackend>(
     }
 
     f64::from_bits(r_bits)
+}
+
+#[inline]
+fn is_odd_powf_exponent(x: f32) -> bool {
+    let bits = x.to_bits();
+    let exponent = (bits >> 23) & 0xff;
+    // For a normal input x = ±m * 2^(exponent - 150), where m is the
+    // 24-bit significand. Filling the exponent field also supplies the
+    // leading 1 of m when counting trailing zeros.
+    let trailing = (bits | 0x7f80_0000).trailing_zeros();
+    exponent + trailing == 150
 }
 
 #[inline(always)]
@@ -545,13 +530,12 @@ fn powf_gen<B: PowfBackend>(x: f32, y: f32, backend: B) -> f32 {
             return 1.;
         }
 
-        let x_is_neg = x.to_bits() > 0x8000_0000;
+        let x_is_neg = x.is_sign_negative();
 
         if x == 0.0 {
-            let out_is_neg = x_is_neg && backend.odd_integerf(f32::from_bits(y_u));
+            let out_is_neg = x_is_neg && is_odd_powf_exponent(f32::from_bits(y_u));
             if y_u > 0x8000_0000u32 {
-                // pow(0, negative number) = inf
-                return if x_is_neg {
+                return if out_is_neg {
                     f32::NEG_INFINITY
                 } else {
                     f32::INFINITY
@@ -563,7 +547,7 @@ fn powf_gen<B: PowfBackend>(x: f32, y: f32, backend: B) -> f32 {
 
         if x_abs == 0x7f80_0000u32 {
             // x = +-Inf
-            let out_is_neg = x_is_neg && backend.odd_integerf(f32::from_bits(y_u));
+            let out_is_neg = x_is_neg && is_odd_powf_exponent(f32::from_bits(y_u));
             if y_u >= 0x7fff_ffff {
                 return if out_is_neg { -0.0 } else { 0.0 };
             }
@@ -590,7 +574,7 @@ fn powf_gen<B: PowfBackend>(x: f32, y: f32, backend: B) -> f32 {
         if x.is_sign_negative() {
             if backend.integerf(y) {
                 x = -x;
-                if backend.odd_integerf(y) {
+                if is_odd_powf_exponent(y) {
                     sign = 0x8000_0000_0000_0000u64;
                 }
             } else {
@@ -724,12 +708,12 @@ fn powf_gen<B: PowfBackend>(x: f32, y: f32, backend: B) -> f32 {
         hm_i
     };
 
-    let idx_y = hm_i & 0x3f;
+    let idx_y = (hm_i & 0x3f) as usize;
 
     // 2^hi
     let exp_hi_i = (hm_i >> 6).wrapping_shl(52);
     // 2^mid
-    let exp_mid_i = EXP2_MID1[idx_y as usize].1;
+    let exp_mid_i = EXP_REDUCE_T0[idx_y].1;
     // (-1)^sign * 2^hi * 2^mid
     // Error <= 2^hi * 2^-53
     let exp2_hi_mid_i = (exp_hi_i.wrapping_add(exp_mid_i as i64) as u64).wrapping_add(sign);
@@ -779,7 +763,10 @@ fn powf_gen<B: PowfBackend>(x: f32, y: f32, backend: B) -> f32 {
     // Scale lower part of 2^(hi + mid)
     let exp2_hi_mid_dd = DoubleDouble {
         lo: if idx_y != 0 {
-            f64::from_bits((exp_hi_i as u64).wrapping_add(EXP2_MID1[idx_y as usize].0))
+            let bits = EXP_REDUCE_T0[idx_y]
+                .0
+                .wrapping_add_signed(EXP2_MID_LO_CORRECTION[idx_y] as i64);
+            f64::from_bits((exp_hi_i as u64).wrapping_add(bits))
         } else {
             0.
         },
@@ -877,6 +864,12 @@ mod tests {
         );
         assert_eq!(f_powf(f32::NAN, 0.0), 1.);
         assert_eq!(f_powf(1., f32::NAN), 1.);
+        assert_eq!(f_powf(-2.0, 4_294_967_296.0), f32::INFINITY);
+        assert_eq!(f_powf(-0.5, 4_294_967_296.0).to_bits(), 0);
+        assert_eq!(f_powf(f32::NEG_INFINITY, 1.5), f32::INFINITY);
+        assert_eq!(f_powf(-0.0, -3.0), f32::NEG_INFINITY);
+        assert_eq!(f_powf(-0.0, -2.0), f32::INFINITY);
+        assert_eq!(f_powf(-0.0, 25.0).to_bits(), (-0.0f32).to_bits());
     }
 
     #[test]

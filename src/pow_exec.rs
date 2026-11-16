@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::dd_fmla;
+use crate::common::{dd_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
 use crate::exponents::{EXP_REDUCE_T0, EXP_REDUCE_T1, ldexp};
@@ -83,53 +83,59 @@ pub(crate) fn pow_log_1(x: f64) -> (DoubleDouble, bool) {
     let mut m = x_u & 0xfffffffffffff;
     let mut e: i64 = ((x_u >> 52) & 0x7ff) as i64;
 
-    let t;
     if e != 0 {
-        t = m | (0x3ffu64 << 52);
-        m = m.wrapping_add(1u64 << 52);
+        m |= 1 << 52;
         e -= 0x3ff;
     } else {
-        /* x is a subnormal double  */
         let k = m.leading_zeros() - 11;
-
         e = -0x3fei64 - k as i64;
         m = m.wrapping_shl(k);
-        t = m | (0x3ffu64 << 52);
     }
 
-    /* now |x| = 2^_e*_t = 2^(_e-52)*m with 1 <= _t < 2,
-    and 2^52 <= _m < 2^53 */
-
-    //   log(x) = log(t) + E · log(2)
-    let mut t = f64::from_bits(t);
-
-    // If m > sqrt(2) we divide it by 2 so ensure 1/sqrt(2) < t < sqrt(2)
-    let c: usize = (m >= 0x16a09e667f3bcd) as usize;
-    static CY: [f64; 2] = [1.0, 0.5];
-    static CM: [u64; 2] = [44, 45];
-
-    e = e.wrapping_add(c as i64);
-    let be = e;
-    let i = m >> CM[c]; /* i/2^8 <= t < (i+1)/2^8 */
-    /* when c=1, we have 0x16a09e667f3bcd <= m < 2^53, thus 90 <= i <= 127;
-    when c=0, we have 2^52 <= m < 0x16a09e667f3bcd, thus 128 <= i <= 181 */
-    t *= CY[c];
-    /* now 0x1.6a09e667f3bcdp-1 <= t < 0x1.6a09e667f3bcdp+0,
-    and log(x) = E * log(2) + log(t) */
-
-    let r = f64::from_bits(POW_INVERSE[(i - 181) as usize]);
-    let l1 = f64::from_bits(POW_LOG_INV[(i - 181) as usize].1);
-    let l2 = f64::from_bits(POW_LOG_INV[(i - 181) as usize].0);
-
-    let z = dd_fmla(r, t, -1.0);
+    // t = m * 2^(-52-c) lies between 1/sqrt(2) and sqrt(2).
+    let c = (m >= 0x16a09e667f3bcd) as u32;
+    e += i64::from(c);
+    let index = ((m >> (44 + c)) - 181) as usize;
+    let r_bits = POW_INVERSE[index];
+    #[cfg(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        target_arch = "aarch64"
+    ))]
+    let z = {
+        let t = f64::from_bits(m + ((1022 - u64::from(c)) << 52));
+        f_fmla(f64::from_bits(r_bits), t, -1.0)
+    };
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "fma"
+        ),
+        target_arch = "aarch64"
+    )))]
+    let z = {
+        // The reciprocal is R * 2^(c-9). Thus z = (m*R - 2^61) * 2^-61.
+        // On each bucket the numerator is affine in m. Its endpoint bounds
+        // and common trailing zero bits certify that it fits binary64 exactly.
+        // See notes/pow_bounds.py.
+        let r = ((r_bits - 0.5f64.to_bits()) >> 44) + 256 - (u64::from(c) << 8);
+        ((m * r) as i64 - (1 << 61)) as f64 * f64::from_bits(0x3c20000000000000)
+    };
+    let (l2, l1) = POW_LOG_INV[index];
+    let l1 = f64::from_bits(l1);
+    let l2 = f64::from_bits(l2);
 
     const LOG2_DD: DoubleDouble = DoubleDouble::new(
         f64::from_bits(0x3d2ef35793c76730),
         f64::from_bits(0x3fe62e42fefa3800),
     );
 
-    let th = dd_fmla(be as f64, LOG2_DD.hi, l1);
-    let tl = dd_fmla(be as f64, LOG2_DD.lo, l2);
+    // The product and sum are both on the 2^-42 grid with magnitude
+    // below 2^11. Both are exact even when f_fmla is unfused.
+    let th = f_fmla(e as f64, LOG2_DD.hi, l1);
+    let tl = dd_fmla(e as f64, LOG2_DD.lo, l2);
 
     let mut v = DoubleDouble::f64_add(th, DoubleDouble::new(tl, z));
     let p = log_poly_1(z);
@@ -279,13 +285,11 @@ pub(crate) fn pow_exp_1(r: DoubleDouble, s: f64) -> DoubleDouble {
     let mut de = DoubleDouble::quick_mult(t1, t0);
     let q = exp_poly_1(zh + zl);
     de = DoubleDouble::quick_mult(de, q);
-    /* we should have 1 < M < 2047 here, since we filtered out
-    potential underflow/overflow cases at the beginning of this function */
-
-    let mut du = (mk as u64).wrapping_shl(52);
-    du = (f64::from_bits(du) * s).to_bits();
-    de.hi *= f64::from_bits(du);
-    de.lo *= f64::from_bits(du);
+    // The RHO bounds give 75 <= mk <= 2047 and s is either +1 or -1.
+    // Inserting its sign bit gives the same scale, including infinity.
+    let scale = f64::from_bits(((mk as u64) << 52) | (s.to_bits() & (1 << 63)));
+    de.hi *= scale;
+    de.lo *= scale;
     de
 }
 
@@ -701,8 +705,8 @@ fn exp_dyadic_poly(x: DyadicFloat128) -> DyadicFloat128 {
     p
 }
 
-/* put in r an approximation of exp(x), for |x| < 744.45,
-with relative error < 2^-121.70 */
+// The reducer and tables are certified in notes/pow_bounds.py. For |x| < 2^10,
+// the reduced argument lies within 355 * 2^-21 of zero.
 #[inline]
 pub(crate) fn exp_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
     let ex = x.exponent + 127;
@@ -732,12 +736,8 @@ pub(crate) fn exp_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
         mantissa: 0xb172_17f7_d1cf_79ab_c9e3_b398_03f2_f6af_u128,
     };
 
-    let mut bk = x * LOG2_INV;
-    let k = bk.trunc_to_i64(); /* k = trunc(K) [rounded towards zero, exact] */
-    /* The rounding error of mul_dint_int64() is bounded by 6 ulps, thus since
-    |K| <= 4399162*log(2) < 3049267, the error on K is bounded by 2^-103.41.
-    This error is divided by 2^12 below, thus yields < 2^-115.41. */
-    bk = LOG2.mul_int64(k);
+    let k = (x * LOG2_INV).trunc_to_i64();
+    let mut bk = LOG2.mul_int64(k);
     bk.exponent -= 12;
     bk.sign = bk.sign.negate();
     let y = x + bk;
@@ -746,8 +746,13 @@ pub(crate) fn exp_dyadic(x: DyadicFloat128) -> DyadicFloat128 {
     let i2 = (k >> 6) & 0x3f;
     let i1 = k & 0x3f;
     let mut r = exp_dyadic_poly(y);
-    r = EXP_T1_2_DYADIC[i2 as usize] * r;
-    r = EXP_T2_2_DYADIC[i1 as usize] * r;
+    let table_factor = |mantissa| DyadicFloat128 {
+        sign: DyadicSign::Pos,
+        exponent: -127,
+        mantissa,
+    };
+    r = table_factor(EXP_T1_2_DYADIC[i2 as usize]) * r;
+    r = table_factor(EXP_T2_2_DYADIC[i1 as usize]) * r;
     r.exponent += bm as i16; /* exact */
     r
 }

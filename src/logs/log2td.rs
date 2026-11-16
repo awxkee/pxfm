@@ -26,14 +26,14 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+use crate::logs::log_td::{log_td_horner, log_td_reduce};
 use crate::logs::log2td_coeffs::LOG2_NEG_TD;
-use crate::pow_tables::POW_INVERSE;
 use crate::triple_double::TripleDouble;
 
 #[inline(always)]
 fn log2_poly(z: f64) -> TripleDouble {
     /*
-      See ./notes/dd_log.sollya
+      See ./notes/td_log2.sollya
     */
     const P: [(u64, u64, u64); 11] = [
         (0x38cb46674646bfff, 0x3c7777d0ffda0d23, 0x3ff71547652b82fe),
@@ -48,62 +48,16 @@ fn log2_poly(z: f64) -> TripleDouble {
         (0xb8edd22b4add09c0, 0x3c4c1da4a1a32f3b, 0xbfc2779952952c26),
         (0x388875bd65660001, 0x3c58e09839d588dd, 0x3fc0c9d962b39a7d),
     ];
-    let mut t = TripleDouble::from_bit_pair(P[10]);
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[9]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[8]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[7]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[6]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[5]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[4]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[3]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[2]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[1]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[0]));
+    let t = log_td_horner(z, &P);
     TripleDouble::quick_mult_f64(t, z)
 }
 
 #[inline]
 pub(crate) fn log2_td(x: f64) -> TripleDouble {
-    let x_u = x.to_bits();
-    let mut m = x_u & 0xfffffffffffff;
-    let mut e: i64 = ((x_u >> 52) & 0x7ff) as i64;
+    let (e, index, z) = log_td_reduce(x);
+    let log_r = TripleDouble::from_bit_pair(LOG2_NEG_TD[index]);
 
-    let t;
-    if e != 0 {
-        t = m | (0x3ffu64 << 52);
-        m = m.wrapping_add(1u64 << 52);
-        e -= 0x3ff;
-    } else {
-        /* x is a subnormal double  */
-        let k = m.leading_zeros() - 11;
-
-        e = -0x3fei64 - k as i64;
-        m = m.wrapping_shl(k);
-        t = m | (0x3ffu64 << 52);
-    }
-
-    /* now |x| = 2^_e*_t = 2^(_e-52)*m with 1 <= _t < 2,
-    and 2^52 <= _m < 2^53 */
-
-    //   log2(x) = log2(t) + E · log(2)
-    let mut t = f64::from_bits(t);
-
-    // If m > sqrt(2) we divide it by 2 so ensure 1/sqrt(2) < t < sqrt(2)
-    let c: usize = (m >= 0x16a09e667f3bcd) as usize;
-    static CY: [f64; 2] = [1.0, 0.5];
-    static CM: [u64; 2] = [44, 45];
-
-    e = e.wrapping_add(c as i64);
-    let be = e;
-    let i = m >> CM[c];
-    t *= CY[c];
-
-    let r = f64::from_bits(POW_INVERSE[(i - 181) as usize]);
-    let log_r = TripleDouble::from_bit_pair(LOG2_NEG_TD[(i - 181) as usize]);
-
-    let z = f64::mul_add(r, t, -1.0);
-
-    let v = TripleDouble::add_f64(be as f64, log_r);
+    let v = TripleDouble::add_f64(e, log_r);
     let p = log2_poly(z);
     TripleDouble::add_f64(v.hi, TripleDouble::new(v.lo + p.lo, v.mid + p.mid, p.hi))
 }
