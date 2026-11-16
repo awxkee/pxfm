@@ -27,137 +27,143 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
+use crate::logs::log_dyadic::{LOG_STEP_2, LOG_STEP_3, LOG_STEP_4};
 
-// Logarithm range reduction - Step 3:
-//   r(k) = 2^-21 round(2^21 / (1 + k*2^-21)) for k = -80 .. 80.
-// Output range:
-//   [-0x1.01928p-22 , 0x1p-22]
-// We store S[i] = 2^21 (r(i - 80) - 1).
-static S3: [i32; 161] = [
-    0x50, 0x4f, 0x4e, 0x4d, 0x4c, 0x4b, 0x4a, 0x49, 0x48, 0x47, 0x46, 0x45, 0x44, 0x43, 0x42, 0x41,
-    0x40, 0x3f, 0x3e, 0x3d, 0x3c, 0x3b, 0x3a, 0x39, 0x38, 0x37, 0x36, 0x35, 0x34, 0x33, 0x32, 0x31,
-    0x30, 0x2f, 0x2e, 0x2d, 0x2c, 0x2b, 0x2a, 0x29, 0x28, 0x27, 0x26, 0x25, 0x24, 0x23, 0x22, 0x21,
-    0x20, 0x1f, 0x1e, 0x1d, 0x1c, 0x1b, 0x1a, 0x19, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11,
-    0x10, 0xf, 0xe, 0xd, 0xc, 0xb, 0xa, 0x9, 0x8, 0x7, 0x6, 0x5, 0x4, 0x3, 0x2, 0x1, 0x0, -0x1,
-    -0x2, -0x3, -0x4, -0x5, -0x6, -0x7, -0x8, -0x9, -0xa, -0xb, -0xc, -0xd, -0xe, -0xf, -0x10,
-    -0x11, -0x12, -0x13, -0x14, -0x15, -0x16, -0x17, -0x18, -0x19, -0x1a, -0x1b, -0x1c, -0x1d,
-    -0x1e, -0x1f, -0x20, -0x21, -0x22, -0x23, -0x24, -0x25, -0x26, -0x27, -0x28, -0x29, -0x2a,
-    -0x2b, -0x2c, -0x2d, -0x2e, -0x2f, -0x30, -0x31, -0x32, -0x33, -0x34, -0x35, -0x36, -0x37,
-    -0x38, -0x39, -0x3a, -0x3b, -0x3c, -0x3d, -0x3e, -0x3f, -0x40, -0x41, -0x42, -0x43, -0x44,
-    -0x45, -0x46, -0x47, -0x48, -0x49, -0x4a, -0x4b, -0x4c, -0x4d, -0x4e, -0x4f, -0x50,
-];
-
-// Logarithm range reduction - Step 4
-//   r(k) = 2^-28 round(2^28 / (1 + k*2^-28)) for k = -65 .. 64.
-// Output range:
-//   [-0x1.0002143p-29 , 0x1p-29]
-// We store S[i] = 2^28 (r(i - 65) - 1).
-static S4: [i32; 130] = [
-    0x41, 0x40, 0x3f, 0x3e, 0x3d, 0x3c, 0x3b, 0x3a, 0x39, 0x38, 0x37, 0x36, 0x35, 0x34, 0x33, 0x32,
-    0x31, 0x30, 0x2f, 0x2e, 0x2d, 0x2c, 0x2b, 0x2a, 0x29, 0x28, 0x27, 0x26, 0x25, 0x24, 0x23, 0x22,
-    0x21, 0x20, 0x1f, 0x1e, 0x1d, 0x1c, 0x1b, 0x1a, 0x19, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12,
-    0x11, 0x10, 0xf, 0xe, 0xd, 0xc, 0xb, 0xa, 0x9, 0x8, 0x7, 0x6, 0x5, 0x4, 0x3, 0x2, 0x1, 0x0,
-    -0x1, -0x2, -0x3, -0x4, -0x5, -0x6, -0x7, -0x8, -0x9, -0xa, -0xb, -0xc, -0xd, -0xe, -0xf,
-    -0x10, -0x11, -0x12, -0x13, -0x14, -0x15, -0x16, -0x17, -0x18, -0x19, -0x1a, -0x1b, -0x1c,
-    -0x1d, -0x1e, -0x1f, -0x20, -0x21, -0x22, -0x23, -0x24, -0x25, -0x26, -0x27, -0x28, -0x29,
-    -0x2a, -0x2b, -0x2c, -0x2d, -0x2e, -0x2f, -0x30, -0x31, -0x32, -0x33, -0x34, -0x35, -0x36,
-    -0x37, -0x38, -0x39, -0x3a, -0x3b, -0x3c, -0x3d, -0x3e, -0x3f, -0x40,
-];
-
-// Logarithm range reduction - Step 2:
-//   r(k) = 2^-16 round(2^16 / (1 + k*2^-14)) for k = -2^6 .. 2^7.
-// Output range:
-//   [-0x1.3ffcp-15, 0x1.3e3dp-15]
-// We store S2[i] = 2^16 (r(i - 2^6) - 1).
-static S2: [i32; 193] = [
-    0x101, 0xfd, 0xf9, 0xf5, 0xf1, 0xed, 0xe9, 0xe5, 0xe1, 0xdd, 0xd9, 0xd5, 0xd1, 0xcd, 0xc9,
-    0xc5, 0xc1, 0xbd, 0xb9, 0xb4, 0xb0, 0xac, 0xa8, 0xa4, 0xa0, 0x9c, 0x98, 0x94, 0x90, 0x8c, 0x88,
-    0x84, 0x80, 0x7c, 0x78, 0x74, 0x70, 0x6c, 0x68, 0x64, 0x60, 0x5c, 0x58, 0x54, 0x50, 0x4c, 0x48,
-    0x44, 0x40, 0x3c, 0x38, 0x34, 0x30, 0x2c, 0x28, 0x24, 0x20, 0x1c, 0x18, 0x14, 0x10, 0xc, 0x8,
-    0x4, 0x0, -0x4, -0x8, -0xc, -0x10, -0x14, -0x18, -0x1c, -0x20, -0x24, -0x28, -0x2c, -0x30,
-    -0x34, -0x38, -0x3c, -0x40, -0x44, -0x48, -0x4c, -0x50, -0x54, -0x58, -0x5c, -0x60, -0x64,
-    -0x68, -0x6c, -0x70, -0x74, -0x78, -0x7c, -0x80, -0x84, -0x88, -0x8c, -0x90, -0x94, -0x98,
-    -0x9c, -0xa0, -0xa4, -0xa8, -0xac, -0xb0, -0xb4, -0xb7, -0xbb, -0xbf, -0xc3, -0xc7, -0xcb,
-    -0xcf, -0xd3, -0xd7, -0xdb, -0xdf, -0xe3, -0xe7, -0xeb, -0xef, -0xf3, -0xf7, -0xfb, -0xff,
-    -0x103, -0x107, -0x10b, -0x10f, -0x113, -0x117, -0x11b, -0x11f, -0x123, -0x127, -0x12b, -0x12f,
-    -0x133, -0x137, -0x13a, -0x13e, -0x142, -0x146, -0x14a, -0x14e, -0x152, -0x156, -0x15a, -0x15e,
-    -0x162, -0x166, -0x16a, -0x16e, -0x172, -0x176, -0x17a, -0x17e, -0x182, -0x186, -0x18a, -0x18e,
-    -0x192, -0x195, -0x199, -0x19d, -0x1a1, -0x1a5, -0x1a9, -0x1ad, -0x1b1, -0x1b5, -0x1b9, -0x1bd,
-    -0x1c1, -0x1c5, -0x1c9, -0x1cd, -0x1d1, -0x1d5, -0x1d9, -0x1dd, -0x1e0, -0x1e4, -0x1e8, -0x1ec,
-    -0x1f0, -0x1f4, -0x1f8, -0x1fc,
-];
-
-// Perform logarithm range reduction steps 2-4.
-// Inputs from the first step of range reduction:
-//   m_x : the reduced argument after the first step of range reduction
-//         satisfying  -2^-8 <= m_x < 2^-7  and  ulp(m_x) >= 2^-60.
-//   idx1: index of the -log(r1) table from the first step.
-// Outputs of the extra range reduction steps:
-//   sum: adding -log(r1) - log(r2) - log(r3) - log(r4) to the resulted sum.
-//   return value: the reduced argument v satisfying:
-//                 -0x1.0002143p-29 <= v < 0x1p-29,  and  ulp(v) >= 2^(-125).
-pub(crate) fn log_range_reduction(
-    m_x: f64,
-    log_table: &[&[DyadicFloat128]; 4],
+// The tables keep only the 128-bit significands of -log(1 + s / D), D = 2^bits.
+// The reciprocal bounds are -508 <= s <= 257 and 2^16 <= D <= 2^28.
+//
+// For s > 0, s - s^2/(2D) < D*log(1 + s/D) < s. The lower bound is
+// above s - 1, so the binary exponent is floor(log2(s - 1)) - bits.
+// For s = 1 the scaled logarithm lies between 1/2 and 1, giving -1 - bits.
+//
+// For s < 0, write n = -s. The log series gives
+// n < -D*log(1 - n/D) < n + n^2/(2(D - n)).
+// For n < 256 the increment is below 1. For 256 <= n <= 508 it is below 2,
+// keeping the magnitude below 512. The binary exponent is floor(log2(n)) - bits.
+//
+// The distances from s and n are at least 1/(2(D + 257)) in scaled units,
+// by integrating t/(1+t) or t/(1-t). The other bounds leave at least 1/4
+// in scaled units at either binade boundary. The unscaled gaps exceed
+// 2^-58, so rounding the significand to 128 bits preserves the exponent.
+// Inline the reconstruction and addition so the running sum need not cross
+// a call boundary at each reduction step.
+#[inline(always)]
+fn add_log_step(
     sum: DyadicFloat128,
-) -> (DyadicFloat128, DyadicFloat128) {
-    let v = (m_x * f64::from_bits(0x43b0000000000000)) as i64; // ulp = 2^-60
-
-    // Range reduction - Step 2
-    // Output range: vv2 in [-0x1.3ffcp-15, 0x1.3e3dp-15].
-    // idx2 = trunc(2^14 * (v + 2^-8 + 2^-15))
-    let idx2 = ((v.wrapping_add(0x10_2000_0000_0000)) >> 46) as usize;
-    let z0 = log_table[1][idx2];
-    let mut sum = sum + z0;
-
-    let s2: i64 = S2[idx2] as i64; // |s| <= 2^-7, ulp = 2^-16
-    let sv2 = s2 * v; // |s*v| < 2^-14, ulp = 2^(-60-16) = 2^-76
-    let spv2 = s2.wrapping_shl(44).wrapping_add(v); // |s + v| < 2^-14, ulp = 2^-60
-    let vv2 = spv2.wrapping_shl(16).wrapping_add(sv2); // |vv2| < 2^-14, ulp = 2^-76
-
-    // Range reduction - Step 3
-    // Output range: vv3 in [-0x1.01928p-22 , 0x1p-22]
-    // idx3 = trunc(2^21 * (v + 80*2^-21 + 2^-22))
-    let idx3 = vv2.wrapping_add(0x2840_0000_0000_0000).wrapping_shr(55) as usize;
-    sum = sum + log_table[2][idx3];
-
-    let s3 = S3[idx3] as i64; // |s| < 2^-13, ulp = 2^-21
-    let spv3: i64 = s3.wrapping_shl(55).wrapping_add(vv2); // |s + v| < 2^-21, ulp = 2^-76
-    // |s*v| < 2^-27, ulp = 2^(-76-21) = 2^-97
-    let sv3: i128 = s3 as i128 * vv2 as i128;
-    // |vv3| < 2^-21, ulp = 2^-97
-    let vv3 = (spv3 as i128).wrapping_shl(21).wrapping_add(sv3);
-
-    // Range reduction - Step 4
-    // Output range: vv4 in [-0x1.0002143p-29 , 0x1p-29]
-    // idx4 = trunc(2^21 * (v + 65*2^-28 + 2^-29))
-    let idx4 = ((((vv3 >> 68) as i32).wrapping_add(131)) >> 1) as usize;
-
-    let z4 = log_table[3][idx4];
-    sum = sum + z4;
-
-    let s4: i128 = S4[idx4] as i128; // |s| < 2^-21, ulp = 2^-28
-    // |s + v| < 2^-28, ulp = 2^-97
-    let spv4 = s4.wrapping_shl(69).wrapping_add(vv3);
-    // |s*v| < 2^-42, ulp = 2^(-97-28) = 2^-125
-    let sv4 = s4 * vv3;
-    // |vv4| < 2^-28, ulp = 2^-125
-    let vv4 = spv4.wrapping_shl(28).wrapping_add(sv4);
-
-    let mut z0 = if vv4 < 0 {
-        DyadicFloat128 {
-            sign: DyadicSign::Neg,
-            exponent: -125,
-            mantissa: (-vv4) as u128,
-        }
+    mantissa: u128,
+    s: i32,
+    bits: i16,
+    zero_sign: DyadicSign,
+) -> DyadicFloat128 {
+    let (sign, exponent) = if s == 0 {
+        (zero_sign, 0)
     } else {
-        DyadicFloat128 {
-            sign: DyadicSign::Pos,
-            exponent: -125,
-            mantissa: vv4 as u128,
-        }
+        let (sign, n) = if s > 0 {
+            (DyadicSign::Neg, s as u32 - 1)
+        } else {
+            (DyadicSign::Pos, s.unsigned_abs())
+        };
+        (sign, 31 - n.leading_zeros() as i16 - bits - 127)
     };
-    z0.normalize();
+    sum + DyadicFloat128 {
+        sign,
+        exponent,
+        mantissa,
+    }
+}
 
-    (z0, sum)
+// The first reduction provides -2^-8 <= v*2^-60 < 2^-7.
+// For bucket i > 0, let n = 128 + i and R = ceil(32640/n). The input
+// mantissa m is in [n/128, (n+1)/128), and its reciprocal factor is R/256.
+// Then R*n >= 32640 and R*(n+1) < 32641 + n + 32640/n <= 33024,
+// since (n-128)*(n-255) <= 0. For i = 0, R = 256 and the bound is direct.
+// The product of R <= 256 and the 53-bit significand M fits in i64.
+//
+// These steps apply r = 1 + s/2^bits to the current input u, yielding
+// r*(1 + u) - 1 = u + s/2^bits + u*s/2^bits. Each expression below evaluates
+// its three terms exactly in fixed-point arithmetic.
+pub(super) fn log_range_reduction(v: i64, sum: DyadicFloat128) -> (DyadicFloat128, DyadicFloat128) {
+    // For -2^-29 <= u < 2^-29, all three indices round to k = 0. The
+    // reciprocal factors are all 1, and the last table contributes +0.
+    if (-(1 << 31)..(1 << 31)).contains(&v) {
+        let residual = DyadicFloat128::new(
+            if v < 0 {
+                DyadicSign::Neg
+            } else {
+                DyadicSign::Pos
+            },
+            -125,
+            u128::from(v.unsigned_abs()) << 65,
+        );
+        let sum = if sum.mantissa == 0 {
+            DyadicFloat128::zero()
+        } else {
+            sum
+        };
+        return (residual, sum);
+    }
+
+    // Step 2 rounds u*2^14 to k in [-64, 128], so |u - k*2^-14| <= 2^-15.
+    // Rounding the reciprocal contributes at most (1 + k*2^-14)*2^-17
+    // to the residual. Thus |vv2| in real units is at most
+    // (1 + 257*2^-16)*2^-15 + (1 + 2^-7)*2^-17 < 80.5*2^-21.
+    let k2 = ((v + (1 << 45)) >> 46) as i32;
+    let idx2 = (k2 + 64) as usize;
+    // The scaled reciprocal is 2^16 - 4*k + c, where c = 4*k^2/(2^14 + k).
+    // Its derivative has the sign of k. Comparing 8*k^2 with
+    // (2*j+1)*(2^14+k) at adjacent integers locates the half-integer
+    // crossings of c: ±45/±46 for 1/2, 78/79 for 3/2, 101/102 for 5/2,
+    // and 120/121 for 7/2. At -64, c < 3/2, and at 128, c < 9/2.
+    let s2 = -4 * k2
+        + (k2.unsigned_abs() > 45) as i32
+        + (k2 > 78) as i32
+        + (k2 > 101) as i32
+        + (k2 > 120) as i32;
+    let sum = add_log_step(sum, LOG_STEP_2[idx2], s2, 16, DyadicSign::Neg);
+    // In integer units |vv2| + |s2*v| < 80.5*2^55 + 508*2^53 < 2^63,
+    // so the product, the centered term, and their sum all fit in i64.
+    let vv2 = (((s2 as i64) << 44) + v) * (1 << 16) + s2 as i64 * v; // 2^-76 units
+
+    // Step 3 rounds to k in [-80, 80]. For D = 2^21, the exact scaled
+    // reciprocal is D^2/(D + k) = D - k + k^2/(D + k).
+    // The last term is below 1/2 even at |k| = 80, so s = -k.
+    let k3 = ((vv2 + (1 << 54)) >> 55) as i32;
+    let sum = add_log_step(
+        sum,
+        LOG_STEP_3[(k3 + 80) as usize],
+        -k3,
+        21,
+        DyadicSign::Pos,
+    );
+    let s3 = -(k3 as i64);
+    let vv3 = ((((s3 << 55) + vv2) as i128) << 21) + s3 as i128 * vv2 as i128; // 2^-97 units
+
+    // In Step 3, u and k have the same sign unless k = 0. The centered
+    // remainder is in [-2^-22, 2^-22), and 0 <= k*u*2^-21 < 6460*2^-42.
+    // Thus the reduced argument is strictly above -64.5*2^-28 and below
+    // 64.5*2^-28. Step 4 only needs k in [-64, 64], with s = -k by the
+    // same reciprocal formula for D = 2^28.
+    let k4 = (((vv3 >> 68) as i32) + 1) >> 1;
+    let sum = add_log_step(
+        sum,
+        LOG_STEP_4[(k4 + 64) as usize],
+        -k4,
+        28,
+        DyadicSign::Pos,
+    );
+    let s4 = -(k4 as i128);
+    // The same centered-remainder bound gives
+    // -2^-29 - 4128*2^-56 < vv4 in real units < 2^-29.
+    let vv4 = (((s4 << 69) + vv3) << 28) + s4 * vv3; // 2^-125 units
+
+    let residual = DyadicFloat128::new(
+        if vv4 < 0 {
+            DyadicSign::Neg
+        } else {
+            DyadicSign::Pos
+        },
+        -125,
+        vv4.unsigned_abs(),
+    );
+    (residual, sum)
 }

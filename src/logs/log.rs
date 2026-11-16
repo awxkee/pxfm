@@ -29,7 +29,7 @@
 use crate::common::{f_fmla, fmla, min_normal_f64};
 use crate::double_double::DoubleDouble;
 use crate::dyadic_float::{DyadicFloat128, DyadicSign};
-use crate::logs::log_dyadic::{LOG_STEP_1, LOG_STEP_2, LOG_STEP_3, LOG_STEP_4};
+use crate::logs::log_dyadic::log_step_1;
 use crate::logs::log_range_reduction::log_range_reduction;
 use crate::logs::log_td::log_td;
 use crate::logs::log2::LOG_RANGE_REDUCTION;
@@ -61,52 +61,23 @@ pub(crate) fn log_dyadic(x: f64) -> DyadicFloat128 {
         x_e -= 52;
     }
 
-    // Range reduction for log2(x_m):
-    // For each x_m, we would like to find r such that:
-    //   -2^-8 <= r * x_m - 1 < 2^-7
-    let shifted = (x_u >> 45) as i32;
-    let index = shifted & 0x7F;
-    let r = f64::from_bits(LOG_RANGE_REDUCTION[index as usize]);
+    let index = ((x_u >> 45) & 0x7F) as usize;
 
-    // Add unbiased exponent. Add an extra 1 if the 8 leading fractional bits are
+    // Add unbiased exponent. Add an extra 1 if the 7 leading fractional bits are
     // all 1's.
     x_e = x_e.wrapping_add(x_u.wrapping_add(1u64 << 45).wrapping_shr(52) as i32);
 
-    // Set m = 1.mantissa.
-    let x_m = (x_u & 0x000F_FFFF_FFFF_FFFFu64) | 0x3FF0_0000_0000_0000u64;
-    let m = f64::from_bits(x_m);
-
-    let u;
-    #[cfg(any(
-        all(
-            any(target_arch = "x86", target_arch = "x86_64"),
-            target_feature = "fma"
-        ),
-        target_arch = "aarch64"
-    ))]
-    {
-        u = f_fmla(r, m, -1.0); // exact
-    }
-    #[cfg(not(any(
-        all(
-            any(target_arch = "x86", target_arch = "x86_64"),
-            target_feature = "fma"
-        ),
-        target_arch = "aarch64"
-    )))]
-    {
-        use crate::logs::log2::LOG_CD;
-        let c_m = x_m & 0x3FFF_E000_0000_0000u64;
-        let c = f64::from_bits(c_m);
-        u = f_fmla(r, m - c, f64::from_bits(LOG_CD[index as usize])); // exact
-    }
-    log_accurate(x_e, index, u)
+    // Write m = M * 2^-52 and r = R * 2^-8. From 1/2 through 1,
+    // consecutive binary64 encodings of these r values differ by 2^45.
+    // The exact residual r*m - 1 is (R*M - 2^60) in units of 2^-60.
+    let significand = (x_u & 0x000F_FFFF_FFFF_FFFF) | (1 << 52);
+    let reciprocal = ((LOG_RANGE_REDUCTION[index] - 0.5f64.to_bits()) >> 45) + 128;
+    let residual = (reciprocal * significand) as i64 - (1 << 60);
+    log_accurate(x_e, index, residual)
 }
 
-// Reuse the output of the fast pass range reduction.
-// -2^-8 <= m_x < 2^-7
 #[cold]
-fn log_accurate(e_x: i32, index: i32, m_x: f64) -> DyadicFloat128 {
+fn log_accurate(e_x: i32, index: usize, residual: i64) -> DyadicFloat128 {
     // > P = fpminimax((log(1 + x) - x)/x^2, 2, [|1, 128...|],
     //                 [-0x1.0002143p-29 , 0x1p-29]);
     // > P;
@@ -136,17 +107,19 @@ fn log_accurate(e_x: i32, index: i32, m_x: f64) -> DyadicFloat128 {
         mantissa: 0xb17217f7_d1cf79ab_c9e3b398_03f2f6af_u128,
     };
 
-    let e_x_f128 = DyadicFloat128::new_from_f64(e_x as f64);
-    let mut sum = LOG_2 * e_x_f128;
-    sum = sum + LOG_STEP_1[index as usize];
-
-    let (v_f128, mut sum) = log_range_reduction(
-        m_x,
-        &[&LOG_STEP_1, &LOG_STEP_2, &LOG_STEP_3, &LOG_STEP_4],
-        sum,
+    let e_x_f128 = DyadicFloat128::new(
+        if e_x < 0 {
+            DyadicSign::Neg
+        } else {
+            DyadicSign::Pos
+        },
+        0,
+        u128::from(e_x.unsigned_abs()),
     );
+    let sum = LOG_2 * e_x_f128 + log_step_1(index);
 
-    sum = sum + v_f128;
+    let (v_f128, sum) = log_range_reduction(residual, sum);
+    let sum = sum + v_f128;
 
     // Polynomial approximation
     let mut p = v_f128 * BIG_COEFFS[0];

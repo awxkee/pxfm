@@ -31,6 +31,17 @@ use crate::logs::log_td_table::LOG_NEG_TD;
 use crate::pow_tables::POW_INVERSE;
 use crate::triple_double::TripleDouble;
 
+#[inline(never)]
+pub(super) fn log_td_horner(z: f64, coefficients: &[(u64, u64, u64)]) -> TripleDouble {
+    let (&leading, rest) = coefficients.split_last().unwrap();
+    let mut value = TripleDouble::from_bit_pair(leading);
+    // Keep each rounded multiply and add in the order of the unrolled Horner evaluation.
+    for &coefficient in rest.iter().rev() {
+        value = TripleDouble::f64_mul_add(z, value, TripleDouble::from_bit_pair(coefficient));
+    }
+    value
+}
+
 #[inline(always)]
 fn log_td_poly(z: f64) -> TripleDouble {
     /*
@@ -49,26 +60,15 @@ fn log_td_poly(z: f64) -> TripleDouble {
         (0x38e9232517db1c80, 0x3c553b70480fc993, 0xbfb5559a592ab15c),
     ];
     let x2 = DoubleDouble::from_exact_mult(z, z);
-    let mut t = TripleDouble::f64_mul_add(
-        z,
-        TripleDouble::from_bit_pair(P[9]),
-        TripleDouble::from_bit_pair(P[8]),
-    );
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[7]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[6]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[5]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[4]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[3]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[2]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[1]));
-    t = TripleDouble::f64_mul_add(z, t, TripleDouble::from_bit_pair(P[0]));
+    let mut t = log_td_horner(z, &P);
     t = TripleDouble::quick_mult_dd(t, x2);
     t = TripleDouble::quick_mult_f64(t, z);
     TripleDouble::f64_mul_dd_add(-0.5, x2, t)
 }
 
-#[inline]
-pub(crate) fn log_td(x: f64) -> TripleDouble {
+/// Range reduction for a positive, finite input.
+#[inline(never)]
+pub(super) fn log_td_reduce(x: f64) -> (f64, usize, f64) {
     let x_u = x.to_bits();
     let mut m = x_u & 0xfffffffffffff;
     let mut e: i64 = ((x_u >> 52) & 0x7ff) as i64;
@@ -87,32 +87,33 @@ pub(crate) fn log_td(x: f64) -> TripleDouble {
         t = m | (0x3ffu64 << 52);
     }
 
-    /* now |x| = 2^_e*_t = 2^(_e-52)*m with 1 <= _t < 2,
-    and 2^52 <= _m < 2^53 */
-
-    //   log(x) = log(t) + E · log(2)
+    // x = 2^e * t, with t = m * 2^-52 and 2^52 <= m < 2^53.
     let mut t = f64::from_bits(t);
 
-    // If m > sqrt(2) we divide it by 2 so ensure 1/sqrt(2) < t < sqrt(2)
+    // Halve t above sqrt(2). On either side of the threshold the shift
+    // gives respectively 256..=362 or 181..=255, indexing all 182 entries.
     let c: usize = (m >= 0x16a09e667f3bcd) as usize;
     static CY: [f64; 2] = [1.0, 0.5];
     static CM: [u64; 2] = [44, 45];
 
     e = e.wrapping_add(c as i64);
-    let be = e;
-    let i = m >> CM[c];
+    let index = ((m >> CM[c]) - 181) as usize;
     t *= CY[c];
 
-    let r = f64::from_bits(POW_INVERSE[(i - 181) as usize]);
-
-    let log_r = TripleDouble::from_bit_pair(LOG_NEG_TD[(i - 181) as usize]);
-
+    let r = f64::from_bits(POW_INVERSE[index]);
     let z = f64::mul_add(r, t, -1.0);
+    (e as f64, index, z)
+}
+
+#[inline]
+pub(crate) fn log_td(x: f64) -> TripleDouble {
+    let (e, index, z) = log_td_reduce(x);
+    let log_r = TripleDouble::from_bit_pair(LOG_NEG_TD[index]);
 
     const LOG2_DD: TripleDouble =
         TripleDouble::from_bit_pair((0x3907b57a079a1934, 0x3c7abc9e3b39803f, 0x3fe62e42fefa39ef));
 
-    let tt = TripleDouble::f64_mul_add(be as f64, LOG2_DD, log_r);
+    let tt = TripleDouble::f64_mul_add(e, LOG2_DD, log_r);
 
     let v = TripleDouble::add_f64(z, tt);
     let p = log_td_poly(z);

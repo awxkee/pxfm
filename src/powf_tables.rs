@@ -27,6 +27,15 @@
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+// The high words of the powf exp2 table match EXP_REDUCE_T0 exactly.
+// These signed differences in the low-word encodings recover the original
+// powf constants from that shared table.
+pub(crate) static EXP2_MID_LO_CORRECTION: [i8; 64] = [
+    0, -1, -1, -1, 1, 1, 0, 0, 0, 0, 0, 1, 1, -1, -1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 1, 1, 1, 0,
+    1, 0, 0, 1, -1, -1, -1, 0, 0, 0, 1, 0, 0, 1, 0, 1, -1, -1, -1, 0, 1, 0, -1, 1, -1, 0, 1, 0, 0,
+    -1, -1, 0, 1, 0,
+];
+
 pub(crate) static POWF_R2: [u64; 193] = [
     0x3ff0101000000000,
     0x3ff00fd000000000,
