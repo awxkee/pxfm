@@ -290,6 +290,19 @@ mod tests {
 
     #[test]
     fn test_sincospif() {
+        for (x, expected_sin) in [
+            (0.5, 1.0),
+            (-0.5, -1.0),
+            (1.5, -1.0),
+            (-1.5, 1.0),
+            (8_388_606.5, 1.0),
+            (8_388_607.5, -1.0),
+        ] {
+            let (sin, cos) = f_sincospif(x);
+            assert_eq!(sin, expected_sin);
+            assert_eq!(cos.to_bits(), 0);
+        }
+
         let v0 = f_sincospif(-5.);
         assert_eq!(v0.0, f_sinpif(-5.));
         assert_eq!(v0.1, f_cospif(-5.));
