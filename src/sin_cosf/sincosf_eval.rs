@@ -74,7 +74,7 @@ static SIN_K_PI_OVER32: [u64; 64] = [
     0x3fd294062ed59f06,
     0x3fc8f8b83c69a60b,
     0x3fb917a6bc29b42c,
-    0xb69f77598338bfdf,
+    0x0000000000000000, // sin(pi) is exactly zero.
     0xbfb917a6bc29b42c,
     0xbfc8f8b83c69a60b,
     0xbfd294062ed59f06,

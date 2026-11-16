@@ -26,7 +26,7 @@
  * // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-use crate::common::{dd_fmla, dyad_fmla, f_fmla, is_odd_integer};
+use crate::common::{dd_fmla, dyad_fmla, f_fmla};
 use crate::double_double::DoubleDouble;
 use crate::polyeval::{f_polyeval3, f_polyeval4};
 use crate::rounding::CpuRound;
@@ -58,7 +58,7 @@ fn as_cospi_zero<B: SinCosPiBackend>(x: f64, backend: &B) -> f64 {
     let x2 = backend.exact_mult(x, x);
     let mut p = backend.quick_mul_add(
         x2,
-        DoubleDouble::from_bit_pair(C[3]),
+        DoubleDouble::from_bit_pair(C[4]),
         DoubleDouble::from_bit_pair(C[3]),
     );
     p = backend.quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[2]));
@@ -66,6 +66,39 @@ fn as_cospi_zero<B: SinCosPiBackend>(x: f64, backend: &B) -> f64 {
     p = backend.quick_mul_add(x2, p, DoubleDouble::from_bit_pair(C[0]));
     p = backend.mul_add_f64(x2, p, 1.);
     p.to_f64()
+}
+
+// This path is called for 2^-54 <= |x| < 2^-42. In units of 2^-126,
+// pi is within one unit of PI, and the cubic correction is below 2^45.
+// Rounding the squared input, coefficient and product costs less than
+// 1/64 of a unit. Truncation costs less than one more unit and ignoring
+// the fifth-order term costs less than 2^-39. Thus PI - correction is
+// within three units of sin(pi*x)/x, or less than 2^-125 relative error.
+// The midpoint separation verified by notes/sinpi_tiny_certificate.py
+// exceeds this error, so rounding the integer product gives the result.
+#[cold]
+#[inline(never)]
+fn sinpi_zero_precise(x: f64) -> f64 {
+    const PI: u128 = 0xc90f_daa2_2168_c234_c4c6_628b_80dc_1cd1;
+    const CUBIC: f64 = f64::from_bits(0x47f4_abbc_e625_be53); // (pi^3 / 6) * 2^126
+    let correction = (x * x * CUBIC) as u64;
+    let factor = PI - u128::from(correction);
+    let bits = x.to_bits();
+    let m = u128::from((bits & ((1 << 52) - 1)) | (1 << 52));
+    let low = u128::from(factor as u64) * m;
+    let top = (factor >> 64) * m + (low >> 64);
+
+    // The full product has 180 or 181 bits. Round its leading 53 bits,
+    // including the omitted low limb in the sticky bit.
+    let shift = 75 - top.leading_zeros();
+    let half = 1u128 << (shift - 1);
+    let remainder = top & ((half << 1) - 1);
+    let truncated = (top >> shift) as u64;
+    let round_up =
+        remainder > half || remainder == half && ((low as u64) != 0 || truncated & 1 != 0);
+    let exponent = ((bits >> 52) & 0x7ff) + u64::from(shift - 62);
+    let magnitude = ((exponent - 1) << 52) + truncated + u64::from(round_up);
+    f64::from_bits(magnitude | (bits & (1 << 63)))
 }
 
 /**
@@ -83,6 +116,9 @@ See ./notes/sinpi_zero_dd.sollya
 #[cold]
 #[inline(always)]
 fn as_sinpi_zero<B: SinCosPiBackend>(x: f64, backend: &B) -> f64 {
+    if x.abs() < f64::from_bits(0x3d50_0000_0000_0000) {
+        return sinpi_zero_precise(x);
+    }
     const C: [(u64, u64); 6] = [
         (0x3ca1a626311d9056, 0x400921fb54442d18),
         (0x3cb055f12c462211, 0xc014abbce625be53),
@@ -105,8 +141,7 @@ fn as_sinpi_zero<B: SinCosPiBackend>(x: f64, backend: &B) -> f64 {
     p.to_f64()
 }
 
-// Return k and y, where
-// k = round(x * 64 / pi) and y = (x * 64 / pi) - k.
+// Return k = round(64*x) and y = x - k/64, with |y| <= 1/128.
 #[inline]
 pub(crate) fn reduce_pi_64(x: f64) -> (f64, i64) {
     let kd = (x * 64.).cpu_round();
@@ -116,8 +151,7 @@ pub(crate) fn reduce_pi_64(x: f64) -> (f64, i64) {
     })
 }
 
-// Return k and y, where
-// k = round(x * 64 / pi) and y = (x * 64 / pi) - k.
+// Return k = round(64*x) and y = x - k/64, with |y| <= 1/128.
 #[inline(always)]
 #[allow(unused)]
 pub(crate) fn reduce_pi_64_fma(x: f64) -> (f64, i64) {
@@ -136,7 +170,6 @@ pub(crate) trait SinCosPiBackend {
     fn arg_reduce_pi_64(&self, x: f64) -> (f64, i64);
     fn quick_mult_f64(&self, x: DoubleDouble, y: f64) -> DoubleDouble;
     fn quick_mult(&self, x: DoubleDouble, y: DoubleDouble) -> DoubleDouble;
-    fn odd_integer(&self, x: f64) -> bool;
     fn div(&self, x: DoubleDouble, y: DoubleDouble) -> DoubleDouble;
     fn mul_add_f64(&self, a: DoubleDouble, b: DoubleDouble, c: f64) -> DoubleDouble;
     fn quick_mul_add(&self, a: DoubleDouble, b: DoubleDouble, c: DoubleDouble) -> DoubleDouble;
@@ -175,11 +208,6 @@ impl SinCosPiBackend for GenSinCosPiBackend {
     #[inline(always)]
     fn quick_mult(&self, x: DoubleDouble, y: DoubleDouble) -> DoubleDouble {
         DoubleDouble::quick_mult(x, y)
-    }
-
-    #[inline(always)]
-    fn odd_integer(&self, x: f64) -> bool {
-        is_odd_integer(x)
     }
 
     #[inline(always)]
@@ -241,11 +269,6 @@ impl SinCosPiBackend for FmaSinCosPiBackend {
     #[inline(always)]
     fn quick_mult(&self, x: DoubleDouble, y: DoubleDouble) -> DoubleDouble {
         DoubleDouble::quick_mult_fma(x, y)
-    }
-
-    #[inline(always)]
-    fn odd_integer(&self, x: f64) -> bool {
-        is_odd_integer(x)
     }
 
     #[inline(always)]
@@ -916,17 +939,16 @@ pub fn f_cospi(x: f64) -> f64 {
 
 #[inline(always)]
 fn sincospi_gen_impl<B: SinCosPiBackend>(x: f64, backend: B) -> (f64, f64) {
+    const PARITY: [f64; 2] = [1.0, -1.0];
     let ix = x.to_bits();
     let ax = ix & 0x7fff_ffff_ffff_ffff;
     if ax == 0 {
         return (x, 1.0);
     }
     let e: i32 = (ax >> 52) as i32;
-    // e is the unbiased exponent, we have 2^(e-1023) <= |x| < 2^(e-1022)
+    // e is the biased exponent, so 2^(e-1023) <= |x| < 2^(e-1022).
     let m0 = (ix & 0x000fffffffffffff) | (1u64 << 52);
-    let m: i64 = ((ix & 0x000fffffffffffff) | (1u64 << 52)) as i64;
-    let mut s = 1063i32.wrapping_sub(e); // 2^(40-s) <= |x| < 2^(41-s)
-    if s < 0 {
+    if e >= 1064 {
         // |x| >= 2^41
         if e == 0x7ff {
             // NaN or Inf
@@ -935,38 +957,20 @@ fn sincospi_gen_impl<B: SinCosPiBackend>(x: f64, backend: B) -> (f64, f64) {
             }
             return (x + x, x + x); // NaN
         }
-        s = -s - 1;
-        if s > 10 {
-            static CF: [f64; 2] = [1., -1.];
-            let is_odd = backend.odd_integer(f64::from_bits(ax));
-            let cos_x = CF[is_odd as usize];
-            return (f64::copysign(0.0, x), cos_x);
-        } // |x| >= 2^53
-        let iq: u64 = (m as u64).wrapping_shl(s as u32);
-
-        // sinpi = 0 when multiple of 2048
-        let sin_zero = (iq & 2047) == 0;
-
-        // cospi = 0 when offset-by-half multiple of 2048
-        let cos_zero = ((m as u64).wrapping_shl(s as u32).wrapping_add(1024) & 2047) == 0;
-
-        if sin_zero && cos_zero {
-            // both zero (only possible if NaN or something degenerate)
-        } else if sin_zero {
-            static CF: [f64; 2] = [1., -1.];
-            let is_odd = backend.odd_integer(f64::from_bits(ax));
-            let cos_x = CF[is_odd as usize];
-            return (0.0, cos_x); // sin = 0, cos = ±1
-        } else if cos_zero {
-            // x = k / 2 * PI
-            let si = e.wrapping_sub(1011);
-            let t = (m0.wrapping_shl((si - 1) as u32)) >> 63;
-            // making sin decision based on quadrant
-            return if t == 0 {
-                (f64::copysign(1.0, x), 0.0)
-            } else {
-                (-f64::copysign(1.0, x), 0.0)
-            }; // sin = ±1, cos = 0
+        if e >= 1075 {
+            // In [2^52, 2^53) the significand is the integer itself.
+            // At and above 2^53, every representable integer is even.
+            let odd = e == 1075 && (m0 & 1) != 0;
+            return (0.0f64.copysign(x), PARITY[odd as usize]);
+        }
+        // Here the shift is in 0..=10, so iq is exactly 2048*|x|.
+        // Bit 11 is the parity of the integer part.
+        let iq = m0 << (e - 1064);
+        let parity = PARITY[((iq >> 11) & 1) as usize];
+        match iq & 2047 {
+            0 => return (0.0f64.copysign(x), parity),
+            1024 => return (1.0f64.copysign(x) * parity, 0.0),
+            _ => {}
         }
     }
 
@@ -1067,21 +1071,13 @@ fn sincospi_gen_impl<B: SinCosPiBackend>(x: f64, backend: B) -> (f64, f64) {
 
     let si = e.wrapping_sub(1011);
     if si >= 0 && (m0.wrapping_shl(si.wrapping_add(1) as u32)) == 0 {
+        // Shifting by si-1 moves the integer part's low bit to bit 63.
+        let odd = (m0.wrapping_shl((si - 1) as u32)) >> 63;
         // x is integer or half-integer
         if (m0.wrapping_shl(si as u32)) == 0 {
-            static CF: [f64; 2] = [1., -1.];
-            let is_odd = backend.odd_integer(f64::from_bits(ax));
-            let cos_x = CF[is_odd as usize];
-            return (f64::copysign(0.0, x), cos_x); // x is integer
+            return (0.0f64.copysign(x), PARITY[odd as usize]);
         }
-        // x is half-integer
-        let t = (m0.wrapping_shl((si - 1) as u32)) >> 63;
-        // t = 0 if |x| = 1/2 mod 2, t = 1 if |x| = 3/2 mod 2
-        return if t == 0 {
-            (f64::copysign(1.0, x), 0.0)
-        } else {
-            (-f64::copysign(1.0, x), 0.0)
-        };
+        return (1.0f64.copysign(x) * PARITY[odd as usize], 0.0);
     }
 
     let (y, k) = backend.arg_reduce_pi_64(x);
@@ -1161,6 +1157,12 @@ mod tests {
 
     #[test]
     fn test_sinpi() {
+        let x = f64::from_bits(0x3c90_2384_eefb_fa2a);
+        let expected = f64::from_bits(0x3ca9_59c6_79cb_41ff);
+        assert_eq!(f_sinpi(x), expected);
+        assert_eq!(f_sinpi(-x), -expected);
+        assert_eq!(f_sincospi(x).0, expected);
+        assert_eq!(f_sincospi(-x).0, -expected);
         assert_eq!(f_sinpi(262143.50006870925), -0.9999999767029883);
         assert_eq!(f_sinpi(7124076477593855.), 0.);
         assert_eq!(f_sinpi(-11235582092889474000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.), -0.);
@@ -1188,6 +1190,34 @@ mod tests {
         assert!(f_sinpi(f64::INFINITY).is_nan());
         assert!(f_sinpi(f64::NEG_INFINITY).is_nan());
         assert!(f_sinpi(f64::NAN).is_nan());
+    }
+
+    #[test]
+    fn test_sincospi_large_exact_points() {
+        let two41 = (1u64 << 41) as f64;
+        let two52 = (1u64 << 52) as f64;
+        let two53 = (1u64 << 53) as f64;
+        let two63 = (1u64 << 63) as f64;
+        for (x, expected_cos) in [
+            (two41, 1.0),
+            (two41 + 1.0, -1.0),
+            (two52, 1.0),
+            (two52 + 1.0, -1.0),
+            (two53 - 1.0, -1.0),
+            (two53, 1.0),
+            (two63, 1.0),
+            (f64::MAX, 1.0),
+        ] {
+            for x in [x, -x] {
+                let (sin, cos) = f_sincospi(x);
+                assert_eq!(sin.to_bits(), 0.0f64.copysign(x).to_bits());
+                assert_eq!(cos, expected_cos);
+            }
+        }
+        for (x, expected_sin) in [(two41 + 0.5, 1.0), (two41 + 1.5, -1.0)] {
+            assert_eq!(f_sincospi(x), (expected_sin, 0.0));
+            assert_eq!(f_sincospi(-x), (-expected_sin, 0.0));
+        }
     }
 
     #[test]

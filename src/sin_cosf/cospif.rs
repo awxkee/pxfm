@@ -104,7 +104,7 @@ fn cospif_gen_impl(x: f32) -> f32 {
     // Decide based on quadrant what kernel function to use
     (match k & 3 {
         0 => cospif_eval(y),
-        1 => sinpif_eval(-y),
+        1 => sinpif_eval(0.0 - y), // A half-integer maps to +0.
         2 => -cospif_eval(y),
         _ => sinpif_eval(y),
     }) as f32
@@ -166,7 +166,7 @@ unsafe fn cospif_fma_impl(x: f32) -> f32 {
     use crate::sin_cosf::sincosf_eval::{cospif_eval_fma, sinpif_eval_fma};
     (match k & 3 {
         0 => cospif_eval_fma(y),
-        1 => sinpif_eval_fma(-y),
+        1 => sinpif_eval_fma(0.0 - y), // A half-integer maps to +0.
         2 => -cospif_eval_fma(y),
         _ => sinpif_eval_fma(y),
     }) as f32
@@ -205,7 +205,9 @@ mod tests {
     #[test]
     fn test_f_cospif() {
         assert_eq!(f_cospif(1.), -1.);
-        assert_eq!(f_cospif(-3.5), 0.0);
+        assert_eq!(f_cospif(-3.5).to_bits(), 0);
+        assert_eq!(f_cospif(-2.5).to_bits(), 0);
+        assert_eq!(f_cospif(0.5).to_bits(), 0);
         assert_eq!(f_cospif(3.), -1.);
         assert_eq!(f_cospif(-3.), -1.);
         assert_eq!(f_cospif(2.), 1.);
